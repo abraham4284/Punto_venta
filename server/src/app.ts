@@ -4,16 +4,9 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import { errorHandler } from "@/middlewares/errorHandler.js";
 
-// import {
-//   accountingRoutes,
-//   loansRoutes,
-//   authRoutes,
-//   paymentsRoutes,
-//   zoneRoutes,
-//   clientsRoutes,
-//   employeesRoutes
-// } from "@module/index.js";
+import { authRoutes, businessRoutes } from "@/modules/index.js";
 
 dotenv.config();
 
@@ -54,7 +47,8 @@ app.use(express.json());
 
 app.get("/", (_, res) => res.send("Api funcionando"));
 
-// app.use("/api", authRoutes);
+app.use("/api", authRoutes);
+app.use("/api", businessRoutes);
 // app.use("/api", accountingRoutes);
 // app.use("/api", loansRoutes);
 // app.use("/api", paymentsRoutes);
@@ -64,5 +58,7 @@ app.get("/", (_, res) => res.send("Api funcionando"));
 // app.use("/api", transactionsRoutes);
 // app.use("/api", transactionsLineRoutes);
 // app.use("/api", transactionsTruncate);
+
+app.use(errorHandler);
 
 export default app;
