@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    "rootDir": "src",
+    "outDir": "dist",
+
+    "strict": true,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+
+    "ignoreDeprecations": "6.0",
+
+    "baseUrl": ".",
+
+    "paths": {
+      "@/*": ["src/*"],
+      "@db/*": ["src/db/*"],
+      "@helpers/*": ["src/helpers/*"],
+      "@module/*": ["src/module/*"]
+    }
+  },
+
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

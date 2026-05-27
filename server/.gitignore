@@ -1,0 +1,16 @@
+/node_modules
+/dist
+/build
+/coverage
+/logs
+/temp
+/uploads
+/public
+/static
+/templates
+/views
+/config
+/database
+/models
+.env
+.env.*
