@@ -12,7 +12,6 @@ export const getBusinessController = async (
 ): Promise<void> => {
   try {
     const business = await getBusinessService(req.user!.idBusiness);
-
     res.status(200).json({
       status: "OK",
       message: "Negocio obtenido correctamente",

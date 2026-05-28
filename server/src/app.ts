@@ -6,7 +6,7 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import { errorHandler } from "@/middlewares/errorHandler.js";
 
-import { authRoutes, businessRoutes } from "@/modules/index.js";
+import { authRoutes, businessRoutes, depositRoutes } from "@/modules/index.js";
 
 dotenv.config();
 
@@ -49,6 +49,7 @@ app.get("/", (_, res) => res.send("Api funcionando"));
 
 app.use("/api", authRoutes);
 app.use("/api", businessRoutes);
+app.use("/api", depositRoutes);
 // app.use("/api", accountingRoutes);
 // app.use("/api", loansRoutes);
 // app.use("/api", paymentsRoutes);

@@ -7,8 +7,6 @@ export const requireAuth = (
   next: NextFunction,
 ): void => {
   const cookieToken = req.cookies?.access_token as string | undefined;
-  console.log(cookieToken, "Token del middleware");
-  console.log(req.cookies, "Cookies del middleware");
   const authHeader = req.headers.authorization;
   let token = cookieToken;
 
