@@ -79,9 +79,7 @@ export const useProducts = () => {
   ): Promise<{ status: boolean; message: string; errors?: FieldError[] }> => {
     try {
       clearErrors();
-      console.log("ingreso a la funcion");
       const response = await createProductRequest(payload);
-      console.log(response, "response");
       await getProducts();
       return {
         status: true,
@@ -104,9 +102,7 @@ export const useProducts = () => {
   ): Promise<{ status: boolean; message: string; errors?: FieldError[] }> => {
     try {
       clearErrors();
-
       const response = await updateProductRequest(idProduct, payload);
-
       await getProducts();
 
       return {
@@ -180,6 +176,12 @@ export const useProducts = () => {
     };
   }, [products]);
 
+  const resetProducts = () => {
+    setLoading(false);
+    setError(null);
+    setProducts([]);
+  };
+
   return {
     products,
     filteredProducts,
@@ -197,5 +199,6 @@ export const useProducts = () => {
     createProduct,
     updateProduct,
     toggleProductStatus,
+    resetProducts,
   };
 };

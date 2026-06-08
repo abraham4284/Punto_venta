@@ -9,5 +9,10 @@ export const productNav = [
     title: "Productos",
     url: "/admin/products",
   },
+  {
+    id: 3,
+    title: "Depositos",
+    url: "/admin/deposits",
+  },
   
 ];

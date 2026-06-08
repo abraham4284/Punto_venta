@@ -17,6 +17,7 @@ import type {
   ProductResponse,
 } from "../types/products.types";
 import { useProductCategories } from "../../product-categories/hooks/useProductCategories";
+import { useDeposits } from "../../deposits/hooks/useDeposits";
 
 export const ProductsPage = () => {
   const {
@@ -30,9 +31,17 @@ export const ProductsPage = () => {
     createProduct,
     updateProduct,
     toggleProductStatus,
+    resetProducts,
   } = useProducts();
 
-  const { categories, getProductCategories, loading } = useProductCategories();
+  const { categories, getProductCategories, loading, resetCategories } =
+    useProductCategories();
+  const {
+    deposits,
+    loading: loadingDeposits,
+    getDeposits,
+    resetDeposits,
+  } = useDeposits();
 
   const {
     isOpen,
@@ -45,16 +54,40 @@ export const ProductsPage = () => {
 
   useEffect(() => {
     getProducts();
-    getProductCategories();
-  }, [getProducts, getProductCategories]);
+    return () => {
+      resetProducts();
+    };
+  }, []);
 
   const handleOpenCreate = () => {
     resetDataEdit();
     toggleModal();
   };
 
+  useEffect(() => {
+    getProductCategories();
+    getDeposits();
+    return () => {
+      resetDeposits();
+      resetCategories();
+    };
+  }, [isOpen, dataEdit]);
+
   const handleSubmit = async (values: ProductFormValues) => {
     const payload = {
+      idProductCategory: Number(values.idProductCategory),
+      idDeposit: Number(values.idDeposit),
+      quantity: values.stock === "" ? 0 : Number(values.stock),
+      barcode: values.barcode.trim() || null,
+      name: values.name.trim(),
+      description: values.description.trim() || null,
+      imageUrl: values.imageUrl.trim() || null,
+      priceCost: Number(values.priceCost),
+      priceSale: Number(values.priceSale),
+      stockMin: values.stockMin === "" ? 0 : Number(values.stockMin),
+    };
+
+    const payloadUpdate = {
       idProductCategory: Number(values.idProductCategory),
       barcode: values.barcode.trim() || null,
       name: values.name.trim(),
@@ -62,17 +95,15 @@ export const ProductsPage = () => {
       imageUrl: values.imageUrl.trim() || null,
       priceCost: Number(values.priceCost),
       priceSale: Number(values.priceSale),
-      stock: values.stock === "" ? 0 : Number(values.stock),
       stockMin: values.stockMin === "" ? 0 : Number(values.stockMin),
     };
 
     if (dataEdit) {
-      return updateProduct(dataEdit.idProduct, payload);
+      return updateProduct(dataEdit.idProduct, payloadUpdate);
     }
 
     return createProduct(payload);
   };
-
   return (
     <main className="space-y-6 p-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -109,6 +140,7 @@ export const ProductsPage = () => {
         isOpen={isOpen}
         dataEdit={dataEdit}
         categories={categories}
+        deposits={deposits}
         loadingCategories={loadingCategories}
         backendErrors={fieldErrors}
         onClose={closeModal}

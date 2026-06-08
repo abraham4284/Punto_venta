@@ -1,17 +1,19 @@
 import { z } from "zod";
 
-export const productFormSchema = z.object({
+const productBaseSchema = z.object({
   idProductCategory: z
     .string()
-    .min(1, "La categoría es obligatoria")
+    .min(1, "La categoria es obligatoria")
     .refine(
-      (value) => Number(value) > 0,
-      "La categoría seleccionada no es válida"
+      function isValidCategory(value) {
+        return Number(value) > 0;
+      },
+      "La categoria seleccionada no es valida",
     ),
 
   barcode: z
     .string()
-    .max(120, "El código de barras no puede superar los 120 caracteres"),
+    .max(120, "El codigo de barras no puede superar los 120 caracteres"),
 
   name: z
     .string()
@@ -20,7 +22,7 @@ export const productFormSchema = z.object({
 
   description: z
     .string()
-    .max(255, "La descripción no puede superar los 255 caracteres"),
+    .max(255, "La descripcion no puede superar los 255 caracteres"),
 
   imageUrl: z
     .string()
@@ -30,29 +32,56 @@ export const productFormSchema = z.object({
     .string()
     .min(1, "El precio de costo es obligatorio")
     .refine(
-      (value) => Number(value) > 0,
-      "El precio de costo debe ser mayor a cero"
+      function isValidPriceCost(value) {
+        return Number(value) > 0;
+      },
+      "El precio de costo debe ser mayor a cero",
     ),
 
   priceSale: z
     .string()
     .min(1, "El precio de venta es obligatorio")
     .refine(
-      (value) => Number(value) > 0,
-      "El precio de venta debe ser mayor a cero"
+      function isValidPriceSale(value) {
+        return Number(value) > 0;
+      },
+      "El precio de venta debe ser mayor a cero",
     ),
 
-  stock: z
-    .string()
-    .refine((value) => value === "" || Number(value) >= 0, {
+  stock: z.string().refine(
+    function isValidStock(value) {
+      return value === "" || Number(value) >= 0;
+    },
+    {
       message: "El stock no puede ser negativo",
-    }),
+    },
+  ),
 
-  stockMin: z
-    .string()
-    .refine((value) => value === "" || Number(value) >= 0, {
-      message: "El stock mínimo no puede ser negativo",
-    }),
+  stockMin: z.string().refine(
+    function isValidStockMin(value) {
+      return value === "" || Number(value) >= 0;
+    },
+    {
+      message: "El stock minimo no puede ser negativo",
+    },
+  ),
 });
 
-export type ProductFormSchema = z.infer<typeof productFormSchema>;
+export const productCreateFormSchema = productBaseSchema.extend({
+  idDeposit: z
+    .string()
+    .min(1, "El deposito es obligatorio")
+    .refine(
+      function isValidDeposit(value) {
+        return Number(value) > 0;
+      },
+      "El deposito seleccionado no es valido",
+    ),
+});
+
+export const productUpdateFormSchema = productBaseSchema.omit({
+  stock: true,
+});
+
+export type ProductCreateFormSchema = z.infer<typeof productCreateFormSchema>;
+export type ProductUpdateFormSchema = z.infer<typeof productUpdateFormSchema>;

@@ -22,6 +22,7 @@ export interface ProductCategoryOption {
 
 export interface ProductResponse {
   idProduct: number;
+  idDeposit: number;
   idBusiness: number;
   idProductCategory: number;
   categoryName: string | null;
@@ -40,6 +41,8 @@ export interface ProductResponse {
 
 export interface CreateProductPayload {
   idProductCategory: number;
+  idDeposit: number;
+  quantity: number;
   barcode?: string | null;
   name: string;
   description?: string | null;
@@ -58,7 +61,6 @@ export interface UpdateProductPayload {
   imageUrl?: string | null;
   priceCost?: number;
   priceSale?: number;
-  stock?: number;
   stockMin?: number;
 }
 
@@ -67,7 +69,8 @@ export interface UpdateProductStatusPayload {
 }
 
 export interface ProductFormValues {
-  idProductCategory: string;
+  idProductCategory: string | null;
+  idDeposit: string | null;
   barcode: string;
   name: string;
   description: string;

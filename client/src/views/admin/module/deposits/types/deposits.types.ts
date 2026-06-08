@@ -1,3 +1,8 @@
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
 export interface ApiResponse<T> {
   status: boolean;
   message: string;
@@ -10,13 +15,8 @@ export interface ApiErrorResponse {
   errors?: FieldError[];
 }
 
-export interface FieldError {
-  field: string;
-  message: string;
-}
-
-export interface ProductCategoryResponse {
-  idProductCategory: number;
+export interface DepositResponse {
+  idDeposit: number;
   idBusiness: number;
   name: string;
   description: string | null;
@@ -26,30 +26,28 @@ export interface ProductCategoryResponse {
   updatedAt: Date | null;
 }
 
-export interface CreateProductCategoryBody {
+export interface CreateDepositBody {
   name: string;
   description?: string | null;
   isDefault?: boolean;
 }
 
-export interface UpdateProductCategoryBody {
+export interface UpdateDepositBody {
   name?: string;
   description?: string | null;
   isDefault?: boolean;
+  isActive?: boolean;
 }
 
-export interface UpdateProductCategoryStatusBody {
-  isActive: boolean;
-}
-
-export interface ProductCategoryFormValues {
+export interface DepositFormValues {
   name: string;
-  description?: string;
+  description: string;
   isDefault: boolean;
 }
 
-export interface ProductCategoryMetrics {
+export interface DepositMetrics {
   total: number;
   active: number;
   inactive: number;
+  defaultDepositName: string;
 }

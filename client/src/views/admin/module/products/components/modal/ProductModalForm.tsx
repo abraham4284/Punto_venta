@@ -21,13 +21,17 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import { productFormSchema } from "../../validations/products.validations";
+import {
+  productCreateFormSchema,
+  productUpdateFormSchema,
+} from "../../validations/products.validations";
 import type {
   FieldError,
   ProductFormValues,
   ProductResponse,
 } from "../../types/products.types";
 import type { ProductCategoryResponse } from "../../../product-categories/types/productCategories.types";
+import type { DepositResponse } from "../../../deposits/types/deposits.types";
 
 type SubmitResult = {
   status: boolean;
@@ -39,6 +43,7 @@ type Props = {
   isOpen: boolean;
   dataEdit: ProductResponse | null;
   categories: ProductCategoryResponse[];
+  deposits: DepositResponse[];
   loadingCategories: boolean;
   backendErrors: FieldError[];
   onClose: () => void;
@@ -47,6 +52,7 @@ type Props = {
 
 const initialForm: ProductFormValues = {
   idProductCategory: "",
+  idDeposit: "",
   barcode: "",
   name: "",
   description: "",
@@ -68,6 +74,7 @@ export const ProductModalForm = ({
   isOpen,
   dataEdit,
   categories,
+  deposits,
   backendErrors,
   onClose,
   onSubmit,
@@ -79,14 +86,19 @@ export const ProductModalForm = ({
   const [saving, setSaving] = useState(false);
   const selectedCategory = categories.find(
     (category) =>
-      String(category.idProductCategory) === formSate.idProductCategory,
+      String(category.idProductCategory) === (formSate.idProductCategory ?? ""),
   );
   const selectedCategoryLabel = selectedCategory?.name?.trim() || undefined;
+  const selectedDeposit = deposits.find(
+    (deposit) => String(deposit.idDeposit) === (formSate.idDeposit ?? ""),
+  );
+  const selectedDepositLabel = selectedDeposit?.name?.trim() || undefined;
 
   useEffect(() => {
     if (dataEdit) {
       setFormSate({
         idProductCategory: String(dataEdit.idProductCategory),
+        idDeposit: "",
         barcode: dataEdit.barcode ?? "",
         name: dataEdit.name,
         description: dataEdit.description ?? "",
@@ -118,7 +130,10 @@ export const ProductModalForm = ({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const validation = productFormSchema.safeParse(formSate);
+    const validation = dataEdit
+      ? productUpdateFormSchema.safeParse(formSate)
+      : productCreateFormSchema.safeParse(formSate);
+
     if (!validation.success) {
       const fieldErrors = validation.error.issues.reduce<
         Record<string, string>
@@ -140,7 +155,7 @@ export const ProductModalForm = ({
       setSaving(true);
       setErrors({});
 
-      const result = await onSubmit(validation.data);
+      const result = await onSubmit(formSate);
 
       if (!result.status && result.errors) {
         setErrors(mapErrorsToRecord(result.errors));
@@ -168,7 +183,7 @@ export const ProductModalForm = ({
               Categorias <span className="text-red-500">*</span>
             </Label>
             <Select
-              value={formSate.idProductCategory}
+              value={formSate.idProductCategory ?? ""}
               onValueChange={(value) =>
                 setFormSate({ ...formSate, idProductCategory: value })
               }
@@ -297,40 +312,85 @@ export const ProductModalForm = ({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="stock">Stock actual</Label>
-              <Input
-                id="stock"
-                name="stock"
-                type="number"
-                min="0"
-                step="1"
-                value={formSate.stock}
-                onChange={onInputChange}
-                placeholder="0"
-              />
-              {errors.stock && (
-                <p className="text-sm text-destructive">{errors.stock}</p>
-              )}
-            </div>
+          {!dataEdit && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="stock">Stock actual</Label>
+                  <Input
+                    id="stock"
+                    name="stock"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={formSate.stock}
+                    onChange={onInputChange}
+                    placeholder="0"
+                  />
+                  {errors.stock && (
+                    <p className="text-sm text-destructive">{errors.stock}</p>
+                  )}
+                </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="stockMin">Stock mínimo</Label>
-              <Input
-                id="stockMin"
-                name="stockMin"
-                type="number"
-                min="0"
-                step="1"
-                value={formSate.stockMin}
-                onChange={onInputChange}
-                placeholder="0"
-              />
-              {errors.stockMin && (
-                <p className="text-sm text-destructive">{errors.stockMin}</p>
-              )}
-            </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="balance">
+                    Depositos <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={formSate.idDeposit ?? ""}
+                    onValueChange={(value) =>
+                      setFormSate({ ...formSate, idDeposit: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full mt-2">
+                      <SelectValue placeholder="Seleccione una opcion">
+                        {selectedDepositLabel ?? "Seleccione una opcion"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {deposits.length > 0 ? (
+                        <SelectGroup>
+                          {deposits.map((el) => (
+                            <SelectItem
+                              key={el.idDeposit}
+                              value={String(el.idDeposit)}
+                            >
+                              {el.name?.trim() || "Sin nombre"}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ) : (
+                        <SelectGroup>
+                          <SelectLabel>Sin datos</SelectLabel>
+                        </SelectGroup>
+                      )}
+                    </SelectContent>
+                  </Select>
+
+                  {errors.idDeposit && (
+                    <p className="text-sm text-destructive">
+                      {errors.idDeposit}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          <div className="grid gap-2">
+            <Label htmlFor="stockMin">Stock mínimo</Label>
+            <Input
+              id="stockMin"
+              name="stockMin"
+              type="number"
+              min="0"
+              step="1"
+              value={formSate.stockMin}
+              onChange={onInputChange}
+              placeholder="0"
+            />
+            {errors.stockMin && (
+              <p className="text-sm text-destructive">{errors.stockMin}</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

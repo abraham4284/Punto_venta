@@ -72,7 +72,7 @@ export const LiProducts = ({
       {isOpen &&
         links.map((el) => (
           <ul
-            key={el.id}
+            key={el.url}
             className={`
             ml-8 mt-1 space-y-1 overflow-hidden transition-all duration-700 
           ${isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}

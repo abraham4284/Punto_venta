@@ -36,8 +36,8 @@ export async function createProductController(
 ): Promise<Response> {
   try {
     const businessData = { ...req.body, idBusiness: req.user!.idBusiness };
+    console.log(businessData,'data')
     const data = createProductSchema.parse(businessData);
-    console.log(data,"data")
     const result = await createProductService(data);
 
     return res.status(201).json({
@@ -46,7 +46,6 @@ export async function createProductController(
       data: result,
     });
   } catch (error: any) {
-    console.log(error, "error");
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,

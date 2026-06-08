@@ -23,6 +23,15 @@ export const createProductSchema = z
       .int("La categoria debe ser un numero entero")
       .positive("La categoria debe ser valida"),
 
+    idDeposit: z
+      .number({ error: "El deposito es obligatorio" })
+      .int("El deposito debe ser un numero entero")
+      .positive("El deposito debe ser valido"),
+
+    stock: z
+      .number({ error: "La cantidad inicial es obligatoria" })
+      .min(0, "La cantidad inicial no puede ser negativa"),
+
     barcode: z
       .string()
       .trim()
