@@ -42,7 +42,6 @@ export interface ProductResponse {
 export interface CreateProductPayload {
   idProductCategory: number;
   idDeposit: number;
-  quantity: number;
   barcode?: string | null;
   name: string;
   description?: string | null;

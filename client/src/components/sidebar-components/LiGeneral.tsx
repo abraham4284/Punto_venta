@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-type LiLoansProps = {
+type LiGeneralProps = {
   setIsOpen: (open: boolean) => void;
   isOpen: boolean;
   links: { id: number; title: string; url: string }[];
@@ -9,14 +9,14 @@ type LiLoansProps = {
   title: string;
 };
 
-export const LiPeople = ({
+export const LiGeneral = ({
   setIsOpen,
   isOpen,
   links,
   sidebarLinkClass,
   location,
   title,
-}: LiLoansProps) => {
+}: LiGeneralProps) => {
   const classTitle = isOpen
     ? "ms-3 flex-1 text-left cursor-pointer  text-blue-700 dark:bg-gray-700 dark:text-white font-bold"
     : "ms-3 flex-1 text-left cursor-pointer";

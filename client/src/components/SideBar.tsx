@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { sidebarLinkClass } from "../helpers";
 import { useAuthStore } from "@/views/admin";
-import { LiProducts, LiPeople } from "./sidebar-components";
-import { productNav, peopleNav } from "@/navigation";
+import { LiGeneral } from "./sidebar-components";
+import { productNav, peopleNav,stockNav } from "@/navigation";
 
 type SideBarProps = {
   isOpenSideBar: boolean;
@@ -15,6 +15,7 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
   const user = useAuthStore((state) => state.user);
   const [openProducts, setOpenProducts] = useState(false);
   const [openPeople, setOpenPeople] = useState(false);
+  const [openStock, setOpenStock] = useState(false);
   const siderBarRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -81,7 +82,8 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
               </Link>
             </li>
 
-            <LiPeople
+            <LiGeneral
+              key={1}
               isOpen={openPeople}
               setIsOpen={setOpenPeople}
               links={peopleNav}
@@ -89,13 +91,23 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
               location={location}
               title="Personas"
             />
-            <LiProducts
+            <LiGeneral
+              key={2}
               isOpen={openProducts}
               setIsOpen={setOpenProducts}
               links={productNav}
               sidebarLinkClass={sidebarLinkClass}
               location={location}
               title="Productos"
+            />
+            <LiGeneral
+              key={3}
+              isOpen={openStock}
+              setIsOpen={setOpenStock}
+              links={stockNav}
+              sidebarLinkClass={sidebarLinkClass}
+              location={location}
+              title="Stock"
             />
           </ul>
 

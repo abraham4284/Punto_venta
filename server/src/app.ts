@@ -13,6 +13,8 @@ import {
   productCategoryRoutes,
   productRoutes,
   customerRoutes,
+  stockRoutes,
+  stockMovementRoutes,
 } from "@/modules/index.js";
 
 dotenv.config();
@@ -60,6 +62,8 @@ app.use("/api", depositRoutes);
 app.use("/api", productCategoryRoutes);
 app.use("/api", productRoutes);
 app.use("/api", customerRoutes);
+app.use("/api", stockRoutes);
+app.use("/api", stockMovementRoutes);
 // app.use("/api", accountingRoutes);
 // app.use("/api", loansRoutes);
 // app.use("/api", paymentsRoutes);

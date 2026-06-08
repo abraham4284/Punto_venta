@@ -77,7 +77,7 @@ export const ProductsPage = () => {
     const payload = {
       idProductCategory: Number(values.idProductCategory),
       idDeposit: Number(values.idDeposit),
-      quantity: values.stock === "" ? 0 : Number(values.stock),
+      stock: values.stock === "" ? 0 : Number(values.stock),
       barcode: values.barcode.trim() || null,
       name: values.name.trim(),
       description: values.description.trim() || null,
