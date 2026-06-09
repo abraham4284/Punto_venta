@@ -4,32 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUtilsState } from "@/hooks/useUtilsState";
 
-import { StockFilter, TableStock,CardStockMetric } from "../components";
+import { ModalFormStock, StockFilter, TableStock, CardStockMetric } from "../components";
+import { useDeposits } from "../../deposits/hooks/useDeposits";
+import { useProducts } from "../../products/hooks/useProducts";
 import { useStock } from "../hooks/useStock";
 import type { StockResponse } from "../types/stock.types";
-// import { useProductCategories } from "../hooks/useProductCategories";
-// import type {
-//   ProductCategoryFormValues,
-//   ProductCategoryResponse,
-// } from "../types/productCategories.types";
 
 export const StockPage = () => {
-  //   const {
-  //     filteredCategories,
-  //     metrics,
-  //     loading,
-  //     fieldErrors,
-  //     search,
-  //     setSearch,
-  //     getProductCategories,
-  //     createProductCategory,
-  //     updateProductCategory,
-  //     toggleProductCategoryStatus,
-  //   } = useProductCategories();
-
   const {
     getStock,
-    // stock,
     resetStock,
     loading,
     search,
@@ -38,40 +21,32 @@ export const StockPage = () => {
     metrics,
   } = useStock();
 
+  const { products, getProducts, resetProducts } = useProducts();
+  const { deposits, getDeposits, resetDeposits } = useDeposits();
+
   const {
     isOpen,
-    dataEdit,
     toggleModal,
     closeModal,
-    addDataEdit,
     resetDataEdit,
   } = useUtilsState<StockResponse>();
 
   useEffect(() => {
     getStock();
+    getProducts();
+    getDeposits();
+
     return () => {
       resetStock();
+      resetProducts();
+      resetDeposits();
     };
-  }, [getStock]);
+  }, [getStock, getProducts, getDeposits]);
 
   const handleOpenCreate = () => {
     resetDataEdit();
     toggleModal();
   };
-
-  //   const handleSubmit = async (values: ProductCategoryFormValues) => {
-  //     const payload = {
-  //       name: values.name.trim(),
-  //       description: values.description.trim() || null,
-  //       isDefault: values.isDefault,
-  //     };
-
-  //     if (dataEdit) {
-  //       return updateProductCategory(dataEdit.idProductCategory, payload);
-  //     }
-
-  //     return createProductCategory(payload);
-  //   };
 
   return (
     <main className="space-y-6 p-6">
@@ -101,13 +76,13 @@ export const StockPage = () => {
         </CardContent>
       </Card>
 
-      {/* <CategoryModalForm
+      <ModalFormStock
         isOpen={isOpen}
-        dataEdit={dataEdit}
-        backendErrors={fieldErrors}
         onClose={closeModal}
-        onSubmit={handleSubmit}
-      /> */}
+        products={products}
+        deposits={deposits}
+        onSuccess={getStock}
+      />
     </main>
   );
 };

@@ -40,7 +40,7 @@ export const stockNav = [
   {
     id: 2,
     title: "Movimientos",
-    url: "/admin/movements",
+    url: "/admin/stock/movements",
   },
   
 ];

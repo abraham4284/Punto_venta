@@ -24,13 +24,92 @@ export interface StockResponse {
   updatedAt: Date | null;
 }
 
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export interface ApiErrorResponse {
+  status: boolean;
+  message: string;
+  errors?: FieldError[];
+}
+
+export type StockOperationType =
+  | "INITIAL_STOCK"
+  | "ADJUSTMENT_IN"
+  | "ADJUSTMENT_OUT"
+  | "TRANSFER";
+
 export interface CreateInitialStockPayload {
-  idBusiness: number;
-  idUser: number;
   idProduct: number;
   idDeposit: number;
   quantity: number;
   observation?: string | null;
+}
+
+export interface ProcessStockAdjustmentPayload {
+  idProduct: number;
+  idDeposit: number;
+  quantity: number;
+  type: "ADJUSTMENT_IN" | "ADJUSTMENT_OUT";
+  observation?: string | null;
+}
+
+export interface ProcessStockTransferPayload {
+  idProduct: number;
+  idDepositFrom: number;
+  idDepositTo: number;
+  quantity: number;
+  observation?: string | null;
+}
+
+export interface StockMovementResponse {
+  idStockMovement: number;
+  idBusiness: number;
+  businessName: string;
+  idProduct: number;
+  productName: string;
+  imageUrl?: string | null;
+  productImageUrl: string | null;
+  idUser: number;
+  userName: string;
+  movementType:
+    | "PURCHASE"
+    | "SALE"
+    | "TRANSFER_IN"
+    | "TRANSFER_OUT"
+    | "ADJUSTMENT_IN"
+    | "ADJUSTMENT_OUT";
+  idDepositFrom: number | null;
+  depositFromName: string | null;
+  idDepositTo: number | null;
+  depositToName: string | null;
+  quantity: number;
+  referenceType: "SALE" | "PURCHASE" | "TRANSFER" | "ADJUSTMENT" | null;
+  referenceId: number | null;
+  observation: string | null;
+  createdAt: Date;
+}
+
+export type StockMovementType = StockMovementResponse["movementType"];
+
+export type StockMovementFilter = "ALL" | "IN" | "OUT" | "TRANSFER";
+
+export interface StockMovementMetrics {
+  total: number;
+  entriesVolume: number;
+  outputsVolume: number;
+}
+
+export interface StockFormValues {
+  idProduct: string;
+  operationType: StockOperationType | "";
+  idDeposit: string;
+  idDepositFrom: string;
+  idDepositTo: string;
+  quantity: string;
+  observation: string;
 }
 
 export interface StockMetrics {

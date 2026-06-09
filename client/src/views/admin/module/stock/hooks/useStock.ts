@@ -1,25 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 import type { AxiosError } from "axios";
-import type {} from "@/api/axios.response.type";
 import { getStockRequest } from "../api/stock.api";
 import type {
   ApiErrorResponse,
   FieldError,
-} from "../../deposits/types/deposits.types";
-import type { StockResponse } from "../types/stock.types";
-// import type {
-//   ApiErrorResponse,
-//   CreateDepositBody,
-//   DepositResponse,
-//   FieldError,
-//   UpdateDepositBody,
-// } from "../types/deposits.types";
-
-type MutationResult = {
-  status: boolean;
-  message: string;
-  errors?: FieldError[];
-};
+  StockResponse,
+} from "../types/stock.types";
 
 export const useStock = () => {
   const [stock, setStock] = useState<StockResponse[]>([]);
@@ -90,7 +76,6 @@ export const useStock = () => {
   };
 
   return {
-    // deposits,
     filteredStock,
     metrics,
     stock,
