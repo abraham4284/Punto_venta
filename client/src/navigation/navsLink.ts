@@ -14,7 +14,6 @@ export const productNav = [
     title: "Depositos",
     url: "/admin/deposits",
   },
-  
 ];
 
 export const peopleNav = [
@@ -28,7 +27,6 @@ export const peopleNav = [
     title: "Proveedores",
     url: "/admin/suppliers",
   },
-  
 ];
 
 export const stockNav = [
@@ -42,5 +40,12 @@ export const stockNav = [
     title: "Movimientos",
     url: "/admin/stock/movements",
   },
-  
+];
+
+export const saleNav = [
+  {
+    id: 1,
+    title: "Registrar Venta",
+    url: "/admin/sales",
+  },
 ];

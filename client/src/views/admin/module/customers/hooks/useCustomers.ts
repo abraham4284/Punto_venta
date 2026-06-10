@@ -38,9 +38,7 @@ export const useCustomers = () => {
     return data;
   };
 
-  const toggleCustomerStatus = async (
-    payload: ToggleCustomerStatusPayload,
-  ) => {
+  const toggleCustomerStatus = async (payload: ToggleCustomerStatusPayload) => {
     const { data } = await toggleCustomerStatusRequest(payload);
     await getCustomers();
     return data;
@@ -58,6 +56,11 @@ export const useCustomers = () => {
     };
   }, [customers]);
 
+  const resetCustomers = () => {
+    setLoading(false);
+    setCustomers([]);
+  };
+
   return {
     customers,
     loading,
@@ -66,5 +69,6 @@ export const useCustomers = () => {
     createCustomer,
     updateCustomer,
     toggleCustomerStatus,
+    resetCustomers
   };
 };

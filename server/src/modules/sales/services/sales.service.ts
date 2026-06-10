@@ -51,7 +51,6 @@ async function callCreateSaleDetailProcedure(
   data: CreateSalePayload,
   idSale: number,
 ): Promise<void> {
-  console.log("Ingreso al procedimiento de detalle de venta", data.items);
   for (const item of data.items) {
     await connection.query<RowDataPacket[]>(
       "CALL sp_create_sale_detail_and_discount_stock(?, ?, ?, ?, ?, ?, ?, ?, ?)",

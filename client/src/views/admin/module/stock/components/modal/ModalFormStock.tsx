@@ -61,6 +61,7 @@ type OperationOption = {
 };
 
 const operationOptions: OperationOption[] = [
+  { value: "INITIAL_STOCK", label: "Alta de stock" },
   { value: "ADJUSTMENT_IN", label: "Ingreso por ajuste" },
   { value: "ADJUSTMENT_OUT", label: "Egreso por ajuste" },
   { value: "TRANSFER", label: "Transferencia entre depositos" },

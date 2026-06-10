@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { sidebarLinkClass } from "../helpers";
 import { useAuthStore } from "@/views/admin";
 import { LiGeneral } from "./sidebar-components";
-import { productNav, peopleNav,stockNav } from "@/navigation";
+import { productNav, peopleNav,stockNav, saleNav } from "@/navigation";
 
 type SideBarProps = {
   isOpenSideBar: boolean;
@@ -16,6 +16,7 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
   const [openProducts, setOpenProducts] = useState(false);
   const [openPeople, setOpenPeople] = useState(false);
   const [openStock, setOpenStock] = useState(false);
+  const [openSales, setOpenSales] = useState(false);
   const siderBarRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -108,6 +109,15 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
               sidebarLinkClass={sidebarLinkClass}
               location={location}
               title="Stock"
+            />
+            <LiGeneral
+              key={4}
+              isOpen={openSales}
+              setIsOpen={setOpenSales}
+              links={saleNav}
+              sidebarLinkClass={sidebarLinkClass}
+              location={location}
+              title="Ventas"
             />
           </ul>
 
