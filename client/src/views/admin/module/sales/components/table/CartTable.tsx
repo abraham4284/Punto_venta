@@ -13,7 +13,6 @@ import type { CartItem } from "../../types";
 
 type Props = {
   items: CartItem[];
-  transactionDate: string;
   errors: Record<string, string>;
   onQuantityChange: (idProduct: number, quantity: number) => void;
   onDiscountPercentChange: (idProduct: number, value: number) => void;
@@ -30,7 +29,6 @@ const formatMoney = (value: number): string => {
 
 export const CartTable = ({
   items,
-  transactionDate,
   errors,
   onQuantityChange,
   onDiscountPercentChange,

@@ -32,10 +32,8 @@ export async function createSaleController(
       idBusiness: req.user!.idBusiness,
       idUser: req.user!.idUser,
     };
-
     const data = createSaleSchema.parse(saleData);
     const result = await createSaleService(data);
-
     return res.status(201).json({
       status: true,
       message: "Venta procesada con exito",

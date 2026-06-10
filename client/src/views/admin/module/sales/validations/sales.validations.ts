@@ -16,9 +16,10 @@ export const saleDetailSchema = z
 
 export const createSaleFormSchema = z.object({
   idCustomer: z
-    .number({ error: "Selecciona un cliente" })
+    .number()
     .int("Selecciona un cliente valido")
-    .positive("Selecciona un cliente"),
+    .optional()
+    .nullable(),
   idDeposit: z
     .number({ error: "Selecciona un deposito" })
     .int("Selecciona un deposito valido")

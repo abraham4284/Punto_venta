@@ -76,7 +76,6 @@ export async function createSaleService(
 
   try {
     await connection.beginTransaction();
-
     const idSale = await callCreateSaleProcedure(connection, data);
     await callCreateSaleDetailProcedure(connection, data, idSale);
 

@@ -338,7 +338,7 @@ export const useSales = () => {
     const total = Decimal.max(subtotal.minus(discountTotal), 0);
 
     return {
-      idCustomer: Number(header.idCustomer),
+      idCustomer: header.idCustomer,
       idDeposit: Number(header.idDeposit),
       idPaymentMethod: header.idPaymentMethod,
       subtotal: toMoney(subtotal),
@@ -400,6 +400,6 @@ export const useSales = () => {
     submitSale,
     clearErrors,
     setValidationErrors,
-    clearCart
+    clearCart,
   };
 };

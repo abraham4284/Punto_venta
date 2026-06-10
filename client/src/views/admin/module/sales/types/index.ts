@@ -82,7 +82,7 @@ export interface ProductSelection {
 }
 
 export interface CreateSalePayload {
-  idCustomer: number;
+  idCustomer: number | null;
   idDeposit: number;
   idPaymentMethod: number | null;
   subtotal: number;
