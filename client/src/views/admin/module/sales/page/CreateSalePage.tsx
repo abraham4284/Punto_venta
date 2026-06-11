@@ -49,7 +49,7 @@ const getFieldError = (
 };
 
 
-export const SalesPage = () => {
+export const CreateSalePage = () => {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [depositSearch, setDepositSearch] = useState("");

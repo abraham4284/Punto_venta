@@ -3,8 +3,11 @@ import type { AxiosResponse } from "axios";
 import type {
   ApiResponse,
   CreateSalePayload,
+  PaginatedSalesResponse,
   ProductWithStockResponse,
+  SaleFilters,
   SaleResponse,
+  SaleWithDetailsResponse,
 } from "../types";
 
 export const createSaleRequest = (
@@ -17,4 +20,27 @@ export const getProductsByDepositRequest = (
   idDeposit: number,
 ): Promise<AxiosResponse<ApiResponse<ProductWithStockResponse[]>>> => {
   return axios.get(`/sales/products-by-deposit/${idDeposit}`);
+};
+
+export const getSalesRequest = (
+  page: number,
+  limit: number,
+  filters: SaleFilters,
+): Promise<AxiosResponse<ApiResponse<PaginatedSalesResponse>>> => {
+  return axios.get("/sales", {
+    params: {
+      page,
+      limit,
+      idDeposit: filters.idDeposit ?? undefined,
+      status: filters.status ?? undefined,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+    },
+  });
+};
+
+export const getSaleByIdRequest = (
+  idSale: number,
+): Promise<AxiosResponse<ApiResponse<SaleWithDetailsResponse>>> => {
+  return axios.get(`/sales/${idSale}`);
 };

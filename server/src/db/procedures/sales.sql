@@ -321,7 +321,13 @@ DROP PROCEDURE IF EXISTS sp_get_sales;
 DELIMITER $$
 
 CREATE PROCEDURE sp_get_sales(
-  IN p_idBusiness INT
+  IN p_idBusiness INT,
+  IN p_limit INT,
+  IN p_offset INT,
+  IN p_idDeposit INT,
+  IN p_status VARCHAR(20),
+  IN p_startDate DATETIME,
+  IN p_endDate DATETIME
 )
 BEGIN
   SELECT
@@ -356,7 +362,24 @@ BEGIN
     ON pm.idPaymentMethod = s.idPaymentMethod
     AND pm.idBusiness = s.idBusiness
   WHERE s.idBusiness = p_idBusiness
-  ORDER BY s.created_at DESC, s.idSale DESC;
+    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_status IS NULL OR s.status = p_status)
+    AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
+    AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
+  ORDER BY s.created_at DESC, s.idSale DESC
+  LIMIT p_limit OFFSET p_offset;
+
+  SELECT
+    COUNT(*) AS totalRecords,
+    SUM(CASE WHEN s.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedRecords,
+    SUM(CASE WHEN s.status = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelledRecords,
+    COALESCE(SUM(CASE WHEN s.status = 'COMPLETED' THEN s.total ELSE 0 END), 0) AS completedTotal
+  FROM sales s
+  WHERE s.idBusiness = p_idBusiness
+    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_status IS NULL OR s.status = p_status)
+    AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
+    AND (p_endDate IS NULL OR s.sale_date <= p_endDate);
 END$$
 
 DELIMITER ;

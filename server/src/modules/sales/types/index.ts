@@ -85,6 +85,46 @@ export interface CancelSalePayload {
   idSale: number;
 }
 
+export interface GetSalesFilters {
+  idBusiness: number;
+  page: number;
+  limit: number;
+  offset: number;
+  idDeposit?: number | null;
+  status?: SaleStatus | null;
+  startDate?: Date | null;
+  endDate?: Date | null;
+}
+
+export interface SalesPagination {
+  totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface PaginatedSalesResponse {
+  sales: SaleResponse[];
+  pagination: SalesPagination;
+  metrics: SalesSummary;
+}
+
+export interface TotalRecordsDbRow {
+  totalRecords: number;
+  completedRecords: number;
+  cancelledRecords: number;
+  completedTotal: string | number;
+}
+
+export interface SalesSummary {
+  total: number;
+  completed: number;
+  completedPercentage: number;
+  cancelled: number;
+  cancelledPercentage: number;
+  completedTotal: number;
+}
+
 export interface SaleResponse {
   idSale: number;
   idBusiness: number;

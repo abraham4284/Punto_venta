@@ -113,3 +113,53 @@ export interface SaleResponse {
   createdAt: Date;
   updatedAt: Date | null;
 }
+
+export interface SaleDetailResponse {
+  idSaleDetail: number;
+  idSale: number;
+  idBusiness: number;
+  idProduct: number;
+  productName: string;
+  barcode: string | null;
+  productImageUrl: string | null;
+  idDeposit: number;
+  depositName: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  total: number;
+  createdAt: Date;
+}
+
+export interface SaleWithDetailsResponse extends SaleResponse {
+  items: SaleDetailResponse[];
+}
+
+export interface SalesPagination {
+  totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface PaginatedSalesResponse {
+  sales: SaleResponse[];
+  pagination: SalesPagination;
+  metrics: SaleMetricsData;
+}
+
+export interface SaleFilters {
+  idDeposit: number | null;
+  status: "COMPLETED" | "CANCELLED" | null;
+  startDate: string;
+  endDate: string;
+}
+
+export interface SaleMetricsData {
+  total: number;
+  completed: number;
+  completedPercentage: number;
+  cancelled: number;
+  cancelledPercentage: number;
+  completedTotal: number;
+}

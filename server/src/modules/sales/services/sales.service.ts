@@ -8,6 +8,8 @@ import {
 import type {
   CancelSalePayload,
   CreateSalePayload,
+  GetSalesFilters,
+  PaginatedSalesResponse,
   ProductWithStockDbRow,
   ProductWithStockResponse,
   SaleDbRow,
@@ -15,13 +17,13 @@ import type {
   SaleIdDbRow,
   SaleResponse,
   SaleWithDetailsResponse,
+  TotalRecordsDbRow,
 } from "../types/index.js";
 
 async function callCreateSaleProcedure(
   connection: PoolConnection,
   data: CreateSalePayload,
 ): Promise<number> {
-  console.log("Ingreso a callCreateSaleProcedure",data);
   const [rows] = await connection.query<RowDataPacket[]>(
     "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
@@ -91,14 +93,47 @@ export async function createSaleService(
 }
 
 export async function getSalesService(
-  idBusiness: number,
-): Promise<SaleResponse[]> {
-  const [rows] = await pool.query<RowDataPacket[]>("CALL sp_get_sales(?)", [
-    idBusiness,
-  ]);
+  filters: GetSalesFilters,
+): Promise<PaginatedSalesResponse> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?)",
+    [
+      filters.idBusiness,
+      filters.limit,
+      filters.offset,
+      filters.idDeposit ?? null,
+      filters.status ?? null,
+      filters.startDate ?? null,
+      filters.endDate ?? null,
+    ],
+  );
 
-  const result = rows as unknown as SaleDbRow[][];
-  return (result[0] ?? []).map(mapSale);
+  const result = rows as unknown as [SaleDbRow[], TotalRecordsDbRow[]];
+  const summary = result[1]?.[0];
+  const totalRecords = Number(summary?.totalRecords ?? 0);
+  const completed = Number(summary?.completedRecords ?? 0);
+  const cancelled = Number(summary?.cancelledRecords ?? 0);
+  const totalPages = Math.max(Math.ceil(totalRecords / filters.limit), 1);
+
+  return {
+    sales: (result[0] ?? []).map(mapSale),
+    pagination: {
+      totalRecords,
+      currentPage: filters.page,
+      totalPages,
+      limit: filters.limit,
+    },
+    metrics: {
+      total: totalRecords,
+      completed,
+      completedPercentage:
+        totalRecords === 0 ? 0 : Number(((completed / totalRecords) * 100).toFixed(2)),
+      cancelled,
+      cancelledPercentage:
+        totalRecords === 0 ? 0 : Number(((cancelled / totalRecords) * 100).toFixed(2)),
+      completedTotal: Number(summary?.completedTotal ?? 0),
+    },
+  };
 }
 
 export async function getSaleByIdService(

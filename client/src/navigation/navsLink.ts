@@ -48,4 +48,9 @@ export const saleNav = [
     title: "Registrar Venta",
     url: "/admin/sales",
   },
+  {
+    id: 2,
+    title: "Historial de Ventas",
+    url: "/admin/sales/history",
+  },
 ];

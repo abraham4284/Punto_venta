@@ -12,6 +12,12 @@ import {
   productsByDepositSchema,
   saleIdParamSchema,
 } from "../validations/sales.validations.js";
+import {
+  parseNullableDate,
+  parseNullablePositiveInteger,
+  parsePositiveInteger,
+  parseSaleStatus,
+} from "../helpers/index.js";
 
 function getZodErrors(error: z.ZodError) {
   return error.issues.map(function mapIssue(issue) {
@@ -60,7 +66,19 @@ export async function getSalesController(
   res: Response,
 ): Promise<Response> {
   try {
-    const result = await getSalesService(req.user!.idBusiness);
+    const page = parsePositiveInteger(req.query.page, 1);
+    const limit = parsePositiveInteger(req.query.limit, 15);
+    const offset = (page - 1) * limit;
+    const result = await getSalesService({
+      idBusiness: req.user!.idBusiness,
+      page,
+      limit,
+      offset,
+      idDeposit: parseNullablePositiveInteger(req.query.idDeposit),
+      status: parseSaleStatus(req.query.status),
+      startDate: parseNullableDate(req.query.startDate, false),
+      endDate: parseNullableDate(req.query.endDate, true),
+    });
 
     return res.status(200).json({
       status: true,
