@@ -1,5 +1,13 @@
 import { Route, Routes } from "react-router-dom";
-import { ClientsRoutes,CategoriesRoutes,ProductsRoutes,DepositsRoutes,StockRoutes, SalesRoutes } from "@/views/admin/module";
+import {
+  BusinessessRoutes,
+  ClientsRoutes,
+  CategoriesRoutes,
+  ProductsRoutes,
+  DepositsRoutes,
+  StockRoutes,
+  SalesRoutes,
+} from "@/views/admin/module";
 import { SideBar } from "@/components";
 import { useState } from "react";
 
@@ -49,6 +57,7 @@ export const AdminRoutes = () => {
           <Route path="/deposits/*" element={<DepositsRoutes />} />
           <Route path="/stock/*" element={<StockRoutes />} />
           <Route path="/sales/*" element={<SalesRoutes />} />
+          <Route path="/businesses/*" element={<BusinessessRoutes />} />
           {/* <Route path="/account/*" element={<AccountRoutes />} />
           <Route path="/category-transaction/*" element={<CategoryRoutes />} />
           <Route path="/transactions/*" element={<TransactionsRoutes />} />

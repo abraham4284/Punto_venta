@@ -44,7 +44,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       const { data: meRes } = await meRequest();
-
       if (!meRes.status) {
         set({ status: "unauthenticated", user: null, error: meRes.message });
         return { success: false, message: meRes.message };

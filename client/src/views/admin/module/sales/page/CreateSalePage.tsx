@@ -23,6 +23,7 @@ import { CartTable, ProductSelectionModal,SearchBox } from "../components";
 import { useSales } from "../hooks/useSales";
 import type { PriceType } from "../types";
 import { createSaleFormSchema } from "../validations/sales.validations";
+import { useAuthStore } from "@/views/admin/module/auth/";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -77,6 +78,12 @@ export const CreateSalePage = () => {
     setValidationErrors,
     clearCart,
   } = useSales();
+
+  const user = useAuthStore((state) => state.user);
+  const status = useAuthStore((state)=> state.status);
+  console.log(user,'user')
+  console.log(status,'stauts')
+  // console.log(user ? user. : {},'idBusiness')
 
   const filteredCustomers = useMemo(() => {
     const value = customerSearch.trim().toLowerCase();
