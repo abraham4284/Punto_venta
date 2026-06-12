@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import {
   createInitialStockService,
+  getCriticalStockReportService,
   getStockByIdService,
   getStockService,
 } from "../services/stock.service.js";
@@ -14,6 +15,30 @@ function getZodErrors(error: z.ZodError) {
       message: issue.message,
     };
   });
+}
+
+function parseNullablePositiveInteger(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function parseMaxQuantity(value: unknown): number {
+  const parsed = Number(value);
+
+  if (Number.isNaN(parsed) || parsed < 0) {
+    return 10;
+  }
+
+  return parsed;
 }
 
 export async function createInitialStockController(
@@ -89,6 +114,32 @@ export async function getStockByIdController(
     return res.status(200).json({
       status: true,
       message: "Stock obtenido correctamente",
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      status: false,
+      message: error.sqlMessage || error.message,
+    });
+  }
+}
+
+export async function getCriticalStockReportController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const result = await getCriticalStockReportService({
+      idBusiness: req.user!.idBusiness,
+      maxQuantity: parseMaxQuantity(req.query.maxQuantity),
+      idDeposit: parseNullablePositiveInteger(req.query.idDeposit),
+      searchProduct:
+        typeof req.query.search === "string" ? req.query.search.trim() : null,
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Informe de stock critico obtenido correctamente",
       data: result,
     });
   } catch (error: any) {

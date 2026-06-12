@@ -12,5 +12,6 @@ export function mapStock(stock: StockDbRow): StockResponse {
     depositName: stock.deposit_name,
     quantity: Number(stock.quantity),
     updatedAt: stock.updated_at,
+    stock_min: Number(stock.stock_min)
   };
 }

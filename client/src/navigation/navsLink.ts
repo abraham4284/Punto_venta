@@ -40,6 +40,11 @@ export const stockNav = [
     title: "Movimientos",
     url: "/admin/stock/movements",
   },
+  {
+    id: 2,
+    title: "Informe de inventario",
+    url: "/admin/stock/critical",
+  },
 ];
 
 export const saleNav = [

@@ -22,6 +22,7 @@ export interface StockResponse {
   depositName: string;
   quantity: number;
   updatedAt: Date | null;
+  stock_min: number
 }
 
 export interface FieldError {
@@ -114,4 +115,37 @@ export interface StockFormValues {
 
 export interface StockMetrics {
   total: number;
+}
+
+export type CriticalStockAlertStatus =
+  | "CRITICAL_ZERO"
+  | "CRITICAL_LOW"
+  | "CRITICAL_EQUAL"
+  | "STOCK_OK";
+
+export interface CriticalStockReportResponse {
+  idStock: number;
+  idBusiness: number;
+  idProduct: number;
+  productName: string;
+  barcode: string | null;
+  imageUrl: string | null;
+  idDeposit: number;
+  depositName: string;
+  quantity: number;
+  stockMin: number;
+  alertStatus: CriticalStockAlertStatus;
+  alertMessage: string;
+}
+
+export interface CriticalStockReportFilters {
+  maxQuantity: number;
+  idDeposit?: number | null;
+  search?: string | null;
+}
+
+export interface CriticalStockMetrics {
+  totalCriticalRisk: number;
+  zeroStock: number;
+  insufficientStock: number;
 }
