@@ -5,5 +5,6 @@ export * from "./modal/ModalFormStock";
 export * from "./movement/MovementFilter";
 export * from "./movement/MovementMetrics";
 export * from "./movement/MovementTable";
+export * from "./movement/MovementPagination";
 export * from "./critical/CriticalMetrics";
 export * from "./critical/CriticalStockTable";

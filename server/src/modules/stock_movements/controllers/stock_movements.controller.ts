@@ -24,7 +24,35 @@ export async function getStockMovementsController(
   res: Response,
 ): Promise<Response> {
   try {
-    const result = await getStockMovementsService(req.user!.idBusiness);
+    const requestedPage = Number(req.query.page ?? 1);
+    const requestedLimit = Number(req.query.limit ?? 15);
+    const page =
+      Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const limit =
+      Number.isInteger(requestedLimit) && requestedLimit > 0
+        ? Math.min(requestedLimit, 100)
+        : 15;
+    const offset = (Number(page) - 1) * Number(limit);
+    const idDepositValue = Number(req.query.idDeposit);
+    const idDeposit =
+      Number.isInteger(idDepositValue) && idDepositValue > 0
+        ? idDepositValue
+        : null;
+    const movementType =
+      typeof req.query.movementType === "string"
+        ? req.query.movementType
+        : null;
+    const search =
+      typeof req.query.search === "string" ? req.query.search.trim() : null;
+
+    const result = await getStockMovementsService({
+      idBusiness: req.user!.idBusiness,
+      limit,
+      offset,
+      movementType,
+      idDeposit,
+      search,
+    });
 
     return res.status(200).json({
       status: true,

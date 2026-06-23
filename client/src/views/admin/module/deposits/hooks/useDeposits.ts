@@ -154,11 +154,11 @@ export const useDeposits = () => {
     };
   }, [deposits]);
 
-  const resetDeposits = () => {
+  const resetDeposits = useCallback(() => {
     setLoading(false);
     setError(null);
     setDeposits([]);
-  };
+  }, []);
 
   return {
     deposits,

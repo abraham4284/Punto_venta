@@ -9,12 +9,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { StockMovementFilter } from "../../types";
+import type { DepositResponse } from "../../../deposits/types/deposits.types";
 
 type Props = {
   search: string;
   filter: StockMovementFilter;
+  depositFilter: number | null;
+  deposits: DepositResponse[];
   onSearchChange: (value: string) => void;
   onFilterChange: (value: StockMovementFilter) => void;
+  onDepositFilterChange: (value: number | null) => void;
 };
 
 const filterLabels: Record<StockMovementFilter, string> = {
@@ -27,8 +31,11 @@ const filterLabels: Record<StockMovementFilter, string> = {
 export const MovementFilter = ({
   search,
   filter,
+  depositFilter,
+  deposits,
   onSearchChange,
   onFilterChange,
+  onDepositFilterChange,
 }: Props) => {
   const handleFilterChange = (value: string | null) => {
     if (!value) return;
@@ -36,9 +43,18 @@ export const MovementFilter = ({
     onFilterChange(value as StockMovementFilter);
   };
 
+  const handleDepositChange = (value: string | null) => {
+    if (!value || value === "ALL") {
+      onDepositFilterChange(null);
+      return;
+    }
+
+    onDepositFilterChange(Number(value));
+  };
+
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div className="relative w-full md:max-w-sm">
+    <div className="grid gap-3 md:grid-cols-[minmax(240px,1fr)_220px_220px]">
+      <div className="relative w-full">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
@@ -49,7 +65,7 @@ export const MovementFilter = ({
       </div>
 
       <Select value={filter} onValueChange={handleFilterChange}>
-        <SelectTrigger className="w-full md:w-52">
+        <SelectTrigger className="w-full">
           <SelectValue>{filterLabels[filter]}</SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -57,6 +73,33 @@ export const MovementFilter = ({
             {Object.entries(filterLabels).map(([value, label]) => (
               <SelectItem key={value} value={value}>
                 {label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={depositFilter ? String(depositFilter) : "ALL"}
+        onValueChange={handleDepositChange}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue>
+            {depositFilter
+              ? deposits.find((deposit) => deposit.idDeposit === depositFilter)
+                  ?.name ?? "Deposito"
+              : "Todos los depositos"}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="ALL">Todos los depositos</SelectItem>
+            {deposits.map((deposit) => (
+              <SelectItem
+                key={deposit.idDeposit}
+                value={String(deposit.idDeposit)}
+              >
+                {deposit.name}
               </SelectItem>
             ))}
           </SelectGroup>

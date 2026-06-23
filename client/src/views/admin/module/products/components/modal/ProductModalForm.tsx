@@ -1,4 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { useForm } from "@/hooks/useForm";
 
 import { Button } from "@/components/ui/button";
@@ -84,13 +91,15 @@ export const ProductModalForm = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const categoryValue = formSate.idProductCategory ?? "";
+  const depositValue = formSate.idDeposit ?? "";
   const selectedCategory = categories.find(
-    (category) =>
-      String(category.idProductCategory) === (formSate.idProductCategory ?? ""),
+    (category) => String(category.idProductCategory) === categoryValue,
   );
   const selectedCategoryLabel = selectedCategory?.name?.trim() || undefined;
   const selectedDeposit = deposits.find(
-    (deposit) => String(deposit.idDeposit) === (formSate.idDeposit ?? ""),
+    (deposit) => String(deposit.idDeposit) === depositValue,
   );
   const selectedDepositLabel = selectedDeposit?.name?.trim() || undefined;
 
@@ -128,6 +137,39 @@ export const ProductModalForm = ({
     }
   };
 
+  const clearFieldError = (field: keyof ProductFormValues) => {
+    if (!errors[field]) return;
+
+    setErrors((currentErrors) => {
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[field];
+      return nextErrors;
+    });
+  };
+
+  const handleInputChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    onInputChange(event);
+    clearFieldError(event.target.name as keyof ProductFormValues);
+  };
+
+  const handleSelectChange = (
+    field: keyof ProductFormValues,
+    value: string | null,
+  ) => {
+    setFormSate({ ...formSate, [field]: value ?? "" });
+    clearFieldError(field);
+  };
+
+  const handleBarcodeKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    nameInputRef.current?.focus();
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const validation = dataEdit
@@ -140,7 +182,7 @@ export const ProductModalForm = ({
       >((acc, issue) => {
         const field = issue.path[0];
 
-        if (typeof field === "string") {
+        if (typeof field === "string" && !acc[field]) {
           acc[field] = issue.message;
         }
 
@@ -183,9 +225,9 @@ export const ProductModalForm = ({
               Categorias <span className="text-red-500">*</span>
             </Label>
             <Select
-              value={formSate.idProductCategory ?? ""}
+              value={categoryValue}
               onValueChange={(value) =>
-                setFormSate({ ...formSate, idProductCategory: value })
+                handleSelectChange("idProductCategory", value)
               }
             >
               <SelectTrigger className="w-full mt-2">
@@ -226,7 +268,8 @@ export const ProductModalForm = ({
               id="barcode"
               name="barcode"
               value={formSate.barcode}
-              onChange={onInputChange}
+              onChange={handleInputChange}
+              onKeyDown={handleBarcodeKeyDown}
               placeholder="Ej: 7791234567890"
             />
             {errors.barcode && (
@@ -239,8 +282,9 @@ export const ProductModalForm = ({
             <Input
               id="name"
               name="name"
+              ref={nameInputRef}
               value={formSate.name}
-              onChange={onInputChange}
+              onChange={handleInputChange}
               placeholder="Ej: Coca Cola 500ml"
             />
             {errors.name && (
@@ -254,7 +298,7 @@ export const ProductModalForm = ({
               id="description"
               name="description"
               value={formSate.description}
-              onChange={onInputChange}
+              onChange={handleInputChange}
               placeholder="Descripción del producto..."
             />
             {errors.description && (
@@ -268,7 +312,7 @@ export const ProductModalForm = ({
               id="imageUrl"
               name="imageUrl"
               value={formSate.imageUrl}
-              onChange={onInputChange}
+              onChange={handleInputChange}
               placeholder="https://..."
             />
             {errors.imageUrl && (
@@ -286,7 +330,7 @@ export const ProductModalForm = ({
                 min="0"
                 step="0.01"
                 value={formSate.priceCost}
-                onChange={onInputChange}
+                onChange={handleInputChange}
                 placeholder="0.00"
               />
               {errors.priceCost && (
@@ -303,7 +347,7 @@ export const ProductModalForm = ({
                 min="0"
                 step="0.01"
                 value={formSate.priceSale}
-                onChange={onInputChange}
+                onChange={handleInputChange}
                 placeholder="0.00"
               />
               {errors.priceSale && (
@@ -324,7 +368,7 @@ export const ProductModalForm = ({
                     min="0"
                     step="1"
                     value={formSate.stock}
-                    onChange={onInputChange}
+                    onChange={handleInputChange}
                     placeholder="0"
                   />
                   {errors.stock && (
@@ -337,9 +381,9 @@ export const ProductModalForm = ({
                     Depositos <span className="text-red-500">*</span>
                   </Label>
                   <Select
-                    value={formSate.idDeposit ?? ""}
+                    value={depositValue}
                     onValueChange={(value) =>
-                      setFormSate({ ...formSate, idDeposit: value })
+                      handleSelectChange("idDeposit", value)
                     }
                   >
                     <SelectTrigger className="w-full mt-2">
@@ -385,7 +429,7 @@ export const ProductModalForm = ({
               min="0"
               step="1"
               value={formSate.stockMin}
-              onChange={onInputChange}
+              onChange={handleInputChange}
               placeholder="0"
             />
             {errors.stockMin && (

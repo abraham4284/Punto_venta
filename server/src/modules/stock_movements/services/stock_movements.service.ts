@@ -2,22 +2,47 @@ import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
 import { mapStockMovement } from "../helpers/stock-movement.mapper.js";
 import type {
+  GetStockMovementsParams,
   ProcessStockAdjustmentPayload,
   ProcessStockTransferPayload,
+  StockMovementCountRow,
   StockMovementDbRow,
+  StockMovementsPaginatedResponse,
   StockMovementResponse,
 } from "../types/index.js";
 
 export async function getStockMovementsService(
-  idBusiness: number,
-): Promise<StockMovementResponse[]> {
+  params: GetStockMovementsParams,
+): Promise<StockMovementsPaginatedResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_stock_movements(?)",
-    [idBusiness],
+    "CALL sp_get_stock_movements(?, ?, ?, ?, ?, ?)",
+    [
+      params.idBusiness,
+      params.limit,
+      params.offset,
+      params.movementType ?? null,
+      params.idDeposit ?? null,
+      params.search ?? null,
+    ],
   );
 
-  const result = rows as unknown as StockMovementDbRow[][];
-  return (result[0] ?? []).map(mapStockMovement);
+  const result = rows as unknown as [
+    StockMovementDbRow[],
+    StockMovementCountRow[],
+  ];
+  const movements = (result[0] ?? []).map(mapStockMovement);
+  const totalRecords = Number(result[1]?.[0]?.totalRecords ?? 0);
+  const currentPage = Math.floor(params.offset / params.limit) + 1;
+
+  return {
+    movements,
+    pagination: {
+      totalRecords,
+      currentPage,
+      totalPages: Math.ceil(totalRecords / params.limit),
+      limit: params.limit,
+    },
+  };
 }
 
 export async function processStockAdjustmentService(

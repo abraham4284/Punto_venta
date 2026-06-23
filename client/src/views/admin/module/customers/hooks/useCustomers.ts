@@ -56,10 +56,10 @@ export const useCustomers = () => {
     };
   }, [customers]);
 
-  const resetCustomers = () => {
+  const resetCustomers = useCallback(() => {
     setLoading(false);
     setCustomers([]);
-  };
+  }, []);
 
   return {
     customers,

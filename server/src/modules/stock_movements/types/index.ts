@@ -51,6 +51,31 @@ export interface StockMovementResponse {
   createdAt: Date;
 }
 
+export interface GetStockMovementsParams {
+  idBusiness: number;
+  limit: number;
+  offset: number;
+  movementType?: string | null;
+  idDeposit?: number | null;
+  search?: string | null;
+}
+
+export interface StockMovementPagination {
+  totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface StockMovementsPaginatedResponse {
+  movements: StockMovementResponse[];
+  pagination: StockMovementPagination;
+}
+
+export interface StockMovementCountRow {
+  totalRecords: string | number;
+}
+
 export interface ProcessStockAdjustmentPayload {
   idBusiness: number;
   idUser: number;

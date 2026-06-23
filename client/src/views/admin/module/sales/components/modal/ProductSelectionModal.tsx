@@ -1,13 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Minus, Plus, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type {
   PriceType,
@@ -23,6 +17,9 @@ type Props = {
   onClose: () => void;
   onConfirm: (items: ProductSelection[]) => void;
 };
+
+const MIN_SEARCH_LENGTH = 2;
+const MAX_VISIBLE_PRODUCTS = 24;
 
 const formatMoney = (value: number): string => {
   return new Intl.NumberFormat("es-AR", {
@@ -66,27 +63,33 @@ export const ProductSelectionModal = ({
   onConfirm,
 }: Props) => {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [quantities, setQuantities] = useState<Record<number, number>>({});
 
   const filteredProducts = useMemo(() => {
-    const value = search.trim().toLowerCase();
+    const value = debouncedSearch.trim().toLowerCase();
 
-    if (!value) return products;
+    if (value.length < MIN_SEARCH_LENGTH) return [];
 
-    return products.filter((product) => {
-      return (
-        product.name.toLowerCase().includes(value) ||
-        product.barcode?.toLowerCase().includes(value)
-      );
-    });
-  }, [products, search]);
+    return products
+      .filter((product) => {
+        return (
+          product.name.toLowerCase().includes(value) ||
+          product.barcode?.toLowerCase().includes(value)
+        );
+      })
+      .slice(0, MAX_VISIBLE_PRODUCTS);
+  }, [products, debouncedSearch]);
+
+  const hasEnoughSearch = debouncedSearch.trim().length >= MIN_SEARCH_LENGTH;
 
   useEffect(() => {
-    if (!isOpen) {
-      setSearch("");
-      setQuantities({});
-    }
-  }, [isOpen]);
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 180);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
 
   const updateQuantity = (product: ProductWithStockResponse, value: number) => {
     const nextQuantity = Math.min(Math.max(value, 0), product.stockQuantity);
@@ -97,6 +100,17 @@ export const ProductSelectionModal = ({
     }));
   };
 
+  const resetModalState = useCallback(() => {
+    setSearch("");
+    setDebouncedSearch("");
+    setQuantities({});
+  }, []);
+
+  const handleClose = useCallback(() => {
+    resetModalState();
+    onClose();
+  }, [onClose, resetModalState]);
+
   const handleConfirm = () => {
     const selectedItems = products
       .map((product) => ({
@@ -106,30 +120,60 @@ export const ProductSelectionModal = ({
       .filter((item) => item.quantity > 0);
 
     onConfirm(selectedItems);
-    setQuantities({});
-    setSearch("");
+    resetModalState();
   };
 
   const selectedCount = Object.values(quantities).filter(
     (quantity) => quantity > 0,
   ).length;
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, handleClose]);
+
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[88vh] overflow-hidden sm:max-w-3xl">
-        <DialogHeader className="flex-row items-center justify-between">
-          <DialogTitle>Selecciona productos</DialogTitle>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+      role="presentation"
+      onMouseDown={handleClose}
+    >
+      <section
+        aria-modal="true"
+        role="dialog"
+        aria-labelledby="product-selection-title"
+        className="grid max-h-[88vh] w-full max-w-3xl gap-4 overflow-hidden rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 shadow-lg"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2
+            id="product-selection-title"
+            className="font-heading text-base leading-none font-medium"
+          >
+            Selecciona productos
+          </h2>
+          <Button type="button" variant="ghost" size="sm" onClick={handleClose}>
             <X className="h-4 w-4" />
           </Button>
-        </DialogHeader>
+        </div>
 
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por nombre..."
+            placeholder="Buscar por nombre o codigo..."
             className="pl-9"
           />
         </div>
@@ -139,12 +183,22 @@ export const ProductSelectionModal = ({
             <div className="py-12 text-center text-sm text-muted-foreground">
               Cargando productos...
             </div>
+          ) : !hasEnoughSearch ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Escribi al menos {MIN_SEARCH_LENGTH} caracteres para buscar
+              productos.
+            </div>
           ) : filteredProducts.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
-              No hay productos disponibles para este deposito.
+              No se encontraron productos disponibles para esta busqueda.
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Mostrando hasta {MAX_VISIBLE_PRODUCTS} resultados. Afina la
+                busqueda si no ves el producto.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredProducts.map((product) => {
                 const quantity = quantities[product.idProduct] ?? 0;
                 const withoutWholesale = cannotUseWholesale(product, priceType);
@@ -161,6 +215,8 @@ export const ProductSelectionModal = ({
                       <img
                         src={product.imageUrl}
                         alt={product.name}
+                        loading="lazy"
+                        decoding="async"
                         className="h-36 w-full object-cover"
                       />
                     ) : (
@@ -220,12 +276,13 @@ export const ProductSelectionModal = ({
                   </article>
                 );
               })}
+              </div>
             </div>
           )}
         </div>
 
         <div className="flex justify-end gap-2 border-t pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
           <Button
@@ -236,7 +293,7 @@ export const ProductSelectionModal = ({
             Agregar al carrito
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </section>
+    </div>
   );
 };

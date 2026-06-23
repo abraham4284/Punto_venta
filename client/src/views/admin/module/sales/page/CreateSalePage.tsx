@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus, ScanLine } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,11 +19,10 @@ import type { Customer } from "../../customers/types/customers.types";
 import { useCustomers } from "../../customers/hooks/useCustomers";
 import type { DepositResponse } from "../../deposits/types/deposits.types";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
-import { CartTable, ProductSelectionModal,SearchBox } from "../components";
+import { CartTable, ProductSelectionModal, SearchBox } from "../components";
 import { useSales } from "../hooks/useSales";
 import type { PriceType } from "../types";
 import { createSaleFormSchema } from "../validations/sales.validations";
-import { useAuthStore } from "@/views/admin/module/auth/";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -49,11 +48,12 @@ const getFieldError = (
   return errors[field];
 };
 
-
 export const CreateSalePage = () => {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [depositSearch, setDepositSearch] = useState("");
+  const [barcodeSearch, setBarcodeSearch] = useState("");
+  const defaultDepositWasSelected = useRef(false);
   const { customers, getCustomers, resetCustomers } = useCustomers();
   const { deposits, getDeposits, resetDeposits } = useDeposits();
   const {
@@ -78,12 +78,6 @@ export const CreateSalePage = () => {
     setValidationErrors,
     clearCart,
   } = useSales();
-
-  const user = useAuthStore((state) => state.user);
-  const status = useAuthStore((state)=> state.status);
-  console.log(user,'user')
-  console.log(status,'stauts')
-  // console.log(user ? user. : {},'idBusiness')
 
   const filteredCustomers = useMemo(() => {
     const value = customerSearch.trim().toLowerCase();
@@ -114,25 +108,106 @@ export const CreateSalePage = () => {
       resetCustomers();
       resetDeposits();
     };
-  }, [getCustomers, getDeposits]);
+  }, [getCustomers, getDeposits, resetCustomers, resetDeposits]);
 
   const handleCustomerSelect = (customer: Customer) => {
     updateHeaderField("idCustomer", customer.idCustomer);
     setCustomerSearch(customer.name);
   };
 
-  const handleDepositSelect = async (deposit: DepositResponse) => {
-    const changed = await changeDeposit(deposit.idDeposit);
+  const handleDepositSelect = useCallback(
+    async (deposit: DepositResponse) => {
+      const changed = await changeDeposit(deposit.idDeposit);
 
-    if (changed) {
-      setDepositSearch(deposit.name);
+      if (changed) {
+        setDepositSearch(deposit.name);
+      }
+    },
+    [changeDeposit],
+  );
+
+  useEffect(() => {
+    if (
+      defaultDepositWasSelected.current ||
+      header.idDeposit ||
+      depositSearch
+    ) {
+      return;
     }
-  };
+
+    const defaultDeposit = deposits.find((deposit) => {
+      return deposit.isActive && deposit.isDefault;
+    });
+
+    if (!defaultDeposit) return;
+
+    defaultDepositWasSelected.current = true;
+
+    const timeoutId = window.setTimeout(() => {
+      void handleDepositSelect(defaultDeposit);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [deposits, header.idDeposit, depositSearch, handleDepositSelect]);
 
   const resetSale = () => {
     setCustomerSearch("");
     setDepositSearch("");
+    setBarcodeSearch("");
+    defaultDepositWasSelected.current = false;
     clearCart();
+  };
+
+  const handleBarcodeSubmit = () => {
+    const barcode = barcodeSearch.trim();
+
+    if (!barcode) return;
+
+    if (!header.idDeposit) {
+      toast.error("Selecciona un deposito para escanear productos");
+      return;
+    }
+
+    if (loadingProducts) {
+      toast.error("Espera a que se carguen los productos del deposito");
+      return;
+    }
+
+    const product = products.find((item) => {
+      return item.isActive && item.barcode?.trim() === barcode;
+    });
+
+    if (!product || product.stockQuantity <= 0) {
+      toast.error(
+        "Este producto no existe o no esta disponible en este deposito",
+      );
+      setBarcodeSearch("");
+      return;
+    }
+
+    if (
+      priceType === "WHOLESALE" &&
+      (product.priceWholesale === null || product.priceWholesale <= 0)
+    ) {
+      toast.error("Este producto no tiene precio mayorista cargado");
+      setBarcodeSearch("");
+      return;
+    }
+
+    const existingItem = cart.find(
+      (item) => item.idProduct === product.idProduct,
+    );
+    const currentQuantity = existingItem?.quantity ?? 0;
+
+    if (currentQuantity + 1 > product.stockQuantity) {
+      toast.error("No hay stock suficiente para sumar otra unidad");
+      setBarcodeSearch("");
+      return;
+    }
+
+    addToCart([{ product, quantity: 1 }]);
+    toast.success(`${product.name} agregado al carrito`);
+    setBarcodeSearch("");
   };
 
   const handleSubmit = async () => {
@@ -221,6 +296,42 @@ export const CreateSalePage = () => {
           />
         </div>
       </section>
+
+      <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 md:grid-cols-[1fr_auto] md:items-end">
+        <div className="grid gap-2">
+          <Label htmlFor="barcode-sale">Escanear codigo de barras</Label>
+          <div className="relative">
+            <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="barcode-sale"
+              value={barcodeSearch}
+              disabled={!header.idDeposit}
+              onChange={(event) => setBarcodeSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleBarcodeSubmit();
+                }
+              }}
+              placeholder={
+                header.idDeposit
+                  ? "Escanea o ingresa el codigo..."
+                  : "Selecciona un deposito para escanear"
+              }
+              className="pl-9"
+              autoFocus
+            />
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!header.idDeposit || !barcodeSearch.trim()}
+          onClick={handleBarcodeSubmit}
+        >
+          Agregar por codigo
+        </Button>
+      </div>
 
       <section className="space-y-3">
         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">

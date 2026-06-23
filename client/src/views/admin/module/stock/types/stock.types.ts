@@ -103,6 +103,26 @@ export interface StockMovementMetrics {
   outputsVolume: number;
 }
 
+export interface StockMovementPagination {
+  totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface StockMovementsPaginatedResponse {
+  movements: StockMovementResponse[];
+  pagination: StockMovementPagination;
+}
+
+export interface StockMovementQueryParams {
+  page: number;
+  limit: number;
+  movementType?: StockMovementFilter;
+  idDeposit?: number | null;
+  search?: string;
+}
+
 export interface StockFormValues {
   idProduct: string;
   operationType: StockOperationType | "";

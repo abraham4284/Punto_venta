@@ -5,31 +5,36 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   MovementFilter,
   MovementMetrics,
+  MovementPagination,
   MovementTable,
 } from "../components";
 import { useStockMovements } from "../hooks/useStockMovements";
+import { useDeposits } from "../../deposits/hooks/useDeposits";
 
 export const StockMovementPage = () => {
   const {
-    filteredMovements,
+    movements,
     metrics,
     loading,
     error,
     search,
     filter,
+    depositFilter,
+    currentPage,
+    totalPages,
+    totalRecords,
+    limit,
     setSearch,
     setFilter,
+    setDepositFilter,
+    setCurrentPage,
     getStockMovements,
-    resetStockMovements,
   } = useStockMovements();
+  const { deposits, getDeposits } = useDeposits();
 
   useEffect(() => {
-    getStockMovements();
-
-    return () => {
-      resetStockMovements();
-    };
-  }, [getStockMovements]);
+    getDeposits();
+  }, [getDeposits]);
 
   return (
     <main className="space-y-6 p-6">
@@ -56,8 +61,11 @@ export const StockMovementPage = () => {
           <MovementFilter
             search={search}
             filter={filter}
+            depositFilter={depositFilter}
+            deposits={deposits}
             onSearchChange={setSearch}
             onFilterChange={setFilter}
+            onDepositFilterChange={setDepositFilter}
           />
 
           {error && (
@@ -66,7 +74,15 @@ export const StockMovementPage = () => {
             </p>
           )}
 
-          <MovementTable data={filteredMovements} loading={loading} />
+          <MovementTable movements={movements} loading={loading} />
+
+          <MovementPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalRecords={totalRecords}
+            limit={limit}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
     </main>

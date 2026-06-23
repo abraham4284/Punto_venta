@@ -97,7 +97,7 @@ BEGIN
 
   COMMIT;
 
-  CALL sp_get_stock_movements(p_idBusiness);
+  CALL sp_get_stock_movements(p_idBusiness, 15, 0, NULL, NULL, NULL);
 END$$
 
 DELIMITER ;
@@ -147,7 +147,7 @@ BEGIN
       SET MESSAGE_TEXT = 'Los depositos indicados deben pertenecer al negocio y estar activos';
   END IF;
 
-  IF NOT EXISTS (
+  IF NOT EXISTS 
     SELECT 1
     FROM stock
     WHERE idBusiness = p_idBusiness
@@ -272,7 +272,7 @@ BEGIN
 
   COMMIT;
 
-  CALL sp_get_stock_movements(p_idBusiness);
+  CALL sp_get_stock_movements(p_idBusiness, 15, 0, NULL, NULL, NULL);
 END$$
 
 DELIMITER ;
@@ -282,7 +282,12 @@ DROP PROCEDURE IF EXISTS sp_get_stock_movements;
 DELIMITER $$
 
 CREATE PROCEDURE sp_get_stock_movements(
-  IN p_idBusiness INT
+  IN p_idBusiness INT,
+  IN p_limit INT,
+  IN p_offset INT,
+  IN p_movementType VARCHAR(50),
+  IN p_idDeposit INT,
+  IN p_search VARCHAR(150)
 )
 BEGIN
   SELECT
@@ -317,7 +322,68 @@ BEGIN
     ON dt.idDeposit = sm.idDepositTo
     AND dt.idBusiness = sm.idBusiness
   WHERE sm.idBusiness = p_idBusiness
-  ORDER BY sm.created_at DESC, sm.idStockMovement DESC;
+    AND (
+      p_movementType IS NULL
+      OR p_movementType = ''
+      OR p_movementType = 'ALL'
+      OR (p_movementType = 'IN' AND sm.movement_type IN (
+        'PURCHASE', 'TRANSFER_IN', 'ADJUSTMENT_IN'
+      ))
+      OR (p_movementType = 'OUT' AND sm.movement_type IN (
+        'SALE', 'TRANSFER_OUT', 'ADJUSTMENT_OUT'
+      ))
+      OR (p_movementType = 'TRANSFER' AND sm.movement_type IN (
+        'TRANSFER_IN', 'TRANSFER_OUT'
+      ))
+      OR sm.movement_type = p_movementType
+    )
+    AND (
+      p_idDeposit IS NULL
+      OR sm.idDepositFrom = p_idDeposit
+      OR sm.idDepositTo = p_idDeposit
+    )
+    AND (
+      p_search IS NULL
+      OR p_search = ''
+      OR p.name LIKE CONCAT('%', p_search, '%')
+      OR u.name LIKE CONCAT('%', p_search, '%')
+    )
+  ORDER BY sm.created_at DESC, sm.idStockMovement DESC
+  LIMIT p_limit OFFSET p_offset;
+
+  SELECT COUNT(*) AS totalRecords
+  FROM stock_movements sm
+  INNER JOIN products p
+    ON p.idProduct = sm.idProduct
+    AND p.idBusiness = sm.idBusiness
+  INNER JOIN users u ON u.idUser = sm.idUser
+  WHERE sm.idBusiness = p_idBusiness
+    AND (
+      p_movementType IS NULL
+      OR p_movementType = ''
+      OR p_movementType = 'ALL'
+      OR (p_movementType = 'IN' AND sm.movement_type IN (
+        'PURCHASE', 'TRANSFER_IN', 'ADJUSTMENT_IN'
+      ))
+      OR (p_movementType = 'OUT' AND sm.movement_type IN (
+        'SALE', 'TRANSFER_OUT', 'ADJUSTMENT_OUT'
+      ))
+      OR (p_movementType = 'TRANSFER' AND sm.movement_type IN (
+        'TRANSFER_IN', 'TRANSFER_OUT'
+      ))
+      OR sm.movement_type = p_movementType
+    )
+    AND (
+      p_idDeposit IS NULL
+      OR sm.idDepositFrom = p_idDeposit
+      OR sm.idDepositTo = p_idDeposit
+    )
+    AND (
+      p_search IS NULL
+      OR p_search = ''
+      OR p.name LIKE CONCAT('%', p_search, '%')
+      OR u.name LIKE CONCAT('%', p_search, '%')
+    );
 END$$
 
 DELIMITER ;

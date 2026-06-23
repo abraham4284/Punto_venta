@@ -11,7 +11,7 @@ import {
 import type { StockMovementResponse, StockMovementType } from "../../types";
 
 type Props = {
-  data: StockMovementResponse[];
+  movements: StockMovementResponse[];
   loading: boolean;
 };
 
@@ -91,7 +91,7 @@ const getDepositLabel = (movement: StockMovementResponse): string => {
   return movement.depositToName ?? movement.depositFromName ?? "Sin deposito";
 };
 
-export const MovementTable = ({ data, loading }: Props) => {
+export const MovementTable = ({ movements, loading }: Props) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -100,7 +100,7 @@ export const MovementTable = ({ data, loading }: Props) => {
     );
   }
 
-  if (data.length === 0) {
+  if (movements.length === 0) {
     return (
       <div className="py-10 text-center text-sm text-muted-foreground">
         No hay movimientos registrados.
@@ -123,7 +123,7 @@ export const MovementTable = ({ data, loading }: Props) => {
       </TableHeader>
 
       <TableBody>
-        {data.map((movement) => {
+        {movements.map((movement) => {
           const style = movementStyles[movement.movementType];
           const imageUrl = movement.productImageUrl ?? movement.imageUrl;
 

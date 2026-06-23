@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AxiosError } from "axios";
 import { getStockMovementsRequest } from "../api/stock.movement.api";
 import type {
@@ -8,6 +8,8 @@ import type {
   StockMovementResponse,
   StockMovementType,
 } from "../types";
+
+const PAGE_LIMIT = 15;
 
 const entryTypes: StockMovementType[] = [
   "PURCHASE",
@@ -21,8 +23,6 @@ const outputTypes: StockMovementType[] = [
   "ADJUSTMENT_OUT",
 ];
 
-const transferTypes: StockMovementType[] = ["TRANSFER_IN", "TRANSFER_OUT"];
-
 const isEntryMovement = (movementType: StockMovementType): boolean => {
   return entryTypes.includes(movementType);
 };
@@ -31,23 +31,19 @@ const isOutputMovement = (movementType: StockMovementType): boolean => {
   return outputTypes.includes(movementType);
 };
 
-const isTransferMovement = (movementType: StockMovementType): boolean => {
-  return transferTypes.includes(movementType);
-};
-
 export const useStockMovements = () => {
   const [movements, setMovements] = useState<StockMovementResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<StockMovementFilter>("ALL");
+  const [depositFilter, setDepositFilter] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalRecords, setTotalRecords] = useState(0);
 
-  const clearError = () => {
-    setError(null);
-  };
-
-  const handleApiError = (error: unknown) => {
-    const axiosError = error as AxiosError<ApiErrorResponse>;
+  const handleApiError = (requestError: unknown) => {
+    const axiosError = requestError as AxiosError<ApiErrorResponse>;
 
     setError(
       axiosError.response?.data?.message ||
@@ -58,36 +54,34 @@ export const useStockMovements = () => {
   const getStockMovements = useCallback(async () => {
     try {
       setLoading(true);
-      clearError();
+      setError(null);
 
-      const response = await getStockMovementsRequest();
+      const response = await getStockMovementsRequest({
+        page: currentPage,
+        limit: PAGE_LIMIT,
+        movementType: filter,
+        idDeposit: depositFilter,
+        search,
+      });
+      const responseData = response.data.data;
 
-      setMovements(response.data.data ?? []);
-    } catch (error) {
-      handleApiError(error);
+      setMovements(responseData?.movements ?? []);
+      setTotalPages(responseData?.pagination.totalPages ?? 0);
+      setTotalRecords(responseData?.pagination.totalRecords ?? 0);
+    } catch (requestError) {
+      handleApiError(requestError);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, depositFilter, filter, search]);
 
-  const filteredMovements = useMemo(() => {
-    const value = search.trim().toLowerCase();
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      getStockMovements();
+    }, 300);
 
-    return movements.filter((movement) => {
-      const matchesText =
-        !value ||
-        movement.productName.toLowerCase().includes(value) ||
-        movement.userName.toLowerCase().includes(value);
-
-      const matchesFilter =
-        filter === "ALL" ||
-        (filter === "IN" && isEntryMovement(movement.movementType)) ||
-        (filter === "OUT" && isOutputMovement(movement.movementType)) ||
-        (filter === "TRANSFER" && isTransferMovement(movement.movementType));
-
-      return matchesText && matchesFilter;
-    });
-  }, [filter, movements, search]);
+    return () => window.clearTimeout(timeoutId);
+  }, [getStockMovements]);
 
   const metrics = useMemo<StockMovementMetrics>(() => {
     return movements.reduce<StockMovementMetrics>(
@@ -103,12 +97,32 @@ export const useStockMovements = () => {
         return acc;
       },
       {
-        total: movements.length,
+        total: totalRecords,
         entriesVolume: 0,
         outputsVolume: 0,
       },
     );
-  }, [movements]);
+  }, [movements, totalRecords]);
+
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
+
+  const changeFilter = (value: StockMovementFilter) => {
+    setFilter(value);
+    setCurrentPage(1);
+  };
+
+  const changeDepositFilter = (value: number | null) => {
+    setDepositFilter(value);
+    setCurrentPage(1);
+  };
+
+  const changePage = (page: number) => {
+    const maximumPage = Math.max(totalPages, 1);
+    setCurrentPage(Math.min(Math.max(page, 1), maximumPage));
+  };
 
   const resetStockMovements = () => {
     setMovements([]);
@@ -116,18 +130,28 @@ export const useStockMovements = () => {
     setError(null);
     setSearch("");
     setFilter("ALL");
+    setDepositFilter(null);
+    setCurrentPage(1);
+    setTotalPages(0);
+    setTotalRecords(0);
   };
 
   return {
     movements,
-    filteredMovements,
     metrics,
     loading,
     error,
     search,
     filter,
-    setSearch,
-    setFilter,
+    depositFilter,
+    currentPage,
+    totalPages,
+    totalRecords,
+    limit: PAGE_LIMIT,
+    setSearch: changeSearch,
+    setFilter: changeFilter,
+    setDepositFilter: changeDepositFilter,
+    setCurrentPage: changePage,
     getStockMovements,
     resetStockMovements,
   };
