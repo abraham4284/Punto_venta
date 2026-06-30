@@ -177,6 +177,13 @@ export const useProductCategories = () => {
     };
   }, [categories]);
 
+
+  const resetCategories = () =>{
+    setLoading(false);
+    setError(null);
+    setCategories([]);
+  }
+
   return {
     categories,
     filteredCategories,
@@ -191,5 +198,6 @@ export const useProductCategories = () => {
     createProductCategory,
     updateProductCategory,
     toggleProductCategoryStatus,
+    resetCategories,
   };
 };

@@ -13,10 +13,12 @@ export async function createProductService(
   data: CreateProductPayload,
 ): Promise<ProductResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idProductCategory,
+      data.idDeposit,
+      data.stock,
       data.barcode ?? null,
       data.name,
       data.description ?? null,
@@ -27,7 +29,7 @@ export async function createProductService(
       data.stockMin ?? 0,
     ],
   );
-  
+
   const result = rows as unknown as ProductDbRow[][];
   const product = result[0]?.[0];
 

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { sidebarLinkClass } from "../helpers";
 import { useAuthStore } from "@/views/admin";
-import { LiProducts, LiPeople } from "./sidebar-components";
-import { productNav, peopleNav } from "@/navigation";
+import { LiGeneral } from "./sidebar-components";
+import { productNav, peopleNav,stockNav, saleNav } from "@/navigation";
 
 type SideBarProps = {
   isOpenSideBar: boolean;
@@ -15,6 +15,8 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
   const user = useAuthStore((state) => state.user);
   const [openProducts, setOpenProducts] = useState(false);
   const [openPeople, setOpenPeople] = useState(false);
+  const [openStock, setOpenStock] = useState(false);
+  const [openSales, setOpenSales] = useState(false);
   const siderBarRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -80,8 +82,18 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
                 <span className="ms-3">Home</span>
               </Link>
             </li>
+            <li>
+              <Link
+                to="/admin/businesses"
+                className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-200"
+                // onClick={() => setIsOpenSideBar(false)}
+              >
+                <span className="ms-3">Negocio</span>
+              </Link>
+            </li>
 
-            <LiPeople
+            <LiGeneral
+              key={1}
               isOpen={openPeople}
               setIsOpen={setOpenPeople}
               links={peopleNav}
@@ -89,13 +101,32 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
               location={location}
               title="Personas"
             />
-            <LiProducts
+            <LiGeneral
+              key={2}
               isOpen={openProducts}
               setIsOpen={setOpenProducts}
               links={productNav}
               sidebarLinkClass={sidebarLinkClass}
               location={location}
               title="Productos"
+            />
+            <LiGeneral
+              key={3}
+              isOpen={openStock}
+              setIsOpen={setOpenStock}
+              links={stockNav}
+              sidebarLinkClass={sidebarLinkClass}
+              location={location}
+              title="Stock"
+            />
+            <LiGeneral
+              key={4}
+              isOpen={openSales}
+              setIsOpen={setOpenSales}
+              links={saleNav}
+              sidebarLinkClass={sidebarLinkClass}
+              location={location}
+              title="Ventas"
             />
           </ul>
 

@@ -36,6 +36,7 @@ export async function createProductController(
 ): Promise<Response> {
   try {
     const businessData = { ...req.body, idBusiness: req.user!.idBusiness };
+    console.log(businessData,'data')
     const data = createProductSchema.parse(businessData);
     const result = await createProductService(data);
 

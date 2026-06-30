@@ -44,7 +44,7 @@ export interface UpdateProductCategoryStatusBody {
 
 export interface ProductCategoryFormValues {
   name: string;
-  description: string;
+  description?: string;
   isDefault: boolean;
 }
 

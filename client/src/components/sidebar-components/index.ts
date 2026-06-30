@@ -1,2 +1,1 @@
-export * from './LiProducts'
-export * from './LiPeople'
+export * from './LiGeneral'

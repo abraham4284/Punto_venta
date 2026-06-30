@@ -4,6 +4,8 @@ DELIMITER $$
 CREATE PROCEDURE sp_create_product(
   IN p_idBusiness INT,
   IN p_idProductCategory INT,
+  IN p_idDeposit INT,
+  IN p_quantity DECIMAL(18,2),
   IN p_barcode VARCHAR(100),
   IN p_name VARCHAR(160),
   IN p_description VARCHAR(255),
@@ -14,6 +16,14 @@ CREATE PROCEDURE sp_create_product(
   IN p_stock_min DECIMAL(18,2)
 )
 BEGIN
+  DECLARE v_idProduct INT;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
   IF NOT EXISTS (
     SELECT 1
     FROM product_categories
@@ -24,6 +34,19 @@ BEGIN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La categoria indicada no existe o no pertenece al negocio';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM deposits
+    WHERE idBusiness = p_idBusiness
+      AND idDeposit = p_idDeposit
+      AND is_active = 1
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El deposito indicado no existe o no pertenece al negocio';
+  END IF;
+
+  START TRANSACTION;
 
   INSERT INTO products (
     idBusiness,
@@ -56,7 +79,26 @@ BEGIN
     NOW()
   );
 
-  CALL sp_get_product_by_id(p_idBusiness, LAST_INSERT_ID());
+  SET v_idProduct = LAST_INSERT_ID();
+
+  INSERT INTO stock (
+    idBusiness,
+    idProduct,
+    idDeposit,
+    quantity,
+    updated_at
+  )
+  VALUES (
+    p_idBusiness,
+    v_idProduct,
+    p_idDeposit,
+    p_quantity,
+    NOW()
+  );
+
+  COMMIT;
+
+  CALL sp_get_product_by_id(p_idBusiness, v_idProduct);
 END$$
 
 DELIMITER ;
