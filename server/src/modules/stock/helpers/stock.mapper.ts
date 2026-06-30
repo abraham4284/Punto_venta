@@ -8,10 +8,11 @@ export function mapStock(stock: StockDbRow): StockResponse {
     idProduct: stock.idProduct,
     productName: stock.product_name,
     productImageUrl: stock.product_image_url,
+    categoryName: stock.category_name,
     idDeposit: stock.idDeposit,
     depositName: stock.deposit_name,
     quantity: Number(stock.quantity),
     updatedAt: stock.updated_at,
-    stock_min: Number(stock.stock_min)
+    stock_min: Number(stock.stock_min),
   };
 }

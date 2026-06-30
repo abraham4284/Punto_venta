@@ -1,4 +1,5 @@
-import { Eye } from "lucide-react";
+import { useState } from "react";
+import { Eye, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -10,6 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getSaleTicketRequest } from "../../api/sales.api";
+import { printTicketHtml } from "../../helpers/ticketPrint.helper";
 import type { SaleResponse } from "../../types";
 
 type Props = {
@@ -37,6 +40,25 @@ const formatDate = (value: Date | string): string => {
 };
 
 export const SaleTable = ({ sales, loading, onView }: Props) => {
+  const [printingId, setPrintingId] = useState<number | null>(null);
+
+  const handlePrintTicket = async (idSale: number) => {
+    try {
+      setPrintingId(idSale);
+
+      const response = await getSaleTicketRequest(idSale);
+      const opened = printTicketHtml(response.data.data.htmlTemplate);
+
+      if (!opened) {
+        window.alert("El navegador bloqueo la ventana de impresion.");
+      }
+    } catch {
+      window.alert("No se pudo generar el ticket de la venta.");
+    } finally {
+      setPrintingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-10">
@@ -88,15 +110,32 @@ export const SaleTable = ({ sales, loading, onView }: Props) => {
                 {sale.status}
               </Badge>
             </TableCell>
-            <TableCell className="text-right">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onView(sale.idSale)}
-              >
-                <Eye className="mr-1 h-4 w-4" />
-                Ver detalle
-              </Button>
+            <TableCell>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={printingId !== null}
+                  onClick={() => handlePrintTicket(sale.idSale)}
+                  title="Imprimir ticket"
+                  aria-label={`Imprimir ticket venta ${sale.idSale}`}
+                >
+                  {printingId === sale.idSale ? (
+                    <Spinner className="h-4 w-4" />
+                  ) : (
+                    <Printer className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onView(sale.idSale)}
+                >
+                  <Eye className="mr-1 h-4 w-4" />
+                  Ver detalle
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         ))}

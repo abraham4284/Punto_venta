@@ -222,6 +222,7 @@ BEGIN
   DECLARE v_idProduct INT;
   DECLARE v_idDeposit INT;
   DECLARE v_quantity DECIMAL(18,2);
+  DECLARE v_status VARCHAR(20);
 
   DECLARE sale_detail_cursor CURSOR FOR
     SELECT sd.idProduct, s.idDeposit, sd.quantity
@@ -240,28 +241,30 @@ BEGIN
     RESIGNAL;
   END;
 
-  IF NOT EXISTS (
-    SELECT 1
-    FROM sales
-    WHERE idSale = p_idSale
-      AND idBusiness = p_idBusiness
-  ) THEN
+  START TRANSACTION;
+
+  SELECT status
+  INTO v_status
+  FROM sales
+  WHERE idSale = p_idSale
+    AND idBusiness = p_idBusiness
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_status IS NULL THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Venta no encontrada';
   END IF;
 
-  IF EXISTS (
-    SELECT 1
-    FROM sales
-    WHERE idSale = p_idSale
-      AND idBusiness = p_idBusiness
-      AND status = 'CANCELLED'
-  ) THEN
+  IF v_status = 'CANCELLED' THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La venta ya se encuentra anulada';
   END IF;
 
-  START TRANSACTION;
+  IF v_status <> 'COMPLETED' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Solo se pueden anular ventas completadas';
+  END IF;
 
   UPDATE sales
   SET status = 'CANCELLED'

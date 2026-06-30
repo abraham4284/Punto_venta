@@ -8,6 +8,7 @@ export interface StockDbRow {
   idProduct: number;
   product_name: string;
   product_image_url: string | null;
+  category_name: string;
   idDeposit: number;
   deposit_name: string;
   quantity: string | number;
@@ -22,6 +23,7 @@ export interface StockResponse {
   idProduct: number;
   productName: string;
   productImageUrl: string | null;
+  categoryName: string;
   idDeposit: number;
   depositName: string;
   quantity: number;

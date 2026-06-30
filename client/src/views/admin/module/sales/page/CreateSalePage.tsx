@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, ScanLine } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +20,12 @@ import type { Customer } from "../../customers/types/customers.types";
 import { useCustomers } from "../../customers/hooks/useCustomers";
 import type { DepositResponse } from "../../deposits/types/deposits.types";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
-import { CartTable, ProductSelectionModal, SearchBox } from "../components";
+import {
+  CartTable,
+  ProductSelectionModal,
+  SaleSuccessModal,
+  SearchBox,
+} from "../components";
 import { useSales } from "../hooks/useSales";
 import type { PriceType } from "../types";
 import { createSaleFormSchema } from "../validations/sales.validations";
@@ -49,11 +55,13 @@ const getFieldError = (
 };
 
 export const CreateSalePage = () => {
+  const navigate = useNavigate();
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [depositSearch, setDepositSearch] = useState("");
   const [barcodeSearch, setBarcodeSearch] = useState("");
   const defaultDepositWasSelected = useRef(false);
+  const barcodeInputRef = useRef<HTMLInputElement | null>(null);
   const { customers, getCustomers, resetCustomers } = useCustomers();
   const { deposits, getDeposits, resetDeposits } = useDeposits();
   const {
@@ -66,6 +74,8 @@ export const CreateSalePage = () => {
     saving,
     error,
     fieldErrors,
+    isOpenSuccessModal,
+    newSaleId,
     setPriceType,
     updateHeaderField,
     changeDeposit,
@@ -76,7 +86,7 @@ export const CreateSalePage = () => {
     setGlobalDiscountPercent,
     submitSale,
     setValidationErrors,
-    clearCart,
+    resetSaleState,
   } = useSales();
 
   const filteredCustomers = useMemo(() => {
@@ -150,12 +160,27 @@ export const CreateSalePage = () => {
     return () => window.clearTimeout(timeoutId);
   }, [deposits, header.idDeposit, depositSearch, handleDepositSelect]);
 
+  useEffect(() => {
+    if (!header.idDeposit) return;
+
+    const timeoutId = window.setTimeout(() => {
+      barcodeInputRef.current?.focus();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [header.idDeposit]);
+
   const resetSale = () => {
     setCustomerSearch("");
     setDepositSearch("");
     setBarcodeSearch("");
     defaultDepositWasSelected.current = false;
-    clearCart();
+    resetSaleState();
+  };
+
+  const handleViewSaleDetails = (idSale: number) => {
+    resetSale();
+    navigate(`/admin/sales/${idSale}`);
   };
 
   const handleBarcodeSubmit = () => {
@@ -227,13 +252,9 @@ export const CreateSalePage = () => {
       });
 
       const { status, message } = await submitSale();
-      if (status) {
-        toast.success(message);
-      } else {
+      if (!status) {
         toast.error(message);
       }
-      setCustomerSearch("");
-      setDepositSearch("");
     } catch (error) {
       if (error instanceof z.ZodError) {
         setValidationErrors(mapZodErrors(error));
@@ -304,6 +325,7 @@ export const CreateSalePage = () => {
             <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="barcode-sale"
+              ref={barcodeInputRef}
               value={barcodeSearch}
               disabled={!header.idDeposit}
               onChange={(event) => setBarcodeSearch(event.target.value)}
@@ -453,6 +475,12 @@ export const CreateSalePage = () => {
           addToCart(items);
           setIsProductModalOpen(false);
         }}
+      />
+      <SaleSuccessModal
+        isOpen={isOpenSuccessModal}
+        idSale={newSaleId}
+        onResetForm={resetSale}
+        onViewDetails={handleViewSaleDetails}
       />
       <Toaster position="top-right" reverseOrder={false} />
     </main>

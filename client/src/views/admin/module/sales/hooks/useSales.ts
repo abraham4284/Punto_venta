@@ -88,6 +88,8 @@ export const useSales = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [isOpenSuccessModal, setIsOpenSuccessModal] = useState(false);
+  const [newSaleId, setNewSaleId] = useState<number | null>(null);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((acc, item) => {
@@ -148,6 +150,21 @@ export const useSales = () => {
       ...current,
       discountPercent: 0,
     }));
+  };
+
+  const resetSaleState = () => {
+    setHeader(initialHeader);
+    setCart([]);
+    setProducts([]);
+    setPriceTypeState("SALE");
+    setError(null);
+    setFieldErrors({});
+    setNewSaleId(null);
+    setIsOpenSuccessModal(false);
+  };
+
+  const closeSuccessModal = () => {
+    setIsOpenSuccessModal(false);
   };
 
   const fetchProductsByDeposit = useCallback(async (idDeposit: number) => {
@@ -356,10 +373,10 @@ export const useSales = () => {
 
       const payload = buildPayload();
       const response = await createSaleRequest(payload);
+      const createdSaleId = response.data.data?.idSale ?? null;
 
-      setHeader(initialHeader);
-      setCart([]);
-      setProducts([]);
+      setNewSaleId(createdSaleId);
+      setIsOpenSuccessModal(true);
 
       return {
         status: true,
@@ -388,6 +405,8 @@ export const useSales = () => {
     saving,
     error,
     fieldErrors,
+    isOpenSuccessModal,
+    newSaleId,
     setPriceType,
     updateHeaderField,
     changeDeposit,
@@ -401,5 +420,7 @@ export const useSales = () => {
     clearErrors,
     setValidationErrors,
     clearCart,
+    resetSaleState,
+    closeSuccessModal,
   };
 };

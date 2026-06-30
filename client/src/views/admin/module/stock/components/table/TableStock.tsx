@@ -42,7 +42,6 @@ export const TableStock = ({ data, loading }: Props) => {
       </div>
     );
   }
-
   return (
     <div className="rounded-lg border bg-background">
       <Table>
@@ -60,10 +59,7 @@ export const TableStock = ({ data, loading }: Props) => {
 
         <TableBody>
           {data.map((stock) => {
-            const stockStatus = getStockStatus(
-              stock.quantity,
-              stock.stock_min,
-            );
+            const stockStatus = getStockStatus(stock.quantity, stock.stock_min);
 
             const stockDifference = getStockDifference(
               stock.quantity,
@@ -91,7 +87,7 @@ export const TableStock = ({ data, loading }: Props) => {
                         {stock.productName}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        ID Producto: {stock.idProduct}
+                        {stock.categoryName}
                       </p>
                     </div>
                   </div>

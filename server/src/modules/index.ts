@@ -7,3 +7,4 @@ export { default as customerRoutes } from "./customers/index.js";
 export { default as stockRoutes } from "./stock/index.js";
 export { default as stockMovementRoutes } from "./stock_movements/index.js";
 export { default as saleRoutes } from "./sales/index.js";
+export { default as ticketRoutes } from "./tickets/index.js";

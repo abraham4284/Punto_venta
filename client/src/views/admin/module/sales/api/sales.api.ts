@@ -7,6 +7,7 @@ import type {
   ProductWithStockResponse,
   SaleFilters,
   SaleResponse,
+  SaleTicketResponse,
   SaleWithDetailsResponse,
 } from "../types";
 
@@ -43,4 +44,10 @@ export const getSaleByIdRequest = (
   idSale: number,
 ): Promise<AxiosResponse<ApiResponse<SaleWithDetailsResponse>>> => {
   return axios.get(`/sales/${idSale}`);
+};
+
+export const getSaleTicketRequest = (
+  idSale: number,
+): Promise<AxiosResponse<ApiResponse<SaleTicketResponse>>> => {
+  return axios.get(`/tickets/sale/${idSale}`);
 };

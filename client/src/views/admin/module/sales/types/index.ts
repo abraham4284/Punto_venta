@@ -135,6 +135,40 @@ export interface SaleWithDetailsResponse extends SaleResponse {
   items: SaleDetailResponse[];
 }
 
+export interface SaleTicketItem {
+  idSaleDetail: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  subtotal: number;
+}
+
+export interface SaleTicketHeader {
+  idSale: number;
+  idBusiness: number;
+  businessName: string;
+  businessType: string | null;
+  logoUrl: string | null;
+  saleDate: Date;
+  subtotal: number;
+  discountTotal: number;
+  total: number;
+  observation: string | null;
+  status: "COMPLETED" | "CANCELLED";
+  customerName: string;
+  userName: string;
+  depositName: string;
+  paymentMethodName: string;
+}
+
+export interface SaleTicketResponse {
+  idSale: number;
+  sale: SaleTicketHeader;
+  items: SaleTicketItem[];
+  htmlTemplate: string;
+}
+
 export interface SalesPagination {
   totalRecords: number;
   currentPage: number;

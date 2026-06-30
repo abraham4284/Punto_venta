@@ -155,6 +155,7 @@ export async function cancelSaleController(
     return res.status(400).json({
       status: false,
       message: error.sqlMessage || error.message,
+      sqlState: error.sqlState,
     });
   }
 }

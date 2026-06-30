@@ -119,13 +119,14 @@ CREATE PROCEDURE sp_get_stock(
   IN p_idBusiness INT
 )
 BEGIN
-  SELECT
+ SELECT
     s.idStock,
     s.idBusiness,
     b.name AS business_name,
     s.idProduct,
     p.name AS product_name,
     p.image_url AS product_image_url,
+    pc.name AS category_name,
     s.idDeposit,
     d.name AS deposit_name,
     s.quantity,
@@ -139,6 +140,8 @@ BEGIN
   INNER JOIN deposits d
     ON d.idDeposit = s.idDeposit
     AND d.idBusiness = s.idBusiness
+  INNER JOIN product_categories pc
+   ON p.idProductCategory = pc.idProductCategory
   WHERE s.idBusiness = p_idBusiness
   ORDER BY p.name ASC, d.name ASC, s.idStock ASC;
 END$$
