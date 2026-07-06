@@ -147,7 +147,7 @@ BEGIN
       SET MESSAGE_TEXT = 'Los depositos indicados deben pertenecer al negocio y estar activos';
   END IF;
 
-  IF NOT EXISTS 
+  IF NOT EXISTS (
     SELECT 1
     FROM stock
     WHERE idBusiness = p_idBusiness
@@ -156,6 +156,17 @@ BEGIN
   ) THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El producto no tiene stock registrado en el deposito origen';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM stock
+    WHERE idBusiness = p_idBusiness
+      AND idProduct = p_idProduct
+      AND idDeposit = p_idDepositTo
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Primero debe dar de alta el stock del producto en el deposito al que desea transferir';
   END IF;
 
   SELECT quantity
@@ -180,27 +191,6 @@ BEGIN
   WHERE idBusiness = p_idBusiness
     AND idProduct = p_idProduct
     AND idDeposit = p_idDepositFrom;
-
-  INSERT INTO stock (
-    idBusiness,
-    idProduct,
-    idDeposit,
-    quantity,
-    updated_at
-  )
-  SELECT
-    p_idBusiness,
-    p_idProduct,
-    p_idDepositTo,
-    0,
-    NOW()
-  WHERE NOT EXISTS (
-    SELECT 1
-    FROM stock
-    WHERE idBusiness = p_idBusiness
-      AND idProduct = p_idProduct
-      AND idDeposit = p_idDepositTo
-  );
 
   UPDATE stock
   SET

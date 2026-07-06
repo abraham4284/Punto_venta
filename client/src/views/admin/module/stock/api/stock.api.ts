@@ -5,6 +5,7 @@ import type {
   CriticalStockReportFilters,
   CriticalStockReportResponse,
   CreateInitialStockPayload,
+  StockBalanceResponse,
   StockResponse,
 } from "../types/stock.types";
 
@@ -28,6 +29,18 @@ export const getCriticalStockReportRequest = (
       maxQuantity: filters.maxQuantity,
       idDeposit: filters.idDeposit ?? undefined,
       search: filters.search || undefined,
+    },
+  });
+};
+
+export const getStockByProductAndDepositRequest = (
+  idProduct: number,
+  idDeposit: number,
+): Promise<AxiosResponse<ApiResponse<StockBalanceResponse>>> => {
+  return axios.get("/stock/balance", {
+    params: {
+      idProduct,
+      idDeposit,
     },
   });
 };

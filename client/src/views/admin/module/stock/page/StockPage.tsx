@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUtilsState } from "@/hooks/useUtilsState";
 
-import { ModalFormStock, StockFilter, TableStock, CardStockMetric } from "../components";
+import {
+  CardStockMetric,
+  ModalFormStock,
+  QuickStockAdjustmentModal,
+  StockFilter,
+  TableStock,
+} from "../components";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
 import { useProducts } from "../../products/hooks/useProducts";
 import { useStock } from "../hooks/useStock";
@@ -19,6 +25,8 @@ export const StockPage = () => {
     setSearch,
     filteredStock,
     metrics,
+    loadingStockBalance,
+    fetchCurrentStockBalance,
   } = useStock();
 
   const { products, getProducts, resetProducts } = useProducts();
@@ -29,6 +37,13 @@ export const StockPage = () => {
     toggleModal,
     closeModal,
     resetDataEdit,
+  } = useUtilsState<StockResponse>();
+  const {
+    isOpen: isOpenQuickAdjust,
+    dataEdit: quickAdjustStock,
+    addDataEdit: addQuickAdjustStock,
+    setIsOpen: setIsOpenQuickAdjust,
+    closeModal: closeQuickAdjustModal,
   } = useUtilsState<StockResponse>();
 
   useEffect(() => {
@@ -41,11 +56,23 @@ export const StockPage = () => {
       resetProducts();
       resetDeposits();
     };
-  }, [getStock, getProducts, getDeposits]);
+  }, [
+    getStock,
+    getProducts,
+    getDeposits,
+    resetStock,
+    resetProducts,
+    resetDeposits,
+  ]);
 
   const handleOpenCreate = () => {
     resetDataEdit();
     toggleModal();
+  };
+
+  const handleOpenQuickAdjust = (stock: StockResponse) => {
+    addQuickAdjustStock(stock);
+    setIsOpenQuickAdjust(true);
   };
 
   return (
@@ -72,7 +99,11 @@ export const StockPage = () => {
         <CardContent className="space-y-4 p-4">
           <StockFilter value={search} onChange={setSearch} />
 
-          <TableStock data={filteredStock} loading={loading} />
+          <TableStock
+            data={filteredStock}
+            loading={loading}
+            onQuickAdjust={handleOpenQuickAdjust}
+          />
         </CardContent>
       </Card>
 
@@ -81,6 +112,15 @@ export const StockPage = () => {
         onClose={closeModal}
         products={products}
         deposits={deposits}
+        onSuccess={getStock}
+      />
+      <QuickStockAdjustmentModal
+        isOpen={isOpenQuickAdjust}
+        stock={quickAdjustStock}
+        deposits={deposits}
+        loadingBalance={loadingStockBalance}
+        fetchCurrentStockBalance={fetchCurrentStockBalance}
+        onClose={closeQuickAdjustModal}
         onSuccess={getStock}
       />
     </main>

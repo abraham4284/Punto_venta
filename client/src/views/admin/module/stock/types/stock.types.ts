@@ -51,6 +51,16 @@ export interface CreateInitialStockPayload {
   observation?: string | null;
 }
 
+export interface StockBalanceResponse {
+  idStock: number | null;
+  idBusiness: number;
+  idProduct: number;
+  idDeposit: number;
+  quantity: number;
+  exists: boolean;
+  updatedAt: Date | null;
+}
+
 export interface ProcessStockAdjustmentPayload {
   idProduct: number;
   idDeposit: number;
@@ -137,6 +147,11 @@ export interface StockFormValues {
 
 export interface StockMetrics {
   total: number;
+  totalUnits: number;
+  zeroStock: number;
+  lowStock: number;
+  uniqueProducts: number;
+  activeDeposits: number;
 }
 
 export type CriticalStockAlertStatus =

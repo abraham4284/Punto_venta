@@ -1,10 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
 import type { AxiosError } from "axios";
-import { getCriticalStockReportRequest, getStockRequest } from "../api/stock.api";
+import {
+  getCriticalStockReportRequest,
+  getStockByProductAndDepositRequest,
+  getStockRequest,
+} from "../api/stock.api";
 import type {
   ApiErrorResponse,
   CriticalStockReportResponse,
   FieldError,
+  StockBalanceResponse,
   StockResponse,
 } from "../types/stock.types";
 
@@ -21,6 +26,7 @@ export const useStock = () => {
   const [maxQuantityFilter, setMaxQuantityFilter] = useState(10);
   const [depositFilter, setDepositFilter] = useState<number | null>(null);
   const [productSearch, setProductSearch] = useState("");
+  const [loadingStockBalance, setLoadingStockBalance] = useState(false);
 
   const clearErrors = () => {
     setError(null);
@@ -75,6 +81,31 @@ export const useStock = () => {
     }
   }, [depositFilter, maxQuantityFilter, productSearch]);
 
+  const fetchCurrentStockBalance = useCallback(
+    async (
+      idProduct: number,
+      idDeposit: number,
+    ): Promise<StockBalanceResponse | null> => {
+      try {
+        setLoadingStockBalance(true);
+        clearErrors();
+
+        const response = await getStockByProductAndDepositRequest(
+          idProduct,
+          idDeposit,
+        );
+
+        return response.data.data;
+      } catch (error) {
+        handleApiError(error);
+        return null;
+      } finally {
+        setLoadingStockBalance(false);
+      }
+    },
+    [],
+  );
+
   const filteredStock = useMemo(() => {
     const value = search.trim().toLowerCase();
 
@@ -90,9 +121,31 @@ export const useStock = () => {
 
   const metrics = useMemo(() => {
     const total = stock.length;
+    const totalUnits = stock.reduce((acc, item) => {
+      return acc + Number(item.quantity);
+    }, 0);
+    const zeroStock = stock.filter((item) => item.quantity === 0).length;
+    const lowStock = stock.filter((item) => {
+      return item.quantity > 0 && item.quantity <= item.stock_min;
+    }).length;
+    const uniqueProducts = new Set(
+      stock.map((item) => {
+        return item.idProduct;
+      }),
+    ).size;
+    const activeDeposits = new Set(
+      stock.map((item) => {
+        return item.idDeposit;
+      }),
+    ).size;
 
     return {
       total,
+      totalUnits,
+      zeroStock,
+      lowStock,
+      uniqueProducts,
+      activeDeposits,
     };
   }, [stock]);
 
@@ -117,12 +170,12 @@ export const useStock = () => {
     };
   }, [criticalStockData]);
 
-  const resetStock = () => {
+  const resetStock = useCallback(() => {
     setLoading(false);
     setError(null);
     setStock([]);
     setCriticalStockData([]);
-  };
+  }, []);
 
   return {
     filteredStock,
@@ -134,6 +187,7 @@ export const useStock = () => {
     criticalStockData,
     criticalMetrics,
     loadingReport,
+    loadingStockBalance,
     maxQuantityFilter,
     depositFilter,
     productSearch,
@@ -145,6 +199,7 @@ export const useStock = () => {
     clearErrors,
     getStock,
     getCriticalStockReport,
+    fetchCurrentStockBalance,
     resetStock,
   };
 };

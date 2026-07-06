@@ -6,6 +6,8 @@ import type {
   CriticalStockReportFilters,
   CriticalStockReportResponse,
   CriticalStockReportRow,
+  StockBalanceDbRow,
+  StockBalanceResponse,
   StockDbRow,
   StockResponse,
 } from "../types/index.js";
@@ -63,6 +65,42 @@ export async function getStockByIdService(
   }
 
   return mapStock(stock);
+}
+
+export async function getStockBalanceService(
+  idBusiness: number,
+  idProduct: number,
+  idDeposit: number,
+): Promise<StockBalanceResponse> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_get_stock_by_product_and_deposit(?, ?, ?)",
+    [idBusiness, idProduct, idDeposit],
+  );
+
+  const result = rows as unknown as StockBalanceDbRow[][];
+  const balance = result[0]?.[0];
+
+  if (!balance) {
+    return {
+      idStock: null,
+      idBusiness,
+      idProduct,
+      idDeposit,
+      quantity: 0,
+      exists: false,
+      updatedAt: null,
+    };
+  }
+
+  return {
+    idStock: balance.idStock,
+    idBusiness: balance.idBusiness,
+    idProduct: balance.idProduct,
+    idDeposit: balance.idDeposit,
+    quantity: Number(balance.quantity),
+    exists: true,
+    updatedAt: balance.updated_at,
+  };
 }
 
 export async function getCriticalStockReportService(

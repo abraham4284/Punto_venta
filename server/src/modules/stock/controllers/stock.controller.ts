@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   createInitialStockService,
   getCriticalStockReportService,
+  getStockBalanceService,
   getStockByIdService,
   getStockService,
 } from "../services/stock.service.js";
@@ -114,6 +115,40 @@ export async function getStockByIdController(
     return res.status(200).json({
       status: true,
       message: "Stock obtenido correctamente",
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      status: false,
+      message: error.sqlMessage || error.message,
+    });
+  }
+}
+
+export async function getStockBalanceController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const idProduct = parseNullablePositiveInteger(req.query.idProduct);
+    const idDeposit = parseNullablePositiveInteger(req.query.idDeposit);
+
+    if (!idProduct || !idDeposit) {
+      return res.status(400).json({
+        status: false,
+        message: "El producto y el deposito son obligatorios",
+      });
+    }
+
+    const result = await getStockBalanceService(
+      req.user!.idBusiness,
+      idProduct,
+      idDeposit,
+    );
+
+    return res.status(200).json({
+      status: true,
+      message: "Balance de stock obtenido correctamente",
       data: result,
     });
   } catch (error: any) {

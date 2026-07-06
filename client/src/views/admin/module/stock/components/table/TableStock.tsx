@@ -1,4 +1,6 @@
+import { Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -17,6 +19,7 @@ import {
 type Props = {
   data: StockResponse[];
   loading: boolean;
+  onQuickAdjust: (stock: StockResponse) => void;
 };
 
 const formatNumber = (value: number) => {
@@ -26,7 +29,7 @@ const formatNumber = (value: number) => {
   }).format(value);
 };
 
-export const TableStock = ({ data, loading }: Props) => {
+export const TableStock = ({ data, loading, onQuickAdjust }: Props) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -54,6 +57,7 @@ export const TableStock = ({ data, loading }: Props) => {
             <TableHead>Estado</TableHead>
             <TableHead>Referencia</TableHead>
             <TableHead>Última actualización</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
 
@@ -128,6 +132,19 @@ export const TableStock = ({ data, loading }: Props) => {
                       ? new Date(stock.updatedAt).toLocaleDateString("es-AR")
                       : "-"}
                   </span>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => onQuickAdjust(stock)}
+                    title="Ajuste rapido"
+                    aria-label={`Ajuste rapido para ${stock.productName}`}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             );

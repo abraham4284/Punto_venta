@@ -184,6 +184,32 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS sp_get_stock_by_product_and_deposit;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_stock_by_product_and_deposit(
+  IN p_idBusiness INT,
+  IN p_idProduct INT,
+  IN p_idDeposit INT
+)
+BEGIN
+  SELECT
+    s.idStock,
+    s.idBusiness,
+    s.idProduct,
+    s.idDeposit,
+    s.quantity,
+    s.updated_at
+  FROM stock s
+  WHERE s.idBusiness = p_idBusiness
+    AND s.idProduct = p_idProduct
+    AND s.idDeposit = p_idDeposit
+  LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS sp_get_critical_stock_report;
 DELIMITER $$
 

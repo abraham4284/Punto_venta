@@ -14,19 +14,22 @@ import {
 } from "@/components/ui/table";
 import { useSaleDetails } from "../hooks";
 import { formatCurrency, formatDate } from "@/helpers";
+import { useBusinesses } from "../../businesses/hooks/useBusinesses";
 
 export const ViewSaleDetails = () => {
   const { idSale } = useParams();
   const navigate = useNavigate();
   const { error, getSale, loading, sale, grossSubtotal, resetSaleDetails } =
     useSaleDetails();
-
+  const { business,getBusiness,resetBusiness } = useBusinesses();
   useEffect(() => {
     if (idSale) {
       getSale(idSale);
+      getBusiness();
     }
     return () => {
       resetSaleDetails();
+      resetBusiness();
     };
   }, [idSale]);
 
@@ -63,20 +66,18 @@ export const ViewSaleDetails = () => {
               <section className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-xl font-bold text-emerald-800">
-                    HPV
+                    <img src={business?.logoUrl || ""} alt={business?.name || "Logo"} />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold">Hongos Pura Vida</h1>
+                    <h1 className="text-2xl font-bold">{business?.name}</h1>
                     <p className="text-sm text-muted-foreground">
                       Comprobante comercial
                     </p>
                   </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  <p>CUIT/RUT: 00-00000000-0</p>
-                  <p>Direccion: Centro operativo Hongos Pura Vida</p>
-                  <p>Contacto: ventas@hongospuravida.local</p>
-                </div>
+                {/* <div className="text-sm text-muted-foreground">
+                  <p>{business?.slug}</p>
+                </div> */}
               </section>
 
               <section className="rounded-lg border p-4 md:text-right">

@@ -40,6 +40,25 @@ export interface CreateInitialStockPayload {
   observation?: string | null;
 }
 
+export interface StockBalanceDbRow {
+  idStock: number;
+  idBusiness: number;
+  idProduct: number;
+  idDeposit: number;
+  quantity: string | number;
+  updated_at: Date | null;
+}
+
+export interface StockBalanceResponse {
+  idStock: number | null;
+  idBusiness: number;
+  idProduct: number;
+  idDeposit: number;
+  quantity: number;
+  exists: boolean;
+  updatedAt: Date | null;
+}
+
 export type CriticalStockAlertStatus =
   | "CRITICAL_ZERO"
   | "CRITICAL_LOW"

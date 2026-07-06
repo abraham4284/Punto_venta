@@ -176,11 +176,11 @@ export const useProducts = () => {
     };
   }, [products]);
 
-  const resetProducts = () => {
+  const resetProducts = useCallback(() => {
     setLoading(false);
     setError(null);
     setProducts([]);
-  };
+  }, []);
 
   return {
     products,
