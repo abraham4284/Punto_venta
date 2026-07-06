@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
 import {
   signAccessToken,
@@ -11,25 +11,39 @@ import type {
   RegisterBody,
   LoginDbRow,
   SessionDbRow,
+  UserInfoDbRow,
+  UserInfoResponse,
 } from "../types/auth.types.js";
 
 const REFRESH_DAYS = 7;
 
-const getRefreshExpirationDate = (): Date => {
+function getRefreshExpirationDate(): Date {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + REFRESH_DAYS);
   return expiresAt;
-};
+}
 
-const hashRefreshToken = async (token: string): Promise<string> => {
+async function hashRefreshToken(token: string): Promise<string> {
   return bcrypt.hash(token, 10);
-};
+}
 
-export const loginService = async (
+function mapUserInfo(row: UserInfoDbRow): UserInfoResponse {
+  return {
+    idUser: row.idUser,
+    name: row.name,
+    username: row.username,
+    email: row.email,
+    role: row.role,
+    isActive: Boolean(row.isActive),
+    createdAt: row.createdAt,
+  };
+}
+
+export async function loginService(
   data: LoginBody,
   userAgent?: string,
   ip?: string,
-) => {
+) {
   const [rows] = await pool.query<RowDataPacket[]>("CALL sp_user_login(?)", [
     data.username,
   ]);
@@ -108,9 +122,9 @@ export const loginService = async (
       role: user.role,
     },
   };
-};
+}
 
-export const registerService = async (data: RegisterBody) => {
+export async function registerService(data: RegisterBody) {
   const passwordHash = await bcrypt.hash(data.password, 10);
 
   const [rows] = await pool.query<RowDataPacket[]>(
@@ -133,9 +147,9 @@ export const registerService = async (data: RegisterBody) => {
   }[][];
 
   return result[0][0];
-};
+}
 
-export const refreshTokenService = async (refreshToken: string) => {
+export async function refreshTokenService(refreshToken: string) {
   try {
     const payload = verifyRefreshToken(refreshToken);
 
@@ -207,9 +221,9 @@ export const refreshTokenService = async (refreshToken: string) => {
     console.error("Error en refreshTokenService:", error);
     throw error;
   }
-};
+}
 
-export const logoutService = async (refreshToken?: string): Promise<void> => {
+export async function logoutService(refreshToken?: string): Promise<void> {
   if (!refreshToken) return;
 
   try {
@@ -218,4 +232,23 @@ export const logoutService = async (refreshToken?: string): Promise<void> => {
   } catch {
     return;
   }
-};
+}
+
+export async function getUserInfoByIdService(
+  idUser: number,
+  idBusiness: number,
+): Promise<UserInfoResponse> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_get_user_info_by_id(?, ?)",
+    [idUser, idBusiness],
+  );
+
+  const result = rows as unknown as UserInfoDbRow[][];
+  const user = result[0]?.[0];
+
+  if (!user) {
+    throw new Error("Usuario no encontrado o no pertenece al negocio");
+  }
+
+  return mapUserInfo(user);
+}

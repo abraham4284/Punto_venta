@@ -167,17 +167,15 @@ const NavItem = ({ item }: { item: NavigationItem }) => {
 
 export const AppSidebar = () => {
   const user = useAuthStore((state) => state.user);
+  const profileUser = useAuthStore((state) => state.profileUser);
+  const profileLoading = useAuthStore((state) => state.profileLoading);
+  const fetchUserProfile = useAuthStore((state) => state.fetchUserProfile);
   const logout = useAuthStore((state) => state.logout);
   const { getBusiness, business, resetBusiness } = useBusinesses();
   const navigate = useNavigate();
-  const typedUser = user as {
-    username?: string;
-    role?: string;
-    idUser?: number;
-  } | null;
   const displayName =
-    typedUser?.username || `Usuario ${typedUser?.idUser ?? ""}`.trim();
-  const displayRole = typedUser?.role || "Administrador";
+    profileUser?.name || profileUser?.username || `Usuario ${user?.idUser ?? ""}`.trim();
+  const displayRole = profileUser?.role || user?.role || "Administrador";
 
   const handleLogout = async () => {
     await logout();
@@ -190,6 +188,14 @@ export const AppSidebar = () => {
       resetBusiness();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user?.idUser || profileUser || profileLoading) {
+      return;
+    }
+
+    void fetchUserProfile(user.idUser);
+  }, [fetchUserProfile, profileLoading, profileUser, user?.idUser]);
 
   return (
     <Sidebar collapsible="icon">
@@ -229,16 +235,30 @@ export const AppSidebar = () => {
 
       <SidebarFooter>
         <div className="flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/45 p-2">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
-            {getUserInitials(displayName)}
-          </div>
+          {profileLoading && !profileUser ? (
+            <>
+              <div className="h-10 w-10 shrink-0 animate-pulse rounded-lg bg-sidebar-foreground/10" />
+              <div className="min-w-0 flex-1 space-y-2 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
+                <div className="h-3 w-28 animate-pulse rounded bg-sidebar-foreground/10" />
+                <div className="h-2.5 w-16 animate-pulse rounded bg-sidebar-foreground/10" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
+                {getUserInitials(displayName)}
+              </div>
 
-          <div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:pointer-events-none group-data-[state=collapsed]/sidebar-wrapper:lg:w-0 group-data-[state=collapsed]/sidebar-wrapper:lg:opacity-0">
-            <p className="truncate text-sm font-semibold">{displayName}</p>
-            <p className="truncate text-xs text-sidebar-foreground/55">
-              {displayRole}
-            </p>
-          </div>
+              <div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:pointer-events-none group-data-[state=collapsed]/sidebar-wrapper:lg:w-0 group-data-[state=collapsed]/sidebar-wrapper:lg:opacity-0">
+                <p className="truncate text-sm font-medium text-sidebar-foreground">
+                  {displayName}
+                </p>
+                <p className="truncate text-xs text-sidebar-foreground/70">
+                  {displayRole}
+                </p>
+              </div>
+            </>
+          )}
 
           <Button
             type="button"

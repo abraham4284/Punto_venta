@@ -37,7 +37,7 @@ export const LoginPage = () => {
       return toast.error(message || "Error al iniciar sesión");
     }
 
-    navigate("/admin/account");
+    navigate("/admin/dashboard");
   };
 
   return (

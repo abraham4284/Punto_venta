@@ -6,6 +6,7 @@ import {
   logoutController,
   refreshTokenController,
   registerController,
+  getUserInfoByIdController,
   me,
 } from "../controllers/auth.controller.js";
 import {
@@ -20,5 +21,6 @@ router.post("/login", validateSchema(loginSchema), loginController);
 router.post("/refresh", refreshTokenController);
 router.post("/logout", requireAuth, logoutController);
 router.get("/me", requireAuth, me);
+router.get("/auth/user-info/:idUser", requireAuth, getUserInfoByIdController);
 
 export default router;

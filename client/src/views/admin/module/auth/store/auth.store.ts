@@ -2,12 +2,13 @@ import { create } from "zustand";
 import type { AxiosError } from "axios";
 import type { ApiMessageResponse } from "@/api/axios.response.type";
 import {
+  getUserInfoById,
   loginRequest,
   logoutRequest,
   meRequest,
   registerRequest,
 } from "@/views/admin/module/auth/api/auth.api";
-import type { User } from "@/views/admin/module/auth/types/auth.types";
+import type { User, UserInfoResponse } from "@/views/admin/module/auth/types/auth.types";
 
 type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 type AuthActionResult =
@@ -23,20 +24,25 @@ const getAuthErrorMessage = (error: unknown, fallback: string): string => {
 type AuthState = {
   status: AuthStatus;
   user: User | null;
+  profileUser: UserInfoResponse | null;
   loading: boolean;
+  profileLoading: boolean;
   error: string | null;
 
   login: (username: string, password: string) => Promise<AuthActionResult>;
   register: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  fetchUserProfile: (idUser: number) => Promise<void>;
   expireSession: (message?: string) => void;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   status: "checking",
   user: null,
+  profileUser: null,
   loading: false,
+  profileLoading: false,
   error: null,
   isAutenticated: false,
 
@@ -62,6 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         user: meRes.data,
         error: null,
       });
+      await get().fetchUserProfile(meRes.data.idUser);
 
       return { success: true, message: loginRes.message ?? "Login exitoso" };
     } catch (error: unknown) {
@@ -105,6 +112,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         loading: false,
         error: null,
       });
+      await get().fetchUserProfile(data.data.idUser);
     } catch (error: unknown) {
       const message = getAuthErrorMessage(
         error,
@@ -127,7 +135,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       status: "unauthenticated",
       user: null,
+      profileUser: null,
       loading: false,
+      profileLoading: false,
       error: "error",
     });
   },
@@ -138,8 +148,24 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { data } = await meRequest();
       set({ status: "authenticated", user: data.data });
+      await get().fetchUserProfile(data.data.idUser);
     } catch {
-      set({ status: "unauthenticated", user: null });
+      set({ status: "unauthenticated", user: null, profileUser: null });
+    }
+  },
+
+  async fetchUserProfile(idUser: number) {
+    set({ profileLoading: true });
+
+    try {
+      const { data } = await getUserInfoById(idUser);
+      set({ profileUser: data.data, profileLoading: false });
+    } catch (error: unknown) {
+      const message = getAuthErrorMessage(
+        error,
+        "No se pudo obtener el perfil del usuario",
+      );
+      set({ profileUser: null, profileLoading: false, error: message });
     }
   },
 
@@ -147,7 +173,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({
       status: "unauthenticated",
       user: null,
+      profileUser: null,
       loading: false,
+      profileLoading: false,
       error: message,
     });
   },

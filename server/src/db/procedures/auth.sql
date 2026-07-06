@@ -31,6 +31,39 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS sp_get_user_info_by_id;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_user_info_by_id(
+  IN p_idUser INT,
+  IN p_idBusiness INT
+)
+BEGIN
+  SELECT
+    u.idUser,
+    u.name,
+    u.username,
+    u.email,
+    bu.role,
+    u.is_active AS isActive,
+    u.created_at AS createdAt
+  FROM users u
+  INNER JOIN business_users bu
+    ON bu.idUser = u.idUser
+    AND bu.idBusiness = p_idBusiness
+  INNER JOIN businesses b
+    ON b.idBusiness = bu.idBusiness
+  WHERE u.idUser = p_idUser
+    AND bu.idBusiness = p_idBusiness
+    AND u.is_active = 1
+    AND bu.is_active = 1
+    AND b.is_active = 1
+  LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS sp_create_session;
 DELIMITER $$
 
@@ -120,6 +153,8 @@ BEGIN
   WHERE idLogin = p_idLogin
     AND revoked_at IS NULL;
 END$$
+
+DELIMITER ;
 
 DROP PROCEDURE IF EXISTS sp_user_register_with_business;
 DELIMITER $$

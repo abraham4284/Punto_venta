@@ -28,3 +28,13 @@ export type AuthUser = {
   // rol?: string;
   // img_url?: string;
 };
+
+export type UserInfoResponse = {
+  idUser: number;
+  name: string;
+  username: string;
+  email: string | null;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+};
