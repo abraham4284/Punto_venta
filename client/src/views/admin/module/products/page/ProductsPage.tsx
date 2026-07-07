@@ -38,7 +38,6 @@ export const ProductsPage = () => {
     useProductCategories();
   const {
     deposits,
-    loading: loadingDeposits,
     getDeposits,
     resetDeposits,
   } = useDeposits();
@@ -57,7 +56,7 @@ export const ProductsPage = () => {
     return () => {
       resetProducts();
     };
-  }, []);
+  }, [getProducts, resetProducts]);
 
   const handleOpenCreate = () => {
     resetDataEdit();
@@ -71,7 +70,14 @@ export const ProductsPage = () => {
       resetDeposits();
       resetCategories();
     };
-  }, [isOpen, dataEdit]);
+  }, [
+    dataEdit,
+    getDeposits,
+    getProductCategories,
+    isOpen,
+    resetCategories,
+    resetDeposits,
+  ]);
 
   const handleSubmit = async (values: ProductFormValues) => {
     const payload = {
@@ -84,6 +90,7 @@ export const ProductsPage = () => {
       imageUrl: values.imageUrl.trim() || null,
       priceCost: Number(values.priceCost),
       priceSale: Number(values.priceSale),
+      unitType: values.unitType,
       stockMin: values.stockMin === "" ? 0 : Number(values.stockMin),
     };
 
@@ -95,6 +102,7 @@ export const ProductsPage = () => {
       imageUrl: values.imageUrl.trim() || null,
       priceCost: Number(values.priceCost),
       priceSale: Number(values.priceSale),
+      unitType: values.unitType,
       stockMin: values.stockMin === "" ? 0 : Number(values.stockMin),
     };
 

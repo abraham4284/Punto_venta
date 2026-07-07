@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { PRODUCT_UNIT_TYPES } from "../types/products.types";
+
+const productUnitTypeSchema = z.enum(PRODUCT_UNIT_TYPES, {
+  error: "La unidad de medida seleccionada no es valida",
+});
 
 const productBaseSchema = z.object({
   idProductCategory: z
@@ -47,6 +52,8 @@ const productBaseSchema = z.object({
       },
       "El precio de venta debe ser mayor a cero",
     ),
+
+  unitType: productUnitTypeSchema,
 
   stock: z.string().refine(
     function isValidStock(value) {

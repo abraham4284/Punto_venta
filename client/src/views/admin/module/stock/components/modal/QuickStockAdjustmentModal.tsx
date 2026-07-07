@@ -24,6 +24,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import type { DepositResponse } from "../../../deposits/types/deposits.types";
 import {
+  PRODUCT_UNIT_TYPE_OPTIONS,
+  type ProductUnitType,
+} from "../../../products/types/products.types";
+import {
   processStockAdjustmentRequest,
   processStockTransferRequest,
 } from "../../api/stock.movement.api";
@@ -54,7 +58,6 @@ const quickAdjustmentSchema = z
     }),
     quantity: z
       .number({ error: "La cantidad es obligatoria" })
-      .int("La cantidad debe ser un numero entero")
       .positive("La cantidad debe ser mayor a cero"),
     idDepositTo: z.number().int().positive().nullable(),
   })
@@ -73,6 +76,20 @@ const formatNumber = (value: number): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value);
+};
+
+const getUnitOption = (unitType: ProductUnitType) => {
+  return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => {
+    return option.value === unitType;
+  });
+};
+
+const isQuantityAllowedForUnit = (
+  quantityValue: number,
+  unitType: ProductUnitType,
+): boolean => {
+  if (unitType !== "UNIT") return true;
+  return Number.isInteger(quantityValue);
 };
 
 const operationOptions: Array<{
@@ -112,11 +129,20 @@ export const QuickStockAdjustmentModal = ({
   }, [deposits, stock?.idDeposit]);
 
   const selectedQuantity = Number(quantity);
+  const stockUnitType = stock?.unitType ?? "UNIT";
+  const unitOption = getUnitOption(stockUnitType);
+  const quantityStep = stockUnitType === "UNIT" ? "1" : "0.01";
+  const quantityMin = stockUnitType === "UNIT" ? "1" : "0.01";
+  const quantityPlaceholder =
+    stockUnitType === "UNIT"
+      ? "Ej: 5"
+      : `Ej: 10.5 ${unitOption?.shortLabel ?? ""}`.trim();
+  const isSelectedQuantityValid = Number.isFinite(selectedQuantity);
   const isOutputOperation =
     operation === "ADJUSTMENT_OUT" || operation === "TRANSFER";
   const exceedsOriginStock =
     isOutputOperation &&
-    Number.isInteger(selectedQuantity) &&
+    isSelectedQuantityValid &&
     selectedQuantity > 0 &&
     Boolean(stock) &&
     selectedQuantity > Number(stock?.quantity ?? 0);
@@ -180,6 +206,13 @@ export const QuickStockAdjustmentModal = ({
       );
 
       setErrors(nextErrors);
+      return false;
+    }
+
+    if (!isQuantityAllowedForUnit(Number(quantity), stock?.unitType ?? "UNIT")) {
+      setErrors({
+        quantity: "Los productos por unidad solo permiten cantidades enteras",
+      });
       return false;
     }
 
@@ -270,10 +303,14 @@ export const QuickStockAdjustmentModal = ({
                   <p className="text-xs text-muted-foreground">
                     Deposito origen: {stock.depositName}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    Tipo de producto: {unitOption?.label ?? "Unidad"}
+                  </p>
                 </div>
               </div>
               <Badge variant="secondary" className="w-fit">
-                Stock actual en origen: {formatNumber(stock.quantity)}
+                Stock actual: {formatNumber(stock.quantity)}{" "}
+                {unitOption?.shortLabel ?? "u."}
               </Badge>
             </div>
           </div>
@@ -347,7 +384,9 @@ export const QuickStockAdjustmentModal = ({
               )}
               {destinationBalance?.exists && (
                 <p className="text-sm text-muted-foreground">
-                  Stock actual en destino: {formatNumber(destinationBalance.quantity)}
+                  Stock actual en destino:{" "}
+                  {formatNumber(destinationBalance.quantity)}{" "}
+                  {unitOption?.shortLabel ?? "u."}
                 </p>
               )}
               {errors.idDepositTo && (
@@ -357,19 +396,26 @@ export const QuickStockAdjustmentModal = ({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="quick-stock-quantity">Cantidad</Label>
+            <Label htmlFor="quick-stock-quantity">
+              Cantidad {unitOption ? `(${unitOption.shortLabel})` : ""}
+            </Label>
             <Input
               id="quick-stock-quantity"
               type="number"
-              min="1"
-              step="1"
+              min={quantityMin}
+              step={quantityStep}
               value={quantity}
               onChange={(event) => {
                 setQuantity(event.target.value);
                 setErrors((current) => ({ ...current, quantity: undefined }));
               }}
-              placeholder="Ej: 5"
+              placeholder={quantityPlaceholder}
             />
+            <p className="text-xs text-muted-foreground">
+              {stockUnitType === "UNIT"
+                ? "Este producto se maneja por unidad, por eso no acepta decimales."
+                : "Este producto permite cantidades decimales."}
+            </p>
             {exceedsOriginStock && (
               <p className="text-sm text-destructive">
                 La cantidad no puede superar el stock disponible en origen

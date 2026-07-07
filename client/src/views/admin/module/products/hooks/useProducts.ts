@@ -13,9 +13,23 @@ import type {
   FieldError,
   ProductCategoryOption,
   ProductResponse,
+  ProductUnitType,
   UpdateProductPayload,
   UpdateProductStatusPayload,
 } from "../types/products.types";
+
+const normalizeUnitType = (
+  unitType: ProductResponse["unitType"] | null | undefined,
+): ProductUnitType => {
+  return unitType ?? "UNIT";
+};
+
+const normalizeProduct = (product: ProductResponse): ProductResponse => {
+  return {
+    ...product,
+    unitType: normalizeUnitType(product.unitType),
+  };
+};
 
 export const useProducts = () => {
   const [products, setProducts] = useState<ProductResponse[]>([]);
@@ -52,7 +66,7 @@ export const useProducts = () => {
 
       const response = await getProductsRequest();
 
-      setProducts(response.data.data ?? []);
+      setProducts((response.data.data ?? []).map(normalizeProduct));
     } catch (error) {
       handleApiError(error);
     } finally {

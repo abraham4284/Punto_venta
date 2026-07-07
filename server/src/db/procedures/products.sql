@@ -13,6 +13,7 @@ CREATE PROCEDURE sp_create_product(
   IN p_price_cost DECIMAL(18,2),
   IN p_price_sale DECIMAL(18,2),
   IN p_price_wholesale DECIMAL(18,2),
+  IN p_unit_type VARCHAR(20),
   IN p_stock_min DECIMAL(18,2)
 )
 BEGIN
@@ -46,6 +47,11 @@ BEGIN
       SET MESSAGE_TEXT = 'El deposito indicado no existe o no pertenece al negocio';
   END IF;
 
+  IF COALESCE(p_unit_type, 'UNIT') NOT IN ('UNIT', 'KG', 'GRAM', 'LITER', 'METER') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La unidad de medida indicada no es valida';
+  END IF;
+
   START TRANSACTION;
 
   INSERT INTO products (
@@ -58,6 +64,7 @@ BEGIN
     price_cost,
     price_sale,
     price_wholesale,
+    unit_type,
     stock_min,
     is_active,
     created_at,
@@ -73,6 +80,7 @@ BEGIN
     p_price_cost,
     p_price_sale,
     p_price_wholesale,
+    COALESCE(p_unit_type, 'UNIT'),
     p_stock_min,
     1,
     NOW(),
@@ -123,6 +131,7 @@ BEGIN
     p.price_cost,
     p.price_sale,
     p.price_wholesale,
+    p.unit_type,
     p.stock_min,
     p.is_active,
     p.created_at,
@@ -158,6 +167,7 @@ BEGIN
     p.price_cost,
     p.price_sale,
     p.price_wholesale,
+    p.unit_type,
     p.stock_min,
     p.is_active,
     p.created_at,
@@ -193,6 +203,8 @@ CREATE PROCEDURE sp_update_product(
   IN p_price_sale DECIMAL(18,2),
   IN p_price_wholesale DECIMAL(18,2),
   IN p_update_price_wholesale TINYINT,
+  IN p_unit_type VARCHAR(20),
+  IN p_update_unit_type TINYINT,
   IN p_stock_min DECIMAL(18,2)
 )
 BEGIN
@@ -205,6 +217,11 @@ BEGIN
   ) THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La categoria indicada no existe o no pertenece al negocio';
+  END IF;
+
+  IF p_update_unit_type = 1 AND p_unit_type NOT IN ('UNIT', 'KG', 'GRAM', 'LITER', 'METER') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La unidad de medida indicada no es valida';
   END IF;
 
   UPDATE products
@@ -231,6 +248,10 @@ BEGIN
     price_wholesale = CASE
       WHEN p_update_price_wholesale = 1 THEN p_price_wholesale
       ELSE price_wholesale
+    END,
+    unit_type = CASE
+      WHEN p_update_unit_type = 1 THEN p_unit_type
+      ELSE unit_type
     END,
     stock_min = COALESCE(p_stock_min, stock_min),
     updated_at = NOW()

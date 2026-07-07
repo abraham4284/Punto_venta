@@ -23,12 +23,12 @@ export const useBusinesses = () => {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
 
-  const clearErrors = () => {
+  const clearErrors = useCallback(() => {
     setError(null);
     setFieldErrors([]);
-  };
+  }, []);
 
-  const handleApiError = (error: unknown): FieldError[] => {
+  const handleApiError = useCallback((error: unknown): FieldError[] => {
     const axiosError = error as AxiosError<ApiErrorResponse>;
     const message =
       axiosError.response?.data?.message || "Ocurrio un error inesperado";
@@ -38,7 +38,7 @@ export const useBusinesses = () => {
     setFieldErrors(errors);
 
     return errors;
-  };
+  }, []);
 
   const getBusiness = useCallback(async () => {
     if (!user?.idBusiness) {
@@ -58,9 +58,9 @@ export const useBusinesses = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.idBusiness]);
+  }, [clearErrors, handleApiError, user?.idBusiness]);
 
-  const updateBusiness = async (
+  const updateBusiness = useCallback(async (
     body: UpdateBusinessBody,
   ): Promise<MutationResult> => {
     try {
@@ -86,14 +86,14 @@ export const useBusinesses = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [clearErrors, handleApiError]);
 
-  const resetBusiness = () => {
+  const resetBusiness = useCallback(() => {
     setBusiness(null);
     setLoading(false);
     setSaving(false);
     clearErrors();
-  };
+  }, [clearErrors]);
 
   return {
     business,

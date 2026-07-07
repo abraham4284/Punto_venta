@@ -20,6 +20,27 @@ export interface ProductCategoryOption {
   name: string;
 }
 
+export const PRODUCT_UNIT_TYPES = [
+  "UNIT",
+  "KG",
+  "GRAM",
+  "LITER",
+  "METER",
+] as const;
+
+export type ProductUnitType = (typeof PRODUCT_UNIT_TYPES)[number];
+
+export const PRODUCT_UNIT_TYPE_OPTIONS: {
+  value: ProductUnitType;
+  label: string;
+  shortLabel: string;
+}[] = [
+  { value: "UNIT", label: "Unidad", shortLabel: "u." },
+  { value: "KG", label: "Kilogramo", shortLabel: "kg" },
+  { value: "LITER", label: "Litro", shortLabel: "l" },
+  { value: "METER", label: "Metro", shortLabel: "m" },
+];
+
 export interface ProductResponse {
   idProduct: number;
   idDeposit: number;
@@ -32,6 +53,8 @@ export interface ProductResponse {
   imageUrl: string | null;
   priceCost: number;
   priceSale: number;
+  priceWholesale?: number | null;
+  unitType: ProductUnitType;
   stock: number;
   stockMin: number;
   isActive: boolean;
@@ -48,6 +71,8 @@ export interface CreateProductPayload {
   imageUrl?: string | null;
   priceCost: number;
   priceSale: number;
+  priceWholesale?: number | null;
+  unitType: ProductUnitType;
   stock?: number;
   stockMin?: number;
 }
@@ -60,6 +85,8 @@ export interface UpdateProductPayload {
   imageUrl?: string | null;
   priceCost?: number;
   priceSale?: number;
+  priceWholesale?: number | null;
+  unitType?: ProductUnitType;
   stockMin?: number;
 }
 
@@ -76,6 +103,7 @@ export interface ProductFormValues {
   imageUrl: string;
   priceCost: string;
   priceSale: string;
+  unitType: ProductUnitType;
   stock: string;
   stockMin: string;
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BUSINESS_TYPE_VALUES } from "../types";
 
 const emptyStringToNull = z.literal("").transform(() => null);
 
@@ -29,8 +30,8 @@ export const businessFormSchema = z
       .nullable()
       .or(emptyStringToNull),
 
-    businessType: z.literal("FINANCIERA", {
-      error: "El tipo de negocio debe ser FINANCIERA",
+    businessType: z.enum(BUSINESS_TYPE_VALUES, {
+      error: "El tipo de negocio seleccionado no es valido",
     }),
   })
   .strict();

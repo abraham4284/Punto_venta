@@ -13,6 +13,7 @@ import type {
   PriceType,
   ProductSelection,
   ProductWithStockResponse,
+  ProductUnitType,
   SaleHeaderInput,
 } from "../types";
 
@@ -31,6 +32,31 @@ const initialHeader: SaleHeaderInput = {
 
 const toMoney = (value: Decimal.Value): number => {
   return Number(new Decimal(value).toDecimalPlaces(2).toString());
+};
+
+const normalizeSaleQuantity = (
+  quantity: number,
+  product: Pick<ProductWithStockResponse | CartItem, "stockQuantity" | "unitType">,
+): number => {
+  if (!Number.isFinite(quantity)) return product.unitType === "UNIT" ? 1 : 0.01;
+
+  const minQuantity = product.unitType === "UNIT" ? 1 : 0.01;
+  const boundedQuantity = Math.min(
+    Math.max(quantity, minQuantity),
+    product.stockQuantity,
+  );
+
+  if (product.unitType === "UNIT") {
+    return Math.floor(boundedQuantity);
+  }
+
+  return Number(boundedQuantity.toFixed(2));
+};
+
+const normalizeProductUnitType = (
+  unitType: ProductUnitType | undefined,
+): ProductUnitType => {
+  return unitType ?? "UNIT";
 };
 
 const hasWholesalePrice = (
@@ -239,9 +265,9 @@ export const useSales = () => {
 
         if (existingIndex >= 0) {
           const currentItem = nextCart[existingIndex];
-          const nextQuantity = Math.min(
+          const nextQuantity = normalizeSaleQuantity(
             currentItem.quantity + quantity,
-            currentItem.stockQuantity,
+            currentItem,
           );
 
           nextCart[existingIndex] = calculateItem(
@@ -253,7 +279,11 @@ export const useSales = () => {
           return;
         }
 
-        const safeQuantity = Math.min(quantity, product.stockQuantity);
+        const unitType = normalizeProductUnitType(product.unitType);
+        const safeQuantity = normalizeSaleQuantity(quantity, {
+          stockQuantity: product.stockQuantity,
+          unitType,
+        });
         const newItem: CartItem = {
           idProduct: product.idProduct,
           name: product.name,
@@ -262,6 +292,7 @@ export const useSales = () => {
           stockQuantity: product.stockQuantity,
           priceSale: product.priceSale,
           priceWholesale: product.priceWholesale,
+          unitType,
           quantity: safeQuantity,
           unitPrice: getPriceByType(product, priceType),
           discountPercent: 0,
@@ -288,10 +319,7 @@ export const useSales = () => {
       current.map((item) => {
         if (item.idProduct !== idProduct) return item;
 
-        const nextQuantity = Math.min(
-          Math.max(quantity, 1),
-          item.stockQuantity,
-        );
+        const nextQuantity = normalizeSaleQuantity(quantity, item);
 
         return calculateItem(
           item,

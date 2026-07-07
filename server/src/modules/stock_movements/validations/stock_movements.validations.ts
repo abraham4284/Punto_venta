@@ -36,7 +36,6 @@ export const processStockAdjustmentSchema = z
 
     quantity: z
       .number({ error: "La cantidad es obligatoria" })
-      .int("La cantidad debe ser un numero entero")
       .positive("La cantidad debe ser mayor a cero"),
 
     type: z.enum(["ADJUSTMENT_IN", "ADJUSTMENT_OUT"], {
@@ -76,7 +75,6 @@ export const processStockTransferSchema = z
 
     quantity: z
       .number({ error: "La cantidad es obligatoria" })
-      .int("La cantidad debe ser un numero entero")
       .positive("La cantidad debe ser mayor a cero"),
 
     observation: observationSchema,

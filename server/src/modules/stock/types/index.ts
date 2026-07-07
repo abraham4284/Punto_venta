@@ -1,6 +1,8 @@
 import type { Request } from "express";
 import type { AccessTokenPayload } from "@/libs/tokens.js";
 
+export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
+
 export interface StockDbRow {
   idStock: number;
   idBusiness: number;
@@ -8,6 +10,7 @@ export interface StockDbRow {
   idProduct: number;
   product_name: string;
   product_image_url: string | null;
+  product_unit_type: ProductUnitType;
   category_name: string;
   idDeposit: number;
   deposit_name: string;
@@ -23,6 +26,7 @@ export interface StockResponse {
   idProduct: number;
   productName: string;
   productImageUrl: string | null;
+  unitType: ProductUnitType;
   categoryName: string;
   idDeposit: number;
   depositName: string;

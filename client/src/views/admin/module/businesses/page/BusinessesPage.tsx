@@ -41,7 +41,7 @@ export const BusinessesPage = () => {
     return () => {
       resetBusiness();
     };
-  }, [getBusiness]);
+  }, [getBusiness, resetBusiness]);
 
   const handleOpenEdit = () => {
     if (!business) return;

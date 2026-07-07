@@ -178,11 +178,11 @@ export const useProductCategories = () => {
   }, [categories]);
 
 
-  const resetCategories = () =>{
+  const resetCategories = useCallback(() => {
     setLoading(false);
     setError(null);
     setCategories([]);
-  }
+  }, []);
 
   return {
     categories,

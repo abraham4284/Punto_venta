@@ -11,6 +11,10 @@ const optionalText = z
   .nullable()
   .or(emptyStringToNull);
 
+const productUnitTypeSchema = z.enum(["UNIT", "KG", "GRAM", "LITER", "METER"], {
+  error: "La unidad de medida seleccionada no es valida",
+});
+
 export const createProductSchema = z
   .object({
     idBusiness: z
@@ -75,6 +79,8 @@ export const createProductSchema = z
       .min(0, "El precio mayorista no puede ser negativo")
       .optional()
       .nullable(),
+
+    unitType: productUnitTypeSchema.default("UNIT"),
 
     stockMin: z
       .number()
@@ -148,6 +154,8 @@ export const updateProductSchema = z
       .min(0, "El precio mayorista no puede ser negativo")
       .optional()
       .nullable(),
+
+    unitType: productUnitTypeSchema.optional(),
 
     stockMin: z
       .number()

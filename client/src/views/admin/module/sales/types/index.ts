@@ -1,4 +1,17 @@
 export type PriceType = "SALE" | "WHOLESALE";
+export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
+
+export const PRODUCT_UNIT_TYPE_OPTIONS: {
+  value: ProductUnitType;
+  label: string;
+  shortLabel: string;
+}[] = [
+  { value: "UNIT", label: "Unidad", shortLabel: "u." },
+  { value: "KG", label: "Kilogramo", shortLabel: "kg" },
+  { value: "GRAM", label: "Gramo", shortLabel: "g" },
+  { value: "LITER", label: "Litro", shortLabel: "l" },
+  { value: "METER", label: "Metro", shortLabel: "m" },
+];
 
 export interface FieldError {
   field: string;
@@ -34,6 +47,7 @@ export interface ProductWithStockResponse {
   priceCost: number;
   priceSale: number;
   priceWholesale: number | null;
+  unitType: ProductUnitType;
   stockMin: number;
   isActive: boolean;
   stockQuantity: number;
@@ -68,6 +82,7 @@ export interface CartItem {
   stockQuantity: number;
   priceSale: number;
   priceWholesale: number | null;
+  unitType: ProductUnitType;
   quantity: number;
   unitPrice: number;
   discountPercent: number;

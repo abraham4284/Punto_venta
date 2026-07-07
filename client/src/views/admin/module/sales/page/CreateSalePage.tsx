@@ -244,6 +244,7 @@ export const CreateSalePage = () => {
         items: cart.map((item) => ({
           idProduct: item.idProduct,
           quantity: item.quantity,
+          unitType: item.unitType,
           stockQuantity: item.stockQuantity,
           unitPrice: item.unitPrice,
           discount: item.discountAmount,

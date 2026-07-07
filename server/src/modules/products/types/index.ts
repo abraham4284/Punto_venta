@@ -1,6 +1,8 @@
 import type { Request } from "express";
 import type { AccessTokenPayload } from "@/libs/tokens.js";
 
+export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
+
 export interface ProductDbRow {
   idProduct: number;
   idBusiness: number;
@@ -13,6 +15,7 @@ export interface ProductDbRow {
   price_cost: string | number;
   price_sale: string | number;
   price_wholesale: string | number | null;
+  unit_type: ProductUnitType | null;
   stock_min: string | number;
   is_active: number;
   created_at: Date;
@@ -31,6 +34,7 @@ export interface ProductResponse {
   priceCost: number;
   priceSale: number;
   priceWholesale: number | null;
+  unitType: ProductUnitType;
   stockMin: number;
   isActive: boolean;
   createdAt: Date;
@@ -49,6 +53,7 @@ export interface CreateProductPayload {
   priceCost: number;
   priceSale: number;
   priceWholesale?: number | null;
+  unitType: ProductUnitType;
   stockMin?: number;
 }
 
@@ -63,6 +68,7 @@ export interface UpdateProductPayload {
   priceCost?: number;
   priceSale?: number;
   priceWholesale?: number | null;
+  unitType?: ProductUnitType;
   stockMin?: number;
 }
 

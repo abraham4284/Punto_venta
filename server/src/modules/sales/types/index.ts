@@ -2,6 +2,7 @@ import type { Request } from "express";
 import type { AccessTokenPayload } from "@/libs/tokens.js";
 
 export type SaleStatus = "COMPLETED" | "CANCELLED";
+export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 
 export interface SaleDbRow {
   idSale: number;
@@ -54,6 +55,7 @@ export interface ProductWithStockDbRow {
   price_cost: string | number;
   price_sale: string | number;
   price_wholesale: string | number | null;
+  unit_type: ProductUnitType | null;
   stock_min: string | number;
   is_active: number;
   stock_quantity: string | number;
@@ -180,6 +182,7 @@ export interface ProductWithStockResponse {
   priceCost: number;
   priceSale: number;
   priceWholesale: number | null;
+  unitType: ProductUnitType;
   stockMin: number;
   isActive: boolean;
   stockQuantity: number;

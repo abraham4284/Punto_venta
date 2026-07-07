@@ -108,6 +108,7 @@ CREATE PROCEDURE sp_create_sale_detail_and_discount_stock(
 )
 BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
+  DECLARE v_unit_type VARCHAR(20);
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -137,13 +138,26 @@ BEGIN
       SET MESSAGE_TEXT = 'El producto indicado no existe o esta inactivo';
   END IF;
 
-  SELECT quantity
-  INTO v_current_quantity
-  FROM stock
-  WHERE idBusiness = p_idBusiness
-    AND idProduct = p_idProduct
-    AND idDeposit = p_idDeposit
+  SELECT s.quantity, p.unit_type
+  INTO v_current_quantity, v_unit_type
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  WHERE s.idBusiness = p_idBusiness
+    AND s.idProduct = p_idProduct
+    AND s.idDeposit = p_idDeposit
   LIMIT 1;
+
+  IF p_quantity IS NULL OR p_quantity <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La cantidad debe ser mayor a cero';
+  END IF;
+
+  IF v_unit_type = 'UNIT' AND p_quantity <> FLOOR(p_quantity) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Los productos por unidad solo permiten cantidades enteras';
+  END IF;
 
   IF v_current_quantity IS NULL OR v_current_quantity < p_quantity THEN
     SIGNAL SQLSTATE '45000'
@@ -495,6 +509,7 @@ BEGIN
     p.price_cost,
     p.price_sale,
     p.price_wholesale,
+    p.unit_type,
     p.stock_min,
     p.is_active,
     COALESCE(s.quantity, 0) AS stock_quantity

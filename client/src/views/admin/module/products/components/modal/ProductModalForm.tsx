@@ -36,6 +36,11 @@ import type {
   FieldError,
   ProductFormValues,
   ProductResponse,
+  ProductUnitType,
+} from "../../types/products.types";
+import {
+  PRODUCT_UNIT_TYPE_OPTIONS,
+  PRODUCT_UNIT_TYPES,
 } from "../../types/products.types";
 import type { ProductCategoryResponse } from "../../../product-categories/types/productCategories.types";
 import type { DepositResponse } from "../../../deposits/types/deposits.types";
@@ -66,8 +71,19 @@ const initialForm: ProductFormValues = {
   imageUrl: "",
   priceCost: "",
   priceSale: "",
+  unitType: "UNIT",
   stock: "0",
   stockMin: "0",
+};
+
+const isProductUnitType = (
+  value: string | null | undefined,
+): value is ProductUnitType => {
+  return PRODUCT_UNIT_TYPES.some((unitType) => unitType === value);
+};
+
+const getUnitOption = (unitType: ProductUnitType) => {
+  return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => option.value === unitType);
 };
 
 const mapErrorsToRecord = (errors: FieldError[]): Record<string, string> => {
@@ -102,32 +118,43 @@ export const ProductModalForm = ({
     (deposit) => String(deposit.idDeposit) === depositValue,
   );
   const selectedDepositLabel = selectedDeposit?.name?.trim() || undefined;
+  const selectedUnitType = getUnitOption(formSate.unitType);
+  const stockStep = formSate.unitType === "UNIT" ? "1" : "0.01";
 
   useEffect(() => {
-    if (dataEdit) {
-      setFormSate({
-        idProductCategory: String(dataEdit.idProductCategory),
-        idDeposit: "",
-        barcode: dataEdit.barcode ?? "",
-        name: dataEdit.name,
-        description: dataEdit.description ?? "",
-        imageUrl: dataEdit.imageUrl ?? "",
-        priceCost: String(dataEdit.priceCost),
-        priceSale: String(dataEdit.priceSale),
-        stock: String(dataEdit.stock),
-        stockMin: String(dataEdit.stockMin),
-      });
-    } else {
-      onResetForm();
-    }
+    const timeoutId = window.setTimeout(() => {
+      if (dataEdit) {
+        setFormSate({
+          idProductCategory: String(dataEdit.idProductCategory),
+          idDeposit: "",
+          barcode: dataEdit.barcode ?? "",
+          name: dataEdit.name,
+          description: dataEdit.description ?? "",
+          imageUrl: dataEdit.imageUrl ?? "",
+          priceCost: String(dataEdit.priceCost),
+          priceSale: String(dataEdit.priceSale),
+          unitType: dataEdit.unitType ?? "UNIT",
+          stock: String(dataEdit.stock),
+          stockMin: String(dataEdit.stockMin),
+        });
+      } else {
+        setFormSate(initialForm);
+      }
 
-    setErrors({});
-  }, [dataEdit, isOpen]);
+      setErrors({});
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dataEdit, isOpen, setFormSate]);
 
   useEffect(() => {
-    if (backendErrors.length > 0) {
-      setErrors(mapErrorsToRecord(backendErrors));
-    }
+    const timeoutId = window.setTimeout(() => {
+      if (backendErrors.length > 0) {
+        setErrors(mapErrorsToRecord(backendErrors));
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [backendErrors]);
 
   const handleOpenChange = (open: boolean) => {
@@ -160,6 +187,15 @@ export const ProductModalForm = ({
   ) => {
     setFormSate({ ...formSate, [field]: value ?? "" });
     clearFieldError(field);
+  };
+
+  const handleUnitTypeChange = (value: string | null) => {
+    if (!isProductUnitType(value)) {
+      return;
+    }
+
+    setFormSate({ ...formSate, unitType: value });
+    clearFieldError("unitType");
   };
 
   const handleBarcodeKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -356,6 +392,34 @@ export const ProductModalForm = ({
             </div>
           </div>
 
+          <div className="grid gap-2">
+            <Label htmlFor="unitType">
+              Tipo de unidad <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={formSate.unitType}
+              onValueChange={handleUnitTypeChange}
+            >
+              <SelectTrigger id="unitType" className="w-full">
+                <SelectValue placeholder="Seleccione una unidad">
+                  {selectedUnitType?.label ?? "Seleccione una unidad"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {PRODUCT_UNIT_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            {errors.unitType && (
+              <p className="text-sm text-destructive">{errors.unitType}</p>
+            )}
+          </div>
+
           {!dataEdit && (
             <>
               <div className="grid gap-4 md:grid-cols-2">
@@ -366,10 +430,12 @@ export const ProductModalForm = ({
                     name="stock"
                     type="number"
                     min="0"
-                    step="1"
+                    step={stockStep}
                     value={formSate.stock}
                     onChange={handleInputChange}
-                    placeholder="0"
+                    placeholder={
+                      formSate.unitType === "UNIT" ? "0" : "0.00"
+                    }
                   />
                   {errors.stock && (
                     <p className="text-sm text-destructive">{errors.stock}</p>
@@ -427,10 +493,10 @@ export const ProductModalForm = ({
               name="stockMin"
               type="number"
               min="0"
-              step="1"
+              step={stockStep}
               value={formSate.stockMin}
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder={formSate.unitType === "UNIT" ? "0" : "0.00"}
             />
             {errors.stockMin && (
               <p className="text-sm text-destructive">{errors.stockMin}</p>

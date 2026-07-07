@@ -15,7 +15,46 @@ export interface ApiErrorResponse {
   errors?: FieldError[];
 }
 
-export type BusinessType = "FINANCIERA";
+export const BUSINESS_TYPE_VALUES = [
+  "MAXIKIOSCO",
+  "PRODUCTOS",
+  "FINANCIERA",
+  "KIOSCO",
+  "ALMACEN",
+  "MINIMERCADO",
+  "SUPERMERCADO",
+  "FARMACIA",
+  "FERRETERIA",
+  "INDUMENTARIA",
+  "TECNOLOGIA",
+  "DISTRIBUIDORA",
+  "GASTRONOMIA",
+  "LIBRERIA",
+  "PERFUMERIA",
+  "VETERINARIA",
+  "OTRO",
+] as const;
+
+export type BusinessType = (typeof BUSINESS_TYPE_VALUES)[number];
+
+export const BUSINESS_TYPE_OPTIONS: { value: BusinessType; label: string }[] = [
+  { value: "MAXIKIOSCO", label: "Maxikiosco" },
+  { value: "PRODUCTOS", label: "Venta de productos" },
+  { value: "KIOSCO", label: "Kiosco" },
+  { value: "ALMACEN", label: "Almacen / Despensa" },
+  { value: "MINIMERCADO", label: "Minimercado" },
+  { value: "SUPERMERCADO", label: "Supermercado" },
+  { value: "FARMACIA", label: "Farmacia" },
+  { value: "FERRETERIA", label: "Ferreteria" },
+  { value: "INDUMENTARIA", label: "Indumentaria" },
+  { value: "TECNOLOGIA", label: "Tecnologia" },
+  { value: "DISTRIBUIDORA", label: "Distribuidora" },
+  { value: "GASTRONOMIA", label: "Gastronomia" },
+  { value: "LIBRERIA", label: "Libreria" },
+  { value: "PERFUMERIA", label: "Perfumeria" },
+  { value: "VETERINARIA", label: "Veterinaria" },
+  { value: "OTRO", label: "Otro rubro" },
+];
 
 export interface BusinessResponse {
   idBusiness: number;

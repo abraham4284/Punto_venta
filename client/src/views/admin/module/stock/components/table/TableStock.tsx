@@ -15,6 +15,7 @@ import {
   getStockDifference,
   getStockStatus,
 } from "../../helpers/stockStatus.helper";
+import { PRODUCT_UNIT_TYPE_OPTIONS } from "../../../products/types/products.types";
 
 type Props = {
   data: StockResponse[];
@@ -27,6 +28,12 @@ const formatNumber = (value: number) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(value);
+};
+
+const getUnitOption = (unitType: StockResponse["unitType"]) => {
+  return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => {
+    return option.value === unitType;
+  });
 };
 
 export const TableStock = ({ data, loading, onQuickAdjust }: Props) => {
@@ -53,6 +60,7 @@ export const TableStock = ({ data, loading, onQuickAdjust }: Props) => {
             <TableHead>Producto</TableHead>
             <TableHead>Depósito</TableHead>
             <TableHead className="text-right">Stock actual</TableHead>
+            <TableHead>Tipo</TableHead>
             <TableHead className="text-right">Stock mínimo</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Referencia</TableHead>
@@ -64,6 +72,7 @@ export const TableStock = ({ data, loading, onQuickAdjust }: Props) => {
         <TableBody>
           {data.map((stock) => {
             const stockStatus = getStockStatus(stock.quantity, stock.stock_min);
+            const unitOption = getUnitOption(stock.unitType ?? "UNIT");
 
             const stockDifference = getStockDifference(
               stock.quantity,
@@ -107,11 +116,17 @@ export const TableStock = ({ data, loading, onQuickAdjust }: Props) => {
                 </TableCell>
 
                 <TableCell className="text-right font-semibold">
-                  {formatNumber(stock.quantity)}
+                  {formatNumber(stock.quantity)} {unitOption?.shortLabel ?? "u."}
+                </TableCell>
+
+                <TableCell>
+                  <Badge variant="outline">
+                    {unitOption?.label ?? "Unidad"}
+                  </Badge>
                 </TableCell>
 
                 <TableCell className="text-right text-muted-foreground">
-                  {formatNumber(stock.stock_min)}
+                  {formatNumber(stock.stock_min)} {unitOption?.shortLabel ?? "u."}
                 </TableCell>
 
                 <TableCell>

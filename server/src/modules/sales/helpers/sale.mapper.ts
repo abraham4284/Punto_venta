@@ -1,11 +1,16 @@
 import type {
   ProductWithStockDbRow,
   ProductWithStockResponse,
+  ProductUnitType,
   SaleDbRow,
   SaleDetailDbRow,
   SaleDetailResponse,
   SaleResponse,
 } from "../types/index.js";
+
+function normalizeUnitType(value: ProductUnitType | null): ProductUnitType {
+  return value ?? "UNIT";
+}
 
 export function mapSale(sale: SaleDbRow): SaleResponse {
   return {
@@ -66,6 +71,7 @@ export function mapProductWithStock(
     priceSale: Number(product.price_sale),
     priceWholesale:
       product.price_wholesale === null ? null : Number(product.price_wholesale),
+    unitType: normalizeUnitType(product.unit_type),
     stockMin: Number(product.stock_min),
     isActive: Boolean(product.is_active),
     stockQuantity: Number(product.stock_quantity),
