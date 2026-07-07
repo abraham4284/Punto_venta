@@ -10,6 +10,7 @@ import type {
 } from "../types";
 
 const initialFilters: SaleFilters = {
+  saleNumber: "",
   idDeposit: null,
   status: null,
   startDate: "",

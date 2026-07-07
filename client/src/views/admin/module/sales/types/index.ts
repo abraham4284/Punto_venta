@@ -109,6 +109,7 @@ export interface CreateSalePayload {
 
 export interface SaleResponse {
   idSale: number;
+  saleNumber: string;
   idBusiness: number;
   idUser: number;
   userName: string;
@@ -161,6 +162,7 @@ export interface SaleTicketItem {
 
 export interface SaleTicketHeader {
   idSale: number;
+  saleNumber: string;
   idBusiness: number;
   businessName: string;
   businessType: string | null;
@@ -179,6 +181,7 @@ export interface SaleTicketHeader {
 
 export interface SaleTicketResponse {
   idSale: number;
+  saleNumber: string;
   sale: SaleTicketHeader;
   items: SaleTicketItem[];
   htmlTemplate: string;
@@ -198,6 +201,7 @@ export interface PaginatedSalesResponse {
 }
 
 export interface SaleFilters {
+  saleNumber: string;
   idDeposit: number | null;
   status: "COMPLETED" | "CANCELLED" | null;
   startDate: string;

@@ -76,6 +76,7 @@ export const CreateSalePage = () => {
     fieldErrors,
     isOpenSuccessModal,
     newSaleId,
+    newSaleNumber,
     setPriceType,
     updateHeaderField,
     changeDeposit,
@@ -480,6 +481,7 @@ export const CreateSalePage = () => {
       <SaleSuccessModal
         isOpen={isOpenSuccessModal}
         idSale={newSaleId}
+        saleNumber={newSaleNumber}
         onResetForm={resetSale}
         onViewDetails={handleViewSaleDetails}
       />

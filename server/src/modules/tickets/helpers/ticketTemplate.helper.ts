@@ -51,7 +51,7 @@ export function buildSaleTicketHtml(data: SaleTicketData): string {
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>Ticket venta #${sale.idSale}</title>
+    <title>Ticket venta ${escapeHtml(sale.saleNumber)}</title>
     <style>
       @page { size: 80mm auto; margin: 0; }
       * { box-sizing: border-box; }
@@ -113,7 +113,7 @@ export function buildSaleTicketHtml(data: SaleTicketData): string {
       <div class="status">${statusLabel}</div>
 
       <section>
-        <div class="row"><span>Operacion:</span><strong>#${sale.idSale}</strong></div>
+        <div class="row"><span>Operacion:</span><strong>${escapeHtml(sale.saleNumber)}</strong></div>
         <div class="row"><span>Fecha:</span><span>${formatDate(sale.saleDate)}</span></div>
        
       </section>

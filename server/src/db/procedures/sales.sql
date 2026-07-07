@@ -4,6 +4,7 @@ DELIMITER $$
 CREATE PROCEDURE sp_create_sale(
   IN p_idBusiness INT,
   IN p_idUser INT,
+  IN p_sale_number VARCHAR(50),
   IN p_idCustomer INT,
   IN p_idDeposit INT,
   IN p_idPaymentMethod INT,
@@ -15,11 +16,22 @@ CREATE PROCEDURE sp_create_sale(
 BEGIN
   DECLARE v_idSale INT;
 
+  DECLARE EXIT HANDLER FOR 1062
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
     ROLLBACK;
     RESIGNAL;
   END;
+
+  IF p_sale_number IS NULL OR TRIM(p_sale_number) = '' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El numero de venta es obligatorio';
+  END IF;
 
   IF NOT EXISTS (
     SELECT 1
@@ -56,6 +68,7 @@ BEGIN
   INSERT INTO sales (
     idBusiness,
     idUser,
+    sale_number,
     idCustomer,
     idDeposit,
     idPaymentMethod,
@@ -71,6 +84,7 @@ BEGIN
   VALUES (
     p_idBusiness,
     p_idUser,
+    p_sale_number,
     p_idCustomer,
     p_idDeposit,
     p_idPaymentMethod,
@@ -86,7 +100,7 @@ BEGIN
 
   SET v_idSale = LAST_INSERT_ID();
 
-  SELECT v_idSale AS idSale;
+  SELECT v_idSale AS idSale, p_sale_number AS saleNumber;
 END$$
 
 DELIMITER ;
@@ -109,6 +123,7 @@ CREATE PROCEDURE sp_create_sale_detail_and_discount_stock(
 BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
   DECLARE v_unit_type VARCHAR(20);
+  DECLARE v_sale_number VARCHAR(50);
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -126,6 +141,13 @@ BEGIN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La venta indicada no existe o no esta activa';
   END IF;
+
+  SELECT sale_number
+  INTO v_sale_number
+  FROM sales
+  WHERE idSale = p_idSale
+    AND idBusiness = p_idBusiness
+  LIMIT 1;
 
   IF NOT EXISTS (
     SELECT 1
@@ -214,7 +236,7 @@ BEGIN
     p_quantity,
     'SALE',
     p_idSale,
-    CONCAT('Venta #', p_idSale),
+    CONCAT('Venta ', COALESCE(v_sale_number, CONCAT('#', p_idSale))),
     NOW()
   );
 
@@ -343,12 +365,14 @@ CREATE PROCEDURE sp_get_sales(
   IN p_offset INT,
   IN p_idDeposit INT,
   IN p_status VARCHAR(20),
+  IN p_saleNumberSearch VARCHAR(50),
   IN p_startDate DATETIME,
   IN p_endDate DATETIME
 )
 BEGIN
   SELECT
     s.idSale,
+    s.sale_number,
     s.idBusiness,
     s.idUser,
     u.name AS user_name,
@@ -381,6 +405,11 @@ BEGIN
   WHERE s.idBusiness = p_idBusiness
     AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
     AND (p_status IS NULL OR s.status = p_status)
+    AND (
+      p_saleNumberSearch IS NULL
+      OR p_saleNumberSearch = ''
+      OR s.sale_number LIKE CONCAT('%', p_saleNumberSearch, '%')
+    )
     AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
     AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
   ORDER BY s.created_at DESC, s.idSale DESC
@@ -395,6 +424,11 @@ BEGIN
   WHERE s.idBusiness = p_idBusiness
     AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
     AND (p_status IS NULL OR s.status = p_status)
+    AND (
+      p_saleNumberSearch IS NULL
+      OR p_saleNumberSearch = ''
+      OR s.sale_number LIKE CONCAT('%', p_saleNumberSearch, '%')
+    )
     AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
     AND (p_endDate IS NULL OR s.sale_date <= p_endDate);
 END$$
@@ -412,6 +446,7 @@ CREATE PROCEDURE sp_get_sale_by_id(
 BEGIN
   SELECT
     s.idSale,
+    s.sale_number,
     s.idBusiness,
     s.idUser,
     u.name AS user_name,

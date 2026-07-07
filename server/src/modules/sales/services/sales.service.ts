@@ -5,9 +5,11 @@ import {
   mapSale,
   mapSaleDetail,
 } from "../helpers/sale.mapper.js";
+import { generateSaleNumber } from "../helpers/saleNumber.helper.js";
 import type {
   CancelSalePayload,
   CreateSalePayload,
+  CreateSaleProcedurePayload,
   GetSalesFilters,
   PaginatedSalesResponse,
   ProductWithStockDbRow,
@@ -22,13 +24,14 @@ import type {
 
 async function callCreateSaleProcedure(
   connection: PoolConnection,
-  data: CreateSalePayload,
+  data: CreateSaleProcedurePayload,
 ): Promise<number> {
   const [rows] = await connection.query<RowDataPacket[]>(
-    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idUser,
+      data.saleNumber,
       data.idCustomer ?? null,
       data.idDeposit,
       data.idPaymentMethod ?? null,
@@ -75,15 +78,19 @@ export async function createSaleService(
   data: CreateSalePayload,
 ): Promise<SaleWithDetailsResponse> {
   const connection = await pool.getConnection();
+  const saleData: CreateSaleProcedurePayload = {
+    ...data,
+    saleNumber: generateSaleNumber(),
+  };
 
   try {
     await connection.beginTransaction();
-    const idSale = await callCreateSaleProcedure(connection, data);
-    await callCreateSaleDetailProcedure(connection, data, idSale);
+    const idSale = await callCreateSaleProcedure(connection, saleData);
+    await callCreateSaleDetailProcedure(connection, saleData, idSale);
 
     await connection.commit();
 
-    return getSaleByIdService(data.idBusiness, idSale);
+    return getSaleByIdService(saleData.idBusiness, idSale);
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -96,13 +103,14 @@ export async function getSalesService(
   filters: GetSalesFilters,
 ): Promise<PaginatedSalesResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?, ?)",
     [
       filters.idBusiness,
       filters.limit,
       filters.offset,
       filters.idDeposit ?? null,
       filters.status ?? null,
+      filters.saleNumberSearch ?? null,
       filters.startDate ?? null,
       filters.endDate ?? null,
     ],

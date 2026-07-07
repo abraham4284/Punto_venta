@@ -91,7 +91,9 @@ export const SaleTable = ({ sales, loading, onView }: Props) => {
       <TableBody>
         {sales.map((sale) => (
           <TableRow key={sale.idSale}>
-            <TableCell className="font-semibold">#{sale.idSale}</TableCell>
+            <TableCell className="font-semibold">
+              {sale.saleNumber || `#${sale.idSale}`}
+            </TableCell>
             <TableCell>{formatDate(sale.saleDate)}</TableCell>
             <TableCell>{sale.customerName ?? "Consumidor final"}</TableCell>
             <TableCell>{sale.depositName}</TableCell>
@@ -119,7 +121,9 @@ export const SaleTable = ({ sales, loading, onView }: Props) => {
                   disabled={printingId !== null}
                   onClick={() => handlePrintTicket(sale.idSale)}
                   title="Imprimir ticket"
-                  aria-label={`Imprimir ticket venta ${sale.idSale}`}
+                  aria-label={`Imprimir ticket venta ${
+                    sale.saleNumber || sale.idSale
+                  }`}
                 >
                   {printingId === sale.idSale ? (
                     <Spinner className="h-4 w-4" />

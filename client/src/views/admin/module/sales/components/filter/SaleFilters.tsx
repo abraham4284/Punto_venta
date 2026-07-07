@@ -40,7 +40,16 @@ export const SaleFilters = ({
   }, [depositSearch, deposits]);
 
   return (
-    <div className="grid gap-4 rounded-lg border bg-card p-4 md:grid-cols-5">
+    <div className="grid gap-4 rounded-lg border bg-card p-4 md:grid-cols-6">
+      <div className="grid gap-2">
+        <Label>N venta</Label>
+        <Input
+          value={filters.saleNumber}
+          onChange={(event) => onChange({ saleNumber: event.target.value })}
+          placeholder="Ej: VTA-20260707"
+        />
+      </div>
+
       <SearchBox
         label="Deposito"
         value={depositSearch}

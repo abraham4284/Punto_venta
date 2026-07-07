@@ -34,6 +34,7 @@ export const getSalesRequest = (
       limit,
       idDeposit: filters.idDeposit ?? undefined,
       status: filters.status ?? undefined,
+      saleNumber: filters.saleNumber.trim() || undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
     },

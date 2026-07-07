@@ -13,6 +13,7 @@ import type {
 function mapTicketHeader(row: TicketSaleDbRow): SaleTicketHeader {
   return {
     idSale: row.idSale,
+    saleNumber: row.sale_number ?? `#${row.idSale}`,
     idBusiness: row.idBusiness,
     businessName: row.business_name,
     businessType: row.business_type,
@@ -65,6 +66,7 @@ export async function getSaleTicketService(
   return {
     ...ticketData,
     idSale: ticketData.sale.idSale,
+    saleNumber: ticketData.sale.saleNumber,
     htmlTemplate: buildSaleTicketHtml(ticketData),
   };
 }

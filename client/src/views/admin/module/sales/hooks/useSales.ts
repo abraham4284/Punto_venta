@@ -116,6 +116,7 @@ export const useSales = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isOpenSuccessModal, setIsOpenSuccessModal] = useState(false);
   const [newSaleId, setNewSaleId] = useState<number | null>(null);
+  const [newSaleNumber, setNewSaleNumber] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((acc, item) => {
@@ -186,6 +187,7 @@ export const useSales = () => {
     setError(null);
     setFieldErrors({});
     setNewSaleId(null);
+    setNewSaleNumber(null);
     setIsOpenSuccessModal(false);
   };
 
@@ -402,8 +404,10 @@ export const useSales = () => {
       const payload = buildPayload();
       const response = await createSaleRequest(payload);
       const createdSaleId = response.data.data?.idSale ?? null;
+      const createdSaleNumber = response.data.data?.saleNumber ?? null;
 
       setNewSaleId(createdSaleId);
+      setNewSaleNumber(createdSaleNumber);
       setIsOpenSuccessModal(true);
 
       return {
@@ -435,6 +439,7 @@ export const useSales = () => {
     fieldErrors,
     isOpenSuccessModal,
     newSaleId,
+    newSaleNumber,
     setPriceType,
     updateHeaderField,
     changeDeposit,
