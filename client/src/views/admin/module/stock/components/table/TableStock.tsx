@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { StockResponse } from "../../types/stock.types";
+import type { AdvancedStockPagination } from "../../types/stock.types";
 import {
   getStockDifference,
   getStockStatus,
@@ -20,7 +21,9 @@ import { PRODUCT_UNIT_TYPE_OPTIONS } from "../../../products/types/products.type
 type Props = {
   data: StockResponse[];
   loading: boolean;
+  pagination: AdvancedStockPagination;
   onQuickAdjust: (stock: StockResponse) => void;
+  onPageChange: (page: number) => void;
 };
 
 const formatNumber = (value: number) => {
@@ -36,7 +39,28 @@ const getUnitOption = (unitType: StockResponse["unitType"]) => {
   });
 };
 
-export const TableStock = ({ data, loading, onQuickAdjust }: Props) => {
+const getVisiblePages = (
+  currentPage: number,
+  totalPages: number,
+): number[] => {
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(totalPages, currentPage + 2);
+  const pages: number[] = [];
+
+  for (let page = start; page <= end; page += 1) {
+    pages.push(page);
+  }
+
+  return pages;
+};
+
+export const TableStock = ({
+  data,
+  loading,
+  pagination,
+  onQuickAdjust,
+  onPageChange,
+}: Props) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -52,6 +76,19 @@ export const TableStock = ({ data, loading, onQuickAdjust }: Props) => {
       </div>
     );
   }
+  const pages = getVisiblePages(
+    pagination.currentPage,
+    pagination.totalPages,
+  );
+  const firstRecord =
+    pagination.totalRecords === 0
+      ? 0
+      : (pagination.currentPage - 1) * pagination.limit + 1;
+  const lastRecord = Math.min(
+    pagination.currentPage * pagination.limit,
+    pagination.totalRecords,
+  );
+
   return (
     <div className="rounded-lg border bg-background">
       <Table>
@@ -166,6 +203,49 @@ export const TableStock = ({ data, loading, onQuickAdjust }: Props) => {
           })}
         </TableBody>
       </Table>
+
+      <div className="flex flex-col items-center justify-between gap-3 border-t p-4 md:flex-row">
+        <p className="text-sm text-muted-foreground">
+          Mostrando {firstRecord}-{lastRecord} de {pagination.totalRecords}{" "}
+          registros
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.currentPage <= 1}
+            onClick={() => onPageChange(pagination.currentPage - 1)}
+          >
+            Anterior
+          </Button>
+
+          {pages.map((page) => (
+            <Button
+              key={page}
+              type="button"
+              size="icon"
+              variant={page === pagination.currentPage ? "default" : "outline"}
+              aria-label={`Ir a la pagina ${page}`}
+              aria-current={
+                page === pagination.currentPage ? "page" : undefined
+              }
+              onClick={() => onPageChange(page)}
+            >
+              {page}
+            </Button>
+          ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.currentPage >= pagination.totalPages}
+            onClick={() => onPageChange(pagination.currentPage + 1)}
+          >
+            Siguiente
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

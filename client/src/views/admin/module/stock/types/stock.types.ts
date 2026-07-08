@@ -1,5 +1,7 @@
 import type { ProductUnitType } from "../../products/types/products.types";
 
+export type AdvancedStockAlertStatus = "OK" | "LOW" | "ZERO";
+
 export interface StockDbRow {
   idStock: number;
   idBusiness: number;
@@ -29,6 +31,46 @@ export interface StockResponse {
   quantity: number;
   updatedAt: Date | null;
   stock_min: number;
+}
+
+export interface AdvancedStockFilters {
+  search: string;
+  idDeposit: number | null;
+  quantity: number | null;
+  minQuantity: number | null;
+  maxQuantity: number | null;
+  alertStatus: AdvancedStockAlertStatus | null;
+  page: number;
+  limit: number;
+}
+
+export interface AdvancedStockInventoryItem {
+  idStock: number;
+  idProduct: number;
+  productName: string;
+  categoryName: string | null;
+  barcode: string | null;
+  imageUrl: string | null;
+  unitType: ProductUnitType;
+  priceCost: number;
+  priceSale: number;
+  idDeposit: number;
+  depositName: string;
+  quantity: number;
+  stockMin: number;
+  alertStatus: AdvancedStockAlertStatus;
+}
+
+export interface AdvancedStockPagination {
+  totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface AdvancedStockResponse {
+  stock: AdvancedStockInventoryItem[];
+  pagination: AdvancedStockPagination;
 }
 
 export interface FieldError {

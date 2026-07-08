@@ -1,11 +1,15 @@
 import { useCallback, useMemo, useState } from "react";
 import type { AxiosError } from "axios";
+import { toast } from "react-hot-toast";
 import {
+  getAdvancedStockInventoryRequest,
   getCriticalStockReportRequest,
   getStockByProductAndDepositRequest,
-  getStockRequest,
 } from "../api/stock.api";
 import type {
+  AdvancedStockFilters,
+  AdvancedStockInventoryItem,
+  AdvancedStockPagination,
   ApiErrorResponse,
   CriticalStockReportResponse,
   FieldError,
@@ -13,12 +17,67 @@ import type {
   StockResponse,
 } from "../types/stock.types";
 
+const STOCK_PAGE_LIMIT = 15;
+
+const initialStockFilters: AdvancedStockFilters = {
+  search: "",
+  idDeposit: null,
+  quantity: null,
+  minQuantity: null,
+  maxQuantity: null,
+  alertStatus: null,
+  page: 1,
+  limit: STOCK_PAGE_LIMIT,
+};
+
+const initialPagination: AdvancedStockPagination = {
+  totalRecords: 0,
+  currentPage: 1,
+  totalPages: 1,
+  limit: STOCK_PAGE_LIMIT,
+};
+
+const hasActiveStockFilters = (filters: AdvancedStockFilters): boolean => {
+  return Boolean(
+    filters.search.trim() ||
+      filters.idDeposit ||
+      filters.quantity !== null ||
+      filters.minQuantity !== null ||
+      filters.maxQuantity !== null ||
+      filters.alertStatus,
+  );
+};
+
+const mapAdvancedStockToStockResponse = (
+  item: AdvancedStockInventoryItem,
+): StockResponse => {
+  return {
+    idStock: item.idStock,
+    idBusiness: 0,
+    businessName: "",
+    idProduct: item.idProduct,
+    productName: item.productName,
+    productImageUrl: item.imageUrl,
+    unitType: item.unitType ?? "UNIT",
+    categoryName: item.categoryName ?? item.barcode ?? "Sin categoria",
+    idDeposit: item.idDeposit,
+    depositName: item.depositName,
+    quantity: item.quantity,
+    updatedAt: null,
+    stock_min: item.stockMin,
+  };
+};
+
 export const useStock = () => {
   const [stock, setStock] = useState<StockResponse[]>([]);
+  const [stockData, setStockData] = useState<StockResponse[]>([]);
+  const [pagination, setPagination] =
+    useState<AdvancedStockPagination>(initialPagination);
+  const [activeFilters, setActiveFilters] =
+    useState<AdvancedStockFilters>(initialStockFilters);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
-  const [search, setSearch] = useState("");
   const [criticalStockData, setCriticalStockData] = useState<
     CriticalStockReportResponse[]
   >([]);
@@ -28,39 +87,95 @@ export const useStock = () => {
   const [productSearch, setProductSearch] = useState("");
   const [loadingStockBalance, setLoadingStockBalance] = useState(false);
 
-  const clearErrors = () => {
+  const clearErrors = useCallback(() => {
     setError(null);
     setFieldErrors([]);
-  };
+  }, []);
 
-  const handleApiError = (error: unknown): FieldError[] => {
+  const handleApiError = useCallback((error: unknown): FieldError[] => {
     const axiosError = error as AxiosError<ApiErrorResponse>;
-
     const message =
-      axiosError.response?.data?.message || "Ocurrió un error inesperado";
-
+      axiosError.response?.data?.message || "Ocurrio un error inesperado";
     const errors = axiosError.response?.data?.errors ?? [];
 
     setError(message);
     setFieldErrors(errors);
 
     return errors;
-  };
+  }, []);
+
+  const fetchStockInventory = useCallback(
+    async (
+      filters: AdvancedStockFilters,
+      notifyWhenEmpty: boolean,
+    ): Promise<void> => {
+      try {
+        setLoading(true);
+        clearErrors();
+
+        const response = await getAdvancedStockInventoryRequest(filters);
+        const result = response.data.data;
+        const mappedStock = result.stock.map(mapAdvancedStockToStockResponse);
+
+        setStock(mappedStock);
+        setStockData(mappedStock);
+        setPagination(result.pagination);
+
+        if (
+          notifyWhenEmpty &&
+          hasActiveStockFilters(filters) &&
+          result.stock.length === 0
+        ) {
+          toast.error(
+            "No se encontraron productos en el inventario con los filtros seleccionados",
+          );
+        }
+      } catch (error) {
+        handleApiError(error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [clearErrors, handleApiError],
+  );
 
   const getStock = useCallback(async () => {
-    try {
-      setLoading(true);
-      clearErrors();
+    setActiveFilters(initialStockFilters);
+    await fetchStockInventory(initialStockFilters, false);
+  }, [fetchStockInventory]);
 
-      const response = await getStockRequest();
+  const refreshStock = useCallback(async () => {
+    await fetchStockInventory(activeFilters, false);
+  }, [activeFilters, fetchStockInventory]);
 
-      setStock(response.data.data ?? []);
-    } catch (error) {
-      handleApiError(error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const applyStockFilters = useCallback(
+    async (filters: Omit<AdvancedStockFilters, "page" | "limit">) => {
+      const nextFilters: AdvancedStockFilters = {
+        ...filters,
+        page: 1,
+        limit: STOCK_PAGE_LIMIT,
+      };
+
+      setActiveFilters(nextFilters);
+      await fetchStockInventory(nextFilters, true);
+    },
+    [fetchStockInventory],
+  );
+
+  const changeStockPage = useCallback(
+    async (page: number) => {
+      const safePage = Math.min(Math.max(page, 1), pagination.totalPages);
+      const nextFilters: AdvancedStockFilters = {
+        ...activeFilters,
+        page: safePage,
+        limit: STOCK_PAGE_LIMIT,
+      };
+
+      setActiveFilters(nextFilters);
+      await fetchStockInventory(nextFilters, false);
+    },
+    [activeFilters, fetchStockInventory, pagination.totalPages],
+  );
 
   const getCriticalStockReport = useCallback(async () => {
     try {
@@ -79,7 +194,13 @@ export const useStock = () => {
     } finally {
       setLoadingReport(false);
     }
-  }, [depositFilter, maxQuantityFilter, productSearch]);
+  }, [
+    clearErrors,
+    depositFilter,
+    handleApiError,
+    maxQuantityFilter,
+    productSearch,
+  ]);
 
   const fetchCurrentStockBalance = useCallback(
     async (
@@ -103,38 +224,25 @@ export const useStock = () => {
         setLoadingStockBalance(false);
       }
     },
-    [],
+    [clearErrors, handleApiError],
   );
 
-  const filteredStock = useMemo(() => {
-    const value = search.trim().toLowerCase();
-
-    if (!value) return stock;
-
-    return stock.filter((stockItem) => {
-      return (
-        stockItem.productName.toLowerCase().includes(value) ||
-        stockItem.depositName?.toLowerCase().includes(value)
-      );
-    });
-  }, [stock, search]);
-
   const metrics = useMemo(() => {
-    const total = stock.length;
-    const totalUnits = stock.reduce((acc, item) => {
+    const total = stockData.length;
+    const totalUnits = stockData.reduce((acc, item) => {
       return acc + Number(item.quantity);
     }, 0);
-    const zeroStock = stock.filter((item) => item.quantity === 0).length;
-    const lowStock = stock.filter((item) => {
+    const zeroStock = stockData.filter((item) => item.quantity === 0).length;
+    const lowStock = stockData.filter((item) => {
       return item.quantity > 0 && item.quantity <= item.stock_min;
     }).length;
     const uniqueProducts = new Set(
-      stock.map((item) => {
+      stockData.map((item) => {
         return item.idProduct;
       }),
     ).size;
     const activeDeposits = new Set(
-      stock.map((item) => {
+      stockData.map((item) => {
         return item.idDeposit;
       }),
     ).size;
@@ -147,7 +255,7 @@ export const useStock = () => {
       uniqueProducts,
       activeDeposits,
     };
-  }, [stock]);
+  }, [stockData]);
 
   const criticalMetrics = useMemo(() => {
     const zeroStock = criticalStockData.filter((item) => {
@@ -174,13 +282,18 @@ export const useStock = () => {
     setLoading(false);
     setError(null);
     setStock([]);
+    setStockData([]);
+    setPagination(initialPagination);
+    setActiveFilters(initialStockFilters);
     setCriticalStockData([]);
   }, []);
 
   return {
-    filteredStock,
-    metrics,
     stock,
+    stockData,
+    pagination,
+    activeFilters,
+    metrics,
     loading,
     error,
     fieldErrors,
@@ -191,13 +304,14 @@ export const useStock = () => {
     maxQuantityFilter,
     depositFilter,
     productSearch,
-    search,
-    setSearch,
     setMaxQuantityFilter,
     setDepositFilter,
     setProductSearch,
     clearErrors,
     getStock,
+    refreshStock,
+    applyStockFilters,
+    changeStockPage,
     getCriticalStockReport,
     fetchCurrentStockBalance,
     resetStock,

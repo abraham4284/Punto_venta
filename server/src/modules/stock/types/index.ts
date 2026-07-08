@@ -2,6 +2,7 @@ import type { Request } from "express";
 import type { AccessTokenPayload } from "@/libs/tokens.js";
 
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
+export type AdvancedStockAlertStatus = "OK" | "LOW" | "ZERO";
 
 export interface StockDbRow {
   idStock: number;
@@ -33,6 +34,27 @@ export interface StockResponse {
   quantity: number;
   updatedAt: Date | null;
   stock_min: number;
+}
+
+export interface StockPaginationFilters {
+  page: number;
+  limit: number;
+}
+
+export interface StockPagination {
+  totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface StockPaginatedResponse {
+  stock: StockResponse[];
+  pagination: StockPagination;
+}
+
+export interface StockCountRow {
+  totalRecords: string | number;
 }
 
 export interface CreateInitialStockPayload {
@@ -104,6 +126,67 @@ export interface CriticalStockReportFilters {
   maxQuantity: number;
   idDeposit?: number | null;
   searchProduct?: string | null;
+}
+
+export interface AdvancedStockFilters {
+  search?: string | null;
+  idDeposit?: number | null;
+  quantity?: number | null;
+  minQuantity?: number | null;
+  maxQuantity?: number | null;
+  alertStatus?: AdvancedStockAlertStatus | null;
+  page: number;
+  limit: number;
+}
+
+export interface AdvancedStockInventoryRow {
+  idStock: number;
+  idProduct: number;
+  productName: string;
+  categoryName: string | null;
+  barcode: string | null;
+  imageUrl: string | null;
+  unitType: ProductUnitType;
+  priceCost: string | number;
+  priceSale: string | number;
+  idDeposit: number;
+  depositName: string;
+  quantity: string | number;
+  stockMin: string | number;
+  alertStatus: AdvancedStockAlertStatus;
+}
+
+export interface AdvancedStockInventoryItem {
+  idStock: number;
+  idProduct: number;
+  productName: string;
+  categoryName: string | null;
+  barcode: string | null;
+  imageUrl: string | null;
+  unitType: ProductUnitType;
+  priceCost: number;
+  priceSale: number;
+  idDeposit: number;
+  depositName: string;
+  quantity: number;
+  stockMin: number;
+  alertStatus: AdvancedStockAlertStatus;
+}
+
+export interface AdvancedStockPagination {
+  totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface AdvancedStockResponse {
+  stock: AdvancedStockInventoryItem[];
+  pagination: AdvancedStockPagination;
+}
+
+export interface AdvancedStockCountRow {
+  totalRecords: string | number;
 }
 
 export interface StockAuthenticatedRequest extends Request {

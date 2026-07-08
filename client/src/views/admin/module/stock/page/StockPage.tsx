@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
+import { Toaster } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUtilsState } from "@/hooks/useUtilsState";
@@ -19,11 +20,14 @@ import type { StockResponse } from "../types/stock.types";
 export const StockPage = () => {
   const {
     getStock,
+    refreshStock,
     resetStock,
     loading,
-    search,
-    setSearch,
-    filteredStock,
+    stockData,
+    pagination,
+    activeFilters,
+    applyStockFilters,
+    changeStockPage,
     metrics,
     loadingStockBalance,
     fetchCurrentStockBalance,
@@ -97,11 +101,18 @@ export const StockPage = () => {
 
       <Card>
         <CardContent className="space-y-4 p-4">
-          <StockFilter value={search} onChange={setSearch} />
+          <StockFilter
+            filters={activeFilters}
+            deposits={deposits}
+            loading={loading}
+            onApply={applyStockFilters}
+          />
 
           <TableStock
-            data={filteredStock}
+            data={stockData}
             loading={loading}
+            pagination={pagination}
+            onPageChange={changeStockPage}
             onQuickAdjust={handleOpenQuickAdjust}
           />
         </CardContent>
@@ -112,7 +123,7 @@ export const StockPage = () => {
         onClose={closeModal}
         products={products}
         deposits={deposits}
-        onSuccess={getStock}
+        onSuccess={refreshStock}
       />
       <QuickStockAdjustmentModal
         isOpen={isOpenQuickAdjust}
@@ -121,8 +132,9 @@ export const StockPage = () => {
         loadingBalance={loadingStockBalance}
         fetchCurrentStockBalance={fetchCurrentStockBalance}
         onClose={closeQuickAdjustModal}
-        onSuccess={getStock}
+        onSuccess={refreshStock}
       />
+      <Toaster position="top-right" reverseOrder={false} />
     </main>
   );
 };

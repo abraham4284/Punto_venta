@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import {
   createInitialStockController,
+  getAdvancedStockInventoryController,
   getCriticalStockReportController,
   getStockBalanceController,
   getStockByIdController,
@@ -11,6 +12,7 @@ import {
 const router = Router();
 
 router.get("/stock", requireAuth, getStockController);
+router.get("/stock/advanced-search", requireAuth, getAdvancedStockInventoryController);
 router.get("/stock/report/critical", requireAuth, getCriticalStockReportController);
 router.get("/stock/balance", requireAuth, getStockBalanceController);
 router.get("/stock/:id", requireAuth, getStockByIdController);

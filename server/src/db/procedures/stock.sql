@@ -130,14 +130,124 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS sp_get_advanced_stock_inventory;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_advanced_stock_inventory(
+  IN p_idBusiness INT,
+  IN p_search VARCHAR(160),
+  IN p_idDeposit INT,
+  IN p_quantity DECIMAL(18,2),
+  IN p_minQuantity DECIMAL(18,2),
+  IN p_maxQuantity DECIMAL(18,2),
+  IN p_alertStatus VARCHAR(20),
+  IN p_limit INT,
+  IN p_offset INT
+)
+BEGIN
+  SELECT
+    s.idStock,
+    s.idProduct,
+    p.name AS productName,
+    pc.name AS categoryName,
+    p.barcode,
+    p.image_url AS imageUrl,
+    p.unit_type AS unitType,
+    p.price_cost AS priceCost,
+    p.price_sale AS priceSale,
+    s.idDeposit,
+    d.name AS depositName,
+    s.quantity,
+    p.stock_min AS stockMin,
+    CASE
+      WHEN s.quantity = 0 THEN 'ZERO'
+      WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
+      ELSE 'OK'
+    END AS alertStatus
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  INNER JOIN deposits d
+    ON d.idDeposit = s.idDeposit
+    AND d.idBusiness = s.idBusiness
+  LEFT JOIN product_categories pc
+    ON pc.idProductCategory = p.idProductCategory
+    AND pc.idBusiness = p.idBusiness
+  WHERE s.idBusiness = p_idBusiness
+    AND (
+      p_search IS NULL
+      OR p_search = ''
+      OR p.name LIKE CONCAT('%', p_search, '%')
+      OR p.barcode LIKE CONCAT('%', p_search, '%')
+    )
+    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_quantity IS NULL OR s.quantity = p_quantity)
+    AND (p_minQuantity IS NULL OR s.quantity >= p_minQuantity)
+    AND (p_maxQuantity IS NULL OR s.quantity <= p_maxQuantity)
+    AND (
+      p_alertStatus IS NULL
+      OR p_alertStatus = ''
+      OR (
+        CASE
+          WHEN s.quantity = 0 THEN 'ZERO'
+          WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
+          ELSE 'OK'
+        END
+      ) = p_alertStatus
+    )
+  ORDER BY p.name ASC, d.name ASC, s.idStock ASC
+  LIMIT p_limit OFFSET p_offset;
+
+  SELECT
+    COUNT(*) AS totalRecords
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  INNER JOIN deposits d
+    ON d.idDeposit = s.idDeposit
+    AND d.idBusiness = s.idBusiness
+  LEFT JOIN product_categories pc
+    ON pc.idProductCategory = p.idProductCategory
+    AND pc.idBusiness = p.idBusiness
+  WHERE s.idBusiness = p_idBusiness
+    AND (
+      p_search IS NULL
+      OR p_search = ''
+      OR p.name LIKE CONCAT('%', p_search, '%')
+      OR p.barcode LIKE CONCAT('%', p_search, '%')
+    )
+    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_quantity IS NULL OR s.quantity = p_quantity)
+    AND (p_minQuantity IS NULL OR s.quantity >= p_minQuantity)
+    AND (p_maxQuantity IS NULL OR s.quantity <= p_maxQuantity)
+    AND (
+      p_alertStatus IS NULL
+      OR p_alertStatus = ''
+      OR (
+        CASE
+          WHEN s.quantity = 0 THEN 'ZERO'
+          WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
+          ELSE 'OK'
+        END
+      ) = p_alertStatus
+    );
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS sp_get_stock;
 DELIMITER $$
 
 CREATE PROCEDURE sp_get_stock(
-  IN p_idBusiness INT
+  IN p_idBusiness INT,
+  IN p_limit INT,
+  IN p_offset INT
 )
 BEGIN
- SELECT
+  SELECT
     s.idStock,
     s.idBusiness,
     b.name AS business_name,
@@ -160,9 +270,25 @@ BEGIN
     ON d.idDeposit = s.idDeposit
     AND d.idBusiness = s.idBusiness
   INNER JOIN product_categories pc
-   ON p.idProductCategory = pc.idProductCategory
+    ON p.idProductCategory = pc.idProductCategory
+    AND pc.idBusiness = s.idBusiness
   WHERE s.idBusiness = p_idBusiness
-  ORDER BY p.name ASC, d.name ASC, s.idStock ASC;
+  ORDER BY p.name ASC, d.name ASC, s.idStock ASC
+  LIMIT p_limit OFFSET p_offset;
+
+  SELECT
+    COUNT(*) AS totalRecords
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  INNER JOIN deposits d
+    ON d.idDeposit = s.idDeposit
+    AND d.idBusiness = s.idBusiness
+  INNER JOIN product_categories pc
+    ON p.idProductCategory = pc.idProductCategory
+    AND pc.idBusiness = s.idBusiness
+  WHERE s.idBusiness = p_idBusiness;
 END$$
 
 DELIMITER ;
