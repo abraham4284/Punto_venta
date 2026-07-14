@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import Decimal from "decimal.js";
 import type { AxiosError } from "axios";
 import {
+  cancelSale,
   createSaleRequest,
   getProductsByDepositRequest,
 } from "../api/sales.api";
@@ -117,6 +118,7 @@ export const useSales = () => {
   const [isOpenSuccessModal, setIsOpenSuccessModal] = useState(false);
   const [newSaleId, setNewSaleId] = useState<number | null>(null);
   const [newSaleNumber, setNewSaleNumber] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((acc, item) => {
@@ -427,6 +429,30 @@ export const useSales = () => {
     }
   };
 
+  const cancelSaleAction = async (idSale: number) => {
+    try {
+      setCancelingId(idSale);
+      clearErrors();
+
+      const response = await cancelSale(idSale);
+
+      return {
+        status: true,
+        message: response.data.message,
+        data: response.data.data,
+      };
+    } catch (error) {
+      handleApiError(error);
+
+      return {
+        status: false,
+        message: "No se pudo anular la venta",
+      };
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   return {
     header,
     cart,
@@ -440,6 +466,7 @@ export const useSales = () => {
     isOpenSuccessModal,
     newSaleId,
     newSaleNumber,
+    cancelingId,
     setPriceType,
     updateHeaderField,
     changeDeposit,
@@ -450,6 +477,7 @@ export const useSales = () => {
     updateItemDiscountPercent,
     setGlobalDiscountPercent,
     submitSale,
+    cancelSaleAction,
     clearErrors,
     setValidationErrors,
     clearCart,

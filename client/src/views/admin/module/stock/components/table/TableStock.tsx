@@ -39,10 +39,7 @@ const getUnitOption = (unitType: StockResponse["unitType"]) => {
   });
 };
 
-const getVisiblePages = (
-  currentPage: number,
-  totalPages: number,
-): number[] => {
+const getVisiblePages = (currentPage: number, totalPages: number): number[] => {
   const start = Math.max(1, currentPage - 2);
   const end = Math.min(totalPages, currentPage + 2);
   const pages: number[] = [];
@@ -76,10 +73,7 @@ export const TableStock = ({
       </div>
     );
   }
-  const pages = getVisiblePages(
-    pagination.currentPage,
-    pagination.totalPages,
-  );
+  const pages = getVisiblePages(pagination.currentPage, pagination.totalPages);
   const firstRecord =
     pagination.totalRecords === 0
       ? 0
@@ -146,14 +140,12 @@ export const TableStock = ({
                 <TableCell>
                   <div>
                     <p className="font-medium">{stock.depositName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ID Depósito: {stock.idDeposit}
-                    </p>
                   </div>
                 </TableCell>
 
                 <TableCell className="text-right font-semibold">
-                  {formatNumber(stock.quantity)} {unitOption?.shortLabel ?? "u."}
+                  {formatNumber(stock.quantity)}{" "}
+                  {unitOption?.shortLabel ?? "u."}
                 </TableCell>
 
                 <TableCell>
@@ -163,7 +155,8 @@ export const TableStock = ({
                 </TableCell>
 
                 <TableCell className="text-right text-muted-foreground">
-                  {formatNumber(stock.stock_min)} {unitOption?.shortLabel ?? "u."}
+                  {formatNumber(stock.stock_min)}{" "}
+                  {unitOption?.shortLabel ?? "u."}
                 </TableCell>
 
                 <TableCell>

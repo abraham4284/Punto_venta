@@ -7,8 +7,14 @@ import {
   logoutService,
   refreshTokenService,
   registerService,
+  updatePasswordService,
 } from "../services/auth.service.js";
-import type { LoginBody, RegisterBody } from "../types/auth.types.js";
+import type {
+  LoginBody,
+  RegisterBody,
+  UpdatePasswordBody,
+} from "../types/auth.types.js";
+import { updatePasswordSchema } from "../validations/auth.validations.js";
 
 function getZodErrors(error: z.ZodError) {
   return error.issues.map(function mapIssue(issue) {
@@ -146,6 +152,48 @@ export async function getUserInfoByIdController(
     return res.status(200).json({
       status: true,
       message: "Informacion del usuario obtenida correctamente",
+      data: result,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        status: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
+    return res.status(400).json({
+      status: false,
+      message: error.sqlMessage || error.message,
+    });
+  }
+}
+
+export async function updatePasswordController(
+  req: Request<{ idUser: string }, object, UpdatePasswordBody>,
+  res: Response,
+): Promise<Response> {
+  try {
+    const idUser = Number(req.params.idUser);
+
+    if (!Number.isInteger(idUser) || idUser <= 0) {
+      return res.status(400).json({
+        status: false,
+        message: "El identificador del usuario debe ser valido",
+      });
+    }
+
+    const data = updatePasswordSchema.parse(req.body);
+    const result = await updatePasswordService(
+      idUser,
+      req.user!.idBusiness,
+      data.password,
+    );
+
+    return res.status(200).json({
+      status: true,
+      message: "Contrasena actualizada correctamente",
       data: result,
     });
   } catch (error: any) {

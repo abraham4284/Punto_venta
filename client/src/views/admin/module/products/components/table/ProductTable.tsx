@@ -113,7 +113,7 @@ export const ProductTable = ({
 
             <TableCell className="font-medium">{product.name}</TableCell>
 
-            <TableCell>{product.categoryName || "-"}</TableCell>
+            <TableCell>{product.productCategoryName || "-"}</TableCell>
 
             <TableCell>
               <Badge variant="outline">{getUnitLabel(product.unitType)}</Badge>

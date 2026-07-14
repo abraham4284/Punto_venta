@@ -47,6 +47,7 @@ export interface ProductResponse {
   idBusiness: number;
   idProductCategory: number;
   categoryName: string | null;
+  productCategoryName: string | null;
   barcode: string | null;
   name: string;
   description: string | null;

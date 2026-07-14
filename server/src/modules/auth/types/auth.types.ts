@@ -23,6 +23,10 @@ export interface RegisterBody {
   businessType?: string;
 }
 
+export interface UpdatePasswordBody {
+  password: string;
+}
+
 export interface LoginDbRow {
   idUser: number;
   name: string;

@@ -1,15 +1,16 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { AxiosError } from "axios";
-import { getSaleByIdRequest } from "../api/sales.api";
+import { cancelSale, getSaleByIdRequest } from "../api/sales.api";
 import type { ApiErrorResponse, SaleWithDetailsResponse } from "../types";
 import { Decimal } from "decimal.js";
 
 export const useSaleDetails = () => {
   const [sale, setSale] = useState<SaleWithDetailsResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getSale = async (idSale: string) => {
+  const getSale = useCallback(async (idSale: string) => {
     try {
       const saleId = Number(idSale);
 
@@ -32,7 +33,7 @@ export const useSaleDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const grossSubtotal = useMemo(() => {
     if (!sale) return 0;
@@ -47,17 +48,45 @@ export const useSaleDetails = () => {
     );
   }, [sale]);
 
-  const resetSaleDetails = ()=>{
+  const resetSaleDetails = useCallback(() => {
     setSale(null);
     setLoading(false);
+    setCanceling(false);
     setError(null);
-  }
+  }, []);
+
+  const cancelSaleAction = useCallback(async (idSale: number) => {
+    try {
+      setCanceling(true);
+      setError(null);
+
+      await cancelSale(idSale);
+
+      setSale((currentSale) => {
+        if (!currentSale) return currentSale;
+
+        return {
+          ...currentSale,
+          status: "CANCELLED",
+        };
+      });
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      setError(
+        axiosError.response?.data?.message || "No se pudo anular la venta",
+      );
+    } finally {
+      setCanceling(false);
+    }
+  }, []);
 
   return {
     sale,
     loading,
+    canceling,
     error,
     getSale,
+    cancelSaleAction,
     grossSubtotal,
     resetSaleDetails,
   };

@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   Tags,
   Truck,
+  UserRound,
   Users,
   Warehouse,
 } from "lucide-react";
@@ -55,6 +56,7 @@ const iconByRoute: Record<string, LucideIcon> = {
   "/admin/dashboard": BarChart3,
   "/admin/dasbhoard": BarChart3,
   "/admin/businesses": Building2,
+  "/admin/profile": UserRound,
   "/admin/clients": Users,
   "/admin/suppliers": Truck,
   "/admin/categories-product": Tags,
@@ -90,6 +92,11 @@ const navigationGroups: NavigationGroup[] = [
         title: "Configuracion del negocio",
         url: "/admin/businesses",
         icon: Building2,
+      },
+      {
+        title: "Mi perfil",
+        url: "/admin/profile",
+        icon: UserRound,
       },
     ],
   },
@@ -187,7 +194,7 @@ export const AppSidebar = () => {
     return () => {
       resetBusiness();
     };
-  }, []);
+  }, [getBusiness, resetBusiness]);
 
   useEffect(() => {
     if (!user?.idUser || profileUser || profileLoading) {
@@ -245,7 +252,8 @@ export const AppSidebar = () => {
             </>
           ) : (
             <>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
+             <Link to="/admin/profile" className="flex items-center gap-3">
+               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
                 {getUserInitials(displayName)}
               </div>
 
@@ -257,6 +265,7 @@ export const AppSidebar = () => {
                   {displayRole}
                 </p>
               </div>
+             </Link>
             </>
           )}
 

@@ -8,6 +8,14 @@ export const loginSchema = z.object({
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
 });
 
+export const updatePasswordSchema = z.object({
+  password: z
+    .string({
+      message: "La contrasena es obligatoria",
+    })
+    .min(5, "La contrasena debe tener al menos 5 caracteres"),
+});
+
 export const registerSchema = z.object({
   name: z.string().min(2, "El nombre es obligatorio").max(120),
 

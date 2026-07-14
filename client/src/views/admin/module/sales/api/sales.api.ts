@@ -47,6 +47,12 @@ export const getSaleByIdRequest = (
   return axios.get(`/sales/${idSale}`);
 };
 
+export const cancelSale = (
+  idSale: number,
+): Promise<AxiosResponse<ApiResponse<SaleResponse>>> => {
+  return axios.patch(`/sales/${idSale}/cancel`);
+};
+
 export const getSaleTicketRequest = (
   idSale: number,
 ): Promise<AxiosResponse<ApiResponse<SaleTicketResponse>>> => {

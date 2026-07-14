@@ -252,3 +252,28 @@ export async function getUserInfoByIdService(
 
   return mapUserInfo(user);
 }
+
+export async function updatePasswordService(
+  idUser: number,
+  idBusiness: number,
+  password: string,
+): Promise<{ idUser: number; updated: boolean }> {
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_update_user_password(?, ?, ?)",
+    [idUser, idBusiness, passwordHash],
+  );
+
+  const result = rows as unknown as { idUser: number; updated: number }[][];
+  const updatedUser = result[0]?.[0];
+
+  if (!updatedUser?.updated) {
+    throw new Error("No se pudo actualizar la contrasena del usuario");
+  }
+
+  return {
+    idUser: updatedUser.idUser,
+    updated: Boolean(updatedUser.updated),
+  };
+}

@@ -38,3 +38,23 @@ export type UserInfoResponse = {
   isActive: boolean;
   createdAt: string;
 };
+
+export type UpdatePasswordBody = {
+  password: string;
+};
+
+export type UpdatePasswordResponse = {
+  idUser: number;
+  updated: boolean;
+};
+
+export type FieldError = {
+  field: string;
+  message: string;
+};
+
+export type AuthValidationResponse = {
+  status: boolean;
+  message: string;
+  errors?: FieldError[];
+};

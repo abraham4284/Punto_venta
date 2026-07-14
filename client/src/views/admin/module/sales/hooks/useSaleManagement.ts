@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import type { AxiosError } from "axios";
-import { getSalesRequest } from "../api/sales.api";
+import { cancelSale, getSalesRequest } from "../api/sales.api";
 import type {
   ApiErrorResponse,
   SaleFilters,
@@ -33,6 +33,26 @@ const initialMetrics: SaleMetricsData = {
   completedTotal: 0,
 };
 
+const getMetricsAfterCancel = (
+  currentMetrics: SaleMetricsData,
+  sale: SaleResponse,
+): SaleMetricsData => {
+  if (sale.status === "CANCELLED") return currentMetrics;
+
+  const completed = Math.max(currentMetrics.completed - 1, 0);
+  const cancelled = currentMetrics.cancelled + 1;
+  const total = currentMetrics.total;
+
+  return {
+    ...currentMetrics,
+    completed,
+    cancelled,
+    completedPercentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+    cancelledPercentage: total > 0 ? Math.round((cancelled / total) * 100) : 0,
+    completedTotal: Math.max(currentMetrics.completedTotal - sale.total, 0),
+  };
+};
+
 export const useSaleManagement = () => {
   const [sales, setSales] = useState<SaleResponse[]>([]);
   const [pagination, setPagination] =
@@ -42,6 +62,7 @@ export const useSaleManagement = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(15);
   const [loading, setLoading] = useState(false);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const getSales = useCallback(
@@ -93,6 +114,40 @@ export const useSaleManagement = () => {
     void getSales(safePage, filters);
   };
 
+  const cancelSaleAction = async (idSale: number) => {
+    const saleToCancel = sales.find((sale) => sale.idSale === idSale);
+
+    if (!saleToCancel || saleToCancel.status === "CANCELLED") return;
+
+    try {
+      setCancelingId(idSale);
+      setError(null);
+
+      await cancelSale(idSale);
+
+      setSales((currentSales) =>
+        currentSales.map((sale) => {
+          if (sale.idSale !== idSale) return sale;
+
+          return {
+            ...sale,
+            status: "CANCELLED",
+          };
+        }),
+      );
+      setMetrics((currentMetrics) =>
+        getMetricsAfterCancel(currentMetrics, saleToCancel),
+      );
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      setError(
+        axiosError.response?.data?.message || "No se pudo anular la venta",
+      );
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   return {
     sales,
     pagination,
@@ -100,11 +155,13 @@ export const useSaleManagement = () => {
     page,
     limit,
     loading,
+    cancelingId,
     error,
     metrics,
     getSales,
     updateFilters,
     resetFilters,
     changePage,
+    cancelSaleAction,
   };
 };

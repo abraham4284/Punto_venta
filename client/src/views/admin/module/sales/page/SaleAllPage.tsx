@@ -19,12 +19,14 @@ export const SaleAllPage = () => {
     pagination,
     filters,
     loading,
+    cancelingId,
     error,
     metrics,
     getSales,
     updateFilters,
     resetFilters,
     changePage,
+    cancelSaleAction,
   } = useSaleManagement();
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export const SaleAllPage = () => {
     return () => {
       resetDeposits();
     };
-  }, []);
+  }, [getDeposits, getSales, resetDeposits]);
 
   return (
     <main className="space-y-6 bg-white p-2 md:p-6">
@@ -73,7 +75,9 @@ export const SaleAllPage = () => {
           <SaleTable
             sales={sales}
             loading={loading}
+            cancelingId={cancelingId}
             onView={(idSale) => navigate(`/admin/sales/${idSale}`)}
+            onCancel={cancelSaleAction}
           />
           <PaginationControls
             pagination={pagination}

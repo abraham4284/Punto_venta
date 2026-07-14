@@ -11,6 +11,7 @@ import {
   StockRoutes,
   SuppliersRoutes,
 } from "@/views/admin/module";
+import { ProfilePage } from "@/views/admin/module/auth/page/ProfilePage";
 
 export const AdminRoutes = () => {
   return (
@@ -25,6 +26,7 @@ export const AdminRoutes = () => {
         <Route path="/sales/*" element={<SalesRoutes />} />
         <Route path="/suppliers/*" element={<SuppliersRoutes />} />
         <Route path="/businesses/*" element={<BusinessessRoutes />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </AdminLayout>
   );
