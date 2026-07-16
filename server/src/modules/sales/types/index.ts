@@ -2,9 +2,11 @@ import type { Request } from "express";
 import type { AccessTokenPayload } from "@/libs/tokens.js";
 
 export type SaleStatus = "COMPLETED" | "CANCELLED";
+export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 
 export interface SaleDbRow {
   idSale: number;
+  sale_number: string | null;
   idBusiness: number;
   idUser: number;
   user_name: string;
@@ -54,6 +56,7 @@ export interface ProductWithStockDbRow {
   price_cost: string | number;
   price_sale: string | number;
   price_wholesale: string | number | null;
+  unit_type: ProductUnitType | null;
   stock_min: string | number;
   is_active: number;
   stock_quantity: string | number;
@@ -80,6 +83,10 @@ export interface CreateSalePayload {
   items: CreateSaleDetailPayload[];
 }
 
+export interface CreateSaleProcedurePayload extends CreateSalePayload {
+  saleNumber: string;
+}
+
 export interface CancelSalePayload {
   idBusiness: number;
   idSale: number;
@@ -92,6 +99,7 @@ export interface GetSalesFilters {
   offset: number;
   idDeposit?: number | null;
   status?: SaleStatus | null;
+  saleNumberSearch?: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
 }
@@ -127,6 +135,7 @@ export interface SalesSummary {
 
 export interface SaleResponse {
   idSale: number;
+  saleNumber: string;
   idBusiness: number;
   idUser: number;
   userName: string;
@@ -180,6 +189,7 @@ export interface ProductWithStockResponse {
   priceCost: number;
   priceSale: number;
   priceWholesale: number | null;
+  unitType: ProductUnitType;
   stockMin: number;
   isActive: boolean;
   stockQuantity: number;
@@ -187,6 +197,7 @@ export interface ProductWithStockResponse {
 
 export interface SaleIdDbRow {
   idSale: number;
+  saleNumber: string;
 }
 
 export interface SaleAuthenticatedRequest extends Request {

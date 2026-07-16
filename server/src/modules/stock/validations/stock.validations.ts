@@ -4,6 +4,27 @@ const emptyStringToNull = z.literal("").transform(function transformEmptyString(
   return null;
 });
 
+function emptyToUndefined(value: unknown): unknown {
+  return value === "" ? undefined : value;
+}
+
+const optionalPositiveInteger = z.preprocess(
+  emptyToUndefined,
+  z.coerce
+    .number({ error: "Debe ser un numero" })
+    .int("Debe ser un numero entero")
+    .positive("Debe ser mayor a cero")
+    .optional(),
+);
+
+const optionalQuantity = z.preprocess(
+  emptyToUndefined,
+  z.coerce
+    .number({ error: "Debe ser un numero" })
+    .min(0, "No puede ser negativo")
+    .optional(),
+);
+
 export const createInitialStockSchema = z
   .object({
     idBusiness: z
@@ -39,3 +60,74 @@ export const createInitialStockSchema = z
       .or(emptyStringToNull),
   })
   .strict();
+
+export const stockPaginationQuerySchema = z
+  .object({
+    page: z.preprocess(
+      emptyToUndefined,
+      z.coerce
+        .number({ error: "La pagina debe ser un numero" })
+        .int("La pagina debe ser un numero entero")
+        .positive("La pagina debe ser mayor a cero")
+        .default(1),
+    ),
+    limit: z.preprocess(
+      emptyToUndefined,
+      z.coerce
+        .number({ error: "El limite debe ser un numero" })
+        .int("El limite debe ser un numero entero")
+        .positive("El limite debe ser mayor a cero")
+        .max(100, "El limite no puede superar 100 registros")
+        .default(15),
+    ),
+  })
+  .strict();
+
+export const advancedStockQuerySchema = z
+  .object({
+    search: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().max(160, "La busqueda no puede superar los 160 caracteres").optional(),
+    ),
+    idDeposit: optionalPositiveInteger,
+    quantity: optionalQuantity,
+    minQuantity: optionalQuantity,
+    maxQuantity: optionalQuantity,
+    alertStatus: z.preprocess(
+      emptyToUndefined,
+      z.enum(["OK", "LOW", "ZERO"], {
+        error: "El estado de alerta debe ser OK, LOW o ZERO",
+      }).optional(),
+    ),
+    page: z.preprocess(
+      emptyToUndefined,
+      z.coerce
+        .number({ error: "La pagina debe ser un numero" })
+        .int("La pagina debe ser un numero entero")
+        .positive("La pagina debe ser mayor a cero")
+        .default(1),
+    ),
+    limit: z.preprocess(
+      emptyToUndefined,
+      z.coerce
+        .number({ error: "El limite debe ser un numero" })
+        .int("El limite debe ser un numero entero")
+        .positive("El limite debe ser mayor a cero")
+        .max(100, "El limite no puede superar 100 registros")
+        .default(15),
+    ),
+  })
+  .strict()
+  .refine(
+    function minQuantityIsLowerThanMax(data) {
+      if (data.minQuantity === undefined || data.maxQuantity === undefined) {
+        return true;
+      }
+
+      return data.minQuantity <= data.maxQuantity;
+    },
+    {
+      path: ["minQuantity"],
+      message: "La cantidad minima no puede ser mayor a la cantidad maxima",
+    },
+  );

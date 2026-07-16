@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-} from "react";
+import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import type { AxiosError } from "axios";
 import { Search } from "lucide-react";
 import { useForm } from "@/hooks/useForm";
@@ -33,7 +27,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { ProductResponse } from "../../../products/types/products.types";
+import {
+  PRODUCT_UNIT_TYPE_OPTIONS,
+  type ProductResponse,
+  type ProductUnitType,
+} from "../../../products/types/products.types";
 import type { DepositResponse } from "../../../deposits/types/deposits.types";
 import { createInitialStockRequest } from "../../api/stock.api";
 import {
@@ -84,6 +82,20 @@ const mapErrorsToRecord = (errors: FieldError[]): Record<string, string> => {
   }, {});
 };
 
+const getUnitOption = (unitType: ProductUnitType) => {
+  return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => {
+    return option.value === unitType;
+  });
+};
+
+const isQuantityAllowedForUnit = (
+  quantity: number,
+  unitType: ProductUnitType,
+): boolean => {
+  if (unitType !== "UNIT") return true;
+  return Number.isInteger(quantity);
+};
+
 export const ModalFormStock = ({
   isOpen,
   onClose,
@@ -114,12 +126,27 @@ export const ModalFormStock = ({
   const selectedOperation = operationOptions.find(
     (operation) => operation.value === formSate.operationType,
   );
+  const selectedUnitType = selectedProduct?.unitType ?? "UNIT";
+  const selectedUnitOption = getUnitOption(selectedUnitType);
+  const quantityStep = selectedUnitType === "UNIT" ? "1" : "0.01";
+  const quantityMin = selectedUnitType === "UNIT" ? "1" : "0.01";
+  const quantityPlaceholder =
+    selectedUnitType === "UNIT"
+      ? "Ej: 5"
+      : `Ej: 10.5 ${selectedUnitOption?.shortLabel ?? ""}`.trim();
   const isTransfer = formSate.operationType === "TRANSFER";
   const isAdjustment =
     formSate.operationType === "ADJUSTMENT_IN" ||
     formSate.operationType === "ADJUSTMENT_OUT";
   const usesSingleDeposit =
     formSate.operationType === "INITIAL_STOCK" || isAdjustment;
+  const depositEqualityError =
+    isTransfer &&
+    formSate.idDepositFrom &&
+    formSate.idDepositTo &&
+    formSate.idDepositFrom === formSate.idDepositTo
+      ? "El deposito origen y destino deben ser distintos"
+      : "";
   const filteredProducts = useMemo(() => {
     const value = productSearch.trim().toLowerCase();
 
@@ -136,36 +163,6 @@ export const ModalFormStock = ({
       })
       .slice(0, 8);
   }, [productSearch, products]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      onResetForm();
-      setErrors({});
-      setSaving(false);
-      setProductSearch("");
-      setIsProductSearchOpen(false);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (
-      formSate.operationType === "TRANSFER" &&
-      formSate.idDepositFrom &&
-      formSate.idDepositTo &&
-      formSate.idDepositFrom === formSate.idDepositTo
-    ) {
-      setErrors((currentErrors) => ({
-        ...currentErrors,
-        idDepositTo: "El deposito origen y destino deben ser distintos",
-      }));
-      return;
-    }
-
-    setErrors((currentErrors) => {
-      const { idDepositTo, ...restErrors } = currentErrors;
-      return restErrors;
-    });
-  }, [formSate.operationType, formSate.idDepositFrom, formSate.idDepositTo]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -193,7 +190,8 @@ export const ModalFormStock = ({
     setProductSearch(product.name);
     setIsProductSearchOpen(false);
     setErrors((currentErrors) => {
-      const { idProduct, ...restErrors } = currentErrors;
+      const restErrors = { ...currentErrors };
+      delete restErrors.idProduct;
       return restErrors;
     });
   };
@@ -255,17 +253,21 @@ export const ModalFormStock = ({
       nextErrors.idDepositTo = "Selecciona el deposito de destino";
     }
 
-    if (
-      isTransfer &&
-      formSate.idDepositFrom &&
-      formSate.idDepositTo &&
-      formSate.idDepositFrom === formSate.idDepositTo
-    ) {
-      nextErrors.idDepositTo = "El deposito origen y destino deben ser distintos";
+    if (depositEqualityError) {
+      nextErrors.idDepositTo = depositEqualityError;
     }
 
     if (!formSate.quantity || Number.isNaN(quantity) || quantity <= 0) {
       nextErrors.quantity = "La cantidad debe ser mayor a cero";
+    }
+
+    if (
+      formSate.quantity &&
+      !Number.isNaN(quantity) &&
+      !isQuantityAllowedForUnit(quantity, selectedUnitType)
+    ) {
+      nextErrors.quantity =
+        "Los productos por unidad solo permiten cantidades enteras";
     }
 
     if (formSate.observation.length > 255) {
@@ -457,7 +459,11 @@ export const ModalFormStock = ({
                 )}
                 <div className="text-sm text-muted-foreground">
                   <p>Precio venta: ${selectedProduct.priceSale}</p>
-                  <p>Stock minimo: {selectedProduct.stockMin}</p>
+                  <p>
+                    Stock minimo: {selectedProduct.stockMin}{" "}
+                    {selectedUnitOption?.shortLabel ?? "u."}
+                  </p>
+                  <p>Tipo: {selectedUnitOption?.label ?? "Unidad"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -585,9 +591,9 @@ export const ModalFormStock = ({
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-                {errors.idDepositTo && (
+                {(errors.idDepositTo || depositEqualityError) && (
                   <p className="text-sm text-destructive">
-                    {errors.idDepositTo}
+                    {errors.idDepositTo || depositEqualityError}
                   </p>
                 )}
               </div>
@@ -596,18 +602,25 @@ export const ModalFormStock = ({
 
           <div className="grid gap-2">
             <Label htmlFor="quantity">
-              Cantidad <span className="text-red-500">*</span>
+              Cantidad{" "}
+              {selectedUnitOption ? `(${selectedUnitOption.shortLabel})` : ""}{" "}
+              <span className="text-red-500">*</span>
             </Label>
             <Input
               id="quantity"
               name="quantity"
               type="number"
-              min="0"
-              step="0.01"
+              min={quantityMin}
+              step={quantityStep}
               value={formSate.quantity}
               onChange={onInputChange}
-              placeholder="0.00"
+              placeholder={quantityPlaceholder}
             />
+            <p className="text-xs text-muted-foreground">
+              {selectedUnitType === "UNIT"
+                ? "Este producto se maneja por unidad, por eso no acepta decimales."
+                : "Este producto permite cantidades decimales."}
+            </p>
             {errors.quantity && (
               <p className="text-sm text-destructive">{errors.quantity}</p>
             )}

@@ -1,10 +1,18 @@
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
+import { Toaster } from "react-hot-toast";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUtilsState } from "@/hooks/useUtilsState";
 
-import { ModalFormStock, StockFilter, TableStock, CardStockMetric } from "../components";
+import {
+  CardStockMetric,
+  ModalFormStock,
+  QuickStockAdjustmentModal,
+  StockFilter,
+  TableStock,
+} from "../components";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
 import { useProducts } from "../../products/hooks/useProducts";
 import { useStock } from "../hooks/useStock";
@@ -13,12 +21,17 @@ import type { StockResponse } from "../types/stock.types";
 export const StockPage = () => {
   const {
     getStock,
+    refreshStock,
     resetStock,
     loading,
-    search,
-    setSearch,
-    filteredStock,
+    stockData,
+    pagination,
+    activeFilters,
+    applyStockFilters,
+    changeStockPage,
     metrics,
+    loadingStockBalance,
+    fetchCurrentStockBalance,
   } = useStock();
 
   const { products, getProducts, resetProducts } = useProducts();
@@ -29,6 +42,13 @@ export const StockPage = () => {
     toggleModal,
     closeModal,
     resetDataEdit,
+  } = useUtilsState<StockResponse>();
+  const {
+    isOpen: isOpenQuickAdjust,
+    dataEdit: quickAdjustStock,
+    addDataEdit: addQuickAdjustStock,
+    setIsOpen: setIsOpenQuickAdjust,
+    closeModal: closeQuickAdjustModal,
   } = useUtilsState<StockResponse>();
 
   useEffect(() => {
@@ -41,15 +61,29 @@ export const StockPage = () => {
       resetProducts();
       resetDeposits();
     };
-  }, [getStock, getProducts, getDeposits]);
+  }, [
+    getStock,
+    getProducts,
+    getDeposits,
+    resetStock,
+    resetProducts,
+    resetDeposits,
+  ]);
 
   const handleOpenCreate = () => {
     resetDataEdit();
     toggleModal();
   };
 
+  const handleOpenQuickAdjust = (stock: StockResponse) => {
+    addQuickAdjustStock(stock);
+    setIsOpenQuickAdjust(true);
+  };
+
   return (
-    <main className="space-y-6 p-6">
+    <>
+      <Meta title="Stock" />
+      <main className="space-y-6 p-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -70,9 +104,20 @@ export const StockPage = () => {
 
       <Card>
         <CardContent className="space-y-4 p-4">
-          <StockFilter value={search} onChange={setSearch} />
+          <StockFilter
+            filters={activeFilters}
+            deposits={deposits}
+            loading={loading}
+            onApply={applyStockFilters}
+          />
 
-          <TableStock data={filteredStock} loading={loading} />
+          <TableStock
+            data={stockData}
+            loading={loading}
+            pagination={pagination}
+            onPageChange={changeStockPage}
+            onQuickAdjust={handleOpenQuickAdjust}
+          />
         </CardContent>
       </Card>
 
@@ -81,8 +126,19 @@ export const StockPage = () => {
         onClose={closeModal}
         products={products}
         deposits={deposits}
-        onSuccess={getStock}
+        onSuccess={refreshStock}
       />
-    </main>
+      <QuickStockAdjustmentModal
+        isOpen={isOpenQuickAdjust}
+        stock={quickAdjustStock}
+        deposits={deposits}
+        loadingBalance={loadingStockBalance}
+        fetchCurrentStockBalance={fetchCurrentStockBalance}
+        onClose={closeQuickAdjustModal}
+        onSuccess={refreshStock}
+      />
+      <Toaster position="top-right" reverseOrder={false} />
+      </main>
+    </>
   );
 };

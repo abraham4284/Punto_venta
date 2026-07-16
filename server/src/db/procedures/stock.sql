@@ -12,6 +12,7 @@ CREATE PROCEDURE sp_create_initial_stock(
 BEGIN
   DECLARE v_idStock INT;
   DECLARE v_idMovement INT;
+  DECLARE v_unit_type VARCHAR(20);
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -39,6 +40,23 @@ BEGIN
   ) THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El producto indicado no existe o no pertenece al negocio';
+  END IF;
+
+  SELECT unit_type
+  INTO v_unit_type
+  FROM products
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+  LIMIT 1;
+
+  IF p_quantity IS NULL OR p_quantity <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La cantidad debe ser mayor a cero';
+  END IF;
+
+  IF v_unit_type = 'UNIT' AND p_quantity <> FLOOR(p_quantity) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Los productos por unidad solo permiten cantidades enteras';
   END IF;
 
   IF NOT EXISTS (
@@ -112,20 +130,131 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS sp_get_advanced_stock_inventory;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_advanced_stock_inventory(
+  IN p_idBusiness INT,
+  IN p_search VARCHAR(160),
+  IN p_idDeposit INT,
+  IN p_quantity DECIMAL(18,2),
+  IN p_minQuantity DECIMAL(18,2),
+  IN p_maxQuantity DECIMAL(18,2),
+  IN p_alertStatus VARCHAR(20),
+  IN p_limit INT,
+  IN p_offset INT
+)
+BEGIN
+  SELECT
+    s.idStock,
+    s.idProduct,
+    p.name AS productName,
+    pc.name AS categoryName,
+    p.barcode,
+    p.image_url AS imageUrl,
+    p.unit_type AS unitType,
+    p.price_cost AS priceCost,
+    p.price_sale AS priceSale,
+    s.idDeposit,
+    d.name AS depositName,
+    s.quantity,
+    p.stock_min AS stockMin,
+    CASE
+      WHEN s.quantity = 0 THEN 'ZERO'
+      WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
+      ELSE 'OK'
+    END AS alertStatus
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  INNER JOIN deposits d
+    ON d.idDeposit = s.idDeposit
+    AND d.idBusiness = s.idBusiness
+  LEFT JOIN product_categories pc
+    ON pc.idProductCategory = p.idProductCategory
+    AND pc.idBusiness = p.idBusiness
+  WHERE s.idBusiness = p_idBusiness
+    AND (
+      p_search IS NULL
+      OR p_search = ''
+      OR p.name LIKE CONCAT('%', p_search, '%')
+      OR p.barcode LIKE CONCAT('%', p_search, '%')
+    )
+    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_quantity IS NULL OR s.quantity = p_quantity)
+    AND (p_minQuantity IS NULL OR s.quantity >= p_minQuantity)
+    AND (p_maxQuantity IS NULL OR s.quantity <= p_maxQuantity)
+    AND (
+      p_alertStatus IS NULL
+      OR p_alertStatus = ''
+      OR (
+        CASE
+          WHEN s.quantity = 0 THEN 'ZERO'
+          WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
+          ELSE 'OK'
+        END
+      ) = p_alertStatus
+    )
+  ORDER BY p.name ASC, d.name ASC, s.idStock ASC
+  LIMIT p_limit OFFSET p_offset;
+
+  SELECT
+    COUNT(*) AS totalRecords
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  INNER JOIN deposits d
+    ON d.idDeposit = s.idDeposit
+    AND d.idBusiness = s.idBusiness
+  LEFT JOIN product_categories pc
+    ON pc.idProductCategory = p.idProductCategory
+    AND pc.idBusiness = p.idBusiness
+  WHERE s.idBusiness = p_idBusiness
+    AND (
+      p_search IS NULL
+      OR p_search = ''
+      OR p.name LIKE CONCAT('%', p_search, '%')
+      OR p.barcode LIKE CONCAT('%', p_search, '%')
+    )
+    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_quantity IS NULL OR s.quantity = p_quantity)
+    AND (p_minQuantity IS NULL OR s.quantity >= p_minQuantity)
+    AND (p_maxQuantity IS NULL OR s.quantity <= p_maxQuantity)
+    AND (
+      p_alertStatus IS NULL
+      OR p_alertStatus = ''
+      OR (
+        CASE
+          WHEN s.quantity = 0 THEN 'ZERO'
+          WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
+          ELSE 'OK'
+        END
+      ) = p_alertStatus
+    );
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS sp_get_stock;
 DELIMITER $$
 
 CREATE PROCEDURE sp_get_stock(
-  IN p_idBusiness INT
+  IN p_idBusiness INT,
+  IN p_limit INT,
+  IN p_offset INT
 )
 BEGIN
- SELECT
+  SELECT
     s.idStock,
     s.idBusiness,
     b.name AS business_name,
     s.idProduct,
     p.name AS product_name,
     p.image_url AS product_image_url,
+    p.unit_type AS product_unit_type,
     pc.name AS category_name,
     s.idDeposit,
     d.name AS deposit_name,
@@ -141,9 +270,25 @@ BEGIN
     ON d.idDeposit = s.idDeposit
     AND d.idBusiness = s.idBusiness
   INNER JOIN product_categories pc
-   ON p.idProductCategory = pc.idProductCategory
+    ON p.idProductCategory = pc.idProductCategory
+    AND pc.idBusiness = s.idBusiness
   WHERE s.idBusiness = p_idBusiness
-  ORDER BY p.name ASC, d.name ASC, s.idStock ASC;
+  ORDER BY p.name ASC, d.name ASC, s.idStock ASC
+  LIMIT p_limit OFFSET p_offset;
+
+  SELECT
+    COUNT(*) AS totalRecords
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  INNER JOIN deposits d
+    ON d.idDeposit = s.idDeposit
+    AND d.idBusiness = s.idBusiness
+  INNER JOIN product_categories pc
+    ON p.idProductCategory = pc.idProductCategory
+    AND pc.idBusiness = s.idBusiness
+  WHERE s.idBusiness = p_idBusiness;
 END$$
 
 DELIMITER ;
@@ -164,10 +309,13 @@ BEGIN
     s.idProduct,
     p.name AS product_name,
     p.image_url AS product_image_url,
+    p.unit_type AS product_unit_type,
+    pc.name AS category_name,
     s.idDeposit,
     d.name AS deposit_name,
     s.quantity,
-    s.updated_at
+    s.updated_at,
+    p.stock_min
   FROM stock s
   INNER JOIN businesses b ON b.idBusiness = s.idBusiness
   INNER JOIN products p
@@ -176,8 +324,36 @@ BEGIN
   INNER JOIN deposits d
     ON d.idDeposit = s.idDeposit
     AND d.idBusiness = s.idBusiness
+  INNER JOIN product_categories pc
+    ON p.idProductCategory = pc.idProductCategory
   WHERE s.idBusiness = p_idBusiness
     AND s.idStock = p_idStock
+  LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_get_stock_by_product_and_deposit;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_stock_by_product_and_deposit(
+  IN p_idBusiness INT,
+  IN p_idProduct INT,
+  IN p_idDeposit INT
+)
+BEGIN
+  SELECT
+    s.idStock,
+    s.idBusiness,
+    s.idProduct,
+    s.idDeposit,
+    s.quantity,
+    s.updated_at
+  FROM stock s
+  WHERE s.idBusiness = p_idBusiness
+    AND s.idProduct = p_idProduct
+    AND s.idDeposit = p_idDeposit
   LIMIT 1;
 END$$
 

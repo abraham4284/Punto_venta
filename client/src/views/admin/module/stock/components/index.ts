@@ -2,6 +2,7 @@ export * from "./card/StockFilter";
 export * from "./table/TableStock";
 export * from "./card/CardStockMetric";
 export * from "./modal/ModalFormStock";
+export * from "./modal/QuickStockAdjustmentModal";
 export * from "./movement/MovementFilter";
 export * from "./movement/MovementMetrics";
 export * from "./movement/MovementTable";

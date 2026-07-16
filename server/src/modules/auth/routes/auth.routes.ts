@@ -6,6 +6,8 @@ import {
   logoutController,
   refreshTokenController,
   registerController,
+  getUserInfoByIdController,
+  updatePasswordController,
   me,
 } from "../controllers/auth.controller.js";
 import {
@@ -20,5 +22,11 @@ router.post("/login", validateSchema(loginSchema), loginController);
 router.post("/refresh", refreshTokenController);
 router.post("/logout", requireAuth, logoutController);
 router.get("/me", requireAuth, me);
+router.get("/auth/user-info/:idUser", requireAuth, getUserInfoByIdController);
+router.patch(
+  "/auth/update-password/:idUser",
+  requireAuth,
+  updatePasswordController,
+);
 
 export default router;

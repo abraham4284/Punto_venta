@@ -2,16 +2,45 @@ import axios from "@/api/axios.config";
 import type { ApiResponse } from "@/api/axios.response.type";
 import type { AxiosResponse } from "axios";
 import type {
+  AdvancedStockFilters,
+  AdvancedStockResponse,
   CriticalStockReportFilters,
   CriticalStockReportResponse,
   CreateInitialStockPayload,
+  StockBalanceResponse,
   StockResponse,
 } from "../types/stock.types";
+
+const appendParam = (
+  params: URLSearchParams,
+  key: string,
+  value: string | number | null | undefined,
+) => {
+  if (value === null || value === undefined || value === "") return;
+  params.append(key, String(value));
+};
 
 export const getStockRequest = (): Promise<
   AxiosResponse<ApiResponse<StockResponse[]>>
 > => {
   return axios.get("/stock");
+};
+
+export const getAdvancedStockInventoryRequest = (
+  filters: AdvancedStockFilters,
+): Promise<AxiosResponse<ApiResponse<AdvancedStockResponse>>> => {
+  const params = new URLSearchParams();
+
+  appendParam(params, "search", filters.search.trim());
+  appendParam(params, "idDeposit", filters.idDeposit);
+  appendParam(params, "quantity", filters.quantity);
+  appendParam(params, "minQuantity", filters.minQuantity);
+  appendParam(params, "maxQuantity", filters.maxQuantity);
+  appendParam(params, "alertStatus", filters.alertStatus);
+  appendParam(params, "page", filters.page);
+  appendParam(params, "limit", filters.limit);
+
+  return axios.get(`/stock/advanced-search?${params.toString()}`);
 };
 
 export const createInitialStockRequest = (
@@ -28,6 +57,18 @@ export const getCriticalStockReportRequest = (
       maxQuantity: filters.maxQuantity,
       idDeposit: filters.idDeposit ?? undefined,
       search: filters.search || undefined,
+    },
+  });
+};
+
+export const getStockByProductAndDepositRequest = (
+  idProduct: number,
+  idDeposit: number,
+): Promise<AxiosResponse<ApiResponse<StockBalanceResponse>>> => {
+  return axios.get("/stock/balance", {
+    params: {
+      idProduct,
+      idDeposit,
     },
   });
 };

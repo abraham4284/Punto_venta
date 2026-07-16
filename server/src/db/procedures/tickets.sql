@@ -8,6 +8,7 @@ CREATE PROCEDURE sp_get_sale_ticket_data(
 BEGIN
   SELECT
     s.idSale,
+    s.sale_number,
     s.idBusiness,
     b.name AS business_name,
     b.business_type,

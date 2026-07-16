@@ -2,6 +2,7 @@ export type TicketSaleStatus = "COMPLETED" | "CANCELLED";
 
 export interface TicketSaleDbRow {
   idSale: number;
+  sale_number: string | null;
   idBusiness: number;
   business_name: string;
   business_type: string | null;
@@ -29,6 +30,7 @@ export interface TicketItemDbRow {
 
 export interface SaleTicketHeader {
   idSale: number;
+  saleNumber: string;
   idBusiness: number;
   businessName: string;
   businessType: string | null;
@@ -61,5 +63,6 @@ export interface SaleTicketData {
 
 export interface SaleTicketResponse extends SaleTicketData {
   idSale: number;
+  saleNumber: string;
   htmlTemplate: string;
 }

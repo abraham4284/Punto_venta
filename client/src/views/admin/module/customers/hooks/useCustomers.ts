@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   createCustomerRequest,
   getCustomersRequest,
+  getIdCustomersRequest,
   toggleCustomerStatusRequest,
   updateCustomerRequest,
 } from "../api/customers.api";
@@ -14,7 +15,10 @@ import type {
 
 export const useCustomers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customersById, setCustomersById] = useState<Customer[]>([]);
+  const [customerById, setCustomerById] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingById, setLoadingById] = useState(false);
 
   const getCustomers = useCallback(async () => {
     try {
@@ -23,6 +27,22 @@ export const useCustomers = () => {
       setCustomers(data.data ?? []);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const getIdCustomers = useCallback(async (id: number) => {
+    try {
+      setLoadingById(true);
+      const { data } = await getIdCustomersRequest(id);
+      const customerData = data.data ?? null;
+      const normalizedCustomer = Array.isArray(customerData)
+        ? (customerData[0] ?? null)
+        : customerData;
+
+      setCustomerById(normalizedCustomer);
+      setCustomersById(normalizedCustomer ? [normalizedCustomer] : []);
+    } finally {
+      setLoadingById(false);
     }
   }, []);
 
@@ -61,14 +81,25 @@ export const useCustomers = () => {
     setCustomers([]);
   }, []);
 
+  const resetIdCustomers = useCallback(() => {
+    setLoadingById(false);
+    setCustomerById(null);
+    setCustomersById([]);
+  }, []);
+
   return {
     customers,
+    customersById,
+    customerById,
+    loadingById,
     loading,
     metrics,
     getCustomers,
     createCustomer,
     updateCustomer,
     toggleCustomerStatus,
-    resetCustomers
+    getIdCustomers,
+    resetCustomers,
+    resetIdCustomers,
   };
 };

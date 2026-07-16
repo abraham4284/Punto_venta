@@ -1,4 +1,6 @@
+import { Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -9,14 +11,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { StockResponse } from "../../types/stock.types";
+import type { AdvancedStockPagination } from "../../types/stock.types";
 import {
   getStockDifference,
   getStockStatus,
 } from "../../helpers/stockStatus.helper";
+import { PRODUCT_UNIT_TYPE_OPTIONS } from "../../../products/types/products.types";
 
 type Props = {
   data: StockResponse[];
   loading: boolean;
+  pagination: AdvancedStockPagination;
+  onQuickAdjust: (stock: StockResponse) => void;
+  onPageChange: (page: number) => void;
 };
 
 const formatNumber = (value: number) => {
@@ -26,7 +33,31 @@ const formatNumber = (value: number) => {
   }).format(value);
 };
 
-export const TableStock = ({ data, loading }: Props) => {
+const getUnitOption = (unitType: StockResponse["unitType"]) => {
+  return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => {
+    return option.value === unitType;
+  });
+};
+
+const getVisiblePages = (currentPage: number, totalPages: number): number[] => {
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(totalPages, currentPage + 2);
+  const pages: number[] = [];
+
+  for (let page = start; page <= end; page += 1) {
+    pages.push(page);
+  }
+
+  return pages;
+};
+
+export const TableStock = ({
+  data,
+  loading,
+  pagination,
+  onQuickAdjust,
+  onPageChange,
+}: Props) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -42,6 +73,16 @@ export const TableStock = ({ data, loading }: Props) => {
       </div>
     );
   }
+  const pages = getVisiblePages(pagination.currentPage, pagination.totalPages);
+  const firstRecord =
+    pagination.totalRecords === 0
+      ? 0
+      : (pagination.currentPage - 1) * pagination.limit + 1;
+  const lastRecord = Math.min(
+    pagination.currentPage * pagination.limit,
+    pagination.totalRecords,
+  );
+
   return (
     <div className="rounded-lg border bg-background">
       <Table>
@@ -50,16 +91,19 @@ export const TableStock = ({ data, loading }: Props) => {
             <TableHead>Producto</TableHead>
             <TableHead>Depósito</TableHead>
             <TableHead className="text-right">Stock actual</TableHead>
+            <TableHead>Tipo</TableHead>
             <TableHead className="text-right">Stock mínimo</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Referencia</TableHead>
             <TableHead>Última actualización</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
           {data.map((stock) => {
             const stockStatus = getStockStatus(stock.quantity, stock.stock_min);
+            const unitOption = getUnitOption(stock.unitType ?? "UNIT");
 
             const stockDifference = getStockDifference(
               stock.quantity,
@@ -96,18 +140,23 @@ export const TableStock = ({ data, loading }: Props) => {
                 <TableCell>
                   <div>
                     <p className="font-medium">{stock.depositName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      ID Depósito: {stock.idDeposit}
-                    </p>
                   </div>
                 </TableCell>
 
                 <TableCell className="text-right font-semibold">
-                  {formatNumber(stock.quantity)}
+                  {formatNumber(stock.quantity)}{" "}
+                  {unitOption?.shortLabel ?? "u."}
+                </TableCell>
+
+                <TableCell>
+                  <Badge variant="outline">
+                    {unitOption?.label ?? "Unidad"}
+                  </Badge>
                 </TableCell>
 
                 <TableCell className="text-right text-muted-foreground">
-                  {formatNumber(stock.stock_min)}
+                  {formatNumber(stock.stock_min)}{" "}
+                  {unitOption?.shortLabel ?? "u."}
                 </TableCell>
 
                 <TableCell>
@@ -129,11 +178,67 @@ export const TableStock = ({ data, loading }: Props) => {
                       : "-"}
                   </span>
                 </TableCell>
+
+                <TableCell className="text-right">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => onQuickAdjust(stock)}
+                    title="Ajuste rapido"
+                    aria-label={`Ajuste rapido para ${stock.productName}`}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
+
+      <div className="flex flex-col items-center justify-between gap-3 border-t p-4 md:flex-row">
+        <p className="text-sm text-muted-foreground">
+          Mostrando {firstRecord}-{lastRecord} de {pagination.totalRecords}{" "}
+          registros
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.currentPage <= 1}
+            onClick={() => onPageChange(pagination.currentPage - 1)}
+          >
+            Anterior
+          </Button>
+
+          {pages.map((page) => (
+            <Button
+              key={page}
+              type="button"
+              size="icon"
+              variant={page === pagination.currentPage ? "default" : "outline"}
+              aria-label={`Ir a la pagina ${page}`}
+              aria-current={
+                page === pagination.currentPage ? "page" : undefined
+              }
+              onClick={() => onPageChange(page)}
+            >
+              {page}
+            </Button>
+          ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.currentPage >= pagination.totalPages}
+            onClick={() => onPageChange(pagination.currentPage + 1)}
+          >
+            Siguiente
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -9,7 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProductResponse } from "../../types/products.types";
+import {
+  PRODUCT_UNIT_TYPE_OPTIONS,
+  type ProductResponse,
+  type ProductUnitType,
+} from "../../types/products.types";
 
 type Props = {
   data: ProductResponse[];
@@ -28,6 +32,13 @@ const formatCurrency = (value: number) => {
     currency: "ARS",
     maximumFractionDigits: 2,
   }).format(value);
+};
+
+const getUnitLabel = (unitType: ProductUnitType): string => {
+  return (
+    PRODUCT_UNIT_TYPE_OPTIONS.find((option) => option.value === unitType)
+      ?.shortLabel ?? "u."
+  );
 };
 
 export const ProductTable = ({
@@ -72,6 +83,7 @@ export const ProductTable = ({
           <TableHead>Código</TableHead>
           <TableHead>Nombre</TableHead>
           <TableHead>Categoría</TableHead>
+          <TableHead>Unidad</TableHead>
           <TableHead>Costo</TableHead>
           <TableHead>Precio venta</TableHead>
           <TableHead>Stock mínimo</TableHead>
@@ -101,7 +113,11 @@ export const ProductTable = ({
 
             <TableCell className="font-medium">{product.name}</TableCell>
 
-            <TableCell>{product.categoryName || "-"}</TableCell>
+            <TableCell>{product.productCategoryName || "-"}</TableCell>
+
+            <TableCell>
+              <Badge variant="outline">{getUnitLabel(product.unitType)}</Badge>
+            </TableCell>
 
             <TableCell>{formatCurrency(product.priceCost)}</TableCell>
 

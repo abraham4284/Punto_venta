@@ -1,4 +1,17 @@
 export type PriceType = "SALE" | "WHOLESALE";
+export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
+
+export const PRODUCT_UNIT_TYPE_OPTIONS: {
+  value: ProductUnitType;
+  label: string;
+  shortLabel: string;
+}[] = [
+  { value: "UNIT", label: "Unidad", shortLabel: "u." },
+  { value: "KG", label: "Kilogramo", shortLabel: "kg" },
+  { value: "GRAM", label: "Gramo", shortLabel: "g" },
+  { value: "LITER", label: "Litro", shortLabel: "l" },
+  { value: "METER", label: "Metro", shortLabel: "m" },
+];
 
 export interface FieldError {
   field: string;
@@ -34,6 +47,7 @@ export interface ProductWithStockResponse {
   priceCost: number;
   priceSale: number;
   priceWholesale: number | null;
+  unitType: ProductUnitType;
   stockMin: number;
   isActive: boolean;
   stockQuantity: number;
@@ -68,6 +82,7 @@ export interface CartItem {
   stockQuantity: number;
   priceSale: number;
   priceWholesale: number | null;
+  unitType: ProductUnitType;
   quantity: number;
   unitPrice: number;
   discountPercent: number;
@@ -94,6 +109,7 @@ export interface CreateSalePayload {
 
 export interface SaleResponse {
   idSale: number;
+  saleNumber: string;
   idBusiness: number;
   idUser: number;
   userName: string;
@@ -146,6 +162,7 @@ export interface SaleTicketItem {
 
 export interface SaleTicketHeader {
   idSale: number;
+  saleNumber: string;
   idBusiness: number;
   businessName: string;
   businessType: string | null;
@@ -164,6 +181,7 @@ export interface SaleTicketHeader {
 
 export interface SaleTicketResponse {
   idSale: number;
+  saleNumber: string;
   sale: SaleTicketHeader;
   items: SaleTicketItem[];
   htmlTemplate: string;
@@ -183,6 +201,7 @@ export interface PaginatedSalesResponse {
 }
 
 export interface SaleFilters {
+  saleNumber: string;
   idDeposit: number | null;
   status: "COMPLETED" | "CANCELLED" | null;
   startDate: string;

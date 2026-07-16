@@ -23,6 +23,10 @@ export interface RegisterBody {
   businessType?: string;
 }
 
+export interface UpdatePasswordBody {
+  password: string;
+}
+
 export interface LoginDbRow {
   idUser: number;
   name: string;
@@ -48,5 +52,25 @@ export interface SessionDbRow {
   email: string;
   idBusiness: number;
   role: UserRole;
+}
+
+export interface UserInfoResponse {
+  idUser: number;
+  name: string;
+  username: string;
+  email: string | null;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface UserInfoDbRow {
+  idUser: number;
+  name: string;
+  username: string;
+  email: string | null;
+  role: UserRole;
+  isActive: number;
+  createdAt: Date;
 }
 

@@ -14,6 +14,7 @@ import { printTicketHtml } from "../../helpers/ticketPrint.helper";
 type Props = {
   isOpen: boolean;
   idSale: number | null;
+  saleNumber: string | null;
   onResetForm: () => void;
   onViewDetails: (idSale: number) => void;
 };
@@ -21,6 +22,7 @@ type Props = {
 export const SaleSuccessModal = ({
   isOpen,
   idSale,
+  saleNumber,
   onResetForm,
   onViewDetails,
 }: Props) => {
@@ -66,7 +68,7 @@ export const SaleSuccessModal = ({
             ¡Venta Registrada con Exito!
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Operacion #{idSale ?? "-"} procesada correctamente.
+            Operacion {saleNumber ?? "-"} procesada correctamente.
           </p>
         </DialogHeader>
 

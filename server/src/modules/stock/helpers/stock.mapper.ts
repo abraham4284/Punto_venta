@@ -8,6 +8,7 @@ export function mapStock(stock: StockDbRow): StockResponse {
     idProduct: stock.idProduct,
     productName: stock.product_name,
     productImageUrl: stock.product_image_url,
+    unitType: stock.product_unit_type ?? "UNIT",
     categoryName: stock.category_name,
     idDeposit: stock.idDeposit,
     depositName: stock.deposit_name,

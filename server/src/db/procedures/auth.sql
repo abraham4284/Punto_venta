@@ -31,6 +31,80 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS sp_get_user_info_by_id;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_user_info_by_id(
+  IN p_idUser INT,
+  IN p_idBusiness INT
+)
+BEGIN
+  SELECT
+    u.idUser,
+    u.name,
+    u.username,
+    u.email,
+    bu.role,
+    u.is_active AS isActive,
+    u.created_at AS createdAt
+  FROM users u
+  INNER JOIN business_users bu
+    ON bu.idUser = u.idUser
+    AND bu.idBusiness = p_idBusiness
+  INNER JOIN businesses b
+    ON b.idBusiness = bu.idBusiness
+  WHERE u.idUser = p_idUser
+    AND bu.idBusiness = p_idBusiness
+    AND u.is_active = 1
+    AND bu.is_active = 1
+    AND b.is_active = 1
+  LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_update_user_password;
+DELIMITER $$
+
+CREATE PROCEDURE sp_update_user_password(
+  IN p_idUser INT,
+  IN p_idBusiness INT,
+  IN p_newPassword VARCHAR(255)
+)
+BEGIN
+  START TRANSACTION;
+
+  UPDATE users u
+  INNER JOIN business_users bu
+    ON bu.idUser = u.idUser
+    AND bu.idBusiness = p_idBusiness
+    AND bu.is_active = 1
+  INNER JOIN businesses b
+    ON b.idBusiness = bu.idBusiness
+    AND b.is_active = 1
+  SET
+    u.password_hash = p_newPassword,
+    u.updated_at = NOW()
+  WHERE u.idUser = p_idUser
+    AND u.is_active = 1;
+
+  IF ROW_COUNT() = 0 THEN
+    ROLLBACK;
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Usuario no encontrado o no pertenece al negocio';
+  END IF;
+
+  COMMIT;
+
+  SELECT
+    p_idUser AS idUser,
+    1 AS updated;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS sp_create_session;
 DELIMITER $$
 
@@ -120,6 +194,8 @@ BEGIN
   WHERE idLogin = p_idLogin
     AND revoked_at IS NULL;
 END$$
+
+DELIMITER ;
 
 DROP PROCEDURE IF EXISTS sp_user_register_with_business;
 DELIMITER $$

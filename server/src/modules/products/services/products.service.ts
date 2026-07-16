@@ -13,7 +13,7 @@ export async function createProductService(
   data: CreateProductPayload,
 ): Promise<ProductResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idProductCategory,
@@ -26,6 +26,7 @@ export async function createProductService(
       data.priceCost,
       data.priceSale,
       data.priceWholesale ?? null,
+      data.unitType,
       data.stockMin ?? 0,
     ],
   );
@@ -74,7 +75,7 @@ export async function updateProductService(
   data: UpdateProductPayload,
 ): Promise<ProductResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_update_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_update_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idProduct,
@@ -91,6 +92,8 @@ export async function updateProductService(
       data.priceSale ?? null,
       data.priceWholesale ?? null,
       Object.hasOwn(data, "priceWholesale") ? 1 : 0,
+      data.unitType ?? null,
+      Object.hasOwn(data, "unitType") ? 1 : 0,
       data.stockMin ?? null,
     ],
   );

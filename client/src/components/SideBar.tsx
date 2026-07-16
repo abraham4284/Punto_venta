@@ -75,11 +75,11 @@ export const SideBar = ({ isOpenSideBar, setIsOpenSideBar }: SideBarProps) => {
           <ul className="space-y-2 font-medium flex-1 overflow-y-auto">
             <li>
               <Link
-                to="/admin/dasbhoard"
+                to="/admin/dashboard"
                 className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-200"
                 onClick={() => setIsOpenSideBar(false)}
               >
-                <span className="ms-3">Home</span>
+                <span className="ms-3">Dashboard</span>
               </Link>
             </li>
             <li>

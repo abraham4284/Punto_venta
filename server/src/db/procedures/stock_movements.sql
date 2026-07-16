@@ -13,6 +13,7 @@ CREATE PROCEDURE sp_process_stock_adjustment(
 BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
   DECLARE v_idMovement INT;
+  DECLARE v_unit_type VARCHAR(20);
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -23,6 +24,11 @@ BEGIN
   IF p_movement_type NOT IN ('ADJUSTMENT_IN', 'ADJUSTMENT_OUT') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Tipo de ajuste invalido';
+  END IF;
+
+  IF p_quantity IS NULL OR p_quantity <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La cantidad debe ser mayor a cero';
   END IF;
 
   IF NOT EXISTS (
@@ -36,13 +42,21 @@ BEGIN
       SET MESSAGE_TEXT = 'El producto no tiene stock registrado en el deposito indicado';
   END IF;
 
-  SELECT quantity
-  INTO v_current_quantity
-  FROM stock
-  WHERE idBusiness = p_idBusiness
-    AND idProduct = p_idProduct
-    AND idDeposit = p_idDeposit
+  SELECT s.quantity, p.unit_type
+  INTO v_current_quantity, v_unit_type
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  WHERE s.idBusiness = p_idBusiness
+    AND s.idProduct = p_idProduct
+    AND s.idDeposit = p_idDeposit
   LIMIT 1;
+
+  IF v_unit_type = 'UNIT' AND p_quantity <> FLOOR(p_quantity) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Los productos por unidad solo permiten cantidades enteras';
+  END IF;
 
   IF p_movement_type = 'ADJUSTMENT_OUT' AND v_current_quantity < p_quantity THEN
     SIGNAL SQLSTATE '45000'
@@ -118,6 +132,7 @@ CREATE PROCEDURE sp_process_stock_transfer(
 BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
   DECLARE v_reference_id INT;
+  DECLARE v_unit_type VARCHAR(20);
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -128,6 +143,11 @@ BEGIN
   IF p_idDepositFrom = p_idDepositTo THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El deposito origen y destino deben ser diferentes';
+  END IF;
+
+  IF p_quantity IS NULL OR p_quantity <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La cantidad debe ser mayor a cero';
   END IF;
 
   IF NOT EXISTS (
@@ -147,7 +167,7 @@ BEGIN
       SET MESSAGE_TEXT = 'Los depositos indicados deben pertenecer al negocio y estar activos';
   END IF;
 
-  IF NOT EXISTS 
+  IF NOT EXISTS (
     SELECT 1
     FROM stock
     WHERE idBusiness = p_idBusiness
@@ -158,13 +178,32 @@ BEGIN
       SET MESSAGE_TEXT = 'El producto no tiene stock registrado en el deposito origen';
   END IF;
 
-  SELECT quantity
-  INTO v_current_quantity
-  FROM stock
-  WHERE idBusiness = p_idBusiness
-    AND idProduct = p_idProduct
-    AND idDeposit = p_idDepositFrom
+  IF NOT EXISTS (
+    SELECT 1
+    FROM stock
+    WHERE idBusiness = p_idBusiness
+      AND idProduct = p_idProduct
+      AND idDeposit = p_idDepositTo
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Primero debe dar de alta el stock del producto en el deposito al que desea transferir';
+  END IF;
+
+  SELECT s.quantity, p.unit_type
+  INTO v_current_quantity, v_unit_type
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  WHERE s.idBusiness = p_idBusiness
+    AND s.idProduct = p_idProduct
+    AND s.idDeposit = p_idDepositFrom
   LIMIT 1;
+
+  IF v_unit_type = 'UNIT' AND p_quantity <> FLOOR(p_quantity) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Los productos por unidad solo permiten cantidades enteras';
+  END IF;
 
   IF v_current_quantity < p_quantity THEN
     SIGNAL SQLSTATE '45000'
@@ -180,27 +219,6 @@ BEGIN
   WHERE idBusiness = p_idBusiness
     AND idProduct = p_idProduct
     AND idDeposit = p_idDepositFrom;
-
-  INSERT INTO stock (
-    idBusiness,
-    idProduct,
-    idDeposit,
-    quantity,
-    updated_at
-  )
-  SELECT
-    p_idBusiness,
-    p_idProduct,
-    p_idDepositTo,
-    0,
-    NOW()
-  WHERE NOT EXISTS (
-    SELECT 1
-    FROM stock
-    WHERE idBusiness = p_idBusiness
-      AND idProduct = p_idProduct
-      AND idDeposit = p_idDepositTo
-  );
 
   UPDATE stock
   SET

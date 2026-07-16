@@ -1,3 +1,7 @@
+import type { ProductUnitType } from "../../products/types/products.types";
+
+export type AdvancedStockAlertStatus = "OK" | "LOW" | "ZERO";
+
 export interface StockDbRow {
   idStock: number;
   idBusiness: number;
@@ -5,6 +9,7 @@ export interface StockDbRow {
   idProduct: number;
   product_name: string;
   product_image_url: string | null;
+  product_unit_type?: ProductUnitType;
   category_name: string;
   idDeposit: number;
   deposit_name: string;
@@ -19,12 +24,53 @@ export interface StockResponse {
   idProduct: number;
   productName: string;
   productImageUrl: string | null;
+  unitType: ProductUnitType;
   categoryName: string;
   idDeposit: number;
   depositName: string;
   quantity: number;
   updatedAt: Date | null;
   stock_min: number;
+}
+
+export interface AdvancedStockFilters {
+  search: string;
+  idDeposit: number | null;
+  quantity: number | null;
+  minQuantity: number | null;
+  maxQuantity: number | null;
+  alertStatus: AdvancedStockAlertStatus | null;
+  page: number;
+  limit: number;
+}
+
+export interface AdvancedStockInventoryItem {
+  idStock: number;
+  idProduct: number;
+  productName: string;
+  categoryName: string | null;
+  barcode: string | null;
+  imageUrl: string | null;
+  unitType: ProductUnitType;
+  priceCost: number;
+  priceSale: number;
+  idDeposit: number;
+  depositName: string;
+  quantity: number;
+  stockMin: number;
+  alertStatus: AdvancedStockAlertStatus;
+}
+
+export interface AdvancedStockPagination {
+  totalRecords: number;
+  currentPage: number;
+  totalPages: number;
+  limit: number;
+}
+
+export interface AdvancedStockResponse {
+  stock: AdvancedStockInventoryItem[];
+  pagination: AdvancedStockPagination;
 }
 
 export interface FieldError {
@@ -49,6 +95,16 @@ export interface CreateInitialStockPayload {
   idDeposit: number;
   quantity: number;
   observation?: string | null;
+}
+
+export interface StockBalanceResponse {
+  idStock: number | null;
+  idBusiness: number;
+  idProduct: number;
+  idDeposit: number;
+  quantity: number;
+  exists: boolean;
+  updatedAt: Date | null;
 }
 
 export interface ProcessStockAdjustmentPayload {
@@ -137,6 +193,11 @@ export interface StockFormValues {
 
 export interface StockMetrics {
   total: number;
+  totalUnits: number;
+  zeroStock: number;
+  lowStock: number;
+  uniqueProducts: number;
+  activeDeposits: number;
 }
 
 export type CriticalStockAlertStatus =

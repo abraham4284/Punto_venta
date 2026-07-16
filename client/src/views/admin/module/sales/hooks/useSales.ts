@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import Decimal from "decimal.js";
 import type { AxiosError } from "axios";
 import {
+  cancelSale,
   createSaleRequest,
   getProductsByDepositRequest,
 } from "../api/sales.api";
@@ -13,6 +14,7 @@ import type {
   PriceType,
   ProductSelection,
   ProductWithStockResponse,
+  ProductUnitType,
   SaleHeaderInput,
 } from "../types";
 
@@ -31,6 +33,31 @@ const initialHeader: SaleHeaderInput = {
 
 const toMoney = (value: Decimal.Value): number => {
   return Number(new Decimal(value).toDecimalPlaces(2).toString());
+};
+
+const normalizeSaleQuantity = (
+  quantity: number,
+  product: Pick<ProductWithStockResponse | CartItem, "stockQuantity" | "unitType">,
+): number => {
+  if (!Number.isFinite(quantity)) return product.unitType === "UNIT" ? 1 : 0.01;
+
+  const minQuantity = product.unitType === "UNIT" ? 1 : 0.01;
+  const boundedQuantity = Math.min(
+    Math.max(quantity, minQuantity),
+    product.stockQuantity,
+  );
+
+  if (product.unitType === "UNIT") {
+    return Math.floor(boundedQuantity);
+  }
+
+  return Number(boundedQuantity.toFixed(2));
+};
+
+const normalizeProductUnitType = (
+  unitType: ProductUnitType | undefined,
+): ProductUnitType => {
+  return unitType ?? "UNIT";
 };
 
 const hasWholesalePrice = (
@@ -90,6 +117,8 @@ export const useSales = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isOpenSuccessModal, setIsOpenSuccessModal] = useState(false);
   const [newSaleId, setNewSaleId] = useState<number | null>(null);
+  const [newSaleNumber, setNewSaleNumber] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((acc, item) => {
@@ -160,6 +189,7 @@ export const useSales = () => {
     setError(null);
     setFieldErrors({});
     setNewSaleId(null);
+    setNewSaleNumber(null);
     setIsOpenSuccessModal(false);
   };
 
@@ -239,9 +269,9 @@ export const useSales = () => {
 
         if (existingIndex >= 0) {
           const currentItem = nextCart[existingIndex];
-          const nextQuantity = Math.min(
+          const nextQuantity = normalizeSaleQuantity(
             currentItem.quantity + quantity,
-            currentItem.stockQuantity,
+            currentItem,
           );
 
           nextCart[existingIndex] = calculateItem(
@@ -253,7 +283,11 @@ export const useSales = () => {
           return;
         }
 
-        const safeQuantity = Math.min(quantity, product.stockQuantity);
+        const unitType = normalizeProductUnitType(product.unitType);
+        const safeQuantity = normalizeSaleQuantity(quantity, {
+          stockQuantity: product.stockQuantity,
+          unitType,
+        });
         const newItem: CartItem = {
           idProduct: product.idProduct,
           name: product.name,
@@ -262,6 +296,7 @@ export const useSales = () => {
           stockQuantity: product.stockQuantity,
           priceSale: product.priceSale,
           priceWholesale: product.priceWholesale,
+          unitType,
           quantity: safeQuantity,
           unitPrice: getPriceByType(product, priceType),
           discountPercent: 0,
@@ -288,10 +323,7 @@ export const useSales = () => {
       current.map((item) => {
         if (item.idProduct !== idProduct) return item;
 
-        const nextQuantity = Math.min(
-          Math.max(quantity, 1),
-          item.stockQuantity,
-        );
+        const nextQuantity = normalizeSaleQuantity(quantity, item);
 
         return calculateItem(
           item,
@@ -374,8 +406,10 @@ export const useSales = () => {
       const payload = buildPayload();
       const response = await createSaleRequest(payload);
       const createdSaleId = response.data.data?.idSale ?? null;
+      const createdSaleNumber = response.data.data?.saleNumber ?? null;
 
       setNewSaleId(createdSaleId);
+      setNewSaleNumber(createdSaleNumber);
       setIsOpenSuccessModal(true);
 
       return {
@@ -395,6 +429,30 @@ export const useSales = () => {
     }
   };
 
+  const cancelSaleAction = async (idSale: number) => {
+    try {
+      setCancelingId(idSale);
+      clearErrors();
+
+      const response = await cancelSale(idSale);
+
+      return {
+        status: true,
+        message: response.data.message,
+        data: response.data.data,
+      };
+    } catch (error) {
+      handleApiError(error);
+
+      return {
+        status: false,
+        message: "No se pudo anular la venta",
+      };
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   return {
     header,
     cart,
@@ -407,6 +465,8 @@ export const useSales = () => {
     fieldErrors,
     isOpenSuccessModal,
     newSaleId,
+    newSaleNumber,
+    cancelingId,
     setPriceType,
     updateHeaderField,
     changeDeposit,
@@ -417,6 +477,7 @@ export const useSales = () => {
     updateItemDiscountPercent,
     setGlobalDiscountPercent,
     submitSale,
+    cancelSaleAction,
     clearErrors,
     setValidationErrors,
     clearCart,

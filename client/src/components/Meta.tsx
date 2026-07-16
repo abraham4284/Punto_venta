@@ -1,23 +1,34 @@
-// components/Meta.tsx
+import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import { useAuthStore } from "@/views/admin/module/auth/store/auth.store";
+import { useBusinesses } from "@/views/admin/module/businesses/hooks/useBusinesses";
 
 type MetaProps = {
   title: string;
-  description?: string;
 };
 
-export const Meta = ({ title, description }: MetaProps) => {
-  const fullTitle = `${title} | Libro Contable`;
+const DEFAULT_APP_NAME = "Punto_venta";
+
+export const Meta = ({ title }: MetaProps) => {
+  const user = useAuthStore((state) => state.user);
+  const { business, getBusiness, resetBusiness } = useBusinesses();
+  const businessName = business?.name || DEFAULT_APP_NAME;
+  const fullTitle = `${businessName} - ${title}`;
+
+  useEffect(() => {
+    if (!user?.idBusiness) return;
+
+    void getBusiness();
+
+    return () => {
+      resetBusiness();
+    };
+  }, [getBusiness, resetBusiness, user?.idBusiness]);
 
   return (
     <Helmet>
       <title>{fullTitle}</title>
-      {description && <meta name="description" content={description} />}
-
       <meta property="og:title" content={fullTitle} />
-      {description && (
-        <meta property="og:description" content={description} />
-      )}
     </Helmet>
   );
 };

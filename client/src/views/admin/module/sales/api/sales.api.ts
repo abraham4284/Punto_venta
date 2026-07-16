@@ -34,6 +34,7 @@ export const getSalesRequest = (
       limit,
       idDeposit: filters.idDeposit ?? undefined,
       status: filters.status ?? undefined,
+      saleNumber: filters.saleNumber.trim() || undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
     },
@@ -44,6 +45,12 @@ export const getSaleByIdRequest = (
   idSale: number,
 ): Promise<AxiosResponse<ApiResponse<SaleWithDetailsResponse>>> => {
   return axios.get(`/sales/${idSale}`);
+};
+
+export const cancelSale = (
+  idSale: number,
+): Promise<AxiosResponse<ApiResponse<SaleResponse>>> => {
+  return axios.patch(`/sales/${idSale}/cancel`);
 };
 
 export const getSaleTicketRequest = (

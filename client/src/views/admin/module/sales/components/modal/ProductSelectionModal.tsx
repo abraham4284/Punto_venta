@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type {
   PriceType,
+  ProductUnitType,
   ProductSelection,
   ProductWithStockResponse,
 } from "../../types";
+import { PRODUCT_UNIT_TYPE_OPTIONS } from "../../types";
 
 type Props = {
   isOpen: boolean;
@@ -54,6 +56,31 @@ const cannotUseWholesale = (
   );
 };
 
+const getUnitOption = (unitType: ProductUnitType) => {
+  return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => {
+    return option.value === unitType;
+  });
+};
+
+const getQuantityStep = (unitType: ProductUnitType): number => {
+  return unitType === "UNIT" ? 1 : 0.01;
+};
+
+const normalizeQuantity = (
+  value: number,
+  product: ProductWithStockResponse,
+): number => {
+  if (!Number.isFinite(value)) return 0;
+
+  const boundedQuantity = Math.min(Math.max(value, 0), product.stockQuantity);
+
+  if (product.unitType === "UNIT") {
+    return Math.floor(boundedQuantity);
+  }
+
+  return Number(boundedQuantity.toFixed(2));
+};
+
 export const ProductSelectionModal = ({
   isOpen,
   products,
@@ -92,7 +119,7 @@ export const ProductSelectionModal = ({
   }, [search]);
 
   const updateQuantity = (product: ProductWithStockResponse, value: number) => {
-    const nextQuantity = Math.min(Math.max(value, 0), product.stockQuantity);
+    const nextQuantity = normalizeQuantity(value, product);
 
     setQuantities((current) => ({
       ...current,
@@ -203,6 +230,8 @@ export const ProductSelectionModal = ({
                 const quantity = quantities[product.idProduct] ?? 0;
                 const withoutWholesale = cannotUseWholesale(product, priceType);
                 const disabled = product.stockQuantity <= 0 || withoutWholesale;
+                const unitOption = getUnitOption(product.unitType);
+                const quantityStep = getQuantityStep(product.unitType);
 
                 return (
                   <article
@@ -238,7 +267,12 @@ export const ProductSelectionModal = ({
                       </div>
 
                       <Badge variant="secondary" className="w-fit">
-                        Stock en deposito: {product.stockQuantity}
+                        Stock en deposito: {product.stockQuantity}{" "}
+                        {unitOption?.shortLabel ?? "u."}
+                      </Badge>
+
+                      <Badge variant="outline" className="w-fit">
+                        Venta por {unitOption?.label.toLowerCase() ?? "unidad"}
                       </Badge>
 
                       <div className="grid grid-cols-[36px_1fr_36px] gap-2">
@@ -247,7 +281,9 @@ export const ProductSelectionModal = ({
                           variant="outline"
                           size="sm"
                           disabled={disabled || quantity <= 0}
-                          onClick={() => updateQuantity(product, quantity - 1)}
+                          onClick={() =>
+                            updateQuantity(product, quantity - quantityStep)
+                          }
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -255,6 +291,7 @@ export const ProductSelectionModal = ({
                           type="number"
                           min="0"
                           max={product.stockQuantity}
+                          step={quantityStep}
                           disabled={disabled}
                           value={quantity}
                           onChange={(event) =>
@@ -267,7 +304,9 @@ export const ProductSelectionModal = ({
                           variant="outline"
                           size="sm"
                           disabled={disabled || quantity >= product.stockQuantity}
-                          onClick={() => updateQuantity(product, quantity + 1)}
+                          onClick={() =>
+                            updateQuantity(product, quantity + quantityStep)
+                          }
                         >
                           <Plus className="h-4 w-4" />
                         </Button>

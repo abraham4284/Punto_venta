@@ -19,10 +19,15 @@ import {
 } from "@/components/ui/select";
 import { businessFormSchema } from "../../validations/businesses.validations";
 import type {
+  BusinessType,
   BusinessFormValues,
   BusinessResponse,
   FieldError,
   UpdateBusinessBody,
+} from "../../types";
+import {
+  BUSINESS_TYPE_OPTIONS,
+  BUSINESS_TYPE_VALUES,
 } from "../../types";
 
 type MutationResult = {
@@ -44,7 +49,21 @@ const initialForm: BusinessFormValues = {
   name: "",
   slug: "",
   logoUrl: "",
-  businessType: "FINANCIERA",
+  businessType: "MAXIKIOSCO",
+};
+
+const isBusinessType = (value: string | null | undefined): value is BusinessType => {
+  return BUSINESS_TYPE_VALUES.some((businessType) => businessType === value);
+};
+
+const normalizeBusinessType = (
+  value: string | null | undefined,
+): BusinessType => {
+  if (isBusinessType(value)) {
+    return value;
+  }
+
+  return "MAXIKIOSCO";
 };
 
 const mapErrorsToRecord = (errors: FieldError[]): Record<string, string> => {
@@ -67,24 +86,32 @@ export const UpdateBusinessModal = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (dataEdit) {
-      setFormSate({
-        name: dataEdit.name,
-        slug: dataEdit.slug,
-        logoUrl: dataEdit.logoUrl ?? "",
-        businessType: "FINANCIERA",
-      });
-    } else {
-      onResetForm();
-    }
+    const timeoutId = window.setTimeout(() => {
+      if (dataEdit) {
+        setFormSate({
+          name: dataEdit.name,
+          slug: dataEdit.slug,
+          logoUrl: dataEdit.logoUrl ?? "",
+          businessType: normalizeBusinessType(dataEdit.businessType),
+        });
+      } else {
+        setFormSate(initialForm);
+      }
 
-    setErrors({});
-  }, [dataEdit, isOpen]);
+      setErrors({});
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dataEdit, isOpen, setFormSate]);
 
   useEffect(() => {
-    if (backendErrors.length > 0) {
-      setErrors(mapErrorsToRecord(backendErrors));
-    }
+    const timeoutId = window.setTimeout(() => {
+      if (backendErrors.length > 0) {
+        setErrors(mapErrorsToRecord(backendErrors));
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [backendErrors]);
 
   const handleOpenChange = (open: boolean) => {
@@ -186,7 +213,7 @@ export const UpdateBusinessModal = ({
             <Select
               value={formSate.businessType}
               onValueChange={(value) => {
-                if (value === "FINANCIERA") {
+                if (isBusinessType(value)) {
                   setFormSate({
                     ...formSate,
                     businessType: value,
@@ -195,12 +222,15 @@ export const UpdateBusinessModal = ({
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue>{formSate.businessType}</SelectValue>
+                <SelectValue placeholder="Seleccione un tipo de negocio" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="MAXIKIOSCO">Maxikiosco</SelectItem>
-                  <SelectItem value="PRODUCTOS">Venta de productos</SelectItem>
+                  {BUSINESS_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectGroup>
               </SelectContent>
             </Select>

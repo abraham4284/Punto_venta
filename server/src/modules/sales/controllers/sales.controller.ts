@@ -28,6 +28,19 @@ function getZodErrors(error: z.ZodError) {
   });
 }
 
+function isDuplicateEntryError(error: any): boolean {
+  return error?.code === "ER_DUP_ENTRY" || error?.errno === 1062;
+}
+
+function parseNullableText(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const parsed = value.trim();
+  return parsed ? parsed : null;
+}
+
 export async function createSaleController(
   req: Request,
   res: Response,
@@ -54,6 +67,14 @@ export async function createSaleController(
       });
     }
 
+    if (isDuplicateEntryError(error)) {
+      return res.status(400).json({
+        status: false,
+        message:
+          "El número de venta generado ya existe, por favor intente nuevamente",
+      });
+    }
+
     return res.status(400).json({
       status: false,
       message: error.sqlMessage || error.message,
@@ -76,6 +97,7 @@ export async function getSalesController(
       offset,
       idDeposit: parseNullablePositiveInteger(req.query.idDeposit),
       status: parseSaleStatus(req.query.status),
+      saleNumberSearch: parseNullableText(req.query.saleNumber),
       startDate: parseNullableDate(req.query.startDate, false),
       endDate: parseNullableDate(req.query.endDate, true),
     });

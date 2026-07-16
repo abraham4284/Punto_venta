@@ -8,6 +8,9 @@ import type {
 export const getCustomersRequest = () => {
   return axios.get("/customers");
 };
+export const getIdCustomersRequest = (id: number) => {
+  return axios.get(`/customers/${id}`);
+};
 
 export const createCustomerRequest = (data: CreateCustomerPayload) => {
   return axios.post("/customers", data);
