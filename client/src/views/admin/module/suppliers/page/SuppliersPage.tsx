@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
 import { useUtilsState } from "@/hooks/useUtilsState";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -113,7 +114,9 @@ export const SuppliersPage = () => {
   };
 
   return (
-    <main className="space-y-6 p-6">
+    <>
+      <Meta title="Proveedores" />
+      <main className="space-y-6 p-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -167,6 +170,7 @@ export const SuppliersPage = () => {
         onClose={closeModal}
         onSubmit={handleSubmit}
       />
-    </main>
+      </main>
+    </>
   );
 };

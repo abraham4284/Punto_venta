@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
 
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUtilsState } from "@/hooks/useUtilsState";
@@ -113,7 +114,9 @@ export const ProductsPage = () => {
     return createProduct(payload);
   };
   return (
-    <main className="space-y-6 p-6">
+    <>
+      <Meta title="Productos" />
+      <main className="space-y-6 p-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Productos</h1>
@@ -154,6 +157,7 @@ export const ProductsPage = () => {
         onClose={closeModal}
         onSubmit={handleSubmit}
       />
-    </main>
+      </main>
+    </>
   );
 };

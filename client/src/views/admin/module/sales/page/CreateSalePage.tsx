@@ -2,18 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, ScanLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "react-hot-toast";
 import type { Customer } from "../../customers/types/customers.types";
@@ -27,7 +20,6 @@ import {
   SearchBox,
 } from "../components";
 import { useSales } from "../hooks/useSales";
-import type { PriceType } from "../types";
 import { createSaleFormSchema } from "../validations/sales.validations";
 
 const today = new Date().toISOString().slice(0, 10);
@@ -77,7 +69,6 @@ export const CreateSalePage = () => {
     isOpenSuccessModal,
     newSaleId,
     newSaleNumber,
-    setPriceType,
     updateHeaderField,
     changeDeposit,
     addToCart,
@@ -264,7 +255,9 @@ export const CreateSalePage = () => {
     }
   };
   return (
-    <main className="space-y-6 bg-white p-2 md:p-6">
+    <>
+      <Meta title="Nueva Venta" />
+      <main className="space-y-6 bg-white p-2 md:p-6">
       <section>
         <h1 className="text-2xl font-bold tracking-tight">Nueva venta</h1>
         <p className="text-muted-foreground">Carga rapida de venta</p>
@@ -362,30 +355,6 @@ export const CreateSalePage = () => {
           <h2 className="text-lg font-semibold">Carrito</h2>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <div className="flex items-center gap-2">
-              <Label className="whitespace-nowrap">Tipo de precio:</Label>
-              <Select
-                value={priceType}
-                onValueChange={(value) =>
-                  value && setPriceType(value as PriceType)
-                }
-              >
-                <SelectTrigger className="w-44">
-                  <SelectValue>
-                    {priceType === "SALE"
-                      ? "Precio de venta"
-                      : "Precio mayorista"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="SALE">Precio de venta</SelectItem>
-                    <SelectItem value="WHOLESALE">Precio mayorista</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
             <Button
               type="button"
               disabled={!header.idDeposit}
@@ -486,6 +455,7 @@ export const CreateSalePage = () => {
         onViewDetails={handleViewSaleDetails}
       />
       <Toaster position="top-right" reverseOrder={false} />
-    </main>
+      </main>
+    </>
   );
 };

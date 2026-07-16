@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Toaster } from "react-hot-toast";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUtilsState } from "@/hooks/useUtilsState";
@@ -80,7 +81,9 @@ export const StockPage = () => {
   };
 
   return (
-    <main className="space-y-6 p-6">
+    <>
+      <Meta title="Stock" />
+      <main className="space-y-6 p-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -135,6 +138,7 @@ export const StockPage = () => {
         onSuccess={refreshStock}
       />
       <Toaster position="top-right" reverseOrder={false} />
-    </main>
+      </main>
+    </>
   );
 };

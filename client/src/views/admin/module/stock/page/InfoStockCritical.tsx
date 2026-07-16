@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, Search, X } from "lucide-react";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -156,7 +157,7 @@ export const InfoStockCritical = () => {
       resetDeposits();
       resetStock();
     };
-  }, [getDeposits]);
+  }, [getDeposits, resetDeposits, resetStock]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -189,7 +190,9 @@ export const InfoStockCritical = () => {
   };
 
   return (
-    <main className="space-y-6 p-6">
+    <>
+      <Meta title="Stock Critico" />
+      <main className="space-y-6 p-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -326,6 +329,7 @@ export const InfoStockCritical = () => {
           />
         </CardContent>
       </Card>
-    </main>
+      </main>
+    </>
   );
 };

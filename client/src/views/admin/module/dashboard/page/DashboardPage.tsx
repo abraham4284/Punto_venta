@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   TrendingUp,
 } from "lucide-react";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import {
   CriticalStockTable,
@@ -64,22 +65,27 @@ export const DashboardPage = () => {
 
   if (loading && !dashboardData) {
     return (
-      <main className="space-y-6 p-6">
-        <section>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Dashboard de Control
-          </h1>
-          <p className="text-muted-foreground">
-            Cargando metricas del negocio...
-          </p>
-        </section>
-        <DashboardSkeleton />
-      </main>
+      <>
+        <Meta title="Dashboard" />
+        <main className="space-y-6 p-6">
+          <section>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Dashboard de Control
+            </h1>
+            <p className="text-muted-foreground">
+              Cargando metricas del negocio...
+            </p>
+          </section>
+          <DashboardSkeleton />
+        </main>
+      </>
     );
   }
 
   return (
-    <main className="space-y-6 p-6">
+    <>
+      <Meta title="Dashboard" />
+      <main className="space-y-6 p-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -196,6 +202,7 @@ export const DashboardPage = () => {
           </section>
         </>
       )}
-    </main>
+      </main>
+    </>
   );
 };

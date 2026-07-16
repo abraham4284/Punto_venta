@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
@@ -39,7 +40,9 @@ export const SaleAllPage = () => {
   }, [getDeposits, getSales, resetDeposits]);
 
   return (
-    <main className="space-y-6 bg-white p-2 md:p-6">
+    <>
+      <Meta title="Historial de Ventas" />
+      <main className="space-y-6 bg-white p-2 md:p-6">
       <section className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -85,6 +88,7 @@ export const SaleAllPage = () => {
           />
         </CardContent>
       </Card>
-    </main>
+      </main>
+    </>
   );
 };

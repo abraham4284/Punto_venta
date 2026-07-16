@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { ArrowLeft, Ban, Printer } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Meta } from "@/components/Meta";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,33 +48,41 @@ export const ViewSaleDetails = () => {
 
   if (loading) {
     return (
-      <main className="flex min-h-[60vh] items-center justify-center">
-        <Spinner />
-      </main>
+      <>
+        <Meta title="Detalle de Venta" />
+        <main className="flex min-h-[60vh] items-center justify-center">
+          <Spinner />
+        </main>
+      </>
     );
   }
 
   if (error || !sale) {
     return (
-      <main className="space-y-4 bg-white p-6">
-        <Button
-          type="button"
-          variant="outline"
-          className="no-print"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver
-        </Button>
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {error || "Venta no encontrada"}
-        </p>
-      </main>
+      <>
+        <Meta title="Detalle de Venta" />
+        <main className="space-y-4 bg-white p-6">
+          <Button
+            type="button"
+            variant="outline"
+            className="no-print"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver
+          </Button>
+          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error || "Venta no encontrada"}
+          </p>
+        </main>
+      </>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-3 md:p-6 print:bg-white print:p-0">
+    <>
+      <Meta title="Detalle de Venta" />
+      <main className="min-h-screen bg-slate-100 p-3 md:p-6 print:bg-white print:p-0">
       <div className="no-print mx-auto mb-5 flex max-w-[800px] flex-col justify-between gap-3 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -151,6 +160,7 @@ export const ViewSaleDetails = () => {
         business={business}
         grossSubtotal={grossSubtotal}
       />
-    </main>
+      </main>
+    </>
   );
 };

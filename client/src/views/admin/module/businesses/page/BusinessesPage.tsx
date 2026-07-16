@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Building2, Settings, ShieldCheck } from "lucide-react";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -57,14 +58,19 @@ export const BusinessesPage = () => {
 
   if (loading) {
     return (
-      <main className="flex min-h-[60vh] items-center justify-center">
-        <Spinner />
-      </main>
+      <>
+        <Meta title="Mi Empresa" />
+        <main className="flex min-h-[60vh] items-center justify-center">
+          <Spinner />
+        </main>
+      </>
     );
   }
 
   return (
-    <main className="space-y-6 bg-white p-2 md:p-6">
+    <>
+      <Meta title="Mi Empresa" />
+      <main className="space-y-6 bg-white p-2 md:p-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
@@ -137,6 +143,7 @@ export const BusinessesPage = () => {
         onClose={handleCloseEdit}
         onSubmit={updateBusiness}
       />
-    </main>
+      </main>
+    </>
   );
 };

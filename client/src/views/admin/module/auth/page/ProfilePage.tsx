@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
+import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -141,7 +142,9 @@ export const ProfilePage = () => {
   }, [fetchUserProfile, profileLoading, profileUser, user?.idUser]);
 
   return (
-    <main className="min-h-screen space-y-6 bg-slate-50 p-3 md:p-6">
+    <>
+      <Meta title="Mi Perfil" />
+      <main className="min-h-screen space-y-6 bg-slate-50 p-3 md:p-6">
       <section className="flex flex-col justify-between gap-4 rounded-2xl border bg-white p-5 shadow-sm md:flex-row md:items-center">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-xl font-black text-primary-foreground shadow-sm">
@@ -330,6 +333,7 @@ export const ProfilePage = () => {
       </section>
 
       <Toaster position="top-right" reverseOrder={false} />
-    </main>
+      </main>
+    </>
   );
 };
