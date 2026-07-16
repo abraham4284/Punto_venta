@@ -6,6 +6,7 @@ import type {
   ProductDbRow,
   ProductResponse,
   ToggleProductStatusPayload,
+  UpdateProductPricesInput,
   UpdateProductPayload,
 } from "../types/index.js";
 
@@ -95,6 +96,30 @@ export async function updateProductService(
       data.unitType ?? null,
       Object.hasOwn(data, "unitType") ? 1 : 0,
       data.stockMin ?? null,
+    ],
+  );
+
+  const result = rows as unknown as ProductDbRow[][];
+  const product = result[0]?.[0];
+
+  if (!product) {
+    throw new Error("Producto no encontrado");
+  }
+
+  return mapProduct(product);
+}
+
+export async function updateProductPricesService(
+  data: UpdateProductPricesInput,
+): Promise<ProductResponse> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_update_product_prices(?, ?, ?, ?, ?)",
+    [
+      data.idProduct,
+      data.idBusiness,
+      data.priceCost,
+      data.priceSale,
+      data.priceWholesale ?? null,
     ],
   );
 

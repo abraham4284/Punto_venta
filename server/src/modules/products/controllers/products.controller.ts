@@ -5,11 +5,13 @@ import {
   getProductByIdService,
   getProductsService,
   toggleProductStatusService,
+  updateProductPricesService,
   updateProductService,
 } from "../services/products.service.js";
 import {
   createProductSchema,
   toggleProductStatusSchema,
+  updateProductPricesSchema,
   updateProductSchema,
 } from "../validations/products.validations.js";
 
@@ -125,6 +127,40 @@ export async function updateProductController(
     return res.status(200).json({
       status: true,
       message: "Producto actualizado correctamente",
+      data: result,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        status: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
+    return res.status(getErrorStatus(error)).json({
+      status: false,
+      message: error.sqlMessage || error.message,
+    });
+  }
+}
+
+export async function updateProductPricesController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const productData = {
+      ...req.body,
+      idBusiness: req.user!.idBusiness,
+      idProduct: Number(req.params.idProduct),
+    };
+    const data = updateProductPricesSchema.parse(productData);
+    const result = await updateProductPricesService(data);
+
+    return res.status(200).json({
+      status: true,
+      message: "Precios del producto actualizados correctamente",
       data: result,
     });
   } catch (error: any) {

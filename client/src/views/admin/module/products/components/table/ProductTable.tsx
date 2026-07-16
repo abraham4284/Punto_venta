@@ -1,3 +1,4 @@
+import { DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -20,6 +21,7 @@ type Props = {
   loading: boolean;
   addDataEdit: (product: ProductResponse | null) => void;
   toggleModal: () => void;
+  onOpenPricesModal: (product: ProductResponse) => void;
   toggleProductStatus: (
     idProduct: number,
     payload: { isActive: boolean },
@@ -46,6 +48,7 @@ export const ProductTable = ({
   loading,
   addDataEdit,
   toggleModal,
+  onOpenPricesModal,
   toggleProductStatus,
 }: Props) => {
   const handleEdit = (product: ProductResponse) => {
@@ -140,6 +143,17 @@ export const ProductTable = ({
             </TableCell>
 
             <TableCell className="space-x-2 text-right">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                title="Ajustar Precios"
+                aria-label={`Ajustar precios de ${product.name}`}
+                onClick={() => onOpenPricesModal(product)}
+              >
+                <DollarSign className="h-4 w-4" />
+              </Button>
+
               <Button
                 type="button"
                 variant="outline"

@@ -5,6 +5,7 @@ import {
   getProductByIdController,
   getProductsController,
   toggleProductStatusController,
+  updateProductPricesController,
   updateProductController,
 } from "../controllers/products.controller.js";
 
@@ -14,6 +15,11 @@ router.post("/products", requireAuth, createProductController);
 router.get("/products", requireAuth, getProductsController);
 router.get("/products/:id", requireAuth, getProductByIdController);
 router.put("/products/:id", requireAuth, updateProductController);
+router.patch(
+  "/products/:idProduct/prices",
+  requireAuth,
+  updateProductPricesController,
+);
 router.patch("/products/:id/status", requireAuth, toggleProductStatusController);
 
 export default router;

@@ -174,6 +174,34 @@ export const updateProductSchema = z
     },
   );
 
+export const updateProductPricesSchema = z
+  .object({
+    idBusiness: z
+      .number({ error: "El negocio es obligatorio" })
+      .int("El negocio debe ser un numero entero")
+      .positive("El negocio debe ser valido"),
+
+    idProduct: z
+      .number({ error: "El producto es obligatorio" })
+      .int("El producto debe ser un numero entero")
+      .positive("El producto debe ser valido"),
+
+    priceCost: z
+      .number({ error: "El precio de costo es obligatorio" })
+      .min(0, "El precio de costo no puede ser negativo"),
+
+    priceSale: z
+      .number({ error: "El precio de venta es obligatorio" })
+      .min(0, "El precio de venta no puede ser negativo"),
+
+    priceWholesale: z
+      .number()
+      .min(0, "El precio mayorista no puede ser negativo")
+      .optional()
+      .nullable(),
+  })
+  .strict();
+
 export const toggleProductStatusSchema = z
   .object({
     idBusiness: z

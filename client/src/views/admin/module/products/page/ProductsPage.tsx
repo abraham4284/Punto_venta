@@ -10,6 +10,7 @@ import {
   ProductFilter,
   ProductMetrics,
   ProductModalForm,
+  ProductPricesModal,
   ProductTable,
 } from "../components";
 import { useProducts } from "../hooks/useProducts";
@@ -31,6 +32,7 @@ export const ProductsPage = () => {
     getProducts,
     createProduct,
     updateProduct,
+    updateProductPricesAction,
     toggleProductStatus,
     resetProducts,
   } = useProducts();
@@ -51,6 +53,14 @@ export const ProductsPage = () => {
     addDataEdit,
     resetDataEdit,
   } = useUtilsState<ProductResponse>();
+  const {
+    isOpen: isOpenPricesModal,
+    dataEdit: priceProduct,
+    addDataEdit: addPriceProduct,
+    closeModal: closePricesModal,
+    setIsOpen: setIsOpenPricesModal,
+    resetDataEdit: resetPriceProduct,
+  } = useUtilsState<ProductResponse>();
 
   useEffect(() => {
     getProducts();
@@ -62,6 +72,16 @@ export const ProductsPage = () => {
   const handleOpenCreate = () => {
     resetDataEdit();
     toggleModal();
+  };
+
+  const handleOpenPricesModal = (product: ProductResponse) => {
+    addPriceProduct(product);
+    setIsOpenPricesModal(true);
+  };
+
+  const handleClosePricesModal = () => {
+    closePricesModal();
+    resetPriceProduct();
   };
 
   useEffect(() => {
@@ -142,6 +162,7 @@ export const ProductsPage = () => {
             loading={loading}
             addDataEdit={addDataEdit}
             toggleModal={toggleModal}
+            onOpenPricesModal={handleOpenPricesModal}
             toggleProductStatus={toggleProductStatus}
           />
         </CardContent>
@@ -156,6 +177,12 @@ export const ProductsPage = () => {
         backendErrors={fieldErrors}
         onClose={closeModal}
         onSubmit={handleSubmit}
+      />
+      <ProductPricesModal
+        isOpen={isOpenPricesModal}
+        product={priceProduct}
+        onClose={handleClosePricesModal}
+        onSubmit={updateProductPricesAction}
       />
       </main>
     </>

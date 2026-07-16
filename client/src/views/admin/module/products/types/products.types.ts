@@ -91,6 +91,18 @@ export interface UpdateProductPayload {
   stockMin?: number;
 }
 
+export interface UpdateProductPricesPayload {
+  priceCost: number;
+  priceSale: number;
+  priceWholesale?: number | null;
+}
+
+export interface ProductPricesFormValues {
+  priceCost: string;
+  priceSale: string;
+  priceWholesale: string;
+}
+
 export interface UpdateProductStatusPayload {
   isActive: boolean;
 }

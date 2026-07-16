@@ -72,6 +72,14 @@ export interface UpdateProductPayload {
   stockMin?: number;
 }
 
+export interface UpdateProductPricesInput {
+  idBusiness: number;
+  idProduct: number;
+  priceCost: number;
+  priceSale: number;
+  priceWholesale?: number | null;
+}
+
 export interface ToggleProductStatusPayload {
   idBusiness: number;
   idProduct: number;
