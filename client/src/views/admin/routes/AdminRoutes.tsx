@@ -7,6 +7,7 @@ import {
   DashboardRoutes,
   DepositsRoutes,
   ProductsRoutes,
+  PurchasesRoutes,
   SalesRoutes,
   StockRoutes,
   SuppliersRoutes,
@@ -24,6 +25,7 @@ export const AdminRoutes = () => {
         <Route path="/deposits/*" element={<DepositsRoutes />} />
         <Route path="/stock/*" element={<StockRoutes />} />
         <Route path="/sales/*" element={<SalesRoutes />} />
+        <Route path="/purchases/*" element={<PurchasesRoutes />} />
         <Route path="/suppliers/*" element={<SuppliersRoutes />} />
         <Route path="/businesses/*" element={<BusinessessRoutes />} />
         <Route path="/profile" element={<ProfilePage />} />

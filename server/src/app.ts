@@ -16,6 +16,7 @@ import {
   stockRoutes,
   stockMovementRoutes,
   saleRoutes,
+  purchaseRoutes,
   ticketRoutes,
   supplierRoutes,
   dashboardRoutes,
@@ -69,6 +70,7 @@ app.use("/api", customerRoutes);
 app.use("/api", stockRoutes);
 app.use("/api", stockMovementRoutes);
 app.use("/api", saleRoutes);
+app.use("/api", purchaseRoutes);
 app.use("/api", ticketRoutes);
 app.use("/api", supplierRoutes);
 app.use("/api", dashboardRoutes);

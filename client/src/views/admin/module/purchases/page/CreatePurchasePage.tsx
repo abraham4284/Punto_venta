@@ -1,0 +1,170 @@
+import { useEffect, useMemo, useState } from "react";
+import { Search, ShoppingCart } from "lucide-react";
+import { toast, Toaster } from "react-hot-toast";
+import { Meta } from "@/components/Meta";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useDeposits } from "../../deposits/hooks/useDeposits";
+import { useProducts } from "../../products/hooks/useProducts";
+import type { ProductResponse } from "../../products/types/products.types";
+import { useSuppliers } from "../../suppliers/hooks/useSuppliers";
+import { ProductPurchaseCard } from "../components/card/ProductPurchaseCard";
+import { AddToPurchaseModal } from "../components/modal/AddToPurchaseModal";
+import { PurchaseCartModal } from "../components/modal/PurchaseCartModal";
+import { usePurchases } from "../hooks/usePurchases";
+import type { CreatePurchasePayload, PurchaseCartItem } from "../types";
+
+export const CreatePurchasePage = () => {
+  const [selectedProduct, setSelectedProduct] =
+    useState<ProductResponse | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const {
+    filteredProducts,
+    loading,
+    search,
+    setSearch,
+    getProducts,
+    resetProducts,
+  } = useProducts();
+  const { deposits, getDeposits, resetDeposits } = useDeposits();
+  const { suppliers, getSuppliers, resetSuppliers } = useSuppliers();
+  const {
+    cart,
+    saving,
+    fieldErrors,
+    addToCart,
+    removeFromCart,
+    clearCart,
+    submitPurchase,
+    resetPurchases,
+  } = usePurchases();
+
+  const activeProducts = useMemo(() => {
+    return filteredProducts.filter((product) => product.isActive);
+  }, [filteredProducts]);
+
+  useEffect(() => {
+    void getProducts();
+    void getDeposits();
+    void getSuppliers();
+
+    return () => {
+      resetProducts();
+      resetDeposits();
+      resetSuppliers();
+      resetPurchases();
+    };
+  }, [
+    getDeposits,
+    getProducts,
+    getSuppliers,
+    resetDeposits,
+    resetProducts,
+    resetPurchases,
+    resetSuppliers,
+  ]);
+
+  const handleOpenProduct = (product: ProductResponse) => {
+    setSelectedProduct(product);
+    setIsAddModalOpen(true);
+  };
+
+  const handleAddItem = (item: PurchaseCartItem) => {
+    addToCart(item);
+    toast.success("Producto agregado al carrito de compra");
+  };
+
+  const handleSubmit = async (payload: CreatePurchasePayload) => {
+    const result = await submitPurchase(payload);
+
+    if (!result.status) {
+      toast.error(result.message);
+      return false;
+    }
+
+    toast.success(result.message);
+    clearCart();
+    return true;
+  };
+
+  return (
+    <>
+      <Meta title="Nueva Compra" />
+      <main className="space-y-6 p-3 md:p-6">
+        <section className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Nueva compra
+            </h1>
+            <p className="text-muted-foreground">
+              Ingresa mercaderia y actualiza stock en una sola operacion.
+            </p>
+          </div>
+
+          <Button type="button" onClick={() => setIsCartModalOpen(true)}>
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Ver carrito ({cart.length})
+          </Button>
+        </section>
+
+        <Card>
+          <CardContent className="grid gap-4 p-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar producto por nombre o codigo de barras..."
+                className="pl-9"
+              />
+            </div>
+
+            {loading ? (
+              <p className="rounded-lg bg-muted p-8 text-center text-muted-foreground">
+                Cargando productos...
+              </p>
+            ) : activeProducts.length === 0 ? (
+              <p className="rounded-lg bg-muted p-8 text-center text-muted-foreground">
+                No hay productos disponibles para cargar compras
+              </p>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {activeProducts.map((product) => (
+                  <ProductPurchaseCard
+                    key={product.idProduct}
+                    product={product}
+                    onAdd={handleOpenProduct}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {isAddModalOpen && (
+          <AddToPurchaseModal
+            isOpen={isAddModalOpen}
+            product={selectedProduct}
+            deposits={deposits}
+            onClose={() => setIsAddModalOpen(false)}
+            onConfirm={handleAddItem}
+          />
+        )}
+
+        <PurchaseCartModal
+          isOpen={isCartModalOpen}
+          cart={cart}
+          suppliers={suppliers}
+          saving={saving}
+          fieldErrors={fieldErrors}
+          onClose={() => setIsCartModalOpen(false)}
+          onRemove={removeFromCart}
+          onSubmit={handleSubmit}
+        />
+        <Toaster position="top-right" reverseOrder={false} />
+      </main>
+    </>
+  );
+};
