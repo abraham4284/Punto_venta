@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,12 @@ const normalizeQuantity = (
   return Number(boundedQuantity.toFixed(2));
 };
 
+const getDefaultQuantity = (product: ProductWithStockResponse): number => {
+  if (product.stockQuantity <= 0) return 0;
+
+  return product.unitType === "UNIT" ? 1 : Math.min(1, product.stockQuantity);
+};
+
 export const ProductSelectionModal = ({
   isOpen,
   products,
@@ -89,9 +95,11 @@ export const ProductSelectionModal = ({
   onClose,
   onConfirm,
 }: Props) => {
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const filteredProducts = useMemo(() => {
     const value = debouncedSearch.trim().toLowerCase();
@@ -107,6 +115,8 @@ export const ProductSelectionModal = ({
       })
       .slice(0, MAX_VISIBLE_PRODUCTS);
   }, [products, debouncedSearch]);
+  const selectedProduct =
+    filteredProducts[Math.min(selectedIndex, filteredProducts.length - 1)];
 
   const hasEnoughSearch = debouncedSearch.trim().length >= MIN_SEARCH_LENGTH;
 
@@ -117,6 +127,16 @@ export const ProductSelectionModal = ({
 
     return () => window.clearTimeout(timeoutId);
   }, [search]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timeoutId = window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isOpen]);
 
   const updateQuantity = (product: ProductWithStockResponse, value: number) => {
     const nextQuantity = normalizeQuantity(value, product);
@@ -138,35 +158,95 @@ export const ProductSelectionModal = ({
     onClose();
   }, [onClose, resetModalState]);
 
-  const handleConfirm = () => {
-    const selectedItems = products
+  const selectedItems = useMemo(() => {
+    return products
       .map((product) => ({
         product,
         quantity: quantities[product.idProduct] ?? 0,
       }))
       .filter((item) => item.quantity > 0);
+  }, [products, quantities]);
 
+  const handleConfirm = useCallback(() => {
+    if (selectedItems.length === 0) return;
     onConfirm(selectedItems);
     resetModalState();
-  };
+  }, [onConfirm, resetModalState, selectedItems]);
 
-  const selectedCount = Object.values(quantities).filter(
-    (quantity) => quantity > 0,
-  ).length;
+  const handleQuickAdd = useCallback(
+    (product: ProductWithStockResponse) => {
+      const withoutWholesale = cannotUseWholesale(product, priceType);
+      const disabled = product.stockQuantity <= 0 || withoutWholesale;
+
+      if (disabled) return;
+
+      const quantity = getDefaultQuantity(product);
+
+      if (quantity <= 0) return;
+
+      onConfirm([{ product, quantity }]);
+      resetModalState();
+    },
+    [onConfirm, priceType, resetModalState],
+  );
+
+  const selectedCount = selectedItems.length;
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleEscape = (event: KeyboardEvent) => {
+    const handleModalKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        handleClose();
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setSelectedIndex((current) => {
+          return Math.min(current + 1, Math.max(filteredProducts.length - 1, 0));
+        });
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setSelectedIndex((current) => Math.max(current - 1, 0));
+      }
+
+      if (event.key === "Enter") {
+        if (selectedItems.length > 0) {
+          event.preventDefault();
+          handleConfirm();
+          return;
+        }
+
+        const value = search.trim().toLowerCase();
+        const exactBarcodeProduct = products.find((product) => {
+          return product.barcode?.trim().toLowerCase() === value;
+        });
+        const productToAdd = exactBarcodeProduct ?? selectedProduct;
+
+        if (!productToAdd) return;
+
+        event.preventDefault();
+        handleQuickAdd(productToAdd);
         handleClose();
       }
     };
 
-    document.addEventListener("keydown", handleEscape);
+    document.addEventListener("keydown", handleModalKeyDown);
 
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, handleClose]);
+    return () => document.removeEventListener("keydown", handleModalKeyDown);
+  }, [
+    filteredProducts.length,
+    handleClose,
+    handleConfirm,
+    handleQuickAdd,
+    isOpen,
+    products,
+    search,
+    selectedProduct,
+    selectedItems.length,
+  ]);
 
   if (!isOpen) return null;
 
@@ -198,10 +278,15 @@ export const ProductSelectionModal = ({
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            ref={inputRef}
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setSelectedIndex(0);
+            }}
             placeholder="Buscar por nombre o codigo..."
             className="pl-9"
+            autoFocus
           />
         </div>
 
@@ -226,19 +311,23 @@ export const ProductSelectionModal = ({
                 busqueda si no ves el producto.
               </p>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filteredProducts.map((product) => {
+              {filteredProducts.map((product, index) => {
                 const quantity = quantities[product.idProduct] ?? 0;
                 const withoutWholesale = cannotUseWholesale(product, priceType);
                 const disabled = product.stockQuantity <= 0 || withoutWholesale;
                 const unitOption = getUnitOption(product.unitType);
                 const quantityStep = getQuantityStep(product.unitType);
+                const isSelected = index === selectedIndex;
 
                 return (
                   <article
                     key={product.idProduct}
-                    className={`overflow-hidden rounded-lg border bg-card shadow-sm ${
+                    className={`overflow-hidden rounded-lg border bg-card shadow-sm transition ${
+                      isSelected ? "border-primary ring-2 ring-primary/20" : ""
+                    } ${
                       disabled ? "opacity-50" : ""
                     }`}
+                    onMouseEnter={() => setSelectedIndex(index)}
                   >
                     {product.imageUrl ? (
                       <img

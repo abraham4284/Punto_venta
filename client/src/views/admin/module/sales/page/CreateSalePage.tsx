@@ -15,10 +15,12 @@ import type { DepositResponse } from "../../deposits/types/deposits.types";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
 import {
   CartTable,
-  ProductSelectionModal,
+  POSHotkeysLegend,
+  SearchProductModal,
   SaleSuccessModal,
   SearchBox,
 } from "../components";
+import { useSalesHotkeys } from "../hooks/useSalesHotkeys";
 import { useSales } from "../hooks/useSales";
 import { createSaleFormSchema } from "../validations/sales.validations";
 
@@ -175,7 +177,7 @@ export const CreateSalePage = () => {
     navigate(`/admin/sales/${idSale}`);
   };
 
-  const handleBarcodeSubmit = () => {
+  const handleBarcodeSubmit = useCallback(() => {
     const barcode = barcodeSearch.trim();
 
     if (!barcode) return;
@@ -225,9 +227,9 @@ export const CreateSalePage = () => {
     addToCart([{ product, quantity: 1 }]);
     toast.success(`${product.name} agregado al carrito`);
     setBarcodeSearch("");
-  };
+  }, [addToCart, barcodeSearch, cart, header.idDeposit, loadingProducts, priceType, products]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     try {
       createSaleFormSchema.parse({
         idCustomer: header.idCustomer ? header.idCustomer : null,
@@ -253,7 +255,33 @@ export const CreateSalePage = () => {
         setValidationErrors(mapZodErrors(error));
       }
     }
-  };
+  }, [
+    cart,
+    header.idCustomer,
+    header.idDeposit,
+    header.idPaymentMethod,
+    setValidationErrors,
+    submitSale,
+  ]);
+
+  const handleOpenProductSearch = useCallback(() => {
+    if (!header.idDeposit) {
+      toast.error("Selecciona un deposito para buscar productos");
+      return;
+    }
+
+    setIsProductModalOpen(true);
+  }, [header.idDeposit]);
+
+  useSalesHotkeys({
+    onOpenSearch: handleOpenProductSearch,
+    onFinalizeSale: () => {
+      void handleSubmit();
+    },
+    isCartEmpty: cart.length === 0,
+    isLoading: saving,
+  });
+
   return (
     <>
       <Meta title="Nueva Venta" />
@@ -262,6 +290,8 @@ export const CreateSalePage = () => {
         <h1 className="text-2xl font-bold tracking-tight">Nueva venta</h1>
         <p className="text-muted-foreground">Carga rapida de venta</p>
       </section>
+
+      <POSHotkeysLegend />
 
       <section className="grid gap-5">
         <div className="grid gap-4 md:grid-cols-3">
@@ -358,7 +388,7 @@ export const CreateSalePage = () => {
             <Button
               type="button"
               disabled={!header.idDeposit}
-              onClick={() => setIsProductModalOpen(true)}
+              onClick={handleOpenProductSearch}
             >
               <Plus className="mr-2 h-4 w-4" />
               Agregar productos
@@ -436,7 +466,7 @@ export const CreateSalePage = () => {
         </Button>
       </div>
 
-      <ProductSelectionModal
+      <SearchProductModal
         isOpen={isProductModalOpen}
         products={products}
         priceType={priceType}
@@ -444,6 +474,11 @@ export const CreateSalePage = () => {
         onClose={() => setIsProductModalOpen(false)}
         onConfirm={(items) => {
           addToCart(items);
+          if (items.length === 1) {
+            toast.success(`${items[0].product.name} agregado al carrito`);
+          } else if (items.length > 1) {
+            toast.success(`${items.length} productos agregados al carrito`);
+          }
           setIsProductModalOpen(false);
         }}
       />
