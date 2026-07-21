@@ -45,7 +45,7 @@ export interface CreateProductPayload {
   idBusiness: number;
   idProductCategory: number;
   idDeposit: number;
-  stock: number;
+  initialStock: number;
   barcode?: string | null;
   name: string;
   description?: string | null;

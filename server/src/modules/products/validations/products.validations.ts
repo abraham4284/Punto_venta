@@ -32,9 +32,9 @@ export const createProductSchema = z
       .int("El deposito debe ser un numero entero")
       .positive("El deposito debe ser valido"),
 
-    stock: z
+    initialStock: z
       .number({ error: "La cantidad inicial es obligatoria" })
-      .min(0, "La cantidad inicial no puede ser negativa"),
+      .min(0, "El stock inicial no puede ser un valor negativo"),
 
     barcode: z
       .string()

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, Upload } from "lucide-react";
 
 import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { useUtilsState } from "@/hooks/useUtilsState";
 
 import {
   ProductFilter,
+  ImportProductModal,
   ProductMetrics,
   ProductModalForm,
   ProductPricesModal,
@@ -22,6 +23,7 @@ import { useProductCategories } from "../../product-categories/hooks/useProductC
 import { useDeposits } from "../../deposits/hooks/useDeposits";
 
 export const ProductsPage = () => {
+  const [isOpenImportModal, setIsOpenImportModal] = useState(false);
   const {
     filteredProducts,
     metrics,
@@ -104,7 +106,7 @@ export const ProductsPage = () => {
     const payload = {
       idProductCategory: Number(values.idProductCategory),
       idDeposit: Number(values.idDeposit),
-      stock: values.stock === "" ? 0 : Number(values.stock),
+      initialStock: values.stock === "" ? 0 : Number(values.stock),
       barcode: values.barcode.trim() || null,
       name: values.name.trim(),
       description: values.description.trim() || null,
@@ -145,10 +147,20 @@ export const ProductsPage = () => {
           </p>
         </div>
 
-        <Button type="button" onClick={handleOpenCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo producto
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsOpenImportModal(true)}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Importar productos
+          </Button>
+          <Button type="button" onClick={handleOpenCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo producto
+          </Button>
+        </div>
       </section>
 
       <ProductMetrics metrics={metrics} />
@@ -183,6 +195,11 @@ export const ProductsPage = () => {
         product={priceProduct}
         onClose={handleClosePricesModal}
         onSubmit={updateProductPricesAction}
+      />
+      <ImportProductModal
+        isOpen={isOpenImportModal}
+        onClose={() => setIsOpenImportModal(false)}
+        onImported={getProducts}
       />
       </main>
     </>

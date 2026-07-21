@@ -52,6 +52,11 @@ BEGIN
       SET MESSAGE_TEXT = 'La unidad de medida indicada no es valida';
   END IF;
 
+  IF p_quantity < 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El stock inicial no puede ser un valor negativo';
+  END IF;
+
   START TRANSACTION;
 
   INSERT INTO products (

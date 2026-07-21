@@ -10,7 +10,7 @@ const productBaseSchema = z.object({
     .string()
     .min(1, "La categoria es obligatoria")
     .refine(
-      function isValidCategory(value) {
+      (value) => {
         return Number(value) > 0;
       },
       "La categoria seleccionada no es valida",
@@ -37,7 +37,7 @@ const productBaseSchema = z.object({
     .string()
     .min(1, "El precio de costo es obligatorio")
     .refine(
-      function isValidPriceCost(value) {
+      (value) => {
         return Number(value) > 0;
       },
       "El precio de costo debe ser mayor a cero",
@@ -47,7 +47,7 @@ const productBaseSchema = z.object({
     .string()
     .min(1, "El precio de venta es obligatorio")
     .refine(
-      function isValidPriceSale(value) {
+      (value) => {
         return Number(value) > 0;
       },
       "El precio de venta debe ser mayor a cero",
@@ -56,16 +56,16 @@ const productBaseSchema = z.object({
   unitType: productUnitTypeSchema,
 
   stock: z.string().refine(
-    function isValidStock(value) {
+    (value) => {
       return value === "" || Number(value) >= 0;
     },
     {
-      message: "El stock no puede ser negativo",
+      message: "El stock inicial no puede ser negativo",
     },
   ),
 
   stockMin: z.string().refine(
-    function isValidStockMin(value) {
+    (value) => {
       return value === "" || Number(value) >= 0;
     },
     {
@@ -79,7 +79,7 @@ export const productCreateFormSchema = productBaseSchema.extend({
     .string()
     .min(1, "El deposito es obligatorio")
     .refine(
-      function isValidDeposit(value) {
+      (value) => {
         return Number(value) > 0;
       },
       "El deposito seleccionado no es valido",

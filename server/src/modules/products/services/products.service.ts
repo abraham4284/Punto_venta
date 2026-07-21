@@ -19,7 +19,7 @@ export async function createProductService(
       data.idBusiness,
       data.idProductCategory,
       data.idDeposit,
-      data.stock,
+      data.initialStock,
       data.barcode ?? null,
       data.name,
       data.description ?? null,

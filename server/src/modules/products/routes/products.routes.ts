@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
+import productImportRoutes from "./product-import.routes.js";
 import {
   createProductController,
   getProductByIdController,
@@ -11,6 +12,7 @@ import {
 
 const router = Router();
 
+router.use(productImportRoutes);
 router.post("/products", requireAuth, createProductController);
 router.get("/products", requireAuth, getProductsController);
 router.get("/products/:id", requireAuth, getProductByIdController);

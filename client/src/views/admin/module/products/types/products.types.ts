@@ -74,7 +74,7 @@ export interface CreateProductPayload {
   priceSale: number;
   priceWholesale?: number | null;
   unitType: ProductUnitType;
-  stock?: number;
+  initialStock: number;
   stockMin?: number;
 }
 

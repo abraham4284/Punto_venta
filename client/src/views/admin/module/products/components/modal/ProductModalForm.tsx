@@ -88,7 +88,8 @@ const getUnitOption = (unitType: ProductUnitType) => {
 
 const mapErrorsToRecord = (errors: FieldError[]): Record<string, string> => {
   return errors.reduce<Record<string, string>>((acc, error) => {
-    acc[error.field] = error.message;
+    const field = error.field === "initialStock" ? "stock" : error.field;
+    acc[field] = error.message;
     return acc;
   }, {});
 };
@@ -424,7 +425,7 @@ export const ProductModalForm = ({
             <>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="stock">Stock actual</Label>
+                  <Label htmlFor="stock">Stock inicial</Label>
                   <Input
                     id="stock"
                     name="stock"

@@ -1,5 +1,6 @@
 export * from './card/ProductFilter'
 export * from './card/ProductMetrics'
+export * from './import/ImportProductModal'
 export * from './modal/ProductModalForm'
 export * from './modal/ProductPricesModal'
 export * from './table/ProductTable'
