@@ -12,6 +12,7 @@ import {
 import type {
   AuthValidationResponse,
   FieldError,
+  RegisterBody,
   User,
   UserInfoResponse,
 } from "@/views/admin/module/auth/types/auth.types";
@@ -38,7 +39,7 @@ type AuthState = {
   error: string | null;
 
   login: (username: string, password: string) => Promise<AuthActionResult>;
-  register: (username: string, password: string) => Promise<void>;
+  register: (data: RegisterBody) => Promise<AuthActionResult>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   fetchUserProfile: (idUser: number) => Promise<void>;
@@ -97,13 +98,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  async register(username, password) {
+  async register(dataRegisterPayload): Promise<AuthActionResult> {
     set({ loading: true, error: null });
     try {
-      const { data: dataRegister } = await registerRequest({
-        username,
-        password,
-      });
+      const { data: dataRegister } = await registerRequest(dataRegisterPayload);
       if (!dataRegister.status) {
         set({
           status: "unauthenticated",
@@ -111,6 +109,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           loading: false,
           error: dataRegister.message,
         });
+        return { success: false, message: dataRegister.message };
       }
       const { data } = await meRequest();
       if (!data.status) {
@@ -120,6 +119,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           loading: false,
           error: data.message,
         });
+        return { success: false, message: data.message };
       }
       set({
         status: "authenticated",
@@ -128,6 +128,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
       });
       await get().fetchUserProfile(data.data.idUser);
+      return {
+        success: true,
+        message: dataRegister.message ?? "Registro exitoso",
+      };
     } catch (error: unknown) {
       const message = getAuthErrorMessage(
         error,
@@ -139,7 +143,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         loading: false,
         error: message,
       });
-      throw error;
+      return { success: false, message };
     } finally {
       set({ loading: false });
     }

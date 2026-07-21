@@ -16,8 +16,13 @@ export type LoginBody = {
 };
 
 export type RegisterBody = {
+  name: string;
   username: string;
+  email: string;
   password: string;
+  businessName: string;
+  businessSlug: string;
+  businessType: string;
 };
 
 export type AuthUser = {
