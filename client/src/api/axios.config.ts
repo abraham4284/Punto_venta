@@ -57,7 +57,7 @@ const refreshSession = (): Promise<void> => {
 
 const expireFrontendSession = async (): Promise<void> => {
   const { useAuthStore } = await import(
-    "@/views/admin/module/auth/store/auth.store"
+    "@/views/businesses-app/module/auth/store/auth.store"
   );
 
   useAuthStore

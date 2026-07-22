@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { useForm } from "@/hooks/useForm";
-import { useAuthStore } from "@/views/admin/module/auth";
+import { useAuthStore } from "@/views/businesses-app/module/auth";
 import {
   registerSchema,
   type RegisterFormValues,

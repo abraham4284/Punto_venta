@@ -8,14 +8,14 @@ import {
   meRequest,
   registerRequest,
   updatePassword,
-} from "@/views/admin/module/auth/api/auth.api";
+} from "@/views/businesses-app/module/auth/api/auth.api";
 import type {
   AuthValidationResponse,
   FieldError,
   RegisterBody,
   User,
   UserInfoResponse,
-} from "@/views/admin/module/auth/types/auth.types";
+} from "@/views/businesses-app/module/auth/types/auth.types";
 
 type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 type AuthActionResult =

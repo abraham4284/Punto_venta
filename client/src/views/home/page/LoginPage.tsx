@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { useForm } from "@/hooks/useForm";
-import { useAuthStore } from "@/views/admin/module/auth";
+import { useAuthStore } from "@/views/businesses-app/module/auth";
 import { loginSchema, type LoginFormValues } from "../validations/auth.validations";
 
 const initialForm: LoginFormValues = {

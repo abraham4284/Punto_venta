@@ -9,7 +9,7 @@ import type {
   UpdatePasswordBody,
   UpdatePasswordResponse,
   UserInfoResponse,
-} from "@/views/admin/module/auth/types/auth.types";
+} from "@/views/businesses-app/module/auth/types/auth.types";
 
 export const loginRequest = async (
   data: LoginBody,

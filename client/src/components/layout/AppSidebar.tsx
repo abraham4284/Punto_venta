@@ -38,8 +38,8 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { peopleNav, productNav, purchaseNav, saleNav, stockNav } from "@/navigation";
-import { useAuthStore } from "@/views/admin";
-import { useBusinesses } from "@/views/admin/module/businesses/hooks/useBusinesses";
+import { useAuthStore } from "@/views/businesses-app";
+import { useBusinesses } from "@/views/businesses-app/module/businesses/hooks/useBusinesses";
 import { useEffect } from "react";
 
 type NavigationItem = {

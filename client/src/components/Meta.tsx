@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { useAuthStore } from "@/views/admin/module/auth/store/auth.store";
-import { useBusinesses } from "@/views/admin/module/businesses/hooks/useBusinesses";
+import { useAuthStore } from "@/views/businesses-app/module/auth/store/auth.store";
+import { useBusinesses } from "@/views/businesses-app/module/businesses/hooks/useBusinesses";
 
 type MetaProps = {
   title: string;

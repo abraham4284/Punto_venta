@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuthStore } from "@/views/admin/module/auth/store/auth.store";
+import { useAuthStore } from "@/views/businesses-app/module/auth/store/auth.store";
 
 export const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const status = useAuthStore((s) => s.status);

@@ -11,8 +11,8 @@ import {
   SalesRoutes,
   StockRoutes,
   SuppliersRoutes,
-} from "@/views/admin/module";
-import { ProfilePage } from "@/views/admin/module/auth/page/ProfilePage";
+} from "@/views/businesses-app/module";
+import { ProfilePage } from "@/views/businesses-app/module/auth/page/ProfilePage";
 
 export const AdminRoutes = () => {
   return (
