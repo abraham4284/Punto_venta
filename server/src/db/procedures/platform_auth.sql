@@ -104,3 +104,41 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+DROP PROCEDURE IF EXISTS sp_platform_create_base_user;
+DELIMITER $$
+
+CREATE PROCEDURE sp_platform_create_base_user(
+  IN p_name VARCHAR(120),
+  IN p_username VARCHAR(120),
+  IN p_email VARCHAR(160),
+  IN p_password_hash VARCHAR(255)
+)
+BEGIN
+  INSERT INTO users (
+    name,
+    username,
+    email,
+    password_hash,
+    is_active
+  )
+  VALUES (
+    p_name,
+    p_username,
+    NULLIF(p_email, ''),
+    p_password_hash,
+    1
+  );
+
+  SELECT
+    idUser,
+    name,
+    username,
+    email,
+    is_active AS isActive,
+    created_at AS createdAt
+  FROM users
+  WHERE idUser = LAST_INSERT_ID();
+END$$
+
+DELIMITER ;

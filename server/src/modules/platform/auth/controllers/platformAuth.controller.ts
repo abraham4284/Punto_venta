@@ -3,6 +3,7 @@ import { z } from "zod";
 import { clearAuthCookies, setAuthCookies } from "@/libs/cookies.js";
 import {
   bootstrapPlatformAdminService,
+  createPlatformBaseUserService,
   createPlatformUserService,
   getPlatformMeService,
   loginPlatformService,
@@ -10,6 +11,7 @@ import {
   refreshPlatformTokenService,
 } from "../services/platformAuth.service.js";
 import {
+  platformBaseUserSchema,
   platformBootstrapSchema,
   platformLoginSchema,
 } from "../validations/platformAuth.schema.js";
@@ -44,6 +46,19 @@ function getErrorStatus(error: unknown): number {
   return 400;
 }
 
+function hasValidBootstrapAccess(req: Request): boolean {
+  if (process.env.PLATFORM_BOOTSTRAP_ENABLED !== "true") {
+    return false;
+  }
+
+  const bootstrapSecret = req.headers["x-bootstrap-secret"];
+
+  return (
+    typeof bootstrapSecret === "string" &&
+    bootstrapSecret === process.env.PLATFORM_BOOTSTRAP_SECRET
+  );
+}
+
 export async function bootstrapPlatformController(
   req: Request,
   res: Response,
@@ -57,12 +72,7 @@ export async function bootstrapPlatformController(
       });
     }
 
-    const bootstrapSecret = req.headers["x-bootstrap-secret"];
-
-    if (
-      typeof bootstrapSecret !== "string" ||
-      bootstrapSecret !== process.env.PLATFORM_BOOTSTRAP_SECRET
-    ) {
+    if (!hasValidBootstrapAccess(req)) {
       return res.status(401).json({
         success: false,
         message: "No autorizado",
@@ -76,6 +86,52 @@ export async function bootstrapPlatformController(
     return res.status(201).json({
       success: true,
       message: "Usuario de plataforma creado correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
+    return res.status(getErrorStatus(error)).json({
+      success: false,
+      message: getErrorMessage(error),
+      data: null,
+    });
+  }
+}
+
+export async function createPlatformBaseUserController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    if (process.env.PLATFORM_BOOTSTRAP_ENABLED !== "true") {
+      return res.status(404).json({
+        success: false,
+        message: "Recurso no encontrado",
+        data: null,
+      });
+    }
+
+    if (!hasValidBootstrapAccess(req)) {
+      return res.status(401).json({
+        success: false,
+        message: "No autorizado",
+        data: null,
+      });
+    }
+
+    const data = platformBaseUserSchema.parse(req.body);
+    const result = await createPlatformBaseUserService(data);
+
+    return res.status(201).json({
+      success: true,
+      message: "Usuario base de plataforma creado correctamente",
       data: result,
     });
   } catch (error: unknown) {

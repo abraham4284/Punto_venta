@@ -4,6 +4,7 @@ import { requirePlatformContext } from "@/middlewares/requirePlatformContext.mid
 import { requirePlatformRoles } from "@/middlewares/requirePlatformRoles.middleware.js";
 import {
   bootstrapPlatformController,
+  createPlatformBaseUserController,
   createPlatformUserController,
   getPlatformMeController,
   loginPlatformController,
@@ -14,6 +15,7 @@ import {
 const router = Router();
 
 router.post("/auth/bootstrap", bootstrapPlatformController);
+router.post("/auth/base-user", createPlatformBaseUserController);
 router.post("/auth/login", loginPlatformController);
 router.post("/auth/refresh", refreshPlatformController);
 router.post(

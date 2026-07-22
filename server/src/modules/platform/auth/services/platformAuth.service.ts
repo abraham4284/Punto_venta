@@ -8,6 +8,9 @@ import {
 } from "@/libs/tokens.js";
 import type { PlatformRole } from "@/types/auth.types.js";
 import type {
+  PlatformBaseUserBody,
+  PlatformBaseUserResponse,
+  PlatformBaseUserRow,
   PlatformBootstrapBody,
   PlatformLoginBody,
   PlatformLoginUserRow,
@@ -49,6 +52,17 @@ function mapPlatformUser(row: PlatformUserBootstrapRow): PlatformUserResponse {
   };
 }
 
+function mapPlatformBaseUser(row: PlatformBaseUserRow): PlatformBaseUserResponse {
+  return {
+    idUser: row.idUser,
+    name: row.name,
+    username: row.username,
+    email: row.email,
+    isActive: Boolean(row.isActive),
+    createdAt: row.createdAt,
+  };
+}
+
 function mapSqlBootstrapError(error: unknown): never {
   const message =
     error instanceof Error ? error.message : "No se pudo crear usuario platform";
@@ -68,6 +82,23 @@ function mapSqlBootstrapError(error: unknown): never {
   if (message.includes("PLATFORM_BOOTSTRAP_LOCK_TIMEOUT")) {
     throw createPlatformServiceError(
       "No se pudo obtener el bloqueo de inicializacion",
+      409,
+    );
+  }
+
+  throw createPlatformServiceError(message, 400);
+}
+
+function mapSqlBaseUserError(error: unknown): never {
+  const sqlError = error as { code?: string; sqlMessage?: string; message?: string };
+  const message =
+    sqlError.sqlMessage ||
+    sqlError.message ||
+    "No se pudo crear el usuario base de plataforma";
+
+  if (sqlError.code === "ER_DUP_ENTRY" || message.includes("Duplicate entry")) {
+    throw createPlatformServiceError(
+      "El usuario o email ya se encuentra registrado",
       409,
     );
   }
@@ -150,6 +181,32 @@ export async function bootstrapPlatformAdminService(
     return mapPlatformUser(user);
   } catch (error) {
     mapSqlBootstrapError(error);
+  }
+}
+
+export async function createPlatformBaseUserService(
+  data: PlatformBaseUserBody,
+): Promise<PlatformBaseUserResponse> {
+  const passwordHash = await bcrypt.hash(data.password, 10);
+
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "CALL sp_platform_create_base_user(?, ?, ?, ?)",
+      [data.name, data.username, data.email ?? null, passwordHash],
+    );
+    const result = rows as unknown as PlatformBaseUserRow[][];
+    const user = result[0]?.[0];
+
+    if (!user) {
+      throw createPlatformServiceError(
+        "No se pudo crear el usuario base de plataforma",
+        400,
+      );
+    }
+
+    return mapPlatformBaseUser(user);
+  } catch (error) {
+    mapSqlBaseUserError(error);
   }
 }
 

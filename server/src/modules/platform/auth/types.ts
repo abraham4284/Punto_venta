@@ -11,6 +11,31 @@ export interface PlatformBootstrapBody {
   role: PlatformRole;
 }
 
+export interface PlatformBaseUserBody {
+  name: string;
+  username: string;
+  email?: string | null;
+  password: string;
+}
+
+export interface PlatformBaseUserResponse {
+  idUser: number;
+  name: string;
+  username: string;
+  email: string | null;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface PlatformBaseUserRow extends RowDataPacket {
+  idUser: number;
+  name: string;
+  username: string;
+  email: string | null;
+  isActive: number;
+  createdAt: Date;
+}
+
 export interface PlatformUserResponse {
   idPlatformUser: number;
   idUser: number;
