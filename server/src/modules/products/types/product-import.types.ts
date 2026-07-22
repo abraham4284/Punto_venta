@@ -7,7 +7,7 @@ export type ProductImportMode = "CREATE_ONLY" | "UPDATE_EXISTING";
 
 export interface ProductImportRawRow {
   rowNumber: number;
-  barcode: string;
+  barcode: string | null;
   name: string;
   description: string | null;
   imageUrl: string | null;

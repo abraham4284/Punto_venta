@@ -21,6 +21,20 @@ export interface RegisterBody {
   businessName: string;
   businessSlug: string;
   businessType?: string;
+  logoUrl?: string | null;
+}
+
+export interface RegisterDbRow {
+  idUser: number;
+  idBusiness: number;
+  name: string;
+  username: string;
+  email: string | null;
+  businessName: string;
+  businessSlug: string;
+  businessType: string | null;
+  logoUrl: string | null;
+  role: UserRole;
 }
 
 export interface UpdatePasswordBody {

@@ -194,7 +194,7 @@ async function createStockMovement(
       row.idDeposit,
       row.initialStock,
       idProduct,
-      `Importacion masiva de producto ${row.barcode}`,
+      `Importacion masiva de producto ${row.barcode ?? row.name}`,
     ],
   );
 }

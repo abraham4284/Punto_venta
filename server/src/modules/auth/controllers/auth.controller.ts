@@ -31,12 +31,20 @@ export async function registerController(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const result = await registerService(req.body);
+    const result = await registerService(
+      req.body,
+      req.headers["user-agent"],
+      req.ip,
+    );
+    setAuthCookies(res, result.accessToken, result.refreshToken);
 
     res.status(201).json({
       status: "OK",
       message: "Usuario y negocio registrados correctamente",
-      data: result,
+      data: {
+        accessToken: result.accessToken,
+        user: result.user,
+      },
     });
   } catch (error) {
     next(error);

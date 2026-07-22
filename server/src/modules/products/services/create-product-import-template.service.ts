@@ -20,7 +20,7 @@ export function createProductImportTemplateService(): Buffer {
       isActive: "SI",
     },
     {
-      barcode: "0001234567895",
+      barcode: "",
       name: "Queso cremoso",
       description: "Venta por kilogramo",
       imageUrl: "",
@@ -38,7 +38,7 @@ export function createProductImportTemplateService(): Buffer {
 
   const instructionRows = [
     { regla: "No modificar nombres de columnas", detalle: "El sistema normaliza variantes, pero se recomienda conservar la plantilla." },
-    { regla: "Codigo de barras", detalle: "Cargar como texto para preservar ceros a la izquierda." },
+    { regla: "Codigo de barras", detalle: "Opcional. Si se carga, hacerlo como texto para preservar ceros a la izquierda y detectar duplicados." },
     { regla: "Categorias y depositos", detalle: "Deben existir y estar activos en el comercio autenticado." },
     { regla: "Stock inicial", detalle: "Puede ser 0. Solo genera movimiento de stock si es mayor a 0." },
     { regla: "Multi-tenant", detalle: "El negocio y usuario se toman de la sesion, nunca del Excel." },

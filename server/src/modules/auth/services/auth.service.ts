@@ -9,6 +9,7 @@ import {
 import type {
   LoginBody,
   RegisterBody,
+  RegisterDbRow,
   LoginDbRow,
   SessionDbRow,
   UserInfoDbRow,
@@ -124,11 +125,15 @@ export async function loginService(
   };
 }
 
-export async function registerService(data: RegisterBody) {
+export async function registerService(
+  data: RegisterBody,
+  userAgent?: string,
+  ip?: string,
+) {
   const passwordHash = await bcrypt.hash(data.password, 10);
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_user_register_with_business(?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_user_register_with_business(?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.name,
       data.username,
@@ -137,16 +142,80 @@ export async function registerService(data: RegisterBody) {
       data.businessName,
       data.businessSlug,
       data.businessType ?? "FINANCIERA",
+      data.logoUrl ?? null,
     ],
   );
 
-  const result = rows as unknown as {
-    idUser: number;
-    idBusiness: number;
-    role: "OWNER";
-  }[][];
+  const result = rows as unknown as RegisterDbRow[][];
+  const user = result[0]?.[0];
 
-  return result[0][0];
+  if (!user) {
+    throw new Error("No se pudo registrar el usuario y negocio");
+  }
+
+  const accessToken = signAccessToken({
+    idUser: user.idUser,
+    idBusiness: user.idBusiness,
+    role: user.role,
+  });
+
+  const tempRefreshToken = signRefreshToken({
+    idUser: user.idUser,
+    idBusiness: user.idBusiness,
+    idLogin: 0,
+  });
+
+  const tempRefreshHash = await hashRefreshToken(tempRefreshToken);
+  const expiresAt = getRefreshExpirationDate();
+
+  const [sessionRows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_create_session(?, ?, ?, ?, ?, ?)",
+    [
+      tempRefreshHash,
+      expiresAt,
+      userAgent ?? null,
+      ip ?? null,
+      user.idUser,
+      user.idBusiness,
+    ],
+  );
+
+  const sessionResult = sessionRows as unknown as { idLogin: number }[][];
+  const idLogin = sessionResult[0]?.[0]?.idLogin;
+
+  if (!idLogin) {
+    throw new Error("No se pudo crear la sesion del usuario");
+  }
+
+  const refreshToken = signRefreshToken({
+    idUser: user.idUser,
+    idBusiness: user.idBusiness,
+    idLogin,
+  });
+
+  const refreshTokenHash = await hashRefreshToken(refreshToken);
+
+  await pool.query(
+    "UPDATE user_sessions SET refresh_token_hash = ? WHERE idLogin = ?",
+    [refreshTokenHash, idLogin],
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      idUser: user.idUser,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      idBusiness: user.idBusiness,
+      businessName: user.businessName,
+      businessSlug: user.businessSlug,
+      businessType: user.businessType,
+      logoUrl: user.logoUrl,
+      role: user.role,
+    },
+  };
 }
 
 export async function refreshTokenService(refreshToken: string) {

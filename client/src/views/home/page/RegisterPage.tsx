@@ -1,6 +1,14 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Sparkles, Store, UserPlus } from "lucide-react";
+import {
+  Building2,
+  Eye,
+  EyeOff,
+  ImageIcon,
+  Sparkles,
+  Store,
+  UserPlus,
+} from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
 import { Meta } from "@/components/Meta";
@@ -50,6 +58,7 @@ const initialForm: RegisterFormValues = {
   businessName: "",
   businessSlug: "",
   businessType: "KIOSCO",
+  logoUrl: "",
 };
 
 const createSlug = (value: string) => {
@@ -64,6 +73,7 @@ const createSlug = (value: string) => {
 
 export const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
   const register = useAuthStore((state) => state.register);
   const loading = useAuthStore((state) => state.loading);
   const navigate = useNavigate();
@@ -75,6 +85,7 @@ export const RegisterPage = () => {
     businessName,
     businessSlug,
     businessType,
+    logoUrl,
     onInputChange,
     setFormSate,
     formSate,
@@ -103,6 +114,7 @@ export const RegisterPage = () => {
       businessName,
       businessSlug,
       businessType,
+      logoUrl,
     });
 
     if (!validation.success) {
@@ -110,7 +122,10 @@ export const RegisterPage = () => {
       return;
     }
 
-    const result = await register(validation.data);
+    const result = await register({
+      ...validation.data,
+      logoUrl: validation.data.logoUrl ?? null,
+    });
 
     if (!result.success) {
       toast.error(result.message || "No se pudo registrar el comercio");
@@ -124,6 +139,7 @@ export const RegisterPage = () => {
   const selectedBusinessType =
     businessTypes.find((item) => item.value === businessType)?.label ??
     "Selecciona un rubro";
+  const shouldShowLogo = Boolean(logoUrl) && failedLogoUrl !== logoUrl;
 
   return (
     <>
@@ -272,6 +288,50 @@ export const RegisterPage = () => {
                           </SelectGroup>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="logoUrl">URL del logo de la empresa</Label>
+                      <Input
+                        id="logoUrl"
+                        name="logoUrl"
+                        value={logoUrl ?? ""}
+                        onChange={onInputChange}
+                        placeholder="https://ejemplo.com/logo.png"
+                        disabled={loading}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Opcional. Se usara para identificar visualmente tu
+                        comercio dentro del sistema.
+                      </p>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <div className="rounded-xl border bg-background p-4">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          Previsualizacion del logo
+                        </div>
+                        <div className="flex min-h-28 items-center justify-center rounded-lg border border-dashed bg-muted/30 p-4">
+                          {shouldShowLogo ? (
+                            <img
+                              src={logoUrl}
+                              alt="Logo del comercio"
+                              className="max-h-24 max-w-full rounded-lg object-contain"
+                              onError={() => setFailedLogoUrl(logoUrl)}
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                              <Building2 className="h-9 w-9" />
+                              <span className="text-sm">
+                                {logoUrl
+                                  ? "No se pudo cargar la imagen"
+                                  : "Sin logo cargado"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>

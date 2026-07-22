@@ -84,6 +84,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: meRes.data,
         error: null,
       });
+      if (loginRes.data?.accessToken) {
+        localStorage.setItem("access_token", loginRes.data.accessToken);
+      }
       await get().fetchUserProfile(meRes.data.idUser);
 
       return { success: true, message: loginRes.message ?? "Login exitoso" };
@@ -111,23 +114,58 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
         return { success: false, message: dataRegister.message };
       }
-      const { data } = await meRequest();
-      if (!data.status) {
-        set({
-          status: "unauthenticated",
-          user: null,
-          loading: false,
-          error: data.message,
-        });
-        return { success: false, message: data.message };
+
+      if (dataRegister.data?.accessToken) {
+        localStorage.setItem("access_token", dataRegister.data.accessToken);
       }
+
+      const registeredUser = dataRegister.data?.user;
+      const user = registeredUser
+        ? {
+            idUser: registeredUser.idUser,
+            idBusiness: registeredUser.idBusiness,
+            role: registeredUser.role,
+            name: registeredUser.name,
+            username: registeredUser.username,
+            email: registeredUser.email,
+            businessName: registeredUser.businessName,
+            businessSlug: registeredUser.businessSlug,
+            businessType: registeredUser.businessType,
+            logoUrl: registeredUser.logoUrl,
+          }
+        : null;
+
+      if (!user) {
+        const { data } = await meRequest();
+        if (!data.status) {
+          set({
+            status: "unauthenticated",
+            user: null,
+            loading: false,
+            error: data.message,
+          });
+          return { success: false, message: data.message };
+        }
+        set({
+          status: "authenticated",
+          user: data.data,
+          loading: false,
+          error: null,
+        });
+        await get().fetchUserProfile(data.data.idUser);
+        return {
+          success: true,
+          message: dataRegister.message ?? "Registro exitoso",
+        };
+      }
+
       set({
         status: "authenticated",
-        user: data.data,
+        user,
         loading: false,
         error: null,
       });
-      await get().fetchUserProfile(data.data.idUser);
+      await get().fetchUserProfile(user.idUser);
       return {
         success: true,
         message: dataRegister.message ?? "Registro exitoso",
@@ -151,6 +189,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   async logout() {
     await logoutRequest();
+    localStorage.removeItem("access_token");
     set({
       status: "unauthenticated",
       user: null,
@@ -225,6 +264,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   expireSession(message = "La sesion expiro") {
+    localStorage.removeItem("access_token");
     set({
       status: "unauthenticated",
       user: null,

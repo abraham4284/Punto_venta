@@ -3,6 +3,7 @@ import type { AxiosResponse } from "axios";
 import type { ApiMessageResponse, ApiResponse } from "@/api/axios.response.type";
 import type {
   AuthUser,
+  AuthSessionResponse,
   LoginBody,
   RegisterBody,
   UpdatePasswordBody,
@@ -12,11 +13,13 @@ import type {
 
 export const loginRequest = async (
   data: LoginBody,
-): Promise<AxiosResponse<ApiMessageResponse>> => axios.post("/login", data);
+): Promise<AxiosResponse<ApiResponse<AuthSessionResponse>>> =>
+  axios.post("/login", data);
 
 export const registerRequest = async (
   data: RegisterBody,
-): Promise<AxiosResponse<ApiMessageResponse>> => axios.post("/register", data);
+): Promise<AxiosResponse<ApiResponse<AuthSessionResponse>>> =>
+  axios.post("/register", data);
 
 export const logoutRequest = async (): Promise<
   AxiosResponse<ApiMessageResponse>

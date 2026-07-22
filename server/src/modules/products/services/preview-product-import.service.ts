@@ -134,7 +134,7 @@ function parseRawRow(
 
   const rawRow: ProductImportRawRow = {
     rowNumber,
-    barcode: normalizeImportValue(getCell(row, "barcode")),
+    barcode: normalizeImportValue(getCell(row, "barcode")) || null,
     name: normalizeImportValue(getCell(row, "name")),
     description: normalizeImportValue(getCell(row, "description")) || null,
     imageUrl: normalizeImportValue(getCell(row, "imageUrl")) || null,
@@ -305,14 +305,19 @@ export async function previewProductImportService(
     }
 
     parsedRows.push(result.data);
-    barcodeCounter.set(
-      result.data.barcode,
-      (barcodeCounter.get(result.data.barcode) ?? 0) + 1,
-    );
+
+    if (result.data.barcode) {
+      barcodeCounter.set(
+        result.data.barcode,
+        (barcodeCounter.get(result.data.barcode) ?? 0) + 1,
+      );
+    }
   }
 
   const uniqueBarcodes = Array.from(new Set(parsedRows.map(function mapBarcode(row) {
     return row.barcode;
+  }).filter(function filterBarcode(barcode): barcode is string {
+    return Boolean(barcode);
   })));
   const existingProductMap = await getExistingProductsMap(idBusiness, uniqueBarcodes);
   const resolvedRows: ProductImportResolvedRow[] = [];
@@ -321,8 +326,12 @@ export async function previewProductImportService(
     const rowErrors: ProductImportError[] = [];
     const categoryId = categoryMap.get(normalizeLookupKey(row.categoryName));
     const depositId = depositMap.get(normalizeLookupKey(row.depositName));
-    const existingProductId = existingProductMap.get(row.barcode) ?? null;
-    const isInternalDuplicate = (barcodeCounter.get(row.barcode) ?? 0) > 1;
+    const existingProductId = row.barcode
+      ? existingProductMap.get(row.barcode) ?? null
+      : null;
+    const isInternalDuplicate = row.barcode
+      ? (barcodeCounter.get(row.barcode) ?? 0) > 1
+      : false;
 
     if (!categoryId) {
       addError(rowErrors, {
@@ -363,7 +372,7 @@ export async function previewProductImportService(
         field: "barcode",
         value: row.barcode,
         code: "DUPLICATE_IN_FILE",
-        message: `El codigo de barras '${row.barcode}' se repite dentro del archivo`,
+        message: `El codigo de barras '${row.barcode ?? ""}' se repite dentro del archivo`,
       });
     }
 
@@ -373,7 +382,7 @@ export async function previewProductImportService(
         field: "barcode",
         value: row.barcode,
         code: "DUPLICATE_IN_DATABASE",
-        message: `El codigo de barras '${row.barcode}' ya existe en su comercio`,
+        message: `El codigo de barras '${row.barcode ?? ""}' ya existe en su comercio`,
       });
     }
 

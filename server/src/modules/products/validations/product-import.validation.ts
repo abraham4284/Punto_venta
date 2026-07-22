@@ -8,10 +8,10 @@ export const productImportRowSchema = z
   .object({
     rowNumber: z.number().int().positive(),
     barcode: z
-      .string({ error: "El codigo de barras es obligatorio" })
+      .string()
       .trim()
-      .min(1, "El codigo de barras es obligatorio")
-      .max(100, "El codigo de barras no puede superar los 100 caracteres"),
+      .max(100, "El codigo de barras no puede superar los 100 caracteres")
+      .nullable(),
     name: z
       .string({ error: "El nombre es obligatorio" })
       .trim()

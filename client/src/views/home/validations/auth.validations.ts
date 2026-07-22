@@ -37,6 +37,12 @@ export const registerSchema = z.object({
       "Usa solo minusculas, numeros y guiones medios",
     ),
   businessType: z.string().trim().min(1, "Selecciona un rubro"),
+  logoUrl: z
+    .string()
+    .url({ message: "Ingrese una URL de imagen valida" })
+    .optional()
+    .or(z.literal(""))
+    .transform((value) => (value === "" ? null : value)),
 });
 
 export type LoginFormValues = z.infer<typeof loginSchema>;

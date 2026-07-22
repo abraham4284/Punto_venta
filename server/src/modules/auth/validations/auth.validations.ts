@@ -46,4 +46,13 @@ export const registerSchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug inválido"),
 
   businessType: z.string().max(100).optional(),
+
+  logoUrl: z
+    .string()
+    .url({ message: "Ingrese una URL de imagen valida" })
+    .optional()
+    .or(z.literal(""))
+    .transform(function transformLogoUrl(value) {
+      return value === "" ? null : value;
+    }),
 });
