@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
-import { validateSchema } from "@/modules/auth/middleware/validateSchema.js";
+import { validateSchema } from "../../auth/middleware/validateSchema.js";
 import {
   getBusinessController,
   updateBusinessController,

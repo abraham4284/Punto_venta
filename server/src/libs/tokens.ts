@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import type { UserRole } from "@/modules/auth/types/auth.types.js";
+import type { UserRole } from "@/modules/businesses-app/auth/types/auth.types.js";
 
 export interface AccessTokenPayload {
   idUser: number;

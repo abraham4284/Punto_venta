@@ -5,22 +5,7 @@ import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import { errorHandler } from "@/middlewares/errorHandler.js";
-
-import {
-  authRoutes,
-  businessRoutes,
-  depositRoutes,
-  productCategoryRoutes,
-  productRoutes,
-  customerRoutes,
-  stockRoutes,
-  stockMovementRoutes,
-  saleRoutes,
-  purchaseRoutes,
-  ticketRoutes,
-  supplierRoutes,
-  dashboardRoutes,
-} from "@/modules/index.js";
+import { businessesAppRoutes } from "@/modules/index.js";
 
 dotenv.config();
 
@@ -61,19 +46,7 @@ app.use(express.json());
 
 app.get("/", (_, res) => res.send("Api funcionando"));
 
-app.use("/api", authRoutes);
-app.use("/api", businessRoutes);
-app.use("/api", depositRoutes);
-app.use("/api", productCategoryRoutes);
-app.use("/api", productRoutes);
-app.use("/api", customerRoutes);
-app.use("/api", stockRoutes);
-app.use("/api", stockMovementRoutes);
-app.use("/api", saleRoutes);
-app.use("/api", purchaseRoutes);
-app.use("/api", ticketRoutes);
-app.use("/api", supplierRoutes);
-app.use("/api", dashboardRoutes);
+app.use("/api", businessesAppRoutes);
 // app.use("/api", accountingRoutes);
 // app.use("/api", loansRoutes);
 // app.use("/api", paymentsRoutes);
