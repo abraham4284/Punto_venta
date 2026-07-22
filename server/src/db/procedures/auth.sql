@@ -207,7 +207,8 @@ CREATE PROCEDURE sp_user_register_with_business(
   IN p_password_hash VARCHAR(255),
   IN p_business_name VARCHAR(160),
   IN p_business_slug VARCHAR(180),
-  IN p_business_type VARCHAR(100)
+  IN p_business_type VARCHAR(100),
+  IN p_logoUrl VARCHAR(500)
 )
 BEGIN
   DECLARE v_idUser INT;
@@ -233,11 +234,13 @@ BEGIN
   INSERT INTO businesses (
     name,
     slug,
+    logo_url,
     business_type
   )
   VALUES (
     p_business_name,
     p_business_slug,
+    p_logoUrl,
     p_business_type
   );
 
@@ -259,6 +262,13 @@ BEGIN
   SELECT
     v_idUser AS idUser,
     v_idBusiness AS idBusiness,
+    p_name AS name,
+    p_username AS username,
+    NULLIF(p_email, '') AS email,
+    p_business_name AS businessName,
+    p_business_slug AS businessSlug,
+    p_business_type AS businessType,
+    p_logoUrl AS logoUrl,
     'OWNER' AS role;
 END$$
 

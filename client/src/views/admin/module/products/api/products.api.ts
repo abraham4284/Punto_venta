@@ -5,6 +5,7 @@ import type {
   CreateProductPayload,
   ProductCategoryOption,
   ProductResponse,
+  UpdateProductPricesPayload,
   UpdateProductPayload,
   UpdateProductStatusPayload,
 } from "../types/products.types";
@@ -39,6 +40,13 @@ export const updateProductStatusRequest = (
   payload: UpdateProductStatusPayload,
 ): Promise<AxiosResponse<ApiResponse<ProductResponse>>> => {
   return axios.patch(`/products/${idProduct}/status`, payload);
+};
+
+export const updateProductPrices = (
+  idProduct: number,
+  payload: UpdateProductPricesPayload,
+): Promise<AxiosResponse<ApiResponse<ProductResponse>>> => {
+  return axios.patch(`/products/${idProduct}/prices`, payload);
 };
 
 export const getProductCategoriesOptionsRequest = (): Promise<

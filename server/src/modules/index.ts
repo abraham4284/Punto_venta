@@ -1,12 +1,2 @@
-export { default as authRoutes } from "./auth/index.js";
-export { default as businessRoutes } from "./businesses/index.js";
-export { default as depositRoutes } from "./deposits/index.js";
-export { default as productCategoryRoutes } from "./product-categories/index.js";
-export { default as productRoutes } from "./products/index.js";
-export { default as customerRoutes } from "./customers/index.js";
-export { default as stockRoutes } from "./stock/index.js";
-export { default as stockMovementRoutes } from "./stock_movements/index.js";
-export { default as saleRoutes } from "./sales/index.js";
-export { default as ticketRoutes } from "./tickets/index.js";
-export { default as supplierRoutes } from "./suppliers/index.js";
-export { default as dashboardRoutes } from "./dashboard/index.js";
+export { default as businessesAppRoutes } from "./businesses-app/index.js";
+export { default as platformRoutes } from "./platform/index.js";

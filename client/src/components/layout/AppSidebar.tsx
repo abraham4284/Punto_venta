@@ -10,6 +10,7 @@ import {
   Layers3,
   LogOut,
   Package,
+  PackagePlus,
   PackageSearch,
   ReceiptText,
   ShoppingCart,
@@ -36,7 +37,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { peopleNav, productNav, saleNav, stockNav } from "@/navigation";
+import { peopleNav, productNav, purchaseNav, saleNav, stockNav } from "@/navigation";
 import { useAuthStore } from "@/views/admin";
 import { useBusinesses } from "@/views/admin/module/businesses/hooks/useBusinesses";
 import { useEffect } from "react";
@@ -67,6 +68,8 @@ const iconByRoute: Record<string, LucideIcon> = {
   "/admin/stock/critical": PackageSearch,
   "/admin/sales": ShoppingCart,
   "/admin/sales/history": ReceiptText,
+  "/admin/purchases": PackagePlus,
+  "/admin/purchases/history": ClipboardList,
 };
 
 const buildItems = (
@@ -103,6 +106,10 @@ const navigationGroups: NavigationGroup[] = [
   {
     title: "Ventas",
     items: buildItems(saleNav),
+  },
+  {
+    title: "Compras",
+    items: buildItems(purchaseNav),
   },
   {
     title: "Stock / Inventario",

@@ -52,6 +52,11 @@ BEGIN
       SET MESSAGE_TEXT = 'La unidad de medida indicada no es valida';
   END IF;
 
+  IF p_quantity < 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El stock inicial no puede ser un valor negativo';
+  END IF;
+
   START TRANSACTION;
 
   INSERT INTO products (
@@ -257,6 +262,37 @@ BEGIN
     updated_at = NOW()
   WHERE idBusiness = p_idBusiness
     AND idProduct = p_idProduct;
+
+  CALL sp_get_product_by_id(p_idBusiness, p_idProduct);
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_update_product_prices;
+DELIMITER $$
+
+CREATE PROCEDURE sp_update_product_prices(
+  IN p_idProduct INT,
+  IN p_idBusiness INT,
+  IN p_priceCost DECIMAL(18,2),
+  IN p_priceSale DECIMAL(18,2),
+  IN p_priceWholesale DECIMAL(18,2)
+)
+BEGIN
+  UPDATE products
+  SET
+    price_cost = p_priceCost,
+    price_sale = p_priceSale,
+    price_wholesale = p_priceWholesale,
+    updated_at = NOW()
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct;
+
+  IF ROW_COUNT() = 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Producto no encontrado o no pertenece al negocio';
+  END IF;
 
   CALL sp_get_product_by_id(p_idBusiness, p_idProduct);
 END$$

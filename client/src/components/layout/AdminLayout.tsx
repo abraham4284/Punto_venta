@@ -1,26 +1,46 @@
 import type { ReactNode } from "react";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
+import { PriceCheckerListener } from "@/components/global/PriceCheckerListener";
+import { PriceCheckerModal } from "@/components/global/PriceCheckerModal";
 import { AppSidebar } from "@/components/layout/AppSidebar";
+import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { usePriceCheckerStore } from "@/store/priceChecker.store";
 
 type AdminLayoutProps = {
   children: ReactNode;
 };
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
+  const openPriceChecker = usePriceCheckerStore(
+    (state) => state.openPriceChecker,
+  );
+
   return (
     <SidebarProvider>
+      <PriceCheckerListener />
+      <PriceCheckerModal />
       <AppSidebar />
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden transition-all duration-300">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur">
           <SidebarTrigger className="h-10 w-10 rounded-lg border text-foreground">
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold">Punto de venta</p>
             <p className="text-xs text-muted-foreground">Panel administrativo</p>
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={openPriceChecker}
+          >
+            <Search className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Consultar Precio</span>
+            <span className="ml-1 text-xs text-muted-foreground">(F8)</span>
+          </Button>
         </header>
 
         <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 transition-all duration-300 sm:p-4 md:p-6">

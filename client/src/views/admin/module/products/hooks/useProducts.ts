@@ -4,6 +4,7 @@ import {
   createProductRequest,
   getProductCategoriesOptionsRequest,
   getProductsRequest,
+  updateProductPrices,
   updateProductRequest,
   updateProductStatusRequest,
 } from "../api/products.api";
@@ -14,6 +15,7 @@ import type {
   ProductCategoryOption,
   ProductResponse,
   ProductUnitType,
+  UpdateProductPricesPayload,
   UpdateProductPayload,
   UpdateProductStatusPayload,
 } from "../types/products.types";
@@ -160,6 +162,39 @@ export const useProducts = () => {
     }
   };
 
+  const updateProductPricesAction = async (
+    idProduct: number,
+    payload: UpdateProductPricesPayload,
+  ): Promise<{ status: boolean; message: string; errors?: FieldError[] }> => {
+    try {
+      clearErrors();
+
+      const response = await updateProductPrices(idProduct, payload);
+      const updatedProduct = normalizeProduct(response.data.data);
+
+      setProducts((currentProducts) =>
+        currentProducts.map((product) => {
+          if (product.idProduct !== idProduct) return product;
+
+          return updatedProduct;
+        }),
+      );
+
+      return {
+        status: true,
+        message: response.data.message,
+      };
+    } catch (error) {
+      const errors = handleApiError(error);
+
+      return {
+        status: false,
+        message: "No se pudieron actualizar los precios",
+        errors,
+      };
+    }
+  };
+
   const filteredProducts = useMemo(() => {
     const value = search.trim().toLowerCase();
 
@@ -212,6 +247,7 @@ export const useProducts = () => {
     getProductCategories,
     createProduct,
     updateProduct,
+    updateProductPricesAction,
     toggleProductStatus,
     resetProducts,
   };

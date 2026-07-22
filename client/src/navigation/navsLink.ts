@@ -41,9 +41,22 @@ export const stockNav = [
     url: "/admin/stock/movements",
   },
   {
-    id: 2,
+    id: 3,
     title: "Informe de inventario",
     url: "/admin/stock/critical",
+  },
+];
+
+export const purchaseNav = [
+  {
+    id: 1,
+    title: "Registrar Compra",
+    url: "/admin/purchases",
+  },
+  {
+    id: 2,
+    title: "Historial de Compras",
+    url: "/admin/purchases/history",
   },
 ];
 
