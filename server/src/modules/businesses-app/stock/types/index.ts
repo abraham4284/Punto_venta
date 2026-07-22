@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import type { AccessTokenPayload } from "@/libs/tokens.js";
+import type { BusinessRequestUser } from "@/types/auth.types.js";
 
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 export type AdvancedStockAlertStatus = "OK" | "LOW" | "ZERO";
@@ -190,5 +190,5 @@ export interface AdvancedStockCountRow {
 }
 
 export interface StockAuthenticatedRequest extends Request {
-  user: AccessTokenPayload;
+  user: BusinessRequestUser;
 }

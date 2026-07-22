@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import type { AccessTokenPayload } from "@/libs/tokens.js";
+import type { BusinessRequestUser } from "@/types/auth.types.js";
 
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 
@@ -87,5 +87,5 @@ export interface ToggleProductStatusPayload {
 }
 
 export interface ProductAuthenticatedRequest extends Request {
-  user: AccessTokenPayload;
+  user: BusinessRequestUser;
 }

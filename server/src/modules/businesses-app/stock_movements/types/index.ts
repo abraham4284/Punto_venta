@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import type { AccessTokenPayload } from "@/libs/tokens.js";
+import type { BusinessRequestUser } from "@/types/auth.types.js";
 
 export type ManualAdjustmentType = "ADJUSTMENT_IN" | "ADJUSTMENT_OUT";
 
@@ -97,5 +97,5 @@ export interface ProcessStockTransferPayload {
 }
 
 export interface StockMovementAuthenticatedRequest extends Request {
-  user: AccessTokenPayload;
+  user: BusinessRequestUser;
 }

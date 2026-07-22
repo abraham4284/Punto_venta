@@ -97,6 +97,7 @@ export async function loginService(
   }
 
   const refreshToken = signRefreshToken({
+    context: "BUSINESS",
     idUser: user.idUser,
     idBusiness: user.idBusiness,
     idLogin,
@@ -154,12 +155,14 @@ export async function registerService(
   }
 
   const accessToken = signAccessToken({
+    context: "BUSINESS",
     idUser: user.idUser,
     idBusiness: user.idBusiness,
-    role: user.role,
+    businessRole: user.role,
   });
 
   const tempRefreshToken = signRefreshToken({
+    context: "BUSINESS",
     idUser: user.idUser,
     idBusiness: user.idBusiness,
     idLogin: 0,
@@ -188,6 +191,7 @@ export async function registerService(
   }
 
   const refreshToken = signRefreshToken({
+    context: "BUSINESS",
     idUser: user.idUser,
     idBusiness: user.idBusiness,
     idLogin,
@@ -222,6 +226,10 @@ export async function refreshTokenService(refreshToken: string) {
   try {
     const payload = verifyRefreshToken(refreshToken);
 
+    if (payload.context !== "BUSINESS") {
+      throw new Error("Refresh token invalido para comercio");
+    }
+
     const [rows] = await pool.query<RowDataPacket[]>(
       "CALL sp_get_session(?, ?, ?)",
       [payload.idLogin, payload.idUser, payload.idBusiness ?? null],
@@ -247,12 +255,14 @@ export async function refreshTokenService(refreshToken: string) {
     await pool.query("CALL sp_revoke_session(?)", [payload.idLogin]);
 
     const accessToken = signAccessToken({
+      context: "BUSINESS",
       idUser: session.idUser,
       idBusiness: session.idBusiness,
-      role: session.role,
+      businessRole: session.role,
     });
 
     const tempRefreshToken = signRefreshToken({
+      context: "BUSINESS",
       idUser: session.idUser,
       idBusiness: session.idBusiness,
       idLogin: 0,
@@ -270,6 +280,7 @@ export async function refreshTokenService(refreshToken: string) {
     const newIdLogin = sessionResult[0][0].idLogin;
 
     const newRefreshToken = signRefreshToken({
+      context: "BUSINESS",
       idUser: session.idUser,
       idBusiness: session.idBusiness,
       idLogin: newIdLogin,
@@ -297,6 +308,11 @@ export async function logoutService(refreshToken?: string): Promise<void> {
 
   try {
     const payload = verifyRefreshToken(refreshToken);
+
+    if (payload.context !== "BUSINESS") {
+      return;
+    }
+
     await pool.query("CALL sp_revoke_session(?)", [payload.idLogin]);
   } catch {
     return;
