@@ -30,10 +30,8 @@ export async function requireOperationalSubscription(
     res.status(402).json({
       success: false,
       code: "SUBSCRIPTION_REQUIRED",
-      message: "La suscripcion del negocio no se encuentra habilitada",
-      data: {
-        status: subscription.subscription?.status ?? null,
-      },
+      message: subscription.notification.message,
+      data: subscription,
     });
     return;
   }

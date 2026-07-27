@@ -432,7 +432,7 @@ export const useSubscriptions = () => {
   const suspendSubscription = async (
     idBusinessSubscription: number,
     reason: string,
-  ) => {
+  ): Promise<boolean> => {
     setActionLoading(`suspend-subscription-${idBusinessSubscription}`);
 
     try {
@@ -443,8 +443,10 @@ export const useSubscriptions = () => {
       toast.success(data.message || "Suscripcion suspendida");
       await fetchSubscriptions();
       await fetchEvents();
+      return true;
     } catch (requestError: unknown) {
       toast.error(getAxiosMessage(requestError, "No se pudo suspender"));
+      return false;
     } finally {
       setActionLoading(null);
     }
@@ -471,7 +473,7 @@ export const useSubscriptions = () => {
     idBusinessSubscription: number,
     reason: string,
     cancelAtPeriodEnd: boolean,
-  ) => {
+  ): Promise<boolean> => {
     setActionLoading(`cancel-subscription-${idBusinessSubscription}`);
     try {
       const { data } = await cancelBusinessSubscriptionRequest(
@@ -483,8 +485,10 @@ export const useSubscriptions = () => {
       toast.success(data.message || "Suscripcion cancelada");
       await fetchSubscriptions();
       await fetchEvents();
+      return true;
     } catch (requestError: unknown) {
       toast.error(getAxiosMessage(requestError, "No se pudo cancelar"));
+      return false;
     } finally {
       setActionLoading(null);
     }

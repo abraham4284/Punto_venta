@@ -10,6 +10,7 @@ import type {
   SubscriptionPlanResponse,
   SubscriptionPlanRow,
 } from "../types/index.js";
+import { buildBusinessSubscriptionNotification } from "./business-subscription-notification.helper.js";
 
 export function mapSubscriptionPlan(
   row: SubscriptionPlanRow,
@@ -115,6 +116,8 @@ export function mapSubscriptionEvent(
 export function mapCurrentBusinessSubscription(
   row?: CurrentBusinessSubscriptionRow,
 ): CurrentBusinessSubscriptionResponse {
+  const notification = buildBusinessSubscriptionNotification(row);
+
   if (!row?.idBusinessSubscription || !row.idSubscriptionPlan) {
     return {
       subscription: null,
@@ -125,9 +128,13 @@ export function mapCurrentBusinessSubscription(
         isPastDue: false,
         isSuspended: true,
         businessStatus: null,
-        daysRemaining: null,
-        warning: "El negocio no tiene una suscripcion vigente",
       },
+      timeline: {
+        relevantEndDate: null,
+        daysRemaining: null,
+        daysUntilSuspension: null,
+      },
+      notification,
     };
   }
 
@@ -141,15 +148,6 @@ export function mapCurrentBusinessSubscription(
   const canOperate =
     isBusinessActive &&
     (row.status === "TRIAL" || row.status === "ACTIVE" || isPastDue);
-  const warning = !isBusinessActive
-    ? "El negocio no se encuentra activo"
-    : isPastDue
-    ? "La suscripcion esta vencida y se encuentra en periodo de gracia"
-    : isTrial
-      ? "El negocio se encuentra en periodo de prueba"
-      : isSuspended
-        ? "La suscripcion del negocio no se encuentra habilitada"
-        : null;
 
   return {
     subscription: {
@@ -163,6 +161,11 @@ export function mapCurrentBusinessSubscription(
       gracePeriodEndsAt: row.gracePeriodEndsAt,
       autoRenew: Boolean(row.autoRenew),
       cancelAtPeriodEnd: Boolean(row.cancelAtPeriodEnd),
+      cancelledAt: row.cancelledAt,
+      suspendedAt: row.suspendedAt,
+      expiredAt: row.expiredAt,
+      cancellationReason: row.cancellationReason,
+      suspensionReason: row.suspensionReason,
     },
     plan: {
       idSubscriptionPlan: row.idSubscriptionPlan,
@@ -181,8 +184,12 @@ export function mapCurrentBusinessSubscription(
       isPastDue,
       isSuspended: isSuspended || !isBusinessActive,
       businessStatus: row.businessStatus,
-      daysRemaining: row.daysRemaining,
-      warning,
     },
+    timeline: {
+      relevantEndDate: row.relevantEndDate,
+      daysRemaining: row.daysRemaining,
+      daysUntilSuspension: row.daysUntilSuspension,
+    },
+    notification,
   };
 }

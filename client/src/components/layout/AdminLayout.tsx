@@ -1,20 +1,33 @@
 import type { ReactNode } from "react";
 import { Menu, Search } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { PriceCheckerListener } from "@/components/global/PriceCheckerListener";
 import { PriceCheckerModal } from "@/components/global/PriceCheckerModal";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { usePriceCheckerStore } from "@/store/priceChecker.store";
+import { SubscriptionBanner } from "@/views/businesses-app/module/subscription/components/SubscriptionBanner";
+import { SubscriptionBlockedView } from "@/views/businesses-app/module/subscription/components/SubscriptionBlockedView";
+import { useBusinessSubscriptionStore } from "@/views/businesses-app/module/subscription/store/businessSubscription.store";
 
 type AdminLayoutProps = {
   children: ReactNode;
 };
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
+  const location = useLocation();
   const openPriceChecker = usePriceCheckerStore(
     (state) => state.openPriceChecker,
   );
+  const subscriptionState = useBusinessSubscriptionStore(
+    (state) => state.subscriptionState,
+  );
+  const shouldBlockApplication =
+    subscriptionState?.notification.shouldBlockApplication ?? false;
+  const isAllowedWhileBlocked =
+    location.pathname.startsWith("/admin/subscription") ||
+    location.pathname.startsWith("/admin/profile");
 
   return (
     <SidebarProvider>
@@ -43,8 +56,14 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           </Button>
         </header>
 
+        <SubscriptionBanner />
+
         <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 transition-all duration-300 sm:p-4 md:p-6">
-          {children}
+          {shouldBlockApplication && !isAllowedWhileBlocked ? (
+            <SubscriptionBlockedView />
+          ) : (
+            children
+          )}
         </main>
       </div>
     </SidebarProvider>

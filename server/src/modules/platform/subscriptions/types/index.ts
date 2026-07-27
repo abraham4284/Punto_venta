@@ -341,6 +341,11 @@ export interface CurrentBusinessSubscriptionResponse {
     gracePeriodEndsAt: Date | null;
     autoRenew: boolean;
     cancelAtPeriodEnd: boolean;
+    cancelledAt: Date | null;
+    suspendedAt: Date | null;
+    expiredAt: Date | null;
+    cancellationReason: string | null;
+    suspensionReason: string | null;
   } | null;
   plan: {
     idSubscriptionPlan: number;
@@ -359,8 +364,31 @@ export interface CurrentBusinessSubscriptionResponse {
     isPastDue: boolean;
     isSuspended: boolean;
     businessStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED" | null;
+  };
+  timeline: {
+    relevantEndDate: Date | null;
     daysRemaining: number | null;
-    warning: string | null;
+    daysUntilSuspension: number | null;
+  };
+  notification: {
+    severity: "INFO" | "WARNING" | "CRITICAL" | "BLOCKED";
+    code:
+      | "NO_SUBSCRIPTION"
+      | "BUSINESS_INACTIVE"
+      | "TRIAL_ACTIVE"
+      | "TRIAL_ENDING"
+      | "ACTIVE_OK"
+      | "ACTIVE_ENDING"
+      | "PAST_DUE"
+      | "SUSPENDED"
+      | "CANCELLED"
+      | "EXPIRED"
+      | "CANCELLATION_SCHEDULED";
+    title: string;
+    message: string;
+    reason: string | null;
+    shouldShowBanner: boolean;
+    shouldBlockApplication: boolean;
   };
 }
 
@@ -375,6 +403,11 @@ export interface CurrentBusinessSubscriptionRow extends RowDataPacket {
   gracePeriodEndsAt: Date | null;
   autoRenew: number | null;
   cancelAtPeriodEnd: number | null;
+  cancelledAt: Date | null;
+  suspendedAt: Date | null;
+  expiredAt: Date | null;
+  cancellationReason: string | null;
+  suspensionReason: string | null;
   businessStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED" | null;
   idSubscriptionPlan: number | null;
   planCode: string | null;
@@ -385,7 +418,9 @@ export interface CurrentBusinessSubscriptionRow extends RowDataPacket {
   maxUsers: number | null;
   maxProducts: number | null;
   maxDeposits: number | null;
+  relevantEndDate: Date | null;
   daysRemaining: number | null;
+  daysUntilSuspension: number | null;
 }
 
 export interface TotalRow extends RowDataPacket {

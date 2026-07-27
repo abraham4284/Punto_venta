@@ -59,6 +59,10 @@ export const reasonSchema = z.object({
   reason: z
     .string()
     .trim()
-    .min(3, "El motivo debe tener al menos 3 caracteres")
+    .min(5, "El motivo debe tener al menos 5 caracteres")
     .max(500, "El motivo no puede superar los 500 caracteres"),
+});
+
+export const cancelReasonSchema = reasonSchema.extend({
+  cancelAtPeriodEnd: z.boolean(),
 });

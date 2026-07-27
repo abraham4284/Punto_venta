@@ -31,12 +31,8 @@ interface BusinessSubscriptionsTableProps {
   canManage: boolean;
   onAutoRenew: (idBusinessSubscription: number, autoRenew: boolean) => void;
   onReactivate: (idBusinessSubscription: number) => void;
-  onSuspend: (idBusinessSubscription: number, reason: string) => void;
-  onCancel: (
-    idBusinessSubscription: number,
-    reason: string,
-    cancelAtPeriodEnd: boolean,
-  ) => void;
+  onOpenSuspend: (subscription: BusinessSubscription) => void;
+  onOpenCancel: (subscription: BusinessSubscription) => void;
   onChangePlan: (
     idBusinessSubscription: number,
     idSubscriptionPlan: number,
@@ -53,8 +49,8 @@ export const BusinessSubscriptionsTable = ({
   canManage,
   onAutoRenew,
   onReactivate,
-  onSuspend,
-  onCancel,
+  onOpenSuspend,
+  onOpenCancel,
   onChangePlan,
   onOpenPayment,
 }: BusinessSubscriptionsTableProps) => {
@@ -104,6 +100,16 @@ export const BusinessSubscriptionsTable = ({
                     </TableCell>
                     <TableCell>
                       <SubscriptionStatusBadge status={subscription.status} />
+                      {subscription.suspensionReason && (
+                        <p className="mt-1 max-w-48 text-xs text-muted-foreground">
+                          Suspension: {subscription.suspensionReason}
+                        </p>
+                      )}
+                      {subscription.cancellationReason && (
+                        <p className="mt-1 max-w-48 text-xs text-muted-foreground">
+                          Cancelacion: {subscription.cancellationReason}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       <p>Desde: {formatDate(subscription.currentPeriodStart)}</p>
@@ -154,50 +160,27 @@ export const BusinessSubscriptionsTable = ({
                             </Button>
                           </ConfirmAction>
                         ) : (
-                          <ConfirmAction
-                            title="Suspender suscripcion"
-                            description="Esta accion bloqueara el uso operativo del negocio hasta su reactivacion."
-                            actionLabel="Suspender"
-                            onConfirm={() =>
-                              onSuspend(
-                                subscription.idBusinessSubscription,
-                                "Suspension administrativa",
-                              )
-                            }
-                          >
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              disabled={!canOperate || subscription.status === "CANCELLED"}
-                              title="Suspender"
-                            >
-                              <PauseCircle className="size-4" />
-                            </Button>
-                          </ConfirmAction>
-                        )}
-                        <ConfirmAction
-                          title="Cancelar suscripcion"
-                          description="La suscripcion quedara cancelada y el negocio perdera acceso al finalizar la operacion indicada."
-                          actionLabel="Cancelar suscripcion"
-                          onConfirm={() =>
-                            onCancel(
-                              subscription.idBusinessSubscription,
-                              "Cancelacion administrativa",
-                              false,
-                            )
-                          }
-                        >
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            disabled={!canManage || subscription.status === "CANCELLED"}
-                            title="Cancelar"
+                            disabled={!canOperate || subscription.status === "CANCELLED"}
+                            title="Suspender"
+                            onClick={() => onOpenSuspend(subscription)}
                           >
-                            <Ban className="size-4" />
+                            <PauseCircle className="size-4" />
                           </Button>
-                        </ConfirmAction>
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          disabled={!canManage || subscription.status === "CANCELLED"}
+                          title="Cancelar"
+                          onClick={() => onOpenCancel(subscription)}
+                        >
+                          <Ban className="size-4" />
+                        </Button>
                         {plans.length > 0 && (
                           <ConfirmAction
                             title="Cambiar al primer plan activo"

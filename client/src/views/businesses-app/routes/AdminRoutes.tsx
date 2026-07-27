@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import {
   BusinessessRoutes,
+  BusinessSubscriptionRoutes,
   CategoriesRoutes,
   ClientsRoutes,
   DashboardRoutes,
@@ -28,6 +29,7 @@ export const AdminRoutes = () => {
         <Route path="/purchases/*" element={<PurchasesRoutes />} />
         <Route path="/suppliers/*" element={<SuppliersRoutes />} />
         <Route path="/businesses/*" element={<BusinessessRoutes />} />
+        <Route path="/subscription/*" element={<BusinessSubscriptionRoutes />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </AdminLayout>

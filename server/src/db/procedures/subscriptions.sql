@@ -1062,6 +1062,11 @@ BEGIN
     bs.grace_period_ends_at AS gracePeriodEndsAt,
     bs.auto_renew AS autoRenew,
     bs.cancel_at_period_end AS cancelAtPeriodEnd,
+    bs.cancelled_at AS cancelledAt,
+    bs.suspended_at AS suspendedAt,
+    bs.expired_at AS expiredAt,
+    bs.cancellation_reason AS cancellationReason,
+    bs.suspension_reason AS suspensionReason,
     b.status AS businessStatus,
     sp.idSubscriptionPlan,
     sp.code AS planCode,
@@ -1073,15 +1078,28 @@ BEGIN
     sp.max_products AS maxProducts,
     sp.max_deposits AS maxDeposits,
     CASE
-      WHEN bs.status = 'TRIAL' THEN DATEDIFF(bs.trial_ends_at, NOW())
-      WHEN bs.status IN ('ACTIVE','PAST_DUE') THEN DATEDIFF(COALESCE(bs.current_period_end, bs.grace_period_ends_at), NOW())
+      WHEN bs.cancel_at_period_end = 1 THEN bs.current_period_end
+      WHEN bs.status = 'TRIAL' THEN bs.trial_ends_at
+      WHEN bs.status = 'ACTIVE' THEN bs.current_period_end
+      WHEN bs.status = 'PAST_DUE' THEN COALESCE(bs.grace_period_ends_at, bs.current_period_end)
       ELSE NULL
-    END AS daysRemaining
+    END AS relevantEndDate,
+    CASE
+      WHEN bs.cancel_at_period_end = 1 THEN DATEDIFF(bs.current_period_end, NOW())
+      WHEN bs.status = 'TRIAL' THEN DATEDIFF(bs.trial_ends_at, NOW())
+      WHEN bs.status = 'ACTIVE' THEN DATEDIFF(bs.current_period_end, NOW())
+      WHEN bs.status = 'PAST_DUE' THEN DATEDIFF(COALESCE(bs.grace_period_ends_at, bs.current_period_end), NOW())
+      ELSE NULL
+    END AS daysRemaining,
+    CASE
+      WHEN bs.status = 'PAST_DUE' THEN DATEDIFF(bs.grace_period_ends_at, NOW())
+      ELSE NULL
+    END AS daysUntilSuspension
   FROM business_subscriptions bs
   INNER JOIN businesses b ON b.idBusiness = bs.idBusiness
   INNER JOIN subscription_plans sp ON sp.idSubscriptionPlan = bs.idSubscriptionPlan
   WHERE bs.idBusiness = p_idBusiness
-    AND bs.status IN ('TRIAL','ACTIVE','PAST_DUE','SUSPENDED')
+    AND bs.status IN ('TRIAL','ACTIVE','PAST_DUE','SUSPENDED','CANCELLED','EXPIRED')
   ORDER BY bs.created_at DESC, bs.idBusinessSubscription DESC
   LIMIT 1;
 END$$

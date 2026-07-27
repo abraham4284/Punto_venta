@@ -42,11 +42,13 @@ import { ConfirmAction } from "../components/shared/ConfirmAction";
 import { SimplePagination } from "../components/shared/SimplePagination";
 import { SubscriptionEventsTable } from "../components/events/SubscriptionEventsTable";
 import { SubscriptionPaymentModal } from "../components/payments/SubscriptionPaymentModal";
+import { SubscriptionActionReasonModal } from "../components/subscriptions/SubscriptionActionReasonModal";
 import { SubscriptionPaymentsTable } from "../components/payments/SubscriptionPaymentsTable";
 import { SubscriptionPlanModal } from "../components/plans/SubscriptionPlanModal";
 import { SubscriptionPlansTable } from "../components/plans/SubscriptionPlansTable";
 
 type SectionKey = "plans" | "subscriptions" | "payments" | "events";
+type SubscriptionReasonAction = "SUSPEND" | "CANCEL";
 
 const sections: Array<{
   key: SectionKey;
@@ -93,6 +95,11 @@ export const SubscriptionsPage = () => {
   const [planEdit, setPlanEdit] = useState<SubscriptionPlan | null>(null);
   const [paymentSubscription, setPaymentSubscription] =
     useState<BusinessSubscription | null>(null);
+  const [reasonAction, setReasonAction] =
+    useState<SubscriptionReasonAction>("SUSPEND");
+  const [reasonSubscription, setReasonSubscription] =
+    useState<BusinessSubscription | null>(null);
+  const [reasonModalOpen, setReasonModalOpen] = useState(false);
 
   const [localPlanFilters, setLocalPlanFilters] =
     useState<SubscriptionPlanFilters>(subscriptionsHook.planFilters);
@@ -137,6 +144,44 @@ export const SubscriptionsPage = () => {
     setPaymentSubscription(subscription);
     subscriptionsHook.clearFieldErrors();
     setPaymentModalOpen(true);
+  };
+
+  const openReasonModal = (
+    actionType: SubscriptionReasonAction,
+    subscription: BusinessSubscription,
+  ) => {
+    setReasonAction(actionType);
+    setReasonSubscription(subscription);
+    setReasonModalOpen(true);
+  };
+
+  const closeReasonModal = () => {
+    setReasonModalOpen(false);
+    setReasonSubscription(null);
+  };
+
+  const suspendWithReason = async (
+    idBusinessSubscription: number,
+    reason: string,
+  ) => {
+    const success = await subscriptionsHook.suspendSubscription(
+      idBusinessSubscription,
+      reason,
+    );
+    if (success) closeReasonModal();
+  };
+
+  const cancelWithReason = async (
+    idBusinessSubscription: number,
+    reason: string,
+    cancelAtPeriodEnd: boolean,
+  ) => {
+    const success = await subscriptionsHook.cancelSubscription(
+      idBusinessSubscription,
+      reason,
+      cancelAtPeriodEnd,
+    );
+    if (success) closeReasonModal();
   };
 
   return (
@@ -438,8 +483,12 @@ export const SubscriptionsPage = () => {
                   canManage={canManage}
                   onAutoRenew={subscriptionsHook.updateAutoRenew}
                   onReactivate={subscriptionsHook.reactivateSubscription}
-                  onSuspend={subscriptionsHook.suspendSubscription}
-                  onCancel={subscriptionsHook.cancelSubscription}
+                  onOpenSuspend={(subscription) =>
+                    openReasonModal("SUSPEND", subscription)
+                  }
+                  onOpenCancel={(subscription) =>
+                    openReasonModal("CANCEL", subscription)
+                  }
                   onChangePlan={subscriptionsHook.changeSubscriptionPlan}
                   onOpenPayment={openPaymentModal}
                 />
@@ -690,6 +739,22 @@ export const SubscriptionsPage = () => {
         isSaving={subscriptionsHook.actionLoading === "create-payment"}
         onCreate={subscriptionsHook.createPayment}
         onClearErrors={subscriptionsHook.clearFieldErrors}
+      />
+
+      <SubscriptionActionReasonModal
+        isOpen={reasonModalOpen}
+        actionType={reasonAction}
+        subscription={reasonSubscription}
+        isSaving={
+          Boolean(
+            reasonSubscription &&
+              subscriptionsHook.actionLoading ===
+                `${reasonAction === "SUSPEND" ? "suspend" : "cancel"}-subscription-${reasonSubscription.idBusinessSubscription}`,
+          )
+        }
+        onClose={closeReasonModal}
+        onSuspend={suspendWithReason}
+        onCancel={cancelWithReason}
       />
     </>
   );

@@ -216,13 +216,15 @@ export const subscriptionReasonSchema = z
     reason: z
       .string({ error: "El motivo es obligatorio" })
       .trim()
-      .min(3, "El motivo debe tener al menos 3 caracteres")
+      .min(5, "El motivo debe tener al menos 5 caracteres")
       .max(500, "El motivo no puede superar los 500 caracteres"),
   })
   .strict();
 
 export const cancelSubscriptionSchema = subscriptionReasonSchema.extend({
-  cancelAtPeriodEnd: z.coerce.boolean().default(false),
+  cancelAtPeriodEnd: z.coerce.boolean({
+    error: "Debe indicar si la cancelacion es inmediata o al final del periodo",
+  }),
 });
 
 export const autoRenewSchema = z
