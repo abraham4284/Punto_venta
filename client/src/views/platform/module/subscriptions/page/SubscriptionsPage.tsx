@@ -12,7 +12,7 @@ import {
 import { Meta } from "@/components/Meta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -741,21 +741,23 @@ export const SubscriptionsPage = () => {
         onClearErrors={subscriptionsHook.clearFieldErrors}
       />
 
-      <SubscriptionActionReasonModal
-        isOpen={reasonModalOpen}
-        actionType={reasonAction}
-        subscription={reasonSubscription}
-        isSaving={
-          Boolean(
-            reasonSubscription &&
-              subscriptionsHook.actionLoading ===
-                `${reasonAction === "SUSPEND" ? "suspend" : "cancel"}-subscription-${reasonSubscription.idBusinessSubscription}`,
-          )
-        }
-        onClose={closeReasonModal}
-        onSuspend={suspendWithReason}
-        onCancel={cancelWithReason}
-      />
+      {reasonModalOpen && (
+        <SubscriptionActionReasonModal
+          isOpen={reasonModalOpen}
+          actionType={reasonAction}
+          subscription={reasonSubscription}
+          isSaving={
+            Boolean(
+              reasonSubscription &&
+                subscriptionsHook.actionLoading ===
+                  `${reasonAction === "SUSPEND" ? "suspend" : "cancel"}-subscription-${reasonSubscription.idBusinessSubscription}`,
+            )
+          }
+          onClose={closeReasonModal}
+          onSuspend={suspendWithReason}
+          onCancel={cancelWithReason}
+        />
+      )}
     </>
   );
 };

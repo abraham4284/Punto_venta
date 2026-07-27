@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
+import { assertSubscriptionResourceAvailable } from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
 import { mapProduct } from "../helpers/product.mapper.js";
 import type {
   CreateProductPayload,
@@ -13,6 +14,8 @@ import type {
 export async function createProductService(
   data: CreateProductPayload,
 ): Promise<ProductResponse> {
+  await assertSubscriptionResourceAvailable(data.idBusiness, "PRODUCTS", 1);
+
   const [rows] = await pool.query<RowDataPacket[]>(
     "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
@@ -136,6 +139,12 @@ export async function updateProductPricesService(
 export async function toggleProductStatusService(
   data: ToggleProductStatusPayload,
 ): Promise<ProductResponse> {
+  const currentProduct = await getProductByIdService(data.idBusiness, data.idProduct);
+
+  if (!currentProduct.isActive && data.isActive) {
+    await assertSubscriptionResourceAvailable(data.idBusiness, "PRODUCTS", 1);
+  }
+
   const [rows] = await pool.query<RowDataPacket[]>(
     "CALL sp_toggle_product_status(?, ?, ?)",
     [data.idBusiness, data.idProduct, data.isActive ? 1 : 0],

@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
+import { assertSubscriptionResourceAvailable } from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
 import { mapDeposit } from "../helpers/deposit.mapper.js";
 import type {
   CreateDepositBody,
@@ -12,6 +13,8 @@ export async function createDepositService(
   idBusiness: number,
   data: CreateDepositBody,
 ): Promise<DepositResponse> {
+  await assertSubscriptionResourceAvailable(idBusiness, "DEPOSITS", 1);
+
   const [rows] = await pool.query<RowDataPacket[]>(
     "CALL sp_create_deposit(?, ?, ?, ?)",
     [
@@ -67,6 +70,12 @@ export async function updateDepositService(
   idDeposit: number,
   data: UpdateDepositBody,
 ): Promise<DepositResponse> {
+  const currentDeposit = await getDepositByIdService(idBusiness, idDeposit);
+
+  if (!currentDeposit.isActive && data.isActive === true) {
+    await assertSubscriptionResourceAvailable(idBusiness, "DEPOSITS", 1);
+  }
+
   const [rows] = await pool.query<RowDataPacket[]>(
     "CALL sp_update_deposit(?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [

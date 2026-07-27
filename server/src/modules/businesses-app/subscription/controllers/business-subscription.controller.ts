@@ -1,11 +1,11 @@
 import type { Request, Response } from "express";
-import { getCurrentBusinessSubscriptionService } from "@/modules/platform/subscriptions/services/subscriptions.service.js";
+import { getBusinessSubscriptionOverviewService } from "../services/business-subscription.service.js";
 
 export async function getBusinessCurrentSubscriptionController(
   req: Request,
   res: Response,
 ): Promise<Response> {
-  const result = await getCurrentBusinessSubscriptionService(
+  const result = await getBusinessSubscriptionOverviewService(
     req.user!.idBusiness,
   );
 

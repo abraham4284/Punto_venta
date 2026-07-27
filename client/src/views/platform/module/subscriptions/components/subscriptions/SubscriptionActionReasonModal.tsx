@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,13 +63,12 @@ export const SubscriptionActionReasonModal = ({
     };
   }, [actionType]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setReason("");
-      setCancelAtPeriodEnd(false);
-      setFieldError(null);
-    }
-  }, [isOpen]);
+  const handleClose = () => {
+    setReason("");
+    setCancelAtPeriodEnd(false);
+    setFieldError(null);
+    onClose();
+  };
 
   const handleSubmit = () => {
     if (!subscription) return;
@@ -97,7 +96,7 @@ export const SubscriptionActionReasonModal = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && !isSaving && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isSaving && handleClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -149,7 +148,7 @@ export const SubscriptionActionReasonModal = ({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" disabled={isSaving} onClick={onClose}>
+          <Button type="button" variant="outline" disabled={isSaving} onClick={handleClose}>
             Cerrar
           </Button>
           <Button

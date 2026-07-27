@@ -1,9 +1,10 @@
-import type { PoolConnection, ResultSetHeader } from "mysql2/promise";
+import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import {
   deleteProductImportCacheData,
   getProductImportCacheData,
 } from "./preview-product-import.service.js";
 import { pool } from "@/db/db.js";
+import { assertSubscriptionResourceAvailable } from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
 import type {
   ProductImportConfirmInput,
   ProductImportConfirmResponse,
@@ -11,6 +12,15 @@ import type {
   ProductImportResolvedRow,
   StockLookupRow,
 } from "../types/product-import.types.js";
+
+interface ImportSubscriptionLimitRow extends RowDataPacket {
+  idBusinessSubscription: number;
+  maxProducts: number | null;
+}
+
+interface ImportCountRow extends RowDataPacket {
+  currentUsage: number;
+}
 
 function hasRowError(
   errors: ProductImportError[],
@@ -48,6 +58,28 @@ function shouldImportRow(
   }
 
   return !hasRowError(errors, row.rowNumber, "DUPLICATE_IN_FILE");
+}
+
+function consumesProductLimit(row: ProductImportResolvedRow): boolean {
+  if (!row.isActive) {
+    return false;
+  }
+
+  if (!row.existingProductId) {
+    return true;
+  }
+
+  return row.existingProductIsActive === false;
+}
+
+function countProductsThatConsumeLimit(
+  rows: ProductImportResolvedRow[],
+  input: ProductImportConfirmInput,
+  errors: ProductImportError[],
+): number {
+  return rows.filter(function filterRow(row) {
+    return shouldImportRow(row, input, errors) && consumesProductLimit(row);
+  }).length;
 }
 
 async function createProduct(
@@ -89,6 +121,51 @@ async function createProduct(
   );
 
   return result.insertId;
+}
+
+async function assertProductImportLimitInsideTransaction(
+  connection: PoolConnection,
+  idBusiness: number,
+  requestedAmount: number,
+): Promise<void> {
+  if (requestedAmount < 1) return;
+
+  const [subscriptionRows] = await connection.query<ImportSubscriptionLimitRow[]>(
+    `SELECT bs.idBusinessSubscription, sp.max_products AS maxProducts
+     FROM business_subscriptions bs
+     INNER JOIN subscription_plans sp
+       ON sp.idSubscriptionPlan = bs.idSubscriptionPlan
+     WHERE bs.idBusiness = ?
+       AND bs.status IN ('TRIAL','ACTIVE','PAST_DUE')
+     ORDER BY bs.created_at DESC, bs.idBusinessSubscription DESC
+     LIMIT 1
+     FOR UPDATE`,
+    [idBusiness],
+  );
+
+  const subscription = subscriptionRows[0];
+
+  if (!subscription) {
+    throw new Error("SUBSCRIPTION_REQUIRED");
+  }
+
+  if (subscription.maxProducts === null) {
+    return;
+  }
+
+  const [countRows] = await connection.query<ImportCountRow[]>(
+    `SELECT COUNT(*) AS currentUsage
+     FROM products
+     WHERE idBusiness = ?
+       AND is_active = 1`,
+    [idBusiness],
+  );
+
+  const currentUsage = countRows[0]?.currentUsage ?? 0;
+
+  if (currentUsage + requestedAmount > subscription.maxProducts) {
+    throw new Error("SUBSCRIPTION_PRODUCT_LIMIT_REACHED");
+  }
 }
 
 async function updateProduct(
@@ -225,7 +302,26 @@ export async function confirmProductImportService(
   };
 
   try {
+    const productsToCreateOrReactivate = countProductsThatConsumeLimit(
+      cachedData.preview.rows,
+      input,
+      cachedData.preview.errors,
+    );
+
+    if (productsToCreateOrReactivate > 0) {
+      await assertSubscriptionResourceAvailable(
+        input.idBusiness,
+        "PRODUCTS",
+        productsToCreateOrReactivate,
+      );
+    }
+
     await connection.beginTransaction();
+    await assertProductImportLimitInsideTransaction(
+      connection,
+      input.idBusiness,
+      productsToCreateOrReactivate,
+    );
 
     for (const row of cachedData.preview.rows) {
       if (!shouldImportRow(row, input, cachedData.preview.errors)) {

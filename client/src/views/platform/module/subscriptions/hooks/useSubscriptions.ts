@@ -23,7 +23,6 @@ import {
 import { getSubscriptionErrorMessage } from "../helpers/subscription-format.helpers";
 import type {
   AssignSubscriptionBody,
-  BillingPeriod,
   BusinessSubscription,
   BusinessSubscriptionFilters,
   CreateSubscriptionPaymentBody,
@@ -37,12 +36,9 @@ import type {
   SubscriptionPayment,
   SubscriptionPaymentFilters,
   SubscriptionPaymentFormValues,
-  SubscriptionPaymentMethod,
-  SubscriptionPaymentStatus,
   SubscriptionPlan,
   SubscriptionPlanFilters,
   SubscriptionPlanFormValues,
-  SubscriptionStatus,
   UpdateSubscriptionPlanBody,
 } from "../types/subscriptions.types";
 
@@ -240,19 +236,35 @@ export const useSubscriptions = () => {
   }, [eventFilters, eventPage]);
 
   useEffect(() => {
-    void fetchPlans();
+    const timeoutId = window.setTimeout(() => {
+      void fetchPlans();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchPlans]);
 
   useEffect(() => {
-    void fetchSubscriptions();
+    const timeoutId = window.setTimeout(() => {
+      void fetchSubscriptions();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchSubscriptions]);
 
   useEffect(() => {
-    void fetchPayments();
+    const timeoutId = window.setTimeout(() => {
+      void fetchPayments();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchPayments]);
 
   useEffect(() => {
-    void fetchEvents();
+    const timeoutId = window.setTimeout(() => {
+      void fetchEvents();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchEvents]);
 
   const applyPlanFilters = (filters: SubscriptionPlanFilters) => {

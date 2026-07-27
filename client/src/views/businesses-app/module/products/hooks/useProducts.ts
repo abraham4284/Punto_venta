@@ -19,6 +19,7 @@ import type {
   UpdateProductPayload,
   UpdateProductStatusPayload,
 } from "../types/products.types";
+import { useBusinessSubscriptionStore } from "../../subscription/store/businessSubscription.store";
 
 const normalizeUnitType = (
   unitType: ProductResponse["unitType"] | null | undefined,
@@ -97,6 +98,7 @@ export const useProducts = () => {
       clearErrors();
       const response = await createProductRequest(payload);
       await getProducts();
+      await useBusinessSubscriptionStore.getState().refreshSubscription();
       return {
         status: true,
         message: response.data.message,
@@ -146,6 +148,7 @@ export const useProducts = () => {
       const response = await updateProductStatusRequest(idProduct, payload);
 
       await getProducts();
+      await useBusinessSubscriptionStore.getState().refreshSubscription();
 
       return {
         status: true,
