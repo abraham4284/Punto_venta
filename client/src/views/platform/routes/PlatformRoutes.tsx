@@ -3,6 +3,7 @@ import { PlatformProtectedRoute } from "@/views/platform/middlewares/PlatformPro
 import { PlatformLayout } from "@/views/platform/components/layout/PlatformLayout";
 import { PlatformLoginPage } from "@/views/platform/module/auth";
 import { PlatformDashboardPage } from "@/views/platform/module/dashboard";
+import { SubscriptionsRoutes } from "@/views/platform/module/subscriptions";
 
 export const PlatformRoutes = () => {
   return (
@@ -14,6 +15,16 @@ export const PlatformRoutes = () => {
           <PlatformProtectedRoute>
             <PlatformLayout>
               <PlatformDashboardPage />
+            </PlatformLayout>
+          </PlatformProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscriptions/*"
+        element={
+          <PlatformProtectedRoute>
+            <PlatformLayout>
+              <SubscriptionsRoutes />
             </PlatformLayout>
           </PlatformProtectedRoute>
         }

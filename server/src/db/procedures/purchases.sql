@@ -91,12 +91,12 @@ DELIMITER $$
 CREATE PROCEDURE sp_create_purchase(
   IN p_idBusiness INT,
   IN p_idUser INT,
-  IN p_purchaseNumber VARCHAR(50),
+  IN p_purchaseNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idSupplier INT,
   IN p_subtotal DECIMAL(18,2),
   IN p_discountTotal DECIMAL(18,2),
   IN p_total DECIMAL(18,2),
-  IN p_observation VARCHAR(255),
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_details JSON
 )
 BEGIN
@@ -107,7 +107,7 @@ BEGIN
   DECLARE v_unitPrice DECIMAL(18,2);
   DECLARE v_discountAmount DECIMAL(18,2);
   DECLARE v_subtotal DECIMAL(18,2);
-  DECLARE v_unitType VARCHAR(20);
+  DECLARE v_unitType VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_done INT DEFAULT 0;
 
   DECLARE details_cursor CURSOR FOR
@@ -413,10 +413,10 @@ CREATE PROCEDURE sp_get_purchases_by_business(
   IN p_idBusiness INT,
   IN p_limit INT,
   IN p_offset INT,
-  IN p_status VARCHAR(20),
+  IN p_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idSupplier INT,
   IN p_idDeposit INT,
-  IN p_purchaseNumberSearch VARCHAR(80),
+  IN p_purchaseNumberSearch VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_startDate DATETIME,
   IN p_endDate DATETIME
 )
@@ -466,7 +466,7 @@ BEGIN
     )
     AND (
       p_purchaseNumberSearch IS NULL
-      OR p.purchase_number LIKE CONCAT('%', p_purchaseNumberSearch, '%')
+      OR p.purchase_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_purchaseNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR p.purchase_date >= p_startDate)
     AND (p_endDate IS NULL OR p.purchase_date <= p_endDate)
@@ -509,7 +509,7 @@ BEGIN
     )
     AND (
       p_purchaseNumberSearch IS NULL
-      OR p.purchase_number LIKE CONCAT('%', p_purchaseNumberSearch, '%')
+      OR p.purchase_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_purchaseNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR p.purchase_date >= p_startDate)
     AND (p_endDate IS NULL OR p.purchase_date <= p_endDate);

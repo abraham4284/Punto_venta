@@ -29,11 +29,11 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_update_business(
   IN p_idBusiness INT,
-  IN p_name VARCHAR(160),
-  IN p_slug VARCHAR(180),
-  IN p_logo_url VARCHAR(500),
+  IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_logo_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_logo_url TINYINT,
-  IN p_business_type VARCHAR(100)
+  IN p_business_type VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   UPDATE businesses

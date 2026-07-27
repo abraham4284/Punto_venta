@@ -37,6 +37,8 @@ export const StockMovementPage = () => {
     getDeposits();
   }, [getDeposits]);
 
+  console.log(error,'error')
+
   return (
     <>
       <Meta title="Movimientos de Stock" />

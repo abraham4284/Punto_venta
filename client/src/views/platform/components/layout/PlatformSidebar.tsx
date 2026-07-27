@@ -2,10 +2,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3,
   Building2,
+  CalendarClock,
   CreditCard,
+  FileClock,
   LogOut,
   Settings,
   ShieldAlert,
+  WalletCards,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,9 +27,24 @@ const navigationItems = [
     icon: Building2,
   },
   {
-    label: "Suscripciones",
-    href: "/platform/subscriptions",
+    label: "Planes",
+    href: "/platform/subscriptions?section=plans",
     icon: CreditCard,
+  },
+  {
+    label: "Suscripciones",
+    href: "/platform/subscriptions?section=subscriptions",
+    icon: WalletCards,
+  },
+  {
+    label: "Pagos SaaS",
+    href: "/platform/subscriptions?section=payments",
+    icon: CalendarClock,
+  },
+  {
+    label: "Auditoria SaaS",
+    href: "/platform/subscriptions?section=events",
+    icon: FileClock,
   },
   {
     label: "Auditoria",
@@ -74,7 +92,12 @@ export const PlatformSidebar = () => {
       <nav className="flex-1 space-y-2 p-4">
         {navigationItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.href;
+          const itemUrl = new URL(item.href, window.location.origin);
+          const isActive =
+            location.pathname === itemUrl.pathname &&
+            (itemUrl.search === "" ||
+              location.search === itemUrl.search ||
+              (itemUrl.search === "?section=plans" && location.search === ""));
 
           return (
             <Link

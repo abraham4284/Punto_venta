@@ -7,12 +7,12 @@ CREATE PROCEDURE sp_create_initial_stock(
   IN p_idProduct INT,
   IN p_idDeposit INT,
   IN p_quantity DECIMAL(18,2),
-  IN p_observation VARCHAR(255)
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   DECLARE v_idStock INT;
   DECLARE v_idMovement INT;
-  DECLARE v_unit_type VARCHAR(20);
+  DECLARE v_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -135,12 +135,12 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_get_advanced_stock_inventory(
   IN p_idBusiness INT,
-  IN p_search VARCHAR(160),
+  IN p_search VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idDeposit INT,
   IN p_quantity DECIMAL(18,2),
   IN p_minQuantity DECIMAL(18,2),
   IN p_maxQuantity DECIMAL(18,2),
-  IN p_alertStatus VARCHAR(20),
+  IN p_alertStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_limit INT,
   IN p_offset INT
 )
@@ -178,8 +178,8 @@ BEGIN
     AND (
       p_search IS NULL
       OR p_search = ''
-      OR p.name LIKE CONCAT('%', p_search, '%')
-      OR p.barcode LIKE CONCAT('%', p_search, '%')
+      OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR p.barcode COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
     AND (p_quantity IS NULL OR s.quantity = p_quantity)
@@ -194,7 +194,7 @@ BEGIN
           WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
           ELSE 'OK'
         END
-      ) = p_alertStatus
+      ) COLLATE utf8mb4_unicode_ci = p_alertStatus COLLATE utf8mb4_unicode_ci
     )
   ORDER BY p.name ASC, d.name ASC, s.idStock ASC
   LIMIT p_limit OFFSET p_offset;
@@ -215,8 +215,8 @@ BEGIN
     AND (
       p_search IS NULL
       OR p_search = ''
-      OR p.name LIKE CONCAT('%', p_search, '%')
-      OR p.barcode LIKE CONCAT('%', p_search, '%')
+      OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR p.barcode COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
     AND (p_quantity IS NULL OR s.quantity = p_quantity)
@@ -231,7 +231,7 @@ BEGIN
           WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
           ELSE 'OK'
         END
-      ) = p_alertStatus
+      ) COLLATE utf8mb4_unicode_ci = p_alertStatus COLLATE utf8mb4_unicode_ci
     );
 END$$
 
@@ -367,7 +367,7 @@ CREATE PROCEDURE sp_get_critical_stock_report(
   IN p_idBusiness INT,
   IN p_maxQuantity DECIMAL(18,2),
   IN p_idDeposit INT,
-  IN p_searchProduct VARCHAR(100)
+  IN p_searchProduct VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   SELECT
@@ -406,8 +406,8 @@ BEGIN
     AND (
       p_searchProduct IS NULL
       OR p_searchProduct = ''
-      OR p.name LIKE CONCAT('%', p_searchProduct, '%')
-      OR p.barcode LIKE CONCAT('%', p_searchProduct, '%')
+      OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_searchProduct COLLATE utf8mb4_unicode_ci, '%')
+      OR p.barcode COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_searchProduct COLLATE utf8mb4_unicode_ci, '%')
     )
   ORDER BY
     CASE

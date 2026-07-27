@@ -3,11 +3,11 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_create_supplier(
   IN p_idBusiness INT,
-  IN p_name VARCHAR(160),
-  IN p_phone VARCHAR(80),
-  IN p_email VARCHAR(160),
-  IN p_address VARCHAR(255),
-  IN p_observation VARCHAR(255)
+  IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   DECLARE v_idSupplier INT;
@@ -113,11 +113,11 @@ DELIMITER $$
 CREATE PROCEDURE sp_update_supplier(
   IN p_idSupplier INT,
   IN p_idBusiness INT,
-  IN p_name VARCHAR(160),
-  IN p_phone VARCHAR(80),
-  IN p_email VARCHAR(160),
-  IN p_address VARCHAR(255),
-  IN p_observation VARCHAR(255),
+  IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_is_active TINYINT
 )
 BEGIN

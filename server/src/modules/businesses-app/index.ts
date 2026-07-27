@@ -20,6 +20,15 @@ import ticketRoutes from "./tickets/index.js";
 
 const businessesAppRoutes = Router();
 
+businessesAppRoutes.use(function skipPlatformRoutes(req, _res, next) {
+  if (req.path.startsWith("/platform")) {
+    next("router");
+    return;
+  }
+
+  next();
+});
+
 businessesAppRoutes.use(authRoutes);
 businessesAppRoutes.use(businessRoutes);
 businessesAppRoutes.use(subscriptionRoutes);

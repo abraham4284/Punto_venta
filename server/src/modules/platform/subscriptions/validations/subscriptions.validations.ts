@@ -25,6 +25,66 @@ function optionalPositiveId(field: string) {
   }, positiveId(field).optional());
 }
 
+function padDatePart(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function formatDateForMysql(date: Date): string {
+  return [
+    date.getFullYear(),
+    padDatePart(date.getMonth() + 1),
+    padDatePart(date.getDate()),
+  ].join("-")
+    + " "
+    + [
+      padDatePart(date.getHours()),
+      padDatePart(date.getMinutes()),
+      padDatePart(date.getSeconds()),
+    ].join(":");
+}
+
+function normalizeDateTimeInput(value: unknown, endOfDay = false): unknown {
+  if (value === "" || value === null || value === undefined) return undefined;
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return value;
+    return formatDateForMysql(value);
+  }
+
+  if (typeof value !== "string") return value;
+
+  const cleanValue = value.trim();
+  if (cleanValue === "") return undefined;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleanValue)) {
+    return `${cleanValue} ${endOfDay ? "23:59:59" : "00:00:00"}`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(cleanValue)) {
+    return `${cleanValue.replace("T", " ")}:00`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(cleanValue)) {
+    return cleanValue.replace("T", " ");
+  }
+
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(cleanValue)) {
+    return cleanValue.length === 16 ? `${cleanValue}:00` : cleanValue;
+  }
+
+  const parsedDate = new Date(cleanValue);
+
+  if (Number.isNaN(parsedDate.getTime())) return cleanValue;
+
+  return formatDateForMysql(parsedDate);
+}
+
+function dateTimeField(message: string, endOfDay = false) {
+  return z.preprocess(function normalizeDate(value) {
+    return normalizeDateTimeInput(value, endOfDay);
+  }, z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/, message));
+}
+
 const optionalBoolean = z.preprocess(function normalizeBoolean(value) {
   if (value === "" || value === null || value === undefined) return undefined;
   if (value === "true" || value === "1") return true;
@@ -33,8 +93,8 @@ const optionalBoolean = z.preprocess(function normalizeBoolean(value) {
 }, z.boolean().optional());
 
 const optionalDateString = z.preprocess(function normalizeDate(value) {
-  return value === "" || value === null || value === undefined ? undefined : value;
-}, z.string().datetime("La fecha debe tener formato ISO").optional());
+  return normalizeDateTimeInput(value);
+}, z.string().regex(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/, "La fecha debe ser valida").optional());
 
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -203,8 +263,8 @@ export const createSubscriptionPaymentSchema = z
       .enum(["PENDING", "APPROVED", "REJECTED", "CANCELLED", "REFUNDED"])
       .default("PENDING"),
     paidAt: optionalDateString.nullable(),
-    periodStart: z.string().datetime("El inicio del periodo debe tener formato ISO"),
-    periodEnd: z.string().datetime("El fin del periodo debe tener formato ISO"),
+    periodStart: dateTimeField("El inicio del periodo debe ser una fecha valida"),
+    periodEnd: dateTimeField("El fin del periodo debe ser una fecha valida", true),
     externalReference: nullableTrimmedString(150),
     providerPaymentId: nullableTrimmedString(150),
     observation: nullableTrimmedString(500),

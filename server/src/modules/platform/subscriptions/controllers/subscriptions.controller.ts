@@ -531,6 +531,10 @@ export async function updatePaymentStatusController(
   res: Response,
 ): Promise<Response> {
   try {
+    console.log("Llega esta funcion")
+    console.log(req.body,'req-body')
+    console.log(req.params.idSubscriptionPayment,'req-params')
+    console.log(req.params.status,'req-params-status')
     const id = getPositiveId(req.params.idSubscriptionPayment, "El pago");
     const data = updatePaymentStatusSchema.parse(req.body);
     const routeStatus = req.params.status;

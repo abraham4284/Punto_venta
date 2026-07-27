@@ -2,7 +2,7 @@ DROP PROCEDURE IF EXISTS sp_user_login;
 DELIMITER $$
 
 CREATE PROCEDURE sp_user_login(
-  IN p_username VARCHAR(120)
+  IN p_username VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   SELECT
@@ -71,7 +71,7 @@ DELIMITER $$
 CREATE PROCEDURE sp_update_user_password(
   IN p_idUser INT,
   IN p_idBusiness INT,
-  IN p_newPassword VARCHAR(255)
+  IN p_newPassword VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   START TRANSACTION;
@@ -110,10 +110,10 @@ DROP PROCEDURE IF EXISTS sp_create_session;
 DELIMITER $$
 
 CREATE PROCEDURE sp_create_session(
-  IN p_refresh_token_hash VARCHAR(255),
+  IN p_refresh_token_hash VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_expires_at DATETIME,
-  IN p_user_agent VARCHAR(255),
-  IN p_ip VARCHAR(45),
+  IN p_user_agent VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_ip VARCHAR(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idUser INT,
   IN p_idBusiness INT
 )
@@ -202,15 +202,15 @@ DROP PROCEDURE IF EXISTS sp_user_register_with_business;
 DELIMITER $$
 
 CREATE PROCEDURE sp_user_register_with_business(
-  IN p_name VARCHAR(120),
-  IN p_username VARCHAR(120),
-  IN p_email VARCHAR(160),
-  IN p_password_hash VARCHAR(255),
-  IN p_business_name VARCHAR(160),
-  IN p_business_slug VARCHAR(180),
-  IN p_business_type VARCHAR(100),
-  IN p_logoUrl VARCHAR(500),
-  IN p_defaultTrialPlanCode VARCHAR(50)
+  IN p_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_username VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_password_hash VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_business_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_business_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_business_type VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_logoUrl VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_defaultTrialPlanCode VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   DECLARE v_idUser INT;
@@ -273,7 +273,7 @@ BEGIN
   SELECT idSubscriptionPlan, trial_days
   INTO v_idSubscriptionPlan, v_trialDays
   FROM subscription_plans
-  WHERE code = p_defaultTrialPlanCode
+  WHERE code COLLATE utf8mb4_unicode_ci = p_defaultTrialPlanCode COLLATE utf8mb4_unicode_ci
     AND is_active = 1
   LIMIT 1;
 

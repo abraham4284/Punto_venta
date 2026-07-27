@@ -46,8 +46,8 @@ app.use(express.json());
 
 app.get("/", (_, res) => res.send("Api funcionando"));
 
-app.use("/api", businessesAppRoutes);
 app.use("/api", platformRoutes);
+app.use("/api", businessesAppRoutes);
 
 app.use(errorHandler);
 

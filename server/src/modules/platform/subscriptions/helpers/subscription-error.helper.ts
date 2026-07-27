@@ -71,6 +71,14 @@ export function mapSubscriptionSqlError(error: unknown): never {
     );
   }
 
+  if (message.includes("INVALID_PAYMENT_STATUS_TRANSITION")) {
+    throw createSubscriptionServiceError(
+      "La transicion del estado del pago no es valida",
+      409,
+      "INVALID_PAYMENT_STATUS_TRANSITION",
+    );
+  }
+
   if (message.includes("PAYMENT_NOT_FOUND")) {
     throw createSubscriptionServiceError(
       "Pago de suscripcion no encontrado",

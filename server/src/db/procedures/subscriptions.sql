@@ -2,8 +2,8 @@ DROP PROCEDURE IF EXISTS sp_subscription_plan_list;
 DELIMITER $$
 
 CREATE PROCEDURE sp_subscription_plan_list(
-  IN p_search VARCHAR(150),
-  IN p_billingPeriod VARCHAR(20),
+  IN p_search VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_billingPeriod VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_isActive TINYINT,
   IN p_limit INT,
   IN p_offset INT
@@ -25,7 +25,7 @@ BEGIN
     created_at AS createdAt,
     updated_at AS updatedAt
   FROM subscription_plans
-  WHERE (p_search IS NULL OR code LIKE CONCAT('%', p_search, '%') OR name LIKE CONCAT('%', p_search, '%'))
+  WHERE (p_search IS NULL OR code COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%') OR name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%'))
     AND (p_billingPeriod IS NULL OR billing_period = p_billingPeriod)
     AND (p_isActive IS NULL OR is_active = p_isActive)
   ORDER BY created_at DESC, idSubscriptionPlan DESC
@@ -33,7 +33,7 @@ BEGIN
 
   SELECT COUNT(*) AS totalRecords
   FROM subscription_plans
-  WHERE (p_search IS NULL OR code LIKE CONCAT('%', p_search, '%') OR name LIKE CONCAT('%', p_search, '%'))
+  WHERE (p_search IS NULL OR code COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%') OR name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%'))
     AND (p_billingPeriod IS NULL OR billing_period = p_billingPeriod)
     AND (p_isActive IS NULL OR is_active = p_isActive);
 END$$
@@ -71,12 +71,12 @@ DROP PROCEDURE IF EXISTS sp_subscription_plan_create;
 DELIMITER $$
 
 CREATE PROCEDURE sp_subscription_plan_create(
-  IN p_code VARCHAR(50),
-  IN p_name VARCHAR(100),
-  IN p_description VARCHAR(255),
-  IN p_billingPeriod VARCHAR(20),
+  IN p_code VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_name VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_billingPeriod VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_price DECIMAL(18,2),
-  IN p_currency CHAR(3),
+  IN p_currency CHAR(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_trialDays INT,
   IN p_maxUsers INT,
   IN p_maxProducts INT,
@@ -129,12 +129,12 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_subscription_plan_update(
   IN p_idSubscriptionPlan INT,
-  IN p_name VARCHAR(100),
-  IN p_description VARCHAR(255),
+  IN p_name VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_updateDescription TINYINT,
-  IN p_billingPeriod VARCHAR(20),
+  IN p_billingPeriod VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_price DECIMAL(18,2),
-  IN p_currency CHAR(3),
+  IN p_currency CHAR(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_trialDays INT,
   IN p_maxUsers INT,
   IN p_updateMaxUsers TINYINT,
@@ -192,11 +192,11 @@ DROP PROCEDURE IF EXISTS sp_business_subscription_list;
 DELIMITER $$
 
 CREATE PROCEDURE sp_business_subscription_list(
-  IN p_search VARCHAR(150),
+  IN p_search VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idBusiness INT,
   IN p_idSubscriptionPlan INT,
-  IN p_status VARCHAR(30),
-  IN p_billingPeriod VARCHAR(20),
+  IN p_status VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_billingPeriod VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_trialEndsBefore DATETIME,
   IN p_periodEndsBefore DATETIME,
   IN p_limit INT,
@@ -233,7 +233,7 @@ BEGIN
   FROM business_subscriptions bs
   INNER JOIN businesses b ON b.idBusiness = bs.idBusiness
   INNER JOIN subscription_plans sp ON sp.idSubscriptionPlan = bs.idSubscriptionPlan
-  WHERE (p_search IS NULL OR b.name LIKE CONCAT('%', p_search, '%') OR b.slug LIKE CONCAT('%', p_search, '%') OR sp.name LIKE CONCAT('%', p_search, '%'))
+  WHERE (p_search IS NULL OR b.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%') OR b.slug COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%') OR sp.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%'))
     AND (p_idBusiness IS NULL OR bs.idBusiness = p_idBusiness)
     AND (p_idSubscriptionPlan IS NULL OR bs.idSubscriptionPlan = p_idSubscriptionPlan)
     AND (p_status IS NULL OR bs.status = p_status)
@@ -247,7 +247,7 @@ BEGIN
   FROM business_subscriptions bs
   INNER JOIN businesses b ON b.idBusiness = bs.idBusiness
   INNER JOIN subscription_plans sp ON sp.idSubscriptionPlan = bs.idSubscriptionPlan
-  WHERE (p_search IS NULL OR b.name LIKE CONCAT('%', p_search, '%') OR b.slug LIKE CONCAT('%', p_search, '%') OR sp.name LIKE CONCAT('%', p_search, '%'))
+  WHERE (p_search IS NULL OR b.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%') OR b.slug COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%') OR sp.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%'))
     AND (p_idBusiness IS NULL OR bs.idBusiness = p_idBusiness)
     AND (p_idSubscriptionPlan IS NULL OR bs.idSubscriptionPlan = p_idSubscriptionPlan)
     AND (p_status IS NULL OR bs.status = p_status)
@@ -304,9 +304,9 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_subscription_event_create(
   IN p_idBusinessSubscription INT,
-  IN p_eventType VARCHAR(50),
-  IN p_previousStatus VARCHAR(30),
-  IN p_newStatus VARCHAR(30),
+  IN p_eventType VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_previousStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_newStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_metadata JSON,
   IN p_createdByUserId INT
 )
@@ -337,14 +337,14 @@ DELIMITER $$
 CREATE PROCEDURE sp_business_subscription_assign(
   IN p_idBusiness INT,
   IN p_idSubscriptionPlan INT,
-  IN p_startMode VARCHAR(20),
+  IN p_startMode VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_currentPeriodStart DATETIME,
   IN p_currentPeriodEnd DATETIME,
   IN p_createdByUserId INT
 )
 BEGIN
   DECLARE v_trialDays INT DEFAULT 0;
-  DECLARE v_planCode VARCHAR(50);
+  DECLARE v_planCode VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_existingActive INT DEFAULT 0;
   DECLARE v_previousTrials INT DEFAULT 0;
   DECLARE v_idBusinessSubscription INT;
@@ -438,7 +438,7 @@ DELIMITER $$
 CREATE PROCEDURE sp_business_subscription_change_plan(
   IN p_idBusinessSubscription INT,
   IN p_idSubscriptionPlan INT,
-  IN p_effectiveMode VARCHAR(20),
+  IN p_effectiveMode VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_createdByUserId INT
 )
 BEGIN
@@ -488,11 +488,11 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_business_subscription_suspend(
   IN p_idBusinessSubscription INT,
-  IN p_reason VARCHAR(500),
+  IN p_reason VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_createdByUserId INT
 )
 BEGIN
-  DECLARE v_previousStatus VARCHAR(30);
+  DECLARE v_previousStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   START TRANSACTION;
 
@@ -536,7 +536,7 @@ CREATE PROCEDURE sp_business_subscription_reactivate(
   IN p_createdByUserId INT
 )
 BEGIN
-  DECLARE v_previousStatus VARCHAR(30);
+  DECLARE v_previousStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   START TRANSACTION;
 
@@ -582,12 +582,12 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_business_subscription_cancel(
   IN p_idBusinessSubscription INT,
-  IN p_reason VARCHAR(500),
+  IN p_reason VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_cancelAtPeriodEnd TINYINT,
   IN p_createdByUserId INT
 )
 BEGIN
-  DECLARE v_previousStatus VARCHAR(30);
+  DECLARE v_previousStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   START TRANSACTION;
 
@@ -668,8 +668,8 @@ DELIMITER $$
 CREATE PROCEDURE sp_subscription_payment_list(
   IN p_idBusinessSubscription INT,
   IN p_idBusiness INT,
-  IN p_status VARCHAR(30),
-  IN p_paymentMethod VARCHAR(30),
+  IN p_status VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_paymentMethod VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_dateFrom DATETIME,
   IN p_dateTo DATETIME,
   IN p_limit INT,
@@ -764,23 +764,23 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_subscription_payment_create(
   IN p_idBusinessSubscription INT,
-  IN p_paymentNumber VARCHAR(50),
+  IN p_paymentNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_amount DECIMAL(18,2),
-  IN p_currency CHAR(3),
-  IN p_paymentMethod VARCHAR(30),
-  IN p_status VARCHAR(30),
+  IN p_currency CHAR(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_paymentMethod VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_status VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_paidAt DATETIME,
   IN p_periodStart DATETIME,
   IN p_periodEnd DATETIME,
-  IN p_externalReference VARCHAR(150),
-  IN p_providerPaymentId VARCHAR(150),
-  IN p_observation VARCHAR(500),
+  IN p_externalReference VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_providerPaymentId VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_observation VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_createdByUserId INT
 )
 BEGIN
   DECLARE v_idSubscriptionPayment INT;
-  DECLARE v_previousStatus VARCHAR(30);
-  DECLARE v_eventType VARCHAR(50);
+  DECLARE v_previousStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_eventType VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -890,15 +890,15 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_subscription_payment_update_status(
   IN p_idSubscriptionPayment INT,
-  IN p_newStatus VARCHAR(30),
-  IN p_observation VARCHAR(500),
+  IN p_newStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_observation VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_createdByUserId INT
 )
 BEGIN
   DECLARE v_idBusinessSubscription INT;
-  DECLARE v_previousPaymentStatus VARCHAR(30);
-  DECLARE v_previousSubscriptionStatus VARCHAR(30);
-  DECLARE v_paymentNumber VARCHAR(50);
+  DECLARE v_previousPaymentStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_previousSubscriptionStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_paymentNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_periodStart DATETIME;
   DECLARE v_periodEnd DATETIME;
 
@@ -930,8 +930,18 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PAYMENT_NOT_FOUND';
   END IF;
 
-  IF v_previousPaymentStatus <> 'PENDING' THEN
+  IF p_newStatus IN ('APPROVED', 'REJECTED', 'CANCELLED')
+    AND v_previousPaymentStatus <> 'PENDING' THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PAYMENT_ALREADY_PROCESSED';
+  END IF;
+
+  IF p_newStatus = 'REFUNDED'
+    AND v_previousPaymentStatus <> 'APPROVED' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'INVALID_PAYMENT_STATUS_TRANSITION';
+  END IF;
+
+  IF p_newStatus NOT IN ('APPROVED', 'REJECTED', 'CANCELLED', 'REFUNDED') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'INVALID_PAYMENT_STATUS_TRANSITION';
   END IF;
 
   SELECT status INTO v_previousSubscriptionStatus
@@ -994,7 +1004,7 @@ DELIMITER $$
 CREATE PROCEDURE sp_subscription_event_list(
   IN p_idBusinessSubscription INT,
   IN p_idBusiness INT,
-  IN p_eventType VARCHAR(50),
+  IN p_eventType VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_dateFrom DATETIME,
   IN p_dateTo DATETIME,
   IN p_limit INT,

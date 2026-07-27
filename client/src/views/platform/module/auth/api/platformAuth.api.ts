@@ -1,4 +1,8 @@
-import axios, { type AxiosResponse } from "axios";
+import axios, {
+  type AxiosError,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from "axios";
 import type {
   PlatformApiResponse,
   PlatformAuthSession,
@@ -17,6 +21,61 @@ export const platformApi = axios.create({
   },
 });
 
+const platformRefreshApi = axios.create({
+  baseURL: URL_BACK,
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+interface RetryablePlatformRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
+const excludedRefreshEndpoints = [
+  "/platform/auth/login",
+  "/platform/auth/refresh",
+  "/platform/auth/logout",
+  "/platform/auth/base-user",
+  "/platform/auth/bootstrap",
+];
+
+let platformRefreshPromise: Promise<string> | null = null;
+
+const isExcludedRefreshRequest = (url?: string): boolean => {
+  if (!url) return false;
+
+  return excludedRefreshEndpoints.some((endpoint) => {
+    return url.endsWith(endpoint) || url.includes(`${endpoint}?`);
+  });
+};
+
+const refreshPlatformSession = (): Promise<string> => {
+  if (!platformRefreshPromise) {
+    platformRefreshPromise = platformRefreshApi
+      .post<PlatformApiResponse<PlatformAuthSession>>("/platform/auth/refresh")
+      .then((response) => {
+        const token = response.data.data.accessToken;
+        localStorage.setItem(PLATFORM_TOKEN_KEY, token);
+        return token;
+      })
+      .finally(() => {
+        platformRefreshPromise = null;
+      });
+  }
+
+  return platformRefreshPromise;
+};
+
+const expirePlatformSession = (): void => {
+  localStorage.removeItem(PLATFORM_TOKEN_KEY);
+
+  if (window.location.pathname.startsWith("/platform")) {
+    window.location.replace("/platform/login");
+  }
+};
+
 platformApi.interceptors.request.use((config) => {
   const token = localStorage.getItem(PLATFORM_TOKEN_KEY);
 
@@ -26,6 +85,35 @@ platformApi.interceptors.request.use((config) => {
 
   return config;
 });
+
+platformApi.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as
+      | RetryablePlatformRequestConfig
+      | undefined;
+    const shouldRefresh =
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isExcludedRefreshRequest(originalRequest.url);
+
+    if (!shouldRefresh) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    try {
+      const token = await refreshPlatformSession();
+      originalRequest.headers.Authorization = `Bearer ${token}`;
+      return platformApi(originalRequest);
+    } catch (refreshError) {
+      expirePlatformSession();
+      return Promise.reject(refreshError);
+    }
+  },
+);
 
 export const loginPlatformRequest = (
   data: PlatformLoginBody,

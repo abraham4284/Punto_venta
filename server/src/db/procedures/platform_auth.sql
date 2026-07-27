@@ -24,7 +24,7 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_platform_user_bootstrap(
   IN p_idUser INT,
-  IN p_role VARCHAR(30)
+  IN p_role VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   DECLARE v_user_exists INT DEFAULT 0;
@@ -109,10 +109,10 @@ DROP PROCEDURE IF EXISTS sp_platform_create_base_user;
 DELIMITER $$
 
 CREATE PROCEDURE sp_platform_create_base_user(
-  IN p_name VARCHAR(120),
-  IN p_username VARCHAR(120),
-  IN p_email VARCHAR(160),
-  IN p_password_hash VARCHAR(255)
+  IN p_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_username VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_password_hash VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   INSERT INTO users (
