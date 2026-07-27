@@ -1,9 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
-import type { UserRole } from "@/modules/businesses-app/auth/types/auth.types.js";
+import type { BusinessRole } from "@/types/auth.types.js";
 
-export const requireRoles =
-  (allowedRoles: UserRole[]) =>
-  (req: Request, res: Response, next: NextFunction): void => {
+export function requireRoles(allowedRoles: BusinessRole[]) {
+  return function requireRolesMiddleware(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): void {
     if (!req.user) {
       res.status(401).json({
         status: "ERROR",
@@ -22,3 +25,4 @@ export const requireRoles =
 
     next();
   };
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { sidebarLinkClass } from "../helpers";
-import { useAuthStore } from "@/views/admin";
+import { useAuthStore } from "@/views/businesses-app";
 import { LiGeneral } from "./sidebar-components";
 import { productNav, peopleNav,stockNav, saleNav } from "@/navigation";
 

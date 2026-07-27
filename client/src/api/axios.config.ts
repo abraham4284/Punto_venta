@@ -33,6 +33,7 @@ const excludedRefreshEndpoints = [
 ];
 
 let refreshPromise: Promise<void> | null = null;
+let subscriptionRefreshPromise: Promise<void> | null = null;
 
 const isExcludedRefreshRequest = (url?: string): boolean => {
   if (!url) return false;
@@ -57,7 +58,7 @@ const refreshSession = (): Promise<void> => {
 
 const expireFrontendSession = async (): Promise<void> => {
   const { useAuthStore } = await import(
-    "@/views/admin/module/auth/store/auth.store"
+    "@/views/businesses-app/module/auth/store/auth.store"
   );
 
   useAuthStore
@@ -65,10 +66,36 @@ const expireFrontendSession = async (): Promise<void> => {
     .expireSession("La sesion expiro. Inicia sesion nuevamente.");
 };
 
+const refreshBusinessSubscription = async (): Promise<void> => {
+  if (!subscriptionRefreshPromise) {
+    subscriptionRefreshPromise = import(
+      "@/views/businesses-app/module/subscription/store/businessSubscription.store"
+    )
+      .then(({ useBusinessSubscriptionStore }) =>
+        useBusinessSubscriptionStore.getState().refreshSubscription(),
+      )
+      .finally(() => {
+        subscriptionRefreshPromise = null;
+      });
+  }
+
+  return subscriptionRefreshPromise;
+};
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
+    if (
+      error.response?.status === 402 &&
+      (error.response.data as { code?: string } | undefined)?.code ===
+        "SUBSCRIPTION_REQUIRED" &&
+      originalRequest?.url !== "/business/subscription"
+    ) {
+      await refreshBusinessSubscription();
+      return Promise.reject(error);
+    }
+
     const shouldRefresh =
       error.response?.status === 401 &&
       originalRequest &&

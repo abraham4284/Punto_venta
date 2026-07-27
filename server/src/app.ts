@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import { errorHandler } from "@/middlewares/errorHandler.js";
-import { businessesAppRoutes } from "@/modules/index.js";
+import { businessesAppRoutes, platformRoutes } from "@/modules/index.js";
 
 dotenv.config();
 
@@ -46,16 +46,8 @@ app.use(express.json());
 
 app.get("/", (_, res) => res.send("Api funcionando"));
 
+app.use("/api", platformRoutes);
 app.use("/api", businessesAppRoutes);
-// app.use("/api", accountingRoutes);
-// app.use("/api", loansRoutes);
-// app.use("/api", paymentsRoutes);
-// app.use("/api", clientsRoutes);
-// app.use("/api", employeesRoutes);
-// app.use("/api", zoneRoutes);
-// app.use("/api", transactionsRoutes);
-// app.use("/api", transactionsLineRoutes);
-// app.use("/api", transactionsTruncate);
 
 app.use(errorHandler);
 

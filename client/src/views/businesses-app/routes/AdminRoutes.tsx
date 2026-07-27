@@ -1,0 +1,37 @@
+import { Route, Routes } from "react-router-dom";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import {
+  BusinessessRoutes,
+  BusinessSubscriptionRoutes,
+  CategoriesRoutes,
+  ClientsRoutes,
+  DashboardRoutes,
+  DepositsRoutes,
+  ProductsRoutes,
+  PurchasesRoutes,
+  SalesRoutes,
+  StockRoutes,
+  SuppliersRoutes,
+} from "@/views/businesses-app/module";
+import { ProfilePage } from "@/views/businesses-app/module/auth/page/ProfilePage";
+
+export const AdminRoutes = () => {
+  return (
+    <AdminLayout>
+      <Routes>
+        <Route path="/dashboard/*" element={<DashboardRoutes />} />
+        <Route path="/clients/*" element={<ClientsRoutes />} />
+        <Route path="/categories-product/*" element={<CategoriesRoutes />} />
+        <Route path="/products/*" element={<ProductsRoutes />} />
+        <Route path="/deposits/*" element={<DepositsRoutes />} />
+        <Route path="/stock/*" element={<StockRoutes />} />
+        <Route path="/sales/*" element={<SalesRoutes />} />
+        <Route path="/purchases/*" element={<PurchasesRoutes />} />
+        <Route path="/suppliers/*" element={<SuppliersRoutes />} />
+        <Route path="/businesses/*" element={<BusinessessRoutes />} />
+        <Route path="/subscription/*" element={<BusinessSubscriptionRoutes />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Routes>
+    </AdminLayout>
+  );
+};

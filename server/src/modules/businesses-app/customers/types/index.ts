@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import type { AccessTokenPayload } from "@/libs/tokens.js";
+import type { BusinessRequestUser } from "@/types/auth.types.js";
 
 export interface CustomerDbRow {
   idCustomer: number;
@@ -53,5 +53,5 @@ export interface ToggleCustomerStatusPayload {
 }
 
 export interface CustomerAuthenticatedRequest extends Request {
-  user: AccessTokenPayload;
+  user: BusinessRequestUser;
 }

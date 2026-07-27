@@ -4,14 +4,14 @@ DELIMITER $$
 CREATE PROCEDURE sp_create_sale(
   IN p_idBusiness INT,
   IN p_idUser INT,
-  IN p_sale_number VARCHAR(50),
+  IN p_sale_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idCustomer INT,
   IN p_idDeposit INT,
   IN p_idPaymentMethod INT,
   IN p_subtotal DECIMAL(18,2),
   IN p_discount_total DECIMAL(18,2),
   IN p_total DECIMAL(18,2),
-  IN p_observation VARCHAR(255)
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   DECLARE v_idSale INT;
@@ -122,8 +122,8 @@ CREATE PROCEDURE sp_create_sale_detail_and_discount_stock(
 )
 BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
-  DECLARE v_unit_type VARCHAR(20);
-  DECLARE v_sale_number VARCHAR(50);
+  DECLARE v_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_sale_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -258,7 +258,7 @@ BEGIN
   DECLARE v_idProduct INT;
   DECLARE v_idDeposit INT;
   DECLARE v_quantity DECIMAL(18,2);
-  DECLARE v_status VARCHAR(20);
+  DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE sale_detail_cursor CURSOR FOR
     SELECT sd.idProduct, s.idDeposit, sd.quantity
@@ -364,8 +364,8 @@ CREATE PROCEDURE sp_get_sales(
   IN p_limit INT,
   IN p_offset INT,
   IN p_idDeposit INT,
-  IN p_status VARCHAR(20),
-  IN p_saleNumberSearch VARCHAR(50),
+  IN p_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_saleNumberSearch VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_startDate DATETIME,
   IN p_endDate DATETIME
 )
@@ -408,7 +408,7 @@ BEGIN
     AND (
       p_saleNumberSearch IS NULL
       OR p_saleNumberSearch = ''
-      OR s.sale_number LIKE CONCAT('%', p_saleNumberSearch, '%')
+      OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
     AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
@@ -427,7 +427,7 @@ BEGIN
     AND (
       p_saleNumberSearch IS NULL
       OR p_saleNumberSearch = ''
-      OR s.sale_number LIKE CONCAT('%', p_saleNumberSearch, '%')
+      OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
     AND (p_endDate IS NULL OR s.sale_date <= p_endDate);

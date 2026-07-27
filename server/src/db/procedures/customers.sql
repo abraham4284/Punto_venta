@@ -3,11 +3,11 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_create_customer(
   IN p_idBusiness INT,
-  IN p_name VARCHAR(160),
-  IN p_phone VARCHAR(80),
-  IN p_email VARCHAR(160),
-  IN p_address VARCHAR(255),
-  IN p_observation VARCHAR(255)
+  IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   INSERT INTO customers (
@@ -99,14 +99,14 @@ DELIMITER $$
 CREATE PROCEDURE sp_update_customer(
   IN p_idBusiness INT,
   IN p_idCustomer INT,
-  IN p_name VARCHAR(160),
-  IN p_phone VARCHAR(80),
+  IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_phone TINYINT,
-  IN p_email VARCHAR(160),
+  IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_email TINYINT,
-  IN p_address VARCHAR(255),
+  IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_address TINYINT,
-  IN p_observation VARCHAR(255),
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_observation TINYINT
 )
 BEGIN

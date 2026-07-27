@@ -1,0 +1,65 @@
+export type AuthContext = "BUSINESS" | "PLATFORM";
+
+export type BusinessRole = "OWNER" | "ADMIN" | "SELLER";
+
+export type PlatformRole = "SUPER_ADMIN" | "SUPPORT" | "ANALYST";
+
+export interface BusinessAccessTokenPayload {
+  context: "BUSINESS";
+  idUser: number;
+  idBusiness: number;
+  businessRole: BusinessRole;
+}
+
+export interface PlatformAccessTokenPayload {
+  context: "PLATFORM";
+  idUser: number;
+  platformRole: PlatformRole;
+}
+
+export type AccessTokenPayload =
+  | BusinessAccessTokenPayload
+  | PlatformAccessTokenPayload;
+
+export interface BusinessRefreshTokenPayload {
+  context: "BUSINESS";
+  idUser: number;
+  idBusiness: number;
+  idLogin: number;
+}
+
+export interface PlatformRefreshTokenPayload {
+  context: "PLATFORM";
+  idUser: number;
+  idLogin: number;
+}
+
+export type RefreshTokenPayload =
+  | BusinessRefreshTokenPayload
+  | PlatformRefreshTokenPayload;
+
+export interface BusinessRequestUser {
+  idUser: number;
+  idBusiness: number;
+  role: BusinessRole;
+}
+
+export interface LegacyBusinessAccessTokenInput {
+  idUser: number;
+  idBusiness: number;
+  role: BusinessRole;
+}
+
+export interface LegacyBusinessRefreshTokenInput {
+  idUser: number;
+  idBusiness: number;
+  idLogin: number;
+}
+
+export type AccessTokenInput =
+  | AccessTokenPayload
+  | LegacyBusinessAccessTokenInput;
+
+export type RefreshTokenInput =
+  | RefreshTokenPayload
+  | LegacyBusinessRefreshTokenInput;

@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   CircleDollarSign,
   ClipboardList,
+  CreditCard,
   Factory,
   Layers3,
   LogOut,
@@ -38,8 +39,8 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { peopleNav, productNav, purchaseNav, saleNav, stockNav } from "@/navigation";
-import { useAuthStore } from "@/views/admin";
-import { useBusinesses } from "@/views/admin/module/businesses/hooks/useBusinesses";
+import { useAuthStore } from "@/views/businesses-app";
+import { useBusinesses } from "@/views/businesses-app/module/businesses/hooks/useBusinesses";
 import { useEffect } from "react";
 
 type NavigationItem = {
@@ -58,6 +59,7 @@ const iconByRoute: Record<string, LucideIcon> = {
   "/admin/dasbhoard": BarChart3,
   "/admin/businesses": Building2,
   "/admin/profile": UserRound,
+  "/admin/subscription": CreditCard,
   "/admin/clients": Users,
   "/admin/suppliers": Truck,
   "/admin/categories-product": Tags,
@@ -100,6 +102,11 @@ const navigationGroups: NavigationGroup[] = [
         title: "Mi perfil",
         url: "/admin/profile",
         icon: UserRound,
+      },
+      {
+        title: "Mi suscripcion",
+        url: "/admin/subscription",
+        icon: CreditCard,
       },
     ],
   },

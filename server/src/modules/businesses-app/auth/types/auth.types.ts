@@ -34,6 +34,7 @@ export interface RegisterDbRow {
   businessSlug: string;
   businessType: string | null;
   logoUrl: string | null;
+  businessStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
   role: UserRole;
 }
 
@@ -52,6 +53,7 @@ export interface LoginDbRow {
   business_name: string;
   business_slug: string;
   business_active: number;
+  business_status: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
   role: UserRole;
   business_user_active: number;
 }

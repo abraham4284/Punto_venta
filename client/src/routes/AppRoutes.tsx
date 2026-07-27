@@ -1,12 +1,13 @@
 import { Routes, Route } from "react-router-dom";
 import { HomeRoutes } from "@/views/home";
-import { AdminRoutes } from "@/views/admin";
-import { PrivateRoute } from "@/views/admin/middlewares/PrivateRoute";
+import { AdminRoutes } from "@/views/businesses-app";
+import { PrivateRoute } from "@/views/businesses-app/middlewares/PrivateRoute";
+import { PlatformRoutes } from "@/views/platform";
 
 export const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/*" element={<HomeRoutes />} />
+      <Route path="/platform/*" element={<PlatformRoutes />} />
       <Route
         path="/admin/*"
         element={
@@ -15,6 +16,7 @@ export const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route path="/*" element={<HomeRoutes />} />
     </Routes>
   );
 };

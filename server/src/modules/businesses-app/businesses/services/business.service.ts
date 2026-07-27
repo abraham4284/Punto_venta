@@ -12,6 +12,7 @@ const mapBusiness = (business: BusinessDbRow): BusinessResponse => ({
   slug: business.slug,
   logoUrl: business.logo_url,
   businessType: business.business_type,
+  status: business.status,
   isActive: Boolean(business.is_active),
   createdAt: business.created_at,
   updatedAt: business.updated_at,

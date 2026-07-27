@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import type { AccessTokenPayload } from "@/libs/tokens.js";
+import type { BusinessRequestUser } from "@/types/auth.types.js";
 
 export type PurchaseStatus = "COMPLETED" | "CANCELLED";
 
@@ -153,5 +153,5 @@ export interface TotalPurchasesDbRow {
 }
 
 export interface PurchaseAuthenticatedRequest extends Request {
-  user: AccessTokenPayload;
+  user: BusinessRequestUser;
 }

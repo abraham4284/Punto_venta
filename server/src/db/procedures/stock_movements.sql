@@ -7,13 +7,13 @@ CREATE PROCEDURE sp_process_stock_adjustment(
   IN p_idProduct INT,
   IN p_idDeposit INT,
   IN p_quantity DECIMAL(18,2),
-  IN p_movement_type VARCHAR(30),
-  IN p_observation VARCHAR(255)
+  IN p_movement_type VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
   DECLARE v_idMovement INT;
-  DECLARE v_unit_type VARCHAR(20);
+  DECLARE v_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -127,12 +127,12 @@ CREATE PROCEDURE sp_process_stock_transfer(
   IN p_idDepositFrom INT,
   IN p_idDepositTo INT,
   IN p_quantity DECIMAL(18,2),
-  IN p_observation VARCHAR(255)
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
   DECLARE v_reference_id INT;
-  DECLARE v_unit_type VARCHAR(20);
+  DECLARE v_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -303,9 +303,9 @@ CREATE PROCEDURE sp_get_stock_movements(
   IN p_idBusiness INT,
   IN p_limit INT,
   IN p_offset INT,
-  IN p_movementType VARCHAR(50),
+  IN p_movementType VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idDeposit INT,
-  IN p_search VARCHAR(150)
+  IN p_search VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   SELECT
@@ -363,8 +363,8 @@ BEGIN
     AND (
       p_search IS NULL
       OR p_search = ''
-      OR p.name LIKE CONCAT('%', p_search, '%')
-      OR u.name LIKE CONCAT('%', p_search, '%')
+      OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR u.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
     )
   ORDER BY sm.created_at DESC, sm.idStockMovement DESC
   LIMIT p_limit OFFSET p_offset;
@@ -399,8 +399,8 @@ BEGIN
     AND (
       p_search IS NULL
       OR p_search = ''
-      OR p.name LIKE CONCAT('%', p_search, '%')
-      OR u.name LIKE CONCAT('%', p_search, '%')
+      OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR u.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
     );
 END$$
 

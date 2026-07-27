@@ -3,8 +3,8 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_create_product_category(
   IN p_idBusiness INT,
-  IN p_name VARCHAR(120),
-  IN p_description VARCHAR(255),
+  IN p_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_is_default TINYINT
 )
 BEGIN
@@ -95,8 +95,8 @@ DELIMITER $$
 CREATE PROCEDURE sp_update_product_category(
   IN p_idBusiness INT,
   IN p_idProductCategory INT,
-  IN p_name VARCHAR(120),
-  IN p_description VARCHAR(255),
+  IN p_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_description TINYINT,
   IN p_is_default TINYINT,
   IN p_update_is_default TINYINT

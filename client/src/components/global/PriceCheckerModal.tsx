@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { getProductsRequest } from "@/views/admin/module/products/api/products.api";
-import type { ProductResponse } from "@/views/admin/module/products/types/products.types";
+import { getProductsRequest } from "@/views/businesses-app/module/products/api/products.api";
+import type { ProductResponse } from "@/views/businesses-app/module/products/types/products.types";
 import { usePriceCheckerStore } from "@/store/priceChecker.store";
 
 const formatMoney = (value: number): string => {
