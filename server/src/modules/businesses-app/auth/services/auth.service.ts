@@ -121,6 +121,7 @@ export async function loginService(
       idBusiness: user.idBusiness,
       businessName: user.business_name,
       businessSlug: user.business_slug,
+      businessStatus: user.business_status,
       role: user.role,
     },
   };
@@ -134,7 +135,7 @@ export async function registerService(
   const passwordHash = await bcrypt.hash(data.password, 10);
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_user_register_with_business(?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_user_register_with_business(?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.name,
       data.username,
@@ -144,6 +145,7 @@ export async function registerService(
       data.businessSlug,
       data.businessType ?? "FINANCIERA",
       data.logoUrl ?? null,
+      process.env.DEFAULT_TRIAL_PLAN_CODE ?? "BASIC_MONTHLY",
     ],
   );
 
@@ -217,6 +219,7 @@ export async function registerService(
       businessSlug: user.businessSlug,
       businessType: user.businessType,
       logoUrl: user.logoUrl,
+      businessStatus: user.businessStatus,
       role: user.role,
     },
   };

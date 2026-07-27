@@ -11,6 +11,7 @@ BEGIN
     slug,
     logo_url,
     business_type,
+    status,
     is_active,
     created_at,
     updated_at
@@ -54,6 +55,7 @@ BEGIN
     slug,
     logo_url,
     business_type,
+    status,
     is_active,
     created_at,
     updated_at

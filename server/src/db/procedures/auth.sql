@@ -16,6 +16,7 @@ BEGIN
     b.name AS business_name,
     b.slug AS business_slug,
     b.is_active AS business_active,
+    b.status AS business_status,
     bu.role,
     bu.is_active AS business_user_active
   FROM users u
@@ -208,11 +209,21 @@ CREATE PROCEDURE sp_user_register_with_business(
   IN p_business_name VARCHAR(160),
   IN p_business_slug VARCHAR(180),
   IN p_business_type VARCHAR(100),
-  IN p_logoUrl VARCHAR(500)
+  IN p_logoUrl VARCHAR(500),
+  IN p_defaultTrialPlanCode VARCHAR(50)
 )
 BEGIN
   DECLARE v_idUser INT;
   DECLARE v_idBusiness INT;
+  DECLARE v_idSubscriptionPlan INT;
+  DECLARE v_idBusinessSubscription INT;
+  DECLARE v_trialDays INT DEFAULT 0;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
 
   START TRANSACTION;
 
@@ -235,13 +246,15 @@ BEGIN
     name,
     slug,
     logo_url,
-    business_type
+    business_type,
+    status
   )
   VALUES (
     p_business_name,
     p_business_slug,
     p_logoUrl,
-    p_business_type
+    p_business_type,
+    'ACTIVE'
   );
 
   SET v_idBusiness = LAST_INSERT_ID();
@@ -257,6 +270,67 @@ BEGIN
     'OWNER'
   );
 
+  SELECT idSubscriptionPlan, trial_days
+  INTO v_idSubscriptionPlan, v_trialDays
+  FROM subscription_plans
+  WHERE code = p_defaultTrialPlanCode
+    AND is_active = 1
+  LIMIT 1;
+
+  IF v_idSubscriptionPlan IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SUBSCRIPTION_PLAN_NOT_FOUND';
+  END IF;
+
+  IF v_trialDays <= 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'DEFAULT_TRIAL_PLAN_WITHOUT_TRIAL_DAYS';
+  END IF;
+
+  INSERT INTO business_subscriptions (
+    idBusiness,
+    idSubscriptionPlan,
+    status,
+    starts_at,
+    trial_starts_at,
+    trial_ends_at,
+    current_period_start,
+    current_period_end,
+    auto_renew,
+    cancel_at_period_end
+  )
+  VALUES (
+    v_idBusiness,
+    v_idSubscriptionPlan,
+    'TRIAL',
+    NOW(),
+    NOW(),
+    DATE_ADD(NOW(), INTERVAL v_trialDays DAY),
+    NULL,
+    NULL,
+    1,
+    0
+  );
+
+  SET v_idBusinessSubscription = LAST_INSERT_ID();
+
+  INSERT INTO subscription_events (
+    idBusinessSubscription,
+    event_type,
+    previous_status,
+    new_status,
+    metadata,
+    created_by_user_id
+  )
+  VALUES (
+    v_idBusinessSubscription,
+    'TRIAL_STARTED',
+    NULL,
+    'TRIAL',
+    JSON_OBJECT('planCode', p_defaultTrialPlanCode, 'trialDays', v_trialDays),
+    v_idUser
+  );
+
   COMMIT;
 
   SELECT
@@ -269,6 +343,7 @@ BEGIN
     p_business_slug AS businessSlug,
     p_business_type AS businessType,
     p_logoUrl AS logoUrl,
+    'ACTIVE' AS businessStatus,
     'OWNER' AS role;
 END$$
 

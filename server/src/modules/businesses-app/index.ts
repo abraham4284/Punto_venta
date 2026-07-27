@@ -1,4 +1,7 @@
 import { Router } from "express";
+import { requireAuth } from "@/middlewares/requireAuth.js";
+import { requireBusinessContext } from "@/middlewares/requireBusinessContext.middleware.js";
+import { requireOperationalSubscription } from "@/middlewares/requireOperationalSubscription.middleware.js";
 
 import authRoutes from "./auth/index.js";
 import businessRoutes from "./businesses/index.js";
@@ -11,6 +14,7 @@ import purchaseRoutes from "./purchases/index.js";
 import saleRoutes from "./sales/index.js";
 import stockRoutes from "./stock/index.js";
 import stockMovementRoutes from "./stock_movements/index.js";
+import subscriptionRoutes from "./subscription/index.js";
 import supplierRoutes from "./suppliers/index.js";
 import ticketRoutes from "./tickets/index.js";
 
@@ -18,6 +22,12 @@ const businessesAppRoutes = Router();
 
 businessesAppRoutes.use(authRoutes);
 businessesAppRoutes.use(businessRoutes);
+businessesAppRoutes.use(subscriptionRoutes);
+businessesAppRoutes.use(
+  requireAuth,
+  requireBusinessContext,
+  requireOperationalSubscription,
+);
 businessesAppRoutes.use(customerRoutes);
 businessesAppRoutes.use(dashboardRoutes);
 businessesAppRoutes.use(depositRoutes);
@@ -42,6 +52,7 @@ export {
   saleRoutes,
   stockRoutes,
   stockMovementRoutes,
+  subscriptionRoutes,
   supplierRoutes,
   ticketRoutes,
 };
