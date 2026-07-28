@@ -2,6 +2,8 @@ export type User = {
   idUser: number;
   idBusiness: number;
   role: string;
+  mustChangePassword?: boolean;
+  permissions?: string[];
   name?: string;
   username?: string;
   email?: string | null;
@@ -35,11 +37,14 @@ export type RegisterBody = {
 
 export type AuthUser = {
   idUser: number;
-  username: string;
+  username?: string;
+  name?: string;
+  email?: string | null;
   idBusiness: number;
   role: string;
-  // rol?: string;
-  // img_url?: string;
+  mustChangePassword?: boolean;
+  permissions?: string[];
+  user?: User;
 };
 
 export type AuthSessionUser = User & {
@@ -50,6 +55,8 @@ export type AuthSessionUser = User & {
   businessSlug: string;
   businessType: string | null;
   logoUrl: string | null;
+  mustChangePassword?: boolean;
+  permissions?: string[];
 };
 
 export type AuthSessionResponse = {
@@ -64,6 +71,7 @@ export type UserInfoResponse = {
   email: string | null;
   role: string;
   isActive: boolean;
+  mustChangePassword: boolean;
   createdAt: string;
 };
 

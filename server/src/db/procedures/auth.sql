@@ -12,6 +12,7 @@ BEGIN
     u.email,
     u.password_hash,
     u.is_active AS user_active,
+    u.must_change_password AS mustChangePassword,
     b.idBusiness,
     b.name AS business_name,
     b.slug AS business_slug,
@@ -47,6 +48,7 @@ BEGIN
     u.email,
     bu.role,
     u.is_active AS isActive,
+    u.must_change_password AS mustChangePassword,
     u.created_at AS createdAt
   FROM users u
   INNER JOIN business_users bu
@@ -86,6 +88,7 @@ BEGIN
     AND b.is_active = 1
   SET
     u.password_hash = p_newPassword,
+    u.must_change_password = 0,
     u.updated_at = NOW()
   WHERE u.idUser = p_idUser
     AND u.is_active = 1;
@@ -344,6 +347,7 @@ BEGIN
     p_business_type AS businessType,
     p_logoUrl AS logoUrl,
     'ACTIVE' AS businessStatus,
+    0 AS mustChangePassword,
     'OWNER' AS role;
 END$$
 

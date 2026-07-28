@@ -3,6 +3,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import {
   BusinessessRoutes,
   BusinessSubscriptionRoutes,
+  BusinessUsersRoutes,
   CategoriesRoutes,
   ClientsRoutes,
   DashboardRoutes,
@@ -14,22 +15,103 @@ import {
   SuppliersRoutes,
 } from "@/views/businesses-app/module";
 import { ProfilePage } from "@/views/businesses-app/module/auth/page/ProfilePage";
+import { PermissionRoute } from "@/views/businesses-app/components/PermissionRoute";
 
 export const AdminRoutes = () => {
   return (
     <AdminLayout>
       <Routes>
-        <Route path="/dashboard/*" element={<DashboardRoutes />} />
-        <Route path="/clients/*" element={<ClientsRoutes />} />
-        <Route path="/categories-product/*" element={<CategoriesRoutes />} />
-        <Route path="/products/*" element={<ProductsRoutes />} />
-        <Route path="/deposits/*" element={<DepositsRoutes />} />
-        <Route path="/stock/*" element={<StockRoutes />} />
-        <Route path="/sales/*" element={<SalesRoutes />} />
-        <Route path="/purchases/*" element={<PurchasesRoutes />} />
-        <Route path="/suppliers/*" element={<SuppliersRoutes />} />
-        <Route path="/businesses/*" element={<BusinessessRoutes />} />
-        <Route path="/subscription/*" element={<BusinessSubscriptionRoutes />} />
+        <Route
+          path="/dashboard/*"
+          element={
+            <PermissionRoute permissions={["dashboard.view"]}>
+              <DashboardRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/clients/*"
+          element={
+            <PermissionRoute permissions={["customers.view"]}>
+              <ClientsRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/categories-product/*"
+          element={
+            <PermissionRoute permissions={["categories.view"]}>
+              <CategoriesRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/products/*"
+          element={
+            <PermissionRoute permissions={["products.view"]}>
+              <ProductsRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/deposits/*"
+          element={
+            <PermissionRoute permissions={["deposits.view"]}>
+              <DepositsRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/stock/*"
+          element={
+            <PermissionRoute
+              permissions={["stock.view", "stock.view_movements", "stock.view_critical"]}
+            >
+              <StockRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/sales/*"
+          element={
+            <PermissionRoute permissions={["sales.view", "sales.create"]}>
+              <SalesRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/purchases/*"
+          element={
+            <PermissionRoute permissions={["purchases.view", "purchases.create"]}>
+              <PurchasesRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/suppliers/*"
+          element={
+            <PermissionRoute permissions={["suppliers.view"]}>
+              <SuppliersRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/businesses/*"
+          element={
+            <PermissionRoute permissions={["business.view"]}>
+              <BusinessessRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/subscription/*"
+          element={
+            <PermissionRoute permissions={["subscription.view"]}>
+              <BusinessSubscriptionRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route path="/users/*" element={<BusinessUsersRoutes />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </AdminLayout>

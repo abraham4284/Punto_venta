@@ -10,6 +10,8 @@ import { usePriceCheckerStore } from "@/store/priceChecker.store";
 import { SubscriptionBanner } from "@/views/businesses-app/module/subscription/components/SubscriptionBanner";
 import { SubscriptionBlockedView } from "@/views/businesses-app/module/subscription/components/SubscriptionBlockedView";
 import { useBusinessSubscriptionStore } from "@/views/businesses-app/module/subscription/store/businessSubscription.store";
+import { PasswordChangeRequiredView } from "@/views/businesses-app/components/PasswordChangeRequiredView";
+import { useAuthStore } from "@/views/businesses-app/module/auth/store/auth.store";
 
 type AdminLayoutProps = {
   children: ReactNode;
@@ -23,11 +25,15 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const subscriptionState = useBusinessSubscriptionStore(
     (state) => state.subscriptionState,
   );
+  const mustChangePassword = useAuthStore(
+    (state) => state.user?.mustChangePassword ?? false,
+  );
   const shouldBlockApplication =
     subscriptionState?.notification.shouldBlockApplication ?? false;
   const isAllowedWhileBlocked =
     location.pathname.startsWith("/admin/subscription") ||
     location.pathname.startsWith("/admin/profile");
+  const isProfileRoute = location.pathname.startsWith("/admin/profile");
 
   return (
     <SidebarProvider>
@@ -59,7 +65,9 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         <SubscriptionBanner />
 
         <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 transition-all duration-300 sm:p-4 md:p-6">
-          {shouldBlockApplication && !isAllowedWhileBlocked ? (
+          {mustChangePassword && !isProfileRoute ? (
+            <PasswordChangeRequiredView />
+          ) : shouldBlockApplication && !isAllowedWhileBlocked ? (
             <SubscriptionBlockedView />
           ) : (
             children

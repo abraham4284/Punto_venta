@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
+import { requirePermission } from "@/middlewares/requirePermission.middleware.js";
 import {
   createInitialStockController,
   getAdvancedStockInventoryController,
@@ -11,11 +12,21 @@ import {
 
 const router = Router();
 
-router.get("/stock", requireAuth, getStockController);
-router.get("/stock/advanced-search", requireAuth, getAdvancedStockInventoryController);
-router.get("/stock/report/critical", requireAuth, getCriticalStockReportController);
-router.get("/stock/balance", requireAuth, getStockBalanceController);
-router.get("/stock/:id", requireAuth, getStockByIdController);
-router.post("/stock", requireAuth, createInitialStockController);
+router.get("/stock", requireAuth, requirePermission("stock.view"), getStockController);
+router.get(
+  "/stock/advanced-search",
+  requireAuth,
+  requirePermission("stock.view"),
+  getAdvancedStockInventoryController,
+);
+router.get(
+  "/stock/report/critical",
+  requireAuth,
+  requirePermission("stock.view_critical"),
+  getCriticalStockReportController,
+);
+router.get("/stock/balance", requireAuth, requirePermission("stock.view"), getStockBalanceController);
+router.get("/stock/:id", requireAuth, requirePermission("stock.view"), getStockByIdController);
+router.post("/stock", requireAuth, requirePermission("stock.adjust"), createInitialStockController);
 
 export default router;
