@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
+import { requirePermission } from "@/middlewares/requirePermission.middleware.js";
 import {
   confirmProductImportController,
   downloadProductImportTemplateController,
@@ -12,17 +13,20 @@ const router = Router();
 router.get(
   "/products/import/template",
   requireAuth,
+  requirePermission("products.import"),
   downloadProductImportTemplateController,
 );
 router.post(
   "/products/import/preview",
   requireAuth,
+  requirePermission("products.import"),
   productImportUploadMiddleware,
   previewProductImportController,
 );
 router.post(
   "/products/import/confirm",
   requireAuth,
+  requirePermission("products.import"),
   confirmProductImportController,
 );
 

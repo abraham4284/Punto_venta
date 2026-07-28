@@ -47,6 +47,7 @@ type NavigationItem = {
   title: string;
   url: string;
   icon: LucideIcon;
+  permission?: string;
 };
 
 type NavigationGroup = {
@@ -59,6 +60,7 @@ const iconByRoute: Record<string, LucideIcon> = {
   "/admin/dasbhoard": BarChart3,
   "/admin/businesses": Building2,
   "/admin/profile": UserRound,
+  "/admin/users": Users,
   "/admin/subscription": CreditCard,
   "/admin/clients": Users,
   "/admin/suppliers": Truck,
@@ -92,11 +94,13 @@ const navigationGroups: NavigationGroup[] = [
         title: "Dashboard / Metricas",
         url: "/admin/dashboard",
         icon: BarChart3,
+        permission: "dashboard.view",
       },
       {
         title: "Configuracion del negocio",
         url: "/admin/businesses",
         icon: Building2,
+        permission: "business.view",
       },
       {
         title: "Mi perfil",
@@ -107,28 +111,62 @@ const navigationGroups: NavigationGroup[] = [
         title: "Mi suscripcion",
         url: "/admin/subscription",
         icon: CreditCard,
+        permission: "subscription.view",
+      },
+      {
+        title: "Usuarios y permisos",
+        url: "/admin/users",
+        icon: Users,
+        permission: "users.view",
       },
     ],
   },
   {
     title: "Ventas",
-    items: buildItems(saleNav),
+    items: buildItems(saleNav).map((item) => ({
+      ...item,
+      permission: item.url.endsWith("/history") ? "sales.view" : "sales.create",
+    })),
   },
   {
     title: "Compras",
-    items: buildItems(purchaseNav),
+    items: buildItems(purchaseNav).map((item) => ({
+      ...item,
+      permission: item.url.endsWith("/history")
+        ? "purchases.view"
+        : "purchases.create",
+    })),
   },
   {
     title: "Stock / Inventario",
-    items: buildItems(stockNav),
+    items: buildItems(stockNav).map((item) => ({
+      ...item,
+      permission: item.url.endsWith("/movements")
+        ? "stock.view_movements"
+        : item.url.endsWith("/critical")
+          ? "stock.view_critical"
+          : "stock.view",
+    })),
   },
   {
     title: "Productos",
-    items: buildItems(productNav),
+    items: buildItems(productNav).map((item) => ({
+      ...item,
+      permission: item.url.includes("categories")
+        ? "categories.view"
+        : item.url.includes("deposits")
+          ? "deposits.view"
+          : "products.view",
+    })),
   },
   {
     title: "Personas",
-    items: buildItems(peopleNav),
+    items: buildItems(peopleNav).map((item) => ({
+      ...item,
+      permission: item.url.includes("suppliers")
+        ? "suppliers.view"
+        : "customers.view",
+    })),
   },
 ];
 
@@ -197,6 +235,15 @@ export const AppSidebar = () => {
   const displayName =
     profileUser?.name || profileUser?.username || `Usuario ${user?.idUser ?? ""}`.trim();
   const displayRole = profileUser?.role || user?.role || "Administrador";
+  const visibleNavigationGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!item.permission || user?.role === "OWNER") return true;
+        return user?.permissions?.includes(item.permission) ?? false;
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const handleLogout = async () => {
     await logout();
@@ -242,7 +289,7 @@ export const AppSidebar = () => {
       </SidebarHeader>
 
       <SidebarContent>
-        {navigationGroups.map((group) => (
+        {visibleNavigationGroups.map((group) => (
           <SidebarGroup key={group.title}>
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
             <SidebarMenu>

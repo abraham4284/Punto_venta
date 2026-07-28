@@ -81,7 +81,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       set({
         status: "authenticated",
-        user: meRes.data,
+        user: {
+          ...meRes.data,
+          mustChangePassword: meRes.data.mustChangePassword,
+          permissions: meRes.data.permissions ?? [],
+        },
         error: null,
       });
       if (loginRes.data?.accessToken) {
@@ -132,6 +136,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             businessSlug: registeredUser.businessSlug,
             businessType: registeredUser.businessType,
             logoUrl: registeredUser.logoUrl,
+            mustChangePassword: registeredUser.mustChangePassword,
+            permissions: registeredUser.permissions ?? [],
           }
         : null;
 
@@ -148,7 +154,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
         set({
           status: "authenticated",
-          user: data.data,
+          user: {
+            ...data.data,
+            permissions: data.data.permissions ?? [],
+          },
           loading: false,
           error: null,
         });
@@ -207,7 +216,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const { data } = await meRequest();
-      set({ status: "authenticated", user: data.data });
+      set({
+        status: "authenticated",
+        user: {
+          ...data.data,
+          permissions: data.data.permissions ?? [],
+        },
+      });
       await get().fetchUserProfile(data.data.idUser);
     } catch {
       set({ status: "unauthenticated", user: null, profileUser: null });
@@ -234,6 +249,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const { data } = await updatePassword(idUser, { password });
+
+      const currentUser = get().user;
+      if (currentUser?.idUser === idUser) {
+        set({
+          user: {
+            ...currentUser,
+            mustChangePassword: false,
+          },
+        });
+      }
 
       return {
         success: true,

@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { setAuthCookies, clearAuthCookies } from "@/libs/cookies.js";
 import {
+  getAuthenticatedUserContextService,
   getUserInfoByIdService,
   loginService,
   logoutService,
@@ -15,6 +16,7 @@ import type {
   UpdatePasswordBody,
 } from "../types/auth.types.js";
 import { updatePasswordSchema } from "../validations/auth.validations.js";
+import { userHasPermissionService } from "../../permissions/services/permissions.service.js";
 
 function getZodErrors(error: z.ZodError) {
   return error.issues.map(function mapIssue(issue) {
@@ -23,6 +25,27 @@ function getZodErrors(error: z.ZodError) {
       message: issue.message,
     };
   });
+}
+
+async function assertCanAccessBusinessUser(
+  actorIdUser: number,
+  idBusiness: number,
+  targetIdUser: number,
+  permissionCode: string,
+): Promise<void> {
+  if (actorIdUser === targetIdUser) return;
+
+  const allowed = await userHasPermissionService(
+    idBusiness,
+    actorIdUser,
+    permissionCode,
+  );
+
+  if (!allowed) {
+    const error = new Error("No tenes permisos para realizar esta accion");
+    (error as Error & { statusCode?: number }).statusCode = 403;
+    throw error;
+  }
 }
 
 export async function registerController(
@@ -130,12 +153,22 @@ export async function logoutController(
   }
 }
 
-export function me(req: Request, res: Response): void {
-  res.status(200).json({
-    status: "OK",
-    message: "Usuario autenticado",
-    data: req.user,
-  });
+export async function me(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const result = await getAuthenticatedUserContextService(req.user!);
+
+    res.status(200).json({
+      status: "OK",
+      message: "Usuario autenticado",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function getUserInfoByIdController(
@@ -151,6 +184,13 @@ export async function getUserInfoByIdController(
         message: "El identificador del usuario debe ser valido",
       });
     }
+
+    await assertCanAccessBusinessUser(
+      req.user!.idUser,
+      req.user!.idBusiness,
+      idUser,
+      "users.view",
+    );
 
     const result = await getUserInfoByIdService(
       idUser,
@@ -171,7 +211,7 @@ export async function getUserInfoByIdController(
       });
     }
 
-    return res.status(400).json({
+    return res.status((error as { statusCode?: number }).statusCode ?? 400).json({
       status: false,
       message: error.sqlMessage || error.message,
     });
@@ -191,8 +231,15 @@ export async function updatePasswordController(
         message: "El identificador del usuario debe ser valido",
       });
     }
-
+    console.log(req.body,'lo que llega')
     const data = updatePasswordSchema.parse(req.body);
+    await assertCanAccessBusinessUser(
+      req.user!.idUser,
+      req.user!.idBusiness,
+      idUser,
+      "users.update",
+    );
+
     const result = await updatePasswordService(
       idUser,
       req.user!.idBusiness,
@@ -213,7 +260,7 @@ export async function updatePasswordController(
       });
     }
 
-    return res.status(400).json({
+    return res.status((error as { statusCode?: number }).statusCode ?? 400).json({
       status: false,
       message: error.sqlMessage || error.message,
     });

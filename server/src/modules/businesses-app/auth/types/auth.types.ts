@@ -6,6 +6,8 @@ export interface AuthUser {
   idUser: number;
   idBusiness: number;
   role: UserRole;
+  mustChangePassword?: boolean;
+  permissions?: string[];
 }
 
 export interface LoginBody {
@@ -35,6 +37,7 @@ export interface RegisterDbRow {
   businessType: string | null;
   logoUrl: string | null;
   businessStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+  mustChangePassword: number;
   role: UserRole;
 }
 
@@ -49,6 +52,7 @@ export interface LoginDbRow {
   email: string | null;
   password_hash: string;
   user_active: number;
+  mustChangePassword: number;
   idBusiness: number;
   business_name: string;
   business_slug: string;
@@ -77,6 +81,7 @@ export interface UserInfoResponse {
   email: string | null;
   role: UserRole;
   isActive: boolean;
+  mustChangePassword: boolean;
   createdAt: Date;
 }
 
@@ -87,6 +92,18 @@ export interface UserInfoDbRow {
   email: string | null;
   role: UserRole;
   isActive: number;
+  mustChangePassword: number;
   createdAt: Date;
+}
+
+export interface AuthenticatedUserContext extends AuthUser {
+  name?: string;
+  username?: string;
+  email?: string | null;
+  businessName?: string;
+  businessSlug?: string;
+  businessStatus?: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+  permissions: string[];
+  user: AuthUser;
 }
 

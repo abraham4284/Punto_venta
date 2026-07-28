@@ -6,7 +6,10 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "@/libs/tokens.js";
+import { getEffectivePermissionsService } from "../../permissions/services/permissions.service.js";
 import type {
+  AuthUser,
+  AuthenticatedUserContext,
   LoginBody,
   RegisterBody,
   RegisterDbRow,
@@ -36,8 +39,16 @@ function mapUserInfo(row: UserInfoDbRow): UserInfoResponse {
     email: row.email,
     role: row.role,
     isActive: Boolean(row.isActive),
+    mustChangePassword: Boolean(row.mustChangePassword),
     createdAt: row.createdAt,
   };
+}
+
+async function getPermissionsForUser(
+  idBusiness: number,
+  idUser: number,
+): Promise<string[]> {
+  return getEffectivePermissionsService(idBusiness, idUser);
 }
 
 export async function loginService(
@@ -110,6 +121,8 @@ export async function loginService(
     [refreshTokenHash, idLogin],
   );
 
+  const permissions = await getPermissionsForUser(user.idBusiness, user.idUser);
+
   return {
     accessToken,
     refreshToken,
@@ -123,6 +136,8 @@ export async function loginService(
       businessSlug: user.business_slug,
       businessStatus: user.business_status,
       role: user.role,
+      mustChangePassword: Boolean(user.mustChangePassword),
+      permissions,
     },
   };
 }
@@ -206,6 +221,8 @@ export async function registerService(
     [refreshTokenHash, idLogin],
   );
 
+  const permissions = await getPermissionsForUser(user.idBusiness, user.idUser);
+
   return {
     accessToken,
     refreshToken,
@@ -221,6 +238,8 @@ export async function registerService(
       logoUrl: user.logoUrl,
       businessStatus: user.businessStatus,
       role: user.role,
+      mustChangePassword: Boolean(user.mustChangePassword),
+      permissions,
     },
   };
 }
@@ -339,6 +358,37 @@ export async function getUserInfoByIdService(
   }
 
   return mapUserInfo(user);
+}
+
+export async function getAuthenticatedUserContextService(
+  authUser: AuthUser,
+): Promise<AuthenticatedUserContext> {
+  const profile = await getUserInfoByIdService(
+    authUser.idUser,
+    authUser.idBusiness,
+  );
+  const permissions = await getPermissionsForUser(
+    authUser.idBusiness,
+    authUser.idUser,
+  );
+
+  return {
+    idUser: authUser.idUser,
+    idBusiness: authUser.idBusiness,
+    role: authUser.role,
+    name: profile.name,
+    username: profile.username,
+    email: profile.email,
+    mustChangePassword: profile.mustChangePassword,
+    permissions,
+    user: {
+      idUser: authUser.idUser,
+      idBusiness: authUser.idBusiness,
+      role: authUser.role,
+      mustChangePassword: profile.mustChangePassword,
+      permissions,
+    },
+  };
 }
 
 export async function updatePasswordService(

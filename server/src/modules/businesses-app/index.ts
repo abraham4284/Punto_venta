@@ -5,11 +5,13 @@ import { requireOperationalSubscription } from "@/middlewares/requireOperational
 
 import authRoutes from "./auth/index.js";
 import businessRoutes from "./businesses/index.js";
+import businessUserRoutes from "./business-users/index.js";
 import customerRoutes from "./customers/index.js";
 import dashboardRoutes from "./dashboard/index.js";
 import depositRoutes from "./deposits/index.js";
 import productCategoryRoutes from "./product-categories/index.js";
 import productRoutes from "./products/index.js";
+import permissionRoutes from "./permissions/index.js";
 import purchaseRoutes from "./purchases/index.js";
 import saleRoutes from "./sales/index.js";
 import stockRoutes from "./stock/index.js";
@@ -38,6 +40,8 @@ businessesAppRoutes.use(
   requireOperationalSubscription,
 );
 businessesAppRoutes.use(customerRoutes);
+businessesAppRoutes.use(permissionRoutes);
+businessesAppRoutes.use(businessUserRoutes);
 businessesAppRoutes.use(dashboardRoutes);
 businessesAppRoutes.use(depositRoutes);
 businessesAppRoutes.use(productCategoryRoutes);
@@ -52,11 +56,13 @@ businessesAppRoutes.use(ticketRoutes);
 export {
   authRoutes,
   businessRoutes,
+  businessUserRoutes,
   customerRoutes,
   dashboardRoutes,
   depositRoutes,
   productCategoryRoutes,
   productRoutes,
+  permissionRoutes,
   purchaseRoutes,
   saleRoutes,
   stockRoutes,
