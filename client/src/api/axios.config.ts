@@ -35,6 +35,18 @@ const excludedRefreshEndpoints = [
 let refreshPromise: Promise<void> | null = null;
 let subscriptionRefreshPromise: Promise<void> | null = null;
 
+interface SubscriptionLimitResponseData {
+  code?: string;
+  message?: string;
+  data?: {
+    resource?: "USERS" | "PRODUCTS" | "DEPOSITS";
+    planName?: string | null;
+    currentUsage?: number;
+    maximumAllowed?: number | null;
+    remaining?: number | null;
+  };
+}
+
 const isExcludedRefreshRequest = (url?: string): boolean => {
   if (!url) return false;
 
@@ -82,6 +94,33 @@ const refreshBusinessSubscription = async (): Promise<void> => {
   return subscriptionRefreshPromise;
 };
 
+const notifySubscriptionLimitReached = async (
+  responseData: SubscriptionLimitResponseData,
+): Promise<void> => {
+  const { default: toast } = await import("react-hot-toast");
+  const resourceLabels: Record<"USERS" | "PRODUCTS" | "DEPOSITS", string> = {
+    USERS: "usuarios",
+    PRODUCTS: "productos",
+    DEPOSITS: "depositos",
+  };
+  const resource = responseData.data?.resource;
+  const resourceLabel = resource ? resourceLabels[resource] : "recursos";
+  const planName = responseData.data?.planName;
+  const currentUsage = responseData.data?.currentUsage;
+  const maximumAllowed = responseData.data?.maximumAllowed;
+  const usageText =
+    typeof currentUsage === "number" && typeof maximumAllowed === "number"
+      ? ` Uso actual: ${currentUsage} de ${maximumAllowed}.`
+      : "";
+
+  toast.error(
+    `${responseData.message || `Alcanzaste el limite de ${resourceLabel} de tu plan.`}${
+      planName ? ` Plan: ${planName}.` : ""
+    }${usageText} Para crear mas ${resourceLabel}, necesitas cambiar de plan.`,
+    { duration: 7000 },
+  );
+};
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -93,6 +132,17 @@ axiosInstance.interceptors.response.use(
       originalRequest?.url !== "/business/subscription"
     ) {
       await refreshBusinessSubscription();
+      return Promise.reject(error);
+    }
+
+    if (
+      error.response?.status === 409 &&
+      (error.response.data as SubscriptionLimitResponseData | undefined)?.code ===
+        "SUBSCRIPTION_RESOURCE_LIMIT_REACHED"
+    ) {
+      const responseData = error.response.data as SubscriptionLimitResponseData;
+      await refreshBusinessSubscription();
+      await notifySubscriptionLimitReached(responseData);
       return Promise.reject(error);
     }
 

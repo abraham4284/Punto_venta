@@ -2,6 +2,7 @@ import type { AxiosResponse } from "axios";
 import { platformApi } from "@/views/platform/module/auth/api/platformAuth.api";
 import type {
   AssignSubscriptionBody,
+  BusinessOption,
   BusinessSubscription,
   BusinessSubscriptionFilters,
   ChangeSubscriptionPlanBody,
@@ -89,6 +90,12 @@ export const getBusinessSubscriptionsRequest = (
   });
 
   return platformApi.get(`/platform/business-subscriptions?${params.toString()}`);
+};
+
+export const getBusinessOptionsRequest = (): Promise<
+  AxiosResponse<PlatformApiResponse<BusinessOption[]>>
+> => {
+  return platformApi.get("/platform/business-options");
 };
 
 export const assignBusinessSubscriptionRequest = (

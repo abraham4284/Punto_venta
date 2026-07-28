@@ -21,9 +21,16 @@ import type {
 } from "../types/products.types";
 import { useProductCategories } from "../../product-categories/hooks/useProductCategories";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
+import { useBusinessSubscriptionStore } from "../../subscription/store/businessSubscription.store";
 
 export const ProductsPage = () => {
   const [isOpenImportModal, setIsOpenImportModal] = useState(false);
+  const productLimitReached = useBusinessSubscriptionStore(
+    (state) => state.subscriptionState?.usage.products.limitReached ?? false,
+  );
+  const refreshSubscription = useBusinessSubscriptionStore(
+    (state) => state.refreshSubscription,
+  );
   const {
     filteredProducts,
     metrics,
@@ -72,6 +79,7 @@ export const ProductsPage = () => {
   }, [getProducts, resetProducts]);
 
   const handleOpenCreate = () => {
+    if (productLimitReached) return;
     resetDataEdit();
     toggleModal();
   };
@@ -135,6 +143,11 @@ export const ProductsPage = () => {
 
     return createProduct(payload);
   };
+
+  const handleImported = async () => {
+    await getProducts();
+    await refreshSubscription();
+  };
   return (
     <>
       <Meta title="Productos" />
@@ -151,12 +164,27 @@ export const ProductsPage = () => {
           <Button
             type="button"
             variant="outline"
+            disabled={productLimitReached}
+            title={
+              productLimitReached
+                ? "Alcanzaste el limite de productos de tu plan"
+                : "Importar productos"
+            }
             onClick={() => setIsOpenImportModal(true)}
           >
             <Upload className="mr-2 h-4 w-4" />
             Importar productos
           </Button>
-          <Button type="button" onClick={handleOpenCreate}>
+          <Button
+            type="button"
+            disabled={productLimitReached}
+            title={
+              productLimitReached
+                ? "Alcanzaste el limite de productos de tu plan"
+                : "Nuevo producto"
+            }
+            onClick={handleOpenCreate}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nuevo producto
           </Button>
@@ -199,7 +227,7 @@ export const ProductsPage = () => {
       <ImportProductModal
         isOpen={isOpenImportModal}
         onClose={() => setIsOpenImportModal(false)}
-        onImported={getProducts}
+        onImported={handleImported}
       />
       </main>
     </>

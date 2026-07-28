@@ -64,16 +64,11 @@ export const ProductPricesModal = ({
     useForm<ProductPricesFormValues>(initialForm);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const expectedWholesaleValue =
-    product?.priceWholesale === null || product?.priceWholesale === undefined
-      ? ""
-      : String(product.priceWholesale);
+  const [initializedProductId, setInitializedProductId] = useState<
+    number | null
+  >(null);
   const formIsReady =
-    !isOpen ||
-    !product ||
-    (formSate.priceCost === String(product.priceCost) &&
-      formSate.priceSale === String(product.priceSale) &&
-      formSate.priceWholesale === expectedWholesaleValue);
+    !isOpen || !product || initializedProductId === product.idProduct;
 
   const liveErrors = useMemo(() => {
     const nextErrors: Record<string, string> = {};
@@ -113,9 +108,11 @@ export const ProductPricesModal = ({
       if (!product || !isOpen) {
         setFormSate(initialForm);
         setErrors({});
+        setInitializedProductId(null);
         return;
       }
 
+      setInitializedProductId(null);
       setFormSate({
         priceCost: String(product.priceCost),
         priceSale: String(product.priceSale),
@@ -126,6 +123,7 @@ export const ProductPricesModal = ({
             : String(product.priceWholesale),
       });
       setErrors({});
+      setInitializedProductId(product.idProduct);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);

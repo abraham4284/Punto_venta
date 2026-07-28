@@ -14,6 +14,10 @@ import {
   updateProductPricesSchema,
   updateProductSchema,
 } from "../validations/products.validations.js";
+import {
+  createLimitErrorFromSqlMessage,
+  isSubscriptionResourceLimitError,
+} from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
 
 function getZodErrors(error: z.ZodError) {
   return error.issues.map(function mapIssue(issue) {
@@ -24,12 +28,64 @@ function getZodErrors(error: z.ZodError) {
   });
 }
 
-function getErrorStatus(error: any): number {
-  if (error?.sqlState === "45000") {
+interface ControllerError {
+  sqlState?: string;
+  sqlMessage?: string;
+  message?: string;
+}
+
+function getErrorStatus(error: ControllerError): number {
+  const limitError = createLimitErrorFromSqlMessage(
+    error.sqlMessage || error.message || "",
+  );
+
+  if (isSubscriptionResourceLimitError(error) || limitError) {
+    return 409;
+  }
+
+  if (error.sqlState === "45000") {
     return 400;
   }
 
   return 500;
+}
+
+function getErrorPayload(error: unknown): {
+  status: false;
+  success?: false;
+  code?: string;
+  message: string;
+  data?: unknown;
+} {
+  if (isSubscriptionResourceLimitError(error)) {
+    return {
+      status: false,
+      success: false,
+      code: error.code,
+      message: error.message,
+      data: error.data,
+    };
+  }
+
+  const typedError = error as ControllerError;
+  const limitError = createLimitErrorFromSqlMessage(
+    typedError.sqlMessage || typedError.message || "",
+  );
+
+  if (limitError) {
+    return {
+      status: false,
+      success: false,
+      code: limitError.code,
+      message: limitError.message,
+      data: limitError.data,
+    };
+  }
+
+  return {
+    status: false,
+    message: typedError.sqlMessage || typedError.message || "Error interno",
+  };
 }
 
 export async function createProductController(
@@ -52,7 +108,7 @@ export async function createProductController(
       message: "Producto creado correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -61,10 +117,8 @@ export async function createProductController(
       });
     }
 
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+    const typedError = error as ControllerError;
+    return res.status(getErrorStatus(typedError)).json(getErrorPayload(error));
   }
 }
 
@@ -80,11 +134,9 @@ export async function getProductsController(
       message: "Productos obtenidos correctamente",
       data: result,
     });
-  } catch (error: any) {
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+  } catch (error: unknown) {
+    const typedError = error as ControllerError;
+    return res.status(getErrorStatus(typedError)).json(getErrorPayload(error));
   }
 }
 
@@ -109,11 +161,9 @@ export async function getProductByIdController(
       message: "Producto obtenido correctamente",
       data: result,
     });
-  } catch (error: any) {
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+  } catch (error: unknown) {
+    const typedError = error as ControllerError;
+    return res.status(getErrorStatus(typedError)).json(getErrorPayload(error));
   }
 }
 
@@ -135,7 +185,7 @@ export async function updateProductController(
       message: "Producto actualizado correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -144,10 +194,8 @@ export async function updateProductController(
       });
     }
 
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+    const typedError = error as ControllerError;
+    return res.status(getErrorStatus(typedError)).json(getErrorPayload(error));
   }
 }
 
@@ -169,7 +217,7 @@ export async function updateProductPricesController(
       message: "Precios del producto actualizados correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -178,10 +226,8 @@ export async function updateProductPricesController(
       });
     }
 
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+    const typedError = error as ControllerError;
+    return res.status(getErrorStatus(typedError)).json(getErrorPayload(error));
   }
 }
 
@@ -203,7 +249,7 @@ export async function toggleProductStatusController(
       message: "Estado del producto actualizado correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -212,9 +258,7 @@ export async function toggleProductStatusController(
       });
     }
 
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+    const typedError = error as ControllerError;
+    return res.status(getErrorStatus(typedError)).json(getErrorPayload(error));
   }
 }

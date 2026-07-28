@@ -18,6 +18,9 @@ CREATE PROCEDURE sp_create_product(
 )
 BEGIN
   DECLARE v_idProduct INT;
+  DECLARE v_idBusinessSubscription INT DEFAULT NULL;
+  DECLARE v_maxProducts INT DEFAULT NULL;
+  DECLARE v_activeProducts INT DEFAULT 0;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -58,6 +61,35 @@ BEGIN
   END IF;
 
   START TRANSACTION;
+
+  SELECT bs.idBusinessSubscription, sp.max_products
+  INTO v_idBusinessSubscription, v_maxProducts
+  FROM business_subscriptions bs
+  INNER JOIN subscription_plans sp
+    ON sp.idSubscriptionPlan = bs.idSubscriptionPlan
+  WHERE bs.idBusiness = p_idBusiness
+    AND bs.status IN ('TRIAL','ACTIVE','PAST_DUE')
+  ORDER BY bs.created_at DESC, bs.idBusinessSubscription DESC
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_idBusinessSubscription IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SUBSCRIPTION_REQUIRED';
+  END IF;
+
+  IF v_maxProducts IS NOT NULL THEN
+    SELECT COUNT(*)
+    INTO v_activeProducts
+    FROM products
+    WHERE idBusiness = p_idBusiness
+      AND is_active = 1;
+
+    IF v_activeProducts + 1 > v_maxProducts THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'SUBSCRIPTION_PRODUCT_LIMIT_REACHED';
+    END IF;
+  END IF;
 
   INSERT INTO products (
     idBusiness,
@@ -309,12 +341,71 @@ CREATE PROCEDURE sp_toggle_product_status(
   IN p_is_active TINYINT
 )
 BEGIN
+  DECLARE v_current_is_active TINYINT DEFAULT NULL;
+  DECLARE v_idBusinessSubscription INT DEFAULT NULL;
+  DECLARE v_maxProducts INT DEFAULT NULL;
+  DECLARE v_activeProducts INT DEFAULT 0;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  START TRANSACTION;
+
+  SELECT is_active
+  INTO v_current_is_active
+  FROM products
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_current_is_active IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Producto no encontrado o no pertenece al negocio';
+  END IF;
+
+  IF v_current_is_active = 0 AND p_is_active = 1 THEN
+    SELECT bs.idBusinessSubscription, sp.max_products
+    INTO v_idBusinessSubscription, v_maxProducts
+    FROM business_subscriptions bs
+    INNER JOIN subscription_plans sp
+      ON sp.idSubscriptionPlan = bs.idSubscriptionPlan
+    WHERE bs.idBusiness = p_idBusiness
+      AND bs.status IN ('TRIAL','ACTIVE','PAST_DUE')
+    ORDER BY bs.created_at DESC, bs.idBusinessSubscription DESC
+    LIMIT 1
+    FOR UPDATE;
+
+    IF v_idBusinessSubscription IS NULL THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'SUBSCRIPTION_REQUIRED';
+    END IF;
+
+    IF v_maxProducts IS NOT NULL THEN
+      SELECT COUNT(*)
+      INTO v_activeProducts
+      FROM products
+      WHERE idBusiness = p_idBusiness
+        AND is_active = 1;
+
+      IF v_activeProducts + 1 > v_maxProducts THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'SUBSCRIPTION_PRODUCT_LIMIT_REACHED';
+      END IF;
+    END IF;
+  END IF;
+
   UPDATE products
   SET
     is_active = p_is_active,
     updated_at = NOW()
   WHERE idBusiness = p_idBusiness
     AND idProduct = p_idProduct;
+
+  COMMIT;
 
   CALL sp_get_product_by_id(p_idBusiness, p_idProduct);
 END$$

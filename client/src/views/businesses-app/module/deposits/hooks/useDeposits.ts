@@ -12,6 +12,7 @@ import type {
   FieldError,
   UpdateDepositBody,
 } from "../types/deposits.types";
+import { useBusinessSubscriptionStore } from "../../subscription/store/businessSubscription.store";
 
 type MutationResult = {
   status: boolean;
@@ -69,6 +70,7 @@ export const useDeposits = () => {
       const response = await createDepositRequest(body);
 
       await getDeposits();
+      await useBusinessSubscriptionStore.getState().refreshSubscription();
 
       return {
         status: true,
@@ -95,6 +97,7 @@ export const useDeposits = () => {
       const response = await updateDepositRequest(idDeposit, body);
 
       await getDeposits();
+      await useBusinessSubscriptionStore.getState().refreshSubscription();
 
       return {
         status: true,

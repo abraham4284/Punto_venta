@@ -8,6 +8,7 @@ import {
   changeBusinessSubscriptionPlanRequest,
   createSubscriptionPaymentRequest,
   createSubscriptionPlanRequest,
+  getBusinessOptionsRequest,
   getBusinessSubscriptionsRequest,
   getSubscriptionEventsRequest,
   getSubscriptionPaymentsRequest,
@@ -23,7 +24,7 @@ import {
 import { getSubscriptionErrorMessage } from "../helpers/subscription-format.helpers";
 import type {
   AssignSubscriptionBody,
-  BillingPeriod,
+  BusinessOption,
   BusinessSubscription,
   BusinessSubscriptionFilters,
   CreateSubscriptionPaymentBody,
@@ -37,12 +38,9 @@ import type {
   SubscriptionPayment,
   SubscriptionPaymentFilters,
   SubscriptionPaymentFormValues,
-  SubscriptionPaymentMethod,
-  SubscriptionPaymentStatus,
   SubscriptionPlan,
   SubscriptionPlanFilters,
   SubscriptionPlanFormValues,
-  SubscriptionStatus,
   UpdateSubscriptionPlanBody,
 } from "../types/subscriptions.types";
 
@@ -126,6 +124,7 @@ const getFieldErrors = (error: unknown): FieldError[] => {
 
 export const useSubscriptions = () => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [businessOptions, setBusinessOptions] = useState<BusinessOption[]>([]);
   const [subscriptions, setSubscriptions] = useState<BusinessSubscription[]>([]);
   const [payments, setPayments] = useState<SubscriptionPayment[]>([]);
   const [events, setEvents] = useState<SubscriptionEvent[]>([]);
@@ -154,6 +153,7 @@ export const useSubscriptions = () => {
   const [eventPage, setEventPage] = useState(1);
 
   const [loadingPlans, setLoadingPlans] = useState(false);
+  const [loadingBusinessOptions, setLoadingBusinessOptions] = useState(false);
   const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -181,6 +181,25 @@ export const useSubscriptions = () => {
       setLoadingPlans(false);
     }
   }, [planFilters, planPage]);
+
+  const fetchBusinessOptions = useCallback(async () => {
+    setLoadingBusinessOptions(true);
+    setError(null);
+
+    try {
+      const { data } = await getBusinessOptionsRequest();
+      setBusinessOptions(data.data);
+    } catch (requestError: unknown) {
+      const message = getAxiosMessage(
+        requestError,
+        "No se pudieron cargar los negocios",
+      );
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoadingBusinessOptions(false);
+    }
+  }, []);
 
   const fetchSubscriptions = useCallback(async () => {
     setLoadingSubscriptions(true);
@@ -240,19 +259,43 @@ export const useSubscriptions = () => {
   }, [eventFilters, eventPage]);
 
   useEffect(() => {
-    void fetchPlans();
+    const timeoutId = window.setTimeout(() => {
+      void fetchPlans();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchPlans]);
 
   useEffect(() => {
-    void fetchSubscriptions();
+    const timeoutId = window.setTimeout(() => {
+      void fetchBusinessOptions();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchBusinessOptions]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void fetchSubscriptions();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchSubscriptions]);
 
   useEffect(() => {
-    void fetchPayments();
+    const timeoutId = window.setTimeout(() => {
+      void fetchPayments();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchPayments]);
 
   useEffect(() => {
-    void fetchEvents();
+    const timeoutId = window.setTimeout(() => {
+      void fetchEvents();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchEvents]);
 
   const applyPlanFilters = (filters: SubscriptionPlanFilters) => {
@@ -597,6 +640,7 @@ export const useSubscriptions = () => {
 
   return {
     plans,
+    businessOptions,
     subscriptions,
     payments,
     events,
@@ -613,6 +657,7 @@ export const useSubscriptions = () => {
     paymentPage,
     eventPage,
     loadingPlans,
+    loadingBusinessOptions,
     loadingSubscriptions,
     loadingPayments,
     loadingEvents,

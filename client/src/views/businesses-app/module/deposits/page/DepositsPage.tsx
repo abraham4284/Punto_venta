@@ -17,8 +17,12 @@ import type {
   DepositFormValues,
   DepositResponse,
 } from "../types/deposits.types";
+import { useBusinessSubscriptionStore } from "../../subscription/store/businessSubscription.store";
 
 export const DepositsPage = () => {
+  const depositLimitReached = useBusinessSubscriptionStore(
+    (state) => state.subscriptionState?.usage.deposits.limitReached ?? false,
+  );
   const {
     filteredDeposits,
     metrics,
@@ -47,6 +51,7 @@ export const DepositsPage = () => {
   }, [getDeposits]);
 
   const handleOpenCreate = () => {
+    if (depositLimitReached) return;
     resetDataEdit();
     toggleModal();
   };
@@ -78,7 +83,16 @@ export const DepositsPage = () => {
           </p>
         </div>
 
-        <Button type="button" onClick={handleOpenCreate}>
+        <Button
+          type="button"
+          disabled={depositLimitReached}
+          title={
+            depositLimitReached
+              ? "Alcanzaste el limite de depositos de tu plan"
+              : "Nuevo deposito"
+          }
+          onClick={handleOpenCreate}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Nuevo depósito
         </Button>

@@ -59,6 +59,10 @@ const mapServerErrors = (errors: FieldError[]) => {
   }, {});
 };
 
+const getSubscriptionLabel = (subscription: BusinessSubscription): string => {
+  return `${subscription.business.name} - ${subscription.plan.name}`;
+};
+
 export const SubscriptionPaymentModal = ({
   isOpen,
   onClose,
@@ -76,21 +80,41 @@ export const SubscriptionPaymentModal = ({
     () => ({ ...localErrors, ...mapServerErrors(fieldErrors) }),
     [fieldErrors, localErrors],
   );
+  const selectedBusinessSubscription = useMemo(() => {
+    if (!formSate.idBusinessSubscription) return null;
+
+    return (
+      subscriptions.find((subscription) => {
+        return (
+          subscription.idBusinessSubscription ===
+          Number(formSate.idBusinessSubscription)
+        );
+      }) ?? null
+    );
+  }, [formSate.idBusinessSubscription, subscriptions]);
+  const selectedBusinessSubscriptionLabel = selectedBusinessSubscription
+    ? getSubscriptionLabel(selectedBusinessSubscription)
+    : "";
 
   useEffect(() => {
     if (!isOpen) return;
-    setLocalErrors({});
-    onClearErrors();
-    setFormSate({
-      ...initialForm,
-      idBusinessSubscription: selectedSubscription
-        ? String(selectedSubscription.idBusinessSubscription)
-        : "",
-      amount: selectedSubscription ? selectedSubscription.plan.price : "",
-      currency: selectedSubscription?.plan.currency || "ARS",
-      periodStart: selectedSubscription?.currentPeriodStart?.slice(0, 10) || "",
-      periodEnd: selectedSubscription?.currentPeriodEnd?.slice(0, 10) || "",
-    });
+
+    const timeoutId = window.setTimeout(() => {
+      setLocalErrors({});
+      onClearErrors();
+      setFormSate({
+        ...initialForm,
+        idBusinessSubscription: selectedSubscription
+          ? String(selectedSubscription.idBusinessSubscription)
+          : "",
+        amount: selectedSubscription ? selectedSubscription.plan.price : "",
+        currency: selectedSubscription?.plan.currency || "ARS",
+        periodStart: selectedSubscription?.currentPeriodStart?.slice(0, 10) || "",
+        periodEnd: selectedSubscription?.currentPeriodEnd?.slice(0, 10) || "",
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [isOpen, onClearErrors, selectedSubscription, setFormSate]);
 
   const handleClose = () => {
@@ -152,7 +176,9 @@ export const SubscriptionPaymentModal = ({
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccione una suscripcion" />
+                <SelectValue placeholder="Seleccione una suscripcion">
+                  {selectedBusinessSubscriptionLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -161,7 +187,7 @@ export const SubscriptionPaymentModal = ({
                       key={subscription.idBusinessSubscription}
                       value={String(subscription.idBusinessSubscription)}
                     >
-                      {subscription.business.name} - {subscription.plan.name}
+                      {getSubscriptionLabel(subscription)}
                     </SelectItem>
                   ))}
                 </SelectGroup>

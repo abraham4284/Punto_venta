@@ -26,6 +26,7 @@ export interface ProductImportResolvedRow extends ProductImportRawRow {
   idProductCategory: number;
   idDeposit: number;
   existingProductId: number | null;
+  existingProductIsActive: boolean | null;
   status: ProductImportRowStatus;
   warnings: string[];
 }
@@ -84,6 +85,12 @@ export interface LookupRow extends RowDataPacket {
 export interface ExistingProductRow extends RowDataPacket {
   idProduct: number;
   barcode: string;
+  is_active: number;
+}
+
+export interface ExistingProductStatusRow extends RowDataPacket {
+  idProduct: number;
+  is_active: number;
 }
 
 export interface StockLookupRow extends RowDataPacket {

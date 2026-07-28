@@ -1,9 +1,11 @@
 import {
   CalendarClock,
-  CheckCircle2,
   Headphones,
   RefreshCcw,
   ShieldCheck,
+  Users,
+  Package,
+  Warehouse,
 } from "lucide-react";
 import { Meta } from "@/components/Meta";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +21,25 @@ import {
 } from "../helpers/subscriptionDisplay.helpers";
 import { useBusinessSubscription } from "../hooks/useBusinessSubscription";
 import { SubscriptionStatusBadge } from "../components/SubscriptionStatusBadge";
+import type { SubscriptionResourceUsage } from "../types/businessSubscription.types";
+
+const getUsageLabel = (usage?: SubscriptionResourceUsage): string => {
+  if (!usage) return "-";
+  if (usage.limit === null) return `${usage.current} - Sin limite`;
+  return `${usage.current} de ${usage.limit}`;
+};
+
+const getUsageTone = (usage?: SubscriptionResourceUsage): string => {
+  if (!usage || usage.limit === null) return "bg-sky-500";
+  if (usage.limitReached) return "bg-red-500";
+  if ((usage.remaining ?? 0) <= 2) return "bg-amber-500";
+  return "bg-emerald-500";
+};
+
+const getUsagePercent = (usage?: SubscriptionResourceUsage): number => {
+  if (!usage || usage.limit === null || usage.limit === 0) return 100;
+  return Math.min(Math.round((usage.current / usage.limit) * 100), 100);
+};
 
 export const BusinessSubscriptionPage = () => {
   const { subscriptionState, loading, error, refreshSubscription } =
@@ -162,17 +183,28 @@ export const BusinessSubscriptionPage = () => {
         <Card>
           <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
             {[
-              ["Usuarios", plan?.maxUsers],
-              ["Productos", plan?.maxProducts],
-              ["Depositos", plan?.maxDeposits],
-            ].map(([label, value]) => (
+              ["Usuarios", subscriptionState?.usage.users, Users],
+              ["Productos", subscriptionState?.usage.products, Package],
+              ["Depositos", subscriptionState?.usage.deposits, Warehouse],
+            ].map(([label, usage, Icon]) => (
               <div key={String(label)} className="rounded-xl border bg-muted/20 p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">{String(label)}</p>
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="mt-2 text-xl font-semibold">
-                  {value === null || value === undefined ? "Ilimitado" : String(value)}
+                <p className="mt-2 text-xl font-semibold">{getUsageLabel(usage)}</p>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={cn("h-full rounded-full", getUsageTone(usage))}
+                    style={{ width: `${getUsagePercent(usage)}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {usage?.limit === null
+                    ? "Recurso ilimitado para este plan"
+                    : usage?.limitReached
+                      ? "Limite alcanzado"
+                      : `Restantes: ${usage?.remaining ?? 0}`}
                 </p>
               </div>
             ))}

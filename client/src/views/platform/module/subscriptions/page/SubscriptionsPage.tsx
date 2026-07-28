@@ -12,7 +12,7 @@ import {
 import { Meta } from "@/components/Meta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -41,6 +41,7 @@ import { BusinessSubscriptionsTable } from "../components/subscriptions/Business
 import { ConfirmAction } from "../components/shared/ConfirmAction";
 import { SimplePagination } from "../components/shared/SimplePagination";
 import { SubscriptionEventsTable } from "../components/events/SubscriptionEventsTable";
+import { SubscriptionPaymentFilterPanel } from "../components/payments/SubscriptionPaymentFilters";
 import { SubscriptionPaymentModal } from "../components/payments/SubscriptionPaymentModal";
 import { SubscriptionActionReasonModal } from "../components/subscriptions/SubscriptionActionReasonModal";
 import { SubscriptionPaymentsTable } from "../components/payments/SubscriptionPaymentsTable";
@@ -73,6 +74,13 @@ const subscriptionStatusOptions: Array<{
   { value: "CANCELLED", label: "Canceladas" },
   { value: "EXPIRED", label: "Expiradas" },
 ];
+
+const emptyPaymentFilters: SubscriptionPaymentFilters = {
+  idBusinessSubscription: "",
+  idBusiness: "",
+  status: "ALL",
+  paymentMethod: "ALL",
+};
 
 const isSectionKey = (value: string | null): value is SectionKey => {
   return value === "plans" || value === "subscriptions" || value === "payments" || value === "events";
@@ -182,6 +190,11 @@ export const SubscriptionsPage = () => {
       cancelAtPeriodEnd,
     );
     if (success) closeReasonModal();
+  };
+
+  const clearPaymentFilters = () => {
+    setLocalPaymentFilters(emptyPaymentFilters);
+    subscriptionsHook.applyPaymentFilters(emptyPaymentFilters);
   };
 
   return (
@@ -502,99 +515,16 @@ export const SubscriptionsPage = () => {
 
             {activeSection === "payments" && (
               <>
-                <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 p-4 xl:flex-row xl:items-end xl:justify-between">
-                  <div className="grid flex-1 gap-3 md:grid-cols-4">
-                    <div className="space-y-2">
-                      <Label>ID suscripcion</Label>
-                      <Input
-                        value={localPaymentFilters.idBusinessSubscription}
-                        onChange={(event) =>
-                          setLocalPaymentFilters({
-                            ...localPaymentFilters,
-                            idBusinessSubscription: event.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>ID negocio</Label>
-                      <Input
-                        value={localPaymentFilters.idBusiness}
-                        onChange={(event) =>
-                          setLocalPaymentFilters({
-                            ...localPaymentFilters,
-                            idBusiness: event.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Estado</Label>
-                      <Select
-                        value={localPaymentFilters.status}
-                        onValueChange={(value) => {
-                          if (!value) return;
-                          setLocalPaymentFilters({
-                            ...localPaymentFilters,
-                            status: value as SubscriptionPaymentFilters["status"],
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value="ALL">Todos</SelectItem>
-                            <SelectItem value="PENDING">Pendientes</SelectItem>
-                            <SelectItem value="APPROVED">Aprobados</SelectItem>
-                            <SelectItem value="REJECTED">Rechazados</SelectItem>
-                            <SelectItem value="CANCELLED">Cancelados</SelectItem>
-                            <SelectItem value="REFUNDED">Reembolsados</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Metodo</Label>
-                      <Select
-                        value={localPaymentFilters.paymentMethod}
-                        onValueChange={(value) => {
-                          if (!value) return;
-                          setLocalPaymentFilters({
-                            ...localPaymentFilters,
-                            paymentMethod:
-                              value as SubscriptionPaymentFilters["paymentMethod"],
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value="ALL">Todos</SelectItem>
-                            <SelectItem value="CASH">Efectivo</SelectItem>
-                            <SelectItem value="TRANSFER">Transferencia</SelectItem>
-                            <SelectItem value="MERCADO_PAGO">Mercado Pago</SelectItem>
-                            <SelectItem value="CARD">Tarjeta</SelectItem>
-                            <SelectItem value="OTHER">Otro</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        subscriptionsHook.applyPaymentFilters(localPaymentFilters)
-                      }
-                    >
-                      <Filter className="size-4" />
-                      Aplicar
-                    </Button>
+                <div className="space-y-3">
+                  <SubscriptionPaymentFilterPanel
+                    filters={localPaymentFilters}
+                    businesses={subscriptionsHook.businessOptions}
+                    subscriptions={subscriptionsHook.subscriptions}
+                    onChange={setLocalPaymentFilters}
+                    onApply={subscriptionsHook.applyPaymentFilters}
+                    onClear={clearPaymentFilters}
+                  />
+                  <div className="flex justify-end">
                     <Button
                       type="button"
                       disabled={!canOperate}
@@ -723,9 +653,11 @@ export const SubscriptionsPage = () => {
       <AssignSubscriptionModal
         isOpen={assignModalOpen}
         onClose={() => setAssignModalOpen(false)}
+        businesses={subscriptionsHook.businessOptions}
         plans={subscriptionsHook.plans}
         fieldErrors={subscriptionsHook.fieldErrors}
         isSaving={subscriptionsHook.actionLoading === "assign-subscription"}
+        isLoadingBusinesses={subscriptionsHook.loadingBusinessOptions}
         onAssign={subscriptionsHook.assignSubscription}
         onClearErrors={subscriptionsHook.clearFieldErrors}
       />
@@ -741,21 +673,23 @@ export const SubscriptionsPage = () => {
         onClearErrors={subscriptionsHook.clearFieldErrors}
       />
 
-      <SubscriptionActionReasonModal
-        isOpen={reasonModalOpen}
-        actionType={reasonAction}
-        subscription={reasonSubscription}
-        isSaving={
-          Boolean(
-            reasonSubscription &&
-              subscriptionsHook.actionLoading ===
-                `${reasonAction === "SUSPEND" ? "suspend" : "cancel"}-subscription-${reasonSubscription.idBusinessSubscription}`,
-          )
-        }
-        onClose={closeReasonModal}
-        onSuspend={suspendWithReason}
-        onCancel={cancelWithReason}
-      />
+      {reasonModalOpen && (
+        <SubscriptionActionReasonModal
+          isOpen={reasonModalOpen}
+          actionType={reasonAction}
+          subscription={reasonSubscription}
+          isSaving={
+            Boolean(
+              reasonSubscription &&
+                subscriptionsHook.actionLoading ===
+                  `${reasonAction === "SUSPEND" ? "suspend" : "cancel"}-subscription-${reasonSubscription.idBusinessSubscription}`,
+            )
+          }
+          onClose={closeReasonModal}
+          onSuspend={suspendWithReason}
+          onCancel={cancelWithReason}
+        />
+      )}
     </>
   );
 };

@@ -188,6 +188,22 @@ export interface BusinessSubscriptionResponse {
   updatedAt: Date | null;
 }
 
+export interface BusinessOptionRow extends RowDataPacket {
+  idBusiness: number;
+  name: string;
+  slug: string;
+  status: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+  isActive: number;
+}
+
+export interface BusinessOptionResponse {
+  idBusiness: number;
+  name: string;
+  slug: string;
+  status: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+  isActive: boolean;
+}
+
 export interface SubscriptionListFilters {
   search?: string | null;
   idBusiness?: number | null;

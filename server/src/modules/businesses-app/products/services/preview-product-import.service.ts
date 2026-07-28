@@ -230,22 +230,25 @@ async function getLookupMap(
 async function getExistingProductsMap(
   idBusiness: number,
   barcodes: string[],
-): Promise<Map<string, number>> {
+): Promise<Map<string, { idProduct: number; isActive: boolean }>> {
   if (barcodes.length === 0) {
-    return new Map<string, number>();
+    return new Map<string, { idProduct: number; isActive: boolean }>();
   }
 
   const placeholders = barcodes.map(function createPlaceholder() {
     return "?";
   }).join(",");
   const [rows] = await pool.query<ExistingProductRow[]>(
-    `SELECT idProduct, barcode FROM products WHERE idBusiness = ? AND barcode IN (${placeholders})`,
+    `SELECT idProduct, barcode, is_active FROM products WHERE idBusiness = ? AND barcode IN (${placeholders})`,
     [idBusiness, ...barcodes],
   );
-  const map = new Map<string, number>();
+  const map = new Map<string, { idProduct: number; isActive: boolean }>();
 
   for (const row of rows) {
-    map.set(row.barcode, row.idProduct);
+    map.set(row.barcode, {
+      idProduct: row.idProduct,
+      isActive: Boolean(row.is_active),
+    });
   }
 
   return map;
@@ -326,9 +329,10 @@ export async function previewProductImportService(
     const rowErrors: ProductImportError[] = [];
     const categoryId = categoryMap.get(normalizeLookupKey(row.categoryName));
     const depositId = depositMap.get(normalizeLookupKey(row.depositName));
-    const existingProductId = row.barcode
+    const existingProduct = row.barcode
       ? existingProductMap.get(row.barcode) ?? null
       : null;
+    const existingProductId = existingProduct?.idProduct ?? null;
     const isInternalDuplicate = row.barcode
       ? (barcodeCounter.get(row.barcode) ?? 0) > 1
       : false;
@@ -360,6 +364,7 @@ export async function previewProductImportService(
         idProductCategory: categoryId ?? 0,
         idDeposit: depositId ?? 0,
         existingProductId,
+        existingProductIsActive: existingProduct?.isActive ?? null,
         status: "INVALID",
         warnings: [],
       });
@@ -391,6 +396,7 @@ export async function previewProductImportService(
       idProductCategory: categoryId ?? 0,
       idDeposit: depositId ?? 0,
       existingProductId,
+      existingProductIsActive: existingProduct?.isActive ?? null,
       status: isInternalDuplicate || existingProductId ? "DUPLICATE" : "VALID",
       warnings: existingProductId
         ? ["Disponible para actualizar usando el modo Actualizar por codigo"]

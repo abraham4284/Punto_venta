@@ -79,6 +79,18 @@ export interface BusinessSubscriptionResponse {
     shouldShowBanner: boolean;
     shouldBlockApplication: boolean;
   };
+  usage: {
+    users: SubscriptionResourceUsage;
+    products: SubscriptionResourceUsage;
+    deposits: SubscriptionResourceUsage;
+  };
+}
+
+export interface SubscriptionResourceUsage {
+  current: number;
+  limit: number | null;
+  remaining: number | null;
+  limitReached: boolean;
 }
 
 export interface BusinessSubscriptionApiResponse {

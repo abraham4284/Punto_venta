@@ -4,6 +4,10 @@ import { createProductImportTemplateService } from "../services/create-product-i
 import { previewProductImportService } from "../services/preview-product-import.service.js";
 import { confirmProductImportService } from "../services/confirm-product-import.service.js";
 import { confirmProductImportSchema } from "../validations/product-import.validation.js";
+import {
+  createLimitErrorFromSqlMessage,
+  isSubscriptionResourceLimitError,
+} from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
 
 function getZodErrors(error: z.ZodError) {
   return error.issues.map(function mapIssue(issue) {
@@ -14,8 +18,13 @@ function getZodErrors(error: z.ZodError) {
   });
 }
 
-function getClientMessage(error: any): string {
-  if (error?.message) {
+interface ImportControllerError {
+  sqlMessage?: string;
+  message?: string;
+}
+
+function getClientMessage(error: ImportControllerError): string {
+  if (error.message) {
     return error.message;
   }
 
@@ -38,10 +47,11 @@ export async function downloadProductImportTemplateController(
       "attachment; filename=plantilla-importacion-productos.xlsx",
     );
     res.status(200).send(buffer);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const typedError = error as ImportControllerError;
     res.status(400).json({
       status: false,
-      message: getClientMessage(error),
+      message: getClientMessage(typedError),
     });
   }
 }
@@ -69,10 +79,11 @@ export async function previewProductImportController(
       message: "Vista previa generada correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const typedError = error as ImportControllerError;
     return res.status(400).json({
       status: false,
-      message: getClientMessage(error),
+      message: getClientMessage(typedError),
     });
   }
 }
@@ -96,7 +107,7 @@ export async function confirmProductImportController(
       message: "Importacion finalizada con exito",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -105,9 +116,34 @@ export async function confirmProductImportController(
       });
     }
 
+    if (isSubscriptionResourceLimitError(error)) {
+      return res.status(error.statusCode).json({
+        status: false,
+        success: false,
+        code: error.code,
+        message: error.message,
+        data: error.data,
+      });
+    }
+
+    const typedError = error as ImportControllerError;
+    const sqlLimitError = createLimitErrorFromSqlMessage(
+      typedError.sqlMessage || typedError.message || "",
+    );
+
+    if (sqlLimitError) {
+      return res.status(sqlLimitError.statusCode).json({
+        status: false,
+        success: false,
+        code: sqlLimitError.code,
+        message: sqlLimitError.message,
+        data: sqlLimitError.data,
+      });
+    }
+
     return res.status(400).json({
       status: false,
-      message: getClientMessage(error),
+      message: getClientMessage(typedError),
     });
   }
 }

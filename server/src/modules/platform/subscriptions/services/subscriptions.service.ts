@@ -14,6 +14,8 @@ import {
 import type {
   AssignSubscriptionBody,
   AutoRenewBody,
+  BusinessOptionResponse,
+  BusinessOptionRow,
   BusinessSubscriptionResponse,
   BusinessSubscriptionRow,
   CancelSubscriptionBody,
@@ -72,6 +74,27 @@ function generatePaymentNumber(): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `SUB-${year}${month}${day}-${random}`;
+}
+
+function mapBusinessOption(row: BusinessOptionRow): BusinessOptionResponse {
+  return {
+    idBusiness: row.idBusiness,
+    name: row.name,
+    slug: row.slug,
+    status: row.status,
+    isActive: Boolean(row.isActive),
+  };
+}
+
+export async function listBusinessOptionsService(): Promise<
+  BusinessOptionResponse[]
+> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_platform_business_options()",
+  );
+  const result = rows as unknown as BusinessOptionRow[][];
+
+  return result[0].map(mapBusinessOption);
 }
 
 export async function listSubscriptionPlansService(
