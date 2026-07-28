@@ -159,6 +159,8 @@ WHERE code IN (
   'sales.create',
   'products.view',
   'stock.view',
+  'deposits.view',
   'customers.view',
-  'customers.create'
+  'customers.create',
+  'business.view'
 );
