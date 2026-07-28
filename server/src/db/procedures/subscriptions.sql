@@ -1,3 +1,22 @@
+DROP PROCEDURE IF EXISTS sp_platform_business_options;
+DELIMITER $$
+
+CREATE PROCEDURE sp_platform_business_options()
+BEGIN
+  SELECT
+    idBusiness,
+    name,
+    slug,
+    status,
+    is_active AS isActive
+  FROM businesses
+  WHERE is_active = 1
+    AND status <> 'CANCELLED'
+  ORDER BY name ASC, idBusiness ASC;
+END$$
+
+DELIMITER ;
+
 DROP PROCEDURE IF EXISTS sp_subscription_plan_list;
 DELIMITER $$
 

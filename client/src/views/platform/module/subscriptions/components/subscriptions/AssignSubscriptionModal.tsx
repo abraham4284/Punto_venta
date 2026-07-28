@@ -22,6 +22,7 @@ import { useForm } from "@/hooks/useForm";
 import { assignSubscriptionSchema } from "../../validations/subscriptions.validations";
 import type {
   AssignSubscriptionBody,
+  BusinessOption,
   FieldError,
   SubscriptionPlan,
 } from "../../types/subscriptions.types";
@@ -37,9 +38,11 @@ interface AssignFormValues {
 interface AssignSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  businesses: BusinessOption[];
   plans: SubscriptionPlan[];
   fieldErrors: FieldError[];
   isSaving: boolean;
+  isLoadingBusinesses: boolean;
   onAssign: (body: AssignSubscriptionBody) => Promise<{ success: boolean }>;
   onClearErrors: () => void;
 }
@@ -59,12 +62,18 @@ const mapServerErrors = (errors: FieldError[]) => {
   }, {});
 };
 
+const getBusinessLabel = (business: BusinessOption) => {
+  return `${business.name} (${business.slug})`;
+};
+
 export const AssignSubscriptionModal = ({
   isOpen,
   onClose,
+  businesses,
   plans,
   fieldErrors,
   isSaving,
+  isLoadingBusinesses,
   onAssign,
   onClearErrors,
 }: AssignSubscriptionModalProps) => {
@@ -75,12 +84,21 @@ export const AssignSubscriptionModal = ({
     () => ({ ...localErrors, ...mapServerErrors(fieldErrors) }),
     [fieldErrors, localErrors],
   );
+  const selectedBusiness = useMemo(() => {
+    return businesses.find(
+      (business) => String(business.idBusiness) === formSate.idBusiness,
+    );
+  }, [businesses, formSate.idBusiness]);
 
   useEffect(() => {
     if (!isOpen) return;
-    setLocalErrors({});
-    onClearErrors();
-    setFormSate(initialForm);
+    const timeoutId = window.setTimeout(() => {
+      setLocalErrors({});
+      onClearErrors();
+      setFormSate(initialForm);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [isOpen, onClearErrors, setFormSate]);
 
   const handleClose = () => {
@@ -126,15 +144,45 @@ export const AssignSubscriptionModal = ({
 
         <div className="grid gap-4">
           <div className="space-y-2">
-            <Label>ID del negocio</Label>
-            <Input
-              name="idBusiness"
-              type="number"
-              min="1"
+            <Label>Negocio</Label>
+            <Select
               value={formSate.idBusiness}
-              onChange={onInputChange}
-              placeholder="Ej: 25"
-            />
+              disabled={isLoadingBusinesses || businesses.length === 0}
+              onValueChange={(value) => {
+                if (!value) return;
+                setFormSate({ ...formSate, idBusiness: value });
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={
+                    isLoadingBusinesses
+                      ? "Cargando negocios..."
+                      : "Seleccione un negocio"
+                  }
+                >
+                  {selectedBusiness ? getBusinessLabel(selectedBusiness) : undefined}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {businesses.length > 0 ? (
+                    businesses.map((business) => (
+                      <SelectItem
+                        key={business.idBusiness}
+                        value={String(business.idBusiness)}
+                      >
+                        {getBusinessLabel(business)}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-2 text-sm text-muted-foreground">
+                      No hay negocios disponibles
+                    </div>
+                  )}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             {errors.idBusiness && (
               <p className="text-sm text-red-600">{errors.idBusiness}</p>
             )}
@@ -221,7 +269,11 @@ export const AssignSubscriptionModal = ({
           <Button type="button" variant="outline" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button type="button" disabled={isSaving} onClick={handleSubmit}>
+          <Button
+            type="button"
+            disabled={isSaving || isLoadingBusinesses}
+            onClick={handleSubmit}
+          >
             {isSaving ? "Asignando..." : "Asignar"}
           </Button>
         </DialogFooter>

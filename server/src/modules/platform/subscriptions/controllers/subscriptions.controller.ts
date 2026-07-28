@@ -12,6 +12,7 @@ import {
   getCurrentBusinessSubscriptionService,
   getSubscriptionPaymentByIdService,
   getSubscriptionPlanByIdService,
+  listBusinessOptionsService,
   listBusinessSubscriptionsService,
   listSubscriptionEventsService,
   listSubscriptionPaymentsService,
@@ -115,6 +116,24 @@ export async function listSubscriptionPlansController(
         errors: getZodErrors(error),
       });
     }
+    const response = getErrorResponse(error);
+    return res.status(response.statusCode).json(response.body);
+  }
+}
+
+export async function listBusinessOptionsController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const result = await listBusinessOptionsService();
+
+    return res.status(200).json({
+      success: true,
+      message: "Negocios obtenidos correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
     const response = getErrorResponse(error);
     return res.status(response.statusCode).json(response.body);
   }

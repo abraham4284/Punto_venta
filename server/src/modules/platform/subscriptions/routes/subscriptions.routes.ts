@@ -11,6 +11,7 @@ import {
   getBusinessSubscriptionByIdController,
   getSubscriptionPaymentByIdController,
   getSubscriptionPlanByIdController,
+  listBusinessOptionsController,
   listBusinessSubscriptionsController,
   listSubscriptionEventsController,
   listSubscriptionPaymentsController,
@@ -27,6 +28,12 @@ import {
 const router = Router();
 
 router.use(requireAuth, requirePlatformContext);
+
+router.get(
+  "/business-options",
+  requirePlatformRoles(["SUPER_ADMIN", "SUPPORT", "ANALYST"]),
+  listBusinessOptionsController,
+);
 
 router.get(
   "/subscription-plans",

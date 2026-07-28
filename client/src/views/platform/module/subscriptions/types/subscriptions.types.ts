@@ -155,6 +155,14 @@ export interface BusinessSubscription {
   updatedAt: string | null;
 }
 
+export interface BusinessOption {
+  idBusiness: number;
+  name: string;
+  slug: string;
+  status: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+  isActive: boolean;
+}
+
 export interface BusinessSubscriptionFilters {
   search: string;
   status: "ALL" | SubscriptionStatus;
