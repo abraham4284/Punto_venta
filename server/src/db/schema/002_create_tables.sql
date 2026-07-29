@@ -157,6 +157,22 @@ CREATE TABLE IF NOT EXISTS `subscription_payments` (
   PRIMARY KEY (`idSubscriptionPayment`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `platform_audit_logs` (
+  `idPlatformAuditLog` bigint NOT NULL AUTO_INCREMENT,
+  `idPlatformUser` int NOT NULL,
+  `action` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `entityType` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `entityId` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `idBusiness` int DEFAULT NULL,
+  `previousData` json DEFAULT NULL,
+  `newData` json DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `ipAddress` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `userAgent` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idPlatformAuditLog`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `user_sessions` (
   `idLogin` int NOT NULL AUTO_INCREMENT,
   `refresh_token_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -338,4 +354,3 @@ CREATE TABLE IF NOT EXISTS `stock_movements` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`idStockMovement`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-

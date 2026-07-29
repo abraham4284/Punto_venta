@@ -524,7 +524,6 @@ export const useSubscriptions = () => {
         reason,
         cancelAtPeriodEnd,
       );
-      console.log(data,'data')
       toast.success(data.message || "Suscripcion cancelada");
       await fetchSubscriptions();
       await fetchEvents();
@@ -620,13 +619,10 @@ export const useSubscriptions = () => {
   ) => {
     setActionLoading(`payment-${action}-${idSubscriptionPayment}`);
     try {
-      console.log(idSubscriptionPayment,'idSubscriptionPayment')
-      console.log(action,'action')
       const { data } = await updateSubscriptionPaymentStatusRequest(
         idSubscriptionPayment,
         action,
       );
-      console.log(data,'data')
       toast.success(data.message || "Pago actualizado");
       await fetchPayments();
       await fetchSubscriptions();

@@ -18,6 +18,10 @@ SOURCE seeds/002_permissions_and_role_permissions.sql;
 /* Procedures: execute after schema and seeds. Keep this order. */
 SOURCE procedures/auth.sql;
 SOURCE procedures/platform_auth.sql;
+SOURCE procedures/platform_audit.sql;
+SOURCE procedures/platform_users.sql;
+SOURCE procedures/platform_businesses.sql;
+SOURCE procedures/platform_dashboard.sql;
 SOURCE procedures/businesses.sql;
 SOURCE procedures/business_users.sql;
 SOURCE procedures/subscriptions.sql;

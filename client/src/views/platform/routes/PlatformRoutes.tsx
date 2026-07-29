@@ -4,6 +4,12 @@ import { PlatformLayout } from "@/views/platform/components/layout/PlatformLayou
 import { PlatformLoginPage } from "@/views/platform/module/auth";
 import { PlatformDashboardPage } from "@/views/platform/module/dashboard";
 import { SubscriptionsRoutes } from "@/views/platform/module/subscriptions";
+import {
+  PlatformBusinessDetailPage,
+  PlatformBusinessesPage,
+} from "@/views/platform/module/businesses";
+import { PlatformAuditPage } from "@/views/platform/module/audit";
+import { PlatformUsersPage } from "@/views/platform/module/users";
 
 export const PlatformRoutes = () => {
   return (
@@ -20,11 +26,51 @@ export const PlatformRoutes = () => {
         }
       />
       <Route
+        path="/businesses"
+        element={
+          <PlatformProtectedRoute>
+            <PlatformLayout>
+              <PlatformBusinessesPage />
+            </PlatformLayout>
+          </PlatformProtectedRoute>
+        }
+      />
+      <Route
+        path="/businesses/:idBusiness"
+        element={
+          <PlatformProtectedRoute>
+            <PlatformLayout>
+              <PlatformBusinessDetailPage />
+            </PlatformLayout>
+          </PlatformProtectedRoute>
+        }
+      />
+      <Route
         path="/subscriptions/*"
         element={
           <PlatformProtectedRoute>
             <PlatformLayout>
               <SubscriptionsRoutes />
+            </PlatformLayout>
+          </PlatformProtectedRoute>
+        }
+      />
+      <Route
+        path="/audit"
+        element={
+          <PlatformProtectedRoute>
+            <PlatformLayout>
+              <PlatformAuditPage />
+            </PlatformLayout>
+          </PlatformProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <PlatformProtectedRoute>
+            <PlatformLayout>
+              <PlatformUsersPage />
             </PlatformLayout>
           </PlatformProtectedRoute>
         }

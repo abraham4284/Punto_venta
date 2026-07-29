@@ -51,6 +51,12 @@ CALL sp_add_index_if_not_exists('business_subscriptions', 'fk_business_subscript
 CALL sp_add_index_if_not_exists('business_subscriptions', 'fk_business_subscriptions_subscription_plans1_idx', 'ALTER TABLE `business_subscriptions` ADD KEY `fk_business_subscriptions_subscription_plans1_idx` (`idSubscriptionPlan`)');
 CALL sp_add_index_if_not_exists('subscription_events', 'fk_subscription_events_business_subscriptions1_idx', 'ALTER TABLE `subscription_events` ADD KEY `fk_subscription_events_business_subscriptions1_idx` (`idBusinessSubscription`)');
 CALL sp_add_index_if_not_exists('subscription_payments', 'fk_subscription_payments_business_subscriptions1_idx', 'ALTER TABLE `subscription_payments` ADD KEY `fk_subscription_payments_business_subscriptions1_idx` (`idBusinessSubscription`)');
+CALL sp_add_index_if_not_exists('platform_audit_logs', 'idx_platform_audit_user', 'ALTER TABLE `platform_audit_logs` ADD KEY `idx_platform_audit_user` (`idPlatformUser`)');
+CALL sp_add_index_if_not_exists('platform_audit_logs', 'idx_platform_audit_action', 'ALTER TABLE `platform_audit_logs` ADD KEY `idx_platform_audit_action` (`action`)');
+CALL sp_add_index_if_not_exists('platform_audit_logs', 'idx_platform_audit_entity_type', 'ALTER TABLE `platform_audit_logs` ADD KEY `idx_platform_audit_entity_type` (`entityType`)');
+CALL sp_add_index_if_not_exists('platform_audit_logs', 'idx_platform_audit_business', 'ALTER TABLE `platform_audit_logs` ADD KEY `idx_platform_audit_business` (`idBusiness`)');
+CALL sp_add_index_if_not_exists('platform_audit_logs', 'idx_platform_audit_created_at', 'ALTER TABLE `platform_audit_logs` ADD KEY `idx_platform_audit_created_at` (`createdAt`)');
+CALL sp_add_index_if_not_exists('platform_audit_logs', 'idx_platform_audit_business_created_at', 'ALTER TABLE `platform_audit_logs` ADD KEY `idx_platform_audit_business_created_at` (`idBusiness`,`createdAt`)');
 CALL sp_add_index_if_not_exists('user_sessions', 'fk_user_sessions_users1_idx', 'ALTER TABLE `user_sessions` ADD KEY `fk_user_sessions_users1_idx` (`idUser`)');
 CALL sp_add_index_if_not_exists('user_sessions', 'idx_user_sessions_business', 'ALTER TABLE `user_sessions` ADD KEY `idx_user_sessions_business` (`idBusiness`)');
 CALL sp_add_index_if_not_exists('customers', 'uk_customer_business_id', 'ALTER TABLE `customers` ADD UNIQUE KEY `uk_customer_business_id` (`idBusiness`,`idCustomer`)');

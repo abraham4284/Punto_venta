@@ -1,11 +1,9 @@
 import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requirePlatformContext } from "@/middlewares/requirePlatformContext.middleware.js";
-import { requirePlatformRoles } from "@/middlewares/requirePlatformRoles.middleware.js";
 import {
   bootstrapPlatformController,
   createPlatformBaseUserController,
-  createPlatformUserController,
   getPlatformMeController,
   loginPlatformController,
   logoutPlatformController,
@@ -30,12 +28,4 @@ router.get(
   requirePlatformContext,
   getPlatformMeController,
 );
-router.post(
-  "/users",
-  requireAuth,
-  requirePlatformContext,
-  requirePlatformRoles(["SUPER_ADMIN"]),
-  createPlatformUserController,
-);
-
 export default router;
