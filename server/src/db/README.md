@@ -18,6 +18,10 @@ Ejecutar desde `server/src/db`:
 7. Stored procedures:
    - `procedures/auth.sql`
    - `procedures/platform_auth.sql`
+   - `procedures/platform_audit.sql`
+   - `procedures/platform_users.sql`
+   - `procedures/platform_businesses.sql`
+   - `procedures/platform_dashboard.sql`
    - `procedures/businesses.sql`
    - `procedures/business_users.sql`
    - `procedures/subscriptions.sql`
@@ -115,4 +119,3 @@ Estas observaciones se reportan sin modificar semanticamente el modelo:
 No se corrigieron las inconsistencias semanticas listadas arriba porque pueden
 afectar reglas de negocio o procedures existentes. Conviene decidirlas en una
 migracion explicita y probada.
-

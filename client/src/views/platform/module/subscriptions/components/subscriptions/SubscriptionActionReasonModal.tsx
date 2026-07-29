@@ -90,7 +90,7 @@ export const SubscriptionActionReasonModal = ({
       );
     } catch (error: unknown) {
       if (error instanceof z.ZodError) {
-        setFieldError(error.errors[0]?.message || "Ingrese un motivo valido");
+        setFieldError(error.issues[0]?.message || "Ingrese un motivo valido");
       }
     }
   };

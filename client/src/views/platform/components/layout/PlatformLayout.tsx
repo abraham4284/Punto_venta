@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Menu, ShieldAlert, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ export const PlatformLayout = ({ children }: PlatformLayoutProps) => {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-950">
       <div className="flex min-h-screen">
-        <PlatformSidebar />
+        <PlatformSidebar className="hidden lg:flex" />
 
         {isMobileMenuOpen && (
           <div className="fixed inset-0 z-50 bg-slate-950 text-slate-100 lg:hidden">
@@ -45,32 +45,10 @@ export const PlatformLayout = ({ children }: PlatformLayoutProps) => {
                 <X className="size-5" />
               </Button>
             </div>
-            <div className="p-4">
-              <PlatformSidebar />
-              <div className="grid gap-2">
-                <Link
-                  to="/platform/dashboard"
-                  className="rounded-xl bg-white/10 px-4 py-3 text-sm font-medium"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  to="/platform/businesses"
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Negocios
-                </Link>
-                <Link
-                  to="/platform/subscriptions"
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Suscripciones
-                </Link>
-              </div>
-            </div>
+            <PlatformSidebar
+              className="min-h-[calc(100vh-65px)] w-full border-r-0"
+              onNavigate={() => setIsMobileMenuOpen(false)}
+            />
           </div>
         )}
 

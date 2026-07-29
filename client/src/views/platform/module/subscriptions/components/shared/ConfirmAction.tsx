@@ -9,9 +9,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import type { ReactElement } from "react";
 
 interface ConfirmActionProps {
-  children: React.ReactNode;
+  children: ReactElement;
   title: string;
   description: string;
   actionLabel: string;

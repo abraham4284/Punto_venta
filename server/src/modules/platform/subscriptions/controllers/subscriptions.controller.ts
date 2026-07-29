@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { getPaginationParams } from "../helpers/pagination.helper.js";
 import type { SubscriptionServiceError } from "../types/index.js";
+import { createPlatformAuditLogService } from "../../audit/services/audit.service.js";
 import {
   assignBusinessSubscriptionService,
   cancelBusinessSubscriptionService,
@@ -94,6 +95,32 @@ function getPositiveId(value: unknown, field: string): number {
   return id;
 }
 
+async function registerSubscriptionAuditSafely(
+  req: Request,
+  action: string,
+  entityType: string,
+  entityId: string | number | null,
+  idBusiness: number | null,
+  newData: unknown,
+  metadata?: unknown,
+): Promise<void> {
+  try {
+    await createPlatformAuditLogService({
+      actorIdUser: req.auth!.idUser,
+      action,
+      entityType,
+      entityId,
+      idBusiness,
+      newData,
+      metadata,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+  } catch (error) {
+    console.error("Error registrando auditoria Platform:", error);
+  }
+}
+
 export async function listSubscriptionPlansController(
   req: Request,
   res: Response,
@@ -165,6 +192,14 @@ export async function createSubscriptionPlanController(
   try {
     const data = createSubscriptionPlanSchema.parse(req.body);
     const result = await createSubscriptionPlanService(data);
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_PLAN_CREATED",
+      "SUBSCRIPTION_PLAN",
+      result.idSubscriptionPlan,
+      null,
+      result,
+    );
 
     return res.status(201).json({
       success: true,
@@ -192,6 +227,14 @@ export async function updateSubscriptionPlanController(
     const id = getPositiveId(req.params.idSubscriptionPlan, "El plan");
     const data = updateSubscriptionPlanSchema.parse(req.body);
     const result = await updateSubscriptionPlanService(id, data);
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_PLAN_UPDATED",
+      "SUBSCRIPTION_PLAN",
+      result.idSubscriptionPlan,
+      null,
+      result,
+    );
 
     return res.status(200).json({
       success: true,
@@ -219,6 +262,15 @@ export async function toggleSubscriptionPlanStatusController(
     const id = getPositiveId(req.params.idSubscriptionPlan, "El plan");
     const data = toggleSubscriptionPlanStatusSchema.parse(req.body);
     const result = await toggleSubscriptionPlanStatusService(id, data);
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_PLAN_STATUS_CHANGED",
+      "SUBSCRIPTION_PLAN",
+      result.idSubscriptionPlan,
+      null,
+      result,
+      data,
+    );
 
     return res.status(200).json({
       success: true,
@@ -297,6 +349,15 @@ export async function assignBusinessSubscriptionController(
       data,
       req.auth!.idUser,
     );
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_ASSIGNED",
+      "BUSINESS_SUBSCRIPTION",
+      result.idBusinessSubscription,
+      result.business.idBusiness,
+      result,
+      data,
+    );
 
     return res.status(201).json({
       success: true,
@@ -330,6 +391,15 @@ export async function changeBusinessSubscriptionPlanController(
       id,
       data,
       req.auth!.idUser,
+    );
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_PLAN_CHANGED",
+      "BUSINESS_SUBSCRIPTION",
+      result.idBusinessSubscription,
+      result.business.idBusiness,
+      result,
+      data,
     );
 
     return res.status(200).json({
@@ -365,6 +435,15 @@ export async function suspendBusinessSubscriptionController(
       data,
       req.auth!.idUser,
     );
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_SUSPENDED",
+      "BUSINESS_SUBSCRIPTION",
+      result.idBusinessSubscription,
+      result.business.idBusiness,
+      result,
+      data,
+    );
 
     return res.status(200).json({
       success: true,
@@ -397,6 +476,14 @@ export async function reactivateBusinessSubscriptionController(
       id,
       req.auth!.idUser,
     );
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_REACTIVATED",
+      "BUSINESS_SUBSCRIPTION",
+      result.idBusinessSubscription,
+      result.business.idBusiness,
+      result,
+    );
 
     return res.status(200).json({
       success: true,
@@ -423,6 +510,15 @@ export async function cancelBusinessSubscriptionController(
       id,
       data,
       req.auth!.idUser,
+    );
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_CANCELLED",
+      "BUSINESS_SUBSCRIPTION",
+      result.idBusinessSubscription,
+      result.business.idBusiness,
+      result,
+      data,
     );
 
     return res.status(200).json({
@@ -454,6 +550,15 @@ export async function updateAutoRenewController(
     );
     const data = autoRenewSchema.parse(req.body);
     const result = await updateAutoRenewService(id, data, req.auth!.idUser);
+    await registerSubscriptionAuditSafely(
+      req,
+      "SUBSCRIPTION_AUTO_RENEW_CHANGED",
+      "BUSINESS_SUBSCRIPTION",
+      result.idBusinessSubscription,
+      result.business.idBusiness,
+      result,
+      data,
+    );
 
     return res.status(200).json({
       success: true,
@@ -526,6 +631,15 @@ export async function createSubscriptionPaymentController(
   try {
     const data = createSubscriptionPaymentSchema.parse(req.body);
     const result = await createSubscriptionPaymentService(data, req.auth!.idUser);
+    await registerSubscriptionAuditSafely(
+      req,
+      "PAYMENT_CREATED",
+      "SUBSCRIPTION_PAYMENT",
+      result.idSubscriptionPayment,
+      null,
+      result,
+      data,
+    );
 
     return res.status(201).json({
       success: true,
@@ -550,10 +664,6 @@ export async function updatePaymentStatusController(
   res: Response,
 ): Promise<Response> {
   try {
-    console.log("Llega esta funcion")
-    console.log(req.body,'req-body')
-    console.log(req.params.idSubscriptionPayment,'req-params')
-    console.log(req.params.status,'req-params-status')
     const id = getPositiveId(req.params.idSubscriptionPayment, "El pago");
     const data = updatePaymentStatusSchema.parse(req.body);
     const routeStatus = req.params.status;
@@ -580,6 +690,15 @@ export async function updatePaymentStatusController(
       paymentStatus,
       data,
       req.auth!.idUser,
+    );
+    await registerSubscriptionAuditSafely(
+      req,
+      "PAYMENT_STATUS_CHANGED",
+      "SUBSCRIPTION_PAYMENT",
+      result.idSubscriptionPayment,
+      null,
+      result,
+      { paymentStatus, ...data },
     );
 
     return res.status(200).json({
@@ -636,6 +755,14 @@ export async function processExpiredSubscriptionsController(
   res: Response,
 ): Promise<Response> {
   const result = await processExpiredSubscriptionsService();
+  await registerSubscriptionAuditSafely(
+    req,
+    "EXPIRATIONS_PROCESSED",
+    "SUBSCRIPTION_EXPIRATION_JOB",
+    null,
+    null,
+    result,
+  );
 
   return res.status(200).json({
     success: true,

@@ -16,6 +16,27 @@ import {
   platformLoginSchema,
 } from "../validations/platformAuth.schema.js";
 import type { PlatformServiceError } from "../types.js";
+import { createPlatformAuditLogService } from "../../audit/services/audit.service.js";
+
+async function registerPlatformAuditSafely(
+  actorIdUser: number,
+  action: string,
+  req: Request,
+): Promise<void> {
+  try {
+    await createPlatformAuditLogService({
+      actorIdUser,
+      action,
+      entityType: "PLATFORM_SESSION",
+      entityId: actorIdUser,
+      metadata: { path: req.originalUrl },
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+  } catch (error) {
+    console.error("Error registrando auditoria Platform:", error);
+  }
+}
 
 function getZodErrors(error: z.ZodError) {
   return error.issues.map(function mapIssue(issue) {
@@ -164,6 +185,7 @@ export async function loginPlatformController(
     );
 
     setAuthCookies(res, result.accessToken, result.refreshToken);
+    await registerPlatformAuditSafely(result.user.idUser, "PLATFORM_LOGIN", req);
 
     return res.status(200).json({
       success: true,
@@ -231,6 +253,10 @@ export async function logoutPlatformController(
   res: Response,
 ): Promise<Response> {
   const refreshToken = req.cookies?.refresh_token as string | undefined;
+
+  if (req.auth?.context === "PLATFORM") {
+    await registerPlatformAuditSafely(req.auth.idUser, "PLATFORM_LOGOUT", req);
+  }
 
   await logoutPlatformService(refreshToken);
   clearAuthCookies(res);

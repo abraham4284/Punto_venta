@@ -1,70 +1,28 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  BarChart3,
-  Building2,
-  CalendarClock,
-  CreditCard,
-  FileClock,
-  LogOut,
-  Settings,
-  ShieldAlert,
-  WalletCards,
-} from "lucide-react";
+import { LogOut, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePlatformAuthStore } from "@/views/platform/module/auth/store/platformAuth.store";
 import { cn } from "@/lib/utils";
+import { platformNavigationItems } from "./platformNavigationItems";
 
-const navigationItems = [
-  {
-    label: "Dashboard",
-    href: "/platform/dashboard",
-    icon: BarChart3,
-  },
-  {
-    label: "Negocios",
-    href: "/platform/businesses",
-    icon: Building2,
-  },
-  {
-    label: "Planes",
-    href: "/platform/subscriptions?section=plans",
-    icon: CreditCard,
-  },
-  {
-    label: "Suscripciones",
-    href: "/platform/subscriptions?section=subscriptions",
-    icon: WalletCards,
-  },
-  {
-    label: "Pagos SaaS",
-    href: "/platform/subscriptions?section=payments",
-    icon: CalendarClock,
-  },
-  {
-    label: "Auditoria SaaS",
-    href: "/platform/subscriptions?section=events",
-    icon: FileClock,
-  },
-  {
-    label: "Auditoria",
-    href: "/platform/audit",
-    icon: ShieldAlert,
-  },
-  {
-    label: "Configuracion",
-    href: "/platform/settings",
-    icon: Settings,
-  },
-];
+interface PlatformSidebarProps {
+  className?: string;
+  onNavigate?: () => void;
+}
 
-export const PlatformSidebar = () => {
+export const PlatformSidebar = ({ className, onNavigate }: PlatformSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const platformUser = usePlatformAuthStore((state) => state.platformUser);
   const logoutPlatformAction = usePlatformAuthStore(
     (state) => state.logoutPlatformAction,
   );
+  const visibleItems = platformNavigationItems.filter((item) => {
+    return platformUser?.platformRole
+      ? item.allowedRoles.includes(platformUser.platformRole)
+      : false;
+  });
 
   const handleLogout = async () => {
     await logoutPlatformAction();
@@ -72,7 +30,12 @@ export const PlatformSidebar = () => {
   };
 
   return (
-    <aside className="hidden min-h-screen w-72 shrink-0 border-r border-slate-800 bg-slate-950 text-slate-100 lg:flex lg:flex-col">
+    <aside
+      className={cn(
+        "flex min-h-screen w-72 shrink-0 flex-col border-r border-slate-800 bg-slate-950 text-slate-100",
+        className,
+      )}
+    >
       <div className="border-b border-slate-800 p-5">
         <div className="flex items-center gap-3">
           <div className="flex size-11 items-center justify-center rounded-2xl bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20">
@@ -90,7 +53,7 @@ export const PlatformSidebar = () => {
       </div>
 
       <nav className="flex-1 space-y-2 p-4">
-        {navigationItems.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = item.icon;
           const itemUrl = new URL(item.href, window.location.origin);
           const isActive =
@@ -103,6 +66,7 @@ export const PlatformSidebar = () => {
             <Link
               key={item.href}
               to={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white",
                 isActive && "bg-cyan-400/15 text-cyan-100 ring-1 ring-cyan-400/20",
@@ -127,7 +91,7 @@ export const PlatformSidebar = () => {
               </p>
             </div>
             <Badge className="bg-cyan-400/15 text-cyan-100">
-              {platformUser?.platformRole || "SUPER_ADMIN"}
+              {platformUser?.platformRole || "PLATFORM"}
             </Badge>
           </div>
 

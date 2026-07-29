@@ -106,9 +106,13 @@ export const SubscriptionPlanModal = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    setLocalErrors({});
-    onClearErrors();
-    setFormSate(dataEdit ? getInitialFormFromPlan(dataEdit) : initialForm);
+    const timeoutId = window.setTimeout(() => {
+      setLocalErrors({});
+      onClearErrors();
+      setFormSate(dataEdit ? getInitialFormFromPlan(dataEdit) : initialForm);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [dataEdit, isOpen, onClearErrors, setFormSate]);
 
   const handleClose = () => {
