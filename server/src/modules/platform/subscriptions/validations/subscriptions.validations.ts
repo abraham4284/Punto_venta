@@ -25,6 +25,18 @@ function optionalPositiveId(field: string) {
   }, positiveId(field).optional());
 }
 
+function nullablePositiveInteger(field: string) {
+  return z.preprocess(function normalizeNullableInteger(value) {
+    if (value === "" || value === null || value === undefined) return null;
+    return value;
+  }, z.coerce
+    .number({ error: `${field} debe ser valido` })
+    .int(`${field} debe ser entero`)
+    .positive(`${field} debe ser mayor a cero`)
+    .nullable()
+    .optional());
+}
+
 function padDatePart(value: number): string {
   return String(value).padStart(2, "0");
 }
@@ -135,9 +147,9 @@ export const createSubscriptionPlanSchema = z
       .min(0, "Los dias de prueba no pueden ser negativos")
       .max(365, "Los dias de prueba no pueden superar 365")
       .default(30),
-    maxUsers: z.coerce.number().int().positive().nullable().optional(),
-    maxProducts: z.coerce.number().int().positive().nullable().optional(),
-    maxDeposits: z.coerce.number().int().positive().nullable().optional(),
+    maxUsers: nullablePositiveInteger("El limite de usuarios"),
+    maxProducts: nullablePositiveInteger("El limite de productos"),
+    maxDeposits: nullablePositiveInteger("El limite de depositos"),
     isActive: z.coerce.boolean().default(true),
   })
   .strict();

@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+const nullablePlanLimitSchema = (fieldName: string) =>
+  z.preprocess(
+    (value) => {
+      if (value === "" || value === null || value === undefined) return null;
+      return value;
+    },
+    z.coerce
+      .number({ message: `${fieldName} debe ser un numero valido` })
+      .int(`${fieldName} debe ser un numero entero`)
+      .positive(`${fieldName} debe ser mayor a cero`)
+      .nullable(),
+  );
+
 export const subscriptionPlanSchema = z.object({
   code: z
     .string()
@@ -21,13 +34,37 @@ export const subscriptionPlanSchema = z.object({
     .length(3, "La moneda debe tener 3 caracteres")
     .transform((value) => value.toUpperCase()),
   trialDays: z.coerce.number().int().min(0).max(365),
-  maxUsers: z.coerce.number().int().positive().nullable().optional(),
-  maxProducts: z.coerce.number().int().positive().nullable().optional(),
-  maxDeposits: z.coerce.number().int().positive().nullable().optional(),
+  maxUsers: nullablePlanLimitSchema("El limite de usuarios"),
+  maxProducts: nullablePlanLimitSchema("El limite de productos"),
+  maxDeposits: nullablePlanLimitSchema("El limite de depositos"),
   unlimitedUsers: z.boolean(),
   unlimitedProducts: z.boolean(),
   unlimitedDeposits: z.boolean(),
   isActive: z.boolean(),
+}).superRefine((data, ctx) => {
+  if (!data.unlimitedUsers && data.maxUsers === null) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["maxUsers"],
+      message: "Ingrese un limite de usuarios o active ilimitado",
+    });
+  }
+
+  if (!data.unlimitedProducts && data.maxProducts === null) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["maxProducts"],
+      message: "Ingrese un limite de productos o active ilimitado",
+    });
+  }
+
+  if (!data.unlimitedDeposits && data.maxDeposits === null) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["maxDeposits"],
+      message: "Ingrese un limite de depositos o active ilimitado",
+    });
+  }
 });
 
 export const assignSubscriptionSchema = z.object({

@@ -1,17 +1,6 @@
-UPDATE subscription_plans
-SET
-  name = 'Plan Basico Mensual',
-  description = 'Plan inicial para prueba gratuita de 30 dias al registrar un nuevo negocio.',
-  billing_period = 'MONTHLY',
-  price = 0.00,
-  currency = 'ARS',
-  trial_days = 30,
-  max_users = NULL,
-  max_products = NULL,
-  max_deposits = NULL,
-  is_active = 1,
-  updated_at = NOW()
-WHERE code = 'BASIC_MONTHLY';
+/* Required subscription plan seed. */
+USE `punto_venta_dev_clean_2`;
+
 
 INSERT INTO subscription_plans (
   code,
@@ -34,9 +23,9 @@ SELECT
   0.00,
   'ARS',
   30,
-  NULL,
-  NULL,
-  NULL,
+  3,
+  30,
+  5,
   1
 WHERE NOT EXISTS (
   SELECT 1
