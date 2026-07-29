@@ -267,6 +267,9 @@ export const SubscriptionPlanModal = ({
                 value={String(formSate[field as keyof SubscriptionPlanFormValues])}
                 onChange={onInputChange}
               />
+              {errors[field] && (
+                <p className="text-sm text-red-600">{errors[field]}</p>
+              )}
             </div>
           ))}
           <div className="flex items-center justify-between rounded-lg border p-3 sm:col-span-2">

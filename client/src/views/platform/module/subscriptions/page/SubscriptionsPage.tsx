@@ -9,6 +9,7 @@ import {
   Plus,
   RefreshCcw,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Meta } from "@/components/Meta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,7 @@ type SubscriptionReasonAction = "SUSPEND" | "CANCEL";
 const sections: Array<{
   key: SectionKey;
   label: string;
-  icon: typeof CreditCard;
+  icon: LucideIcon;
 }> = [
   { key: "plans", label: "Planes", icon: CreditCard },
   { key: "subscriptions", label: "Suscripciones", icon: Activity },
@@ -131,6 +132,19 @@ export const SubscriptionsPage = () => {
     subscriptionsHook.plansPagination.totalRecords,
     subscriptionsHook.subscriptionsPagination.totalRecords,
   ]);
+
+  const metricCards = useMemo<Array<{
+    label: string;
+    value: number;
+    icon: LucideIcon;
+  }>>(() => {
+    return [
+      { label: "Planes", value: metrics.plans, icon: CreditCard },
+      { label: "Suscripciones", value: metrics.subscriptions, icon: Activity },
+      { label: "Pagos", value: metrics.payments, icon: CalendarClock },
+      { label: "Eventos", value: metrics.events, icon: FileClock },
+    ];
+  }, [metrics]);
 
   const changeSection = (section: SectionKey) => {
     setSearchParams({ section });
@@ -237,24 +251,23 @@ export const SubscriptionsPage = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          {[
-            ["Planes", metrics.plans, CreditCard],
-            ["Suscripciones", metrics.subscriptions, Activity],
-            ["Pagos", metrics.payments, CalendarClock],
-            ["Eventos", metrics.events, FileClock],
-          ].map(([label, value, Icon]) => (
-            <Card key={String(label)} className="border-slate-200">
+          {metricCards.map((metric) => {
+            const Icon = metric.icon;
+
+            return (
+            <Card key={metric.label} className="border-slate-200">
               <CardContent className="flex items-center justify-between p-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">{String(label)}</p>
-                  <p className="text-2xl font-bold">{String(value)}</p>
+                  <p className="text-sm text-muted-foreground">{metric.label}</p>
+                  <p className="text-2xl font-bold">{metric.value}</p>
                 </div>
                 <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
                   <Icon className="size-5" />
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         <Card>

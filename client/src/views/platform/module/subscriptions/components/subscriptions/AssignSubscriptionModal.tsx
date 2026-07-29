@@ -24,8 +24,10 @@ import type {
   AssignSubscriptionBody,
   BusinessOption,
   FieldError,
+  MutationResult,
   SubscriptionPlan,
 } from "../../types/subscriptions.types";
+import { Toaster } from "react-hot-toast";
 
 interface AssignFormValues {
   idBusiness: string;
@@ -43,7 +45,7 @@ interface AssignSubscriptionModalProps {
   fieldErrors: FieldError[];
   isSaving: boolean;
   isLoadingBusinesses: boolean;
-  onAssign: (body: AssignSubscriptionBody) => Promise<{ success: boolean }>;
+  onAssign: (body: AssignSubscriptionBody) => Promise<MutationResult>;
   onClearErrors: () => void;
 }
 
@@ -129,7 +131,9 @@ export const AssignSubscriptionModal = ({
       currentPeriodEnd: formSate.currentPeriodEnd || null,
     });
 
-    if (result.success) handleClose();
+    if (result.success) {
+      handleClose();
+    }
   };
 
   return (
@@ -161,7 +165,9 @@ export const AssignSubscriptionModal = ({
                       : "Seleccione un negocio"
                   }
                 >
-                  {selectedBusiness ? getBusinessLabel(selectedBusiness) : undefined}
+                  {selectedBusiness
+                    ? getBusinessLabel(selectedBusiness)
+                    : undefined}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -215,7 +221,9 @@ export const AssignSubscriptionModal = ({
               </SelectContent>
             </Select>
             {errors.idSubscriptionPlan && (
-              <p className="text-sm text-red-600">{errors.idSubscriptionPlan}</p>
+              <p className="text-sm text-red-600">
+                {errors.idSubscriptionPlan}
+              </p>
             )}
           </div>
           <div className="space-y-2">
@@ -264,6 +272,8 @@ export const AssignSubscriptionModal = ({
             </div>
           )}
         </div>
+
+        <Toaster position="top-right" reverseOrder={false} />
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={handleClose}>
