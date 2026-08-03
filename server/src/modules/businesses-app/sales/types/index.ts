@@ -14,6 +14,7 @@ export interface SaleDbRow {
   customer_name: string | null;
   idDeposit: number;
   deposit_name: string;
+  idCashSession: number;
   idPaymentMethod: number | null;
   payment_method_name: string | null;
   sale_date: Date;
@@ -75,6 +76,7 @@ export interface CreateSalePayload {
   idUser: number;
   idCustomer?: number | null;
   idDeposit: number;
+  idCashSession: number;
   idPaymentMethod?: number | null;
   subtotal: number;
   discountTotal: number;
@@ -143,6 +145,7 @@ export interface SaleResponse {
   customerName: string | null;
   idDeposit: number;
   depositName: string;
+  idCashSession: number;
   idPaymentMethod: number | null;
   paymentMethodName: string | null;
   saleDate: Date;

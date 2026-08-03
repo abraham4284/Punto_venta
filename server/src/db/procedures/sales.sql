@@ -7,6 +7,7 @@ CREATE PROCEDURE sp_create_sale(
   IN p_sale_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idCustomer INT,
   IN p_idDeposit INT,
+  IN p_idCashSession BIGINT,
   IN p_idPaymentMethod INT,
   IN p_subtotal DECIMAL(18,2),
   IN p_discount_total DECIMAL(18,2),
@@ -15,6 +16,9 @@ CREATE PROCEDURE sp_create_sale(
 )
 BEGIN
   DECLARE v_idSale INT;
+  DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_cashRegisterActive TINYINT;
+  DECLARE v_idPaymentMethod INT;
 
   DECLARE EXIT HANDLER FOR 1062
   BEGIN
@@ -31,6 +35,50 @@ BEGIN
   IF p_sale_number IS NULL OR TRIM(p_sale_number) = '' THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El numero de venta es obligatorio';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM business_users bu
+    INNER JOIN users u ON u.idUser = bu.idUser
+    WHERE bu.idBusiness = p_idBusiness
+      AND bu.idUser = p_idUser
+      AND bu.is_active = 1
+      AND u.is_active = 1
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Usuario no autorizado para registrar ventas';
+  END IF;
+
+  IF p_idCashSession IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'OPEN_CASH_SESSION_REQUIRED';
+  END IF;
+
+  SELECT cs.status, cr.is_active
+  INTO v_cashSessionStatus, v_cashRegisterActive
+  FROM cash_sessions cs
+  INNER JOIN cash_registers cr
+    ON cr.idCashRegister = cs.idCashRegister
+    AND cr.idBusiness = cs.idBusiness
+  WHERE cs.idCashSession = p_idCashSession
+    AND cs.idBusiness = p_idBusiness
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_cashSessionStatus IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'OPEN_CASH_SESSION_REQUIRED';
+  END IF;
+
+  IF v_cashSessionStatus <> 'OPEN' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'CASH_SESSION_CLOSED';
+  END IF;
+
+  IF v_cashRegisterActive = 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'CASH_REGISTER_INACTIVE';
   END IF;
 
   IF NOT EXISTS (
@@ -55,14 +103,33 @@ BEGIN
       SET MESSAGE_TEXT = 'El cliente indicado no pertenece al negocio o esta inactivo';
   END IF;
 
-  IF p_idPaymentMethod IS NOT NULL AND NOT EXISTS (
+  SET v_idPaymentMethod = p_idPaymentMethod;
+
+  IF v_idPaymentMethod IS NULL THEN
+    SELECT idPaymentMethod
+    INTO v_idPaymentMethod
+    FROM payment_methods
+    WHERE idBusiness = p_idBusiness
+      AND is_default = 1
+      AND is_active = 1
+    ORDER BY idPaymentMethod ASC
+    LIMIT 1;
+  END IF;
+
+  IF v_idPaymentMethod IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El negocio no tiene metodo de pago predeterminado';
+  END IF;
+
+  IF NOT EXISTS (
     SELECT 1
     FROM payment_methods
-    WHERE idPaymentMethod = p_idPaymentMethod
+    WHERE idPaymentMethod = v_idPaymentMethod
       AND idBusiness = p_idBusiness
+      AND is_active = 1
   ) THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'El metodo de pago indicado no pertenece al negocio';
+      SET MESSAGE_TEXT = 'El metodo de pago indicado no pertenece al negocio o esta inactivo';
   END IF;
 
   INSERT INTO sales (
@@ -71,6 +138,7 @@ BEGIN
     sale_number,
     idCustomer,
     idDeposit,
+    idCashSession,
     idPaymentMethod,
     sale_date,
     subtotal,
@@ -87,7 +155,8 @@ BEGIN
     p_sale_number,
     p_idCustomer,
     p_idDeposit,
-    p_idPaymentMethod,
+    p_idCashSession,
+    v_idPaymentMethod,
     NOW(),
     p_subtotal,
     p_discount_total,
@@ -145,7 +214,7 @@ BEGIN
   SELECT sale_number
   INTO v_sale_number
   FROM sales
-  WHERE idSale = p_idSale
+  WHERE s.idSale = p_idSale
     AND idBusiness = p_idBusiness
   LIMIT 1;
 
@@ -259,6 +328,7 @@ BEGIN
   DECLARE v_idDeposit INT;
   DECLARE v_quantity DECIMAL(18,2);
   DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE sale_detail_cursor CURSOR FOR
     SELECT sd.idProduct, s.idDeposit, sd.quantity
@@ -279,11 +349,14 @@ BEGIN
 
   START TRANSACTION;
 
-  SELECT status
-  INTO v_status
-  FROM sales
+  SELECT s.status, cs.status
+  INTO v_status, v_cashSessionStatus
+  FROM sales s
+  INNER JOIN cash_sessions cs
+    ON cs.idCashSession = s.idCashSession
+    AND cs.idBusiness = s.idBusiness
   WHERE idSale = p_idSale
-    AND idBusiness = p_idBusiness
+    AND s.idBusiness = p_idBusiness
   LIMIT 1
   FOR UPDATE;
 
@@ -300,6 +373,11 @@ BEGIN
   IF v_status <> 'COMPLETED' THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Solo se pueden anular ventas completadas';
+  END IF;
+
+  IF v_cashSessionStatus = 'CLOSED' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'CLOSED_CASH_SESSION_SALE_CANNOT_BE_CANCELLED';
   END IF;
 
   UPDATE sales
@@ -380,6 +458,7 @@ BEGIN
     c.name AS customer_name,
     s.idDeposit,
     d.name AS deposit_name,
+    s.idCashSession,
     s.idPaymentMethod,
     pm.name AS payment_method_name,
     s.sale_date,
@@ -454,6 +533,7 @@ BEGIN
     c.name AS customer_name,
     s.idDeposit,
     d.name AS deposit_name,
+    s.idCashSession,
     s.idPaymentMethod,
     pm.name AS payment_method_name,
     s.sale_date,

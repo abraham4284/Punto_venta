@@ -27,13 +27,14 @@ async function callCreateSaleProcedure(
   data: CreateSaleProcedurePayload,
 ): Promise<number> {
   const [rows] = await connection.query<RowDataPacket[]>(
-    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idUser,
       data.saleNumber,
       data.idCustomer ?? null,
       data.idDeposit,
+      data.idCashSession,
       data.idPaymentMethod ?? null,
       data.subtotal,
       data.discountTotal,

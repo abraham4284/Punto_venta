@@ -4,6 +4,7 @@ import {
   BusinessessRoutes,
   BusinessSubscriptionRoutes,
   BusinessUsersRoutes,
+  CashRoutes,
   CategoriesRoutes,
   ClientsRoutes,
   DashboardRoutes,
@@ -68,6 +69,20 @@ export const AdminRoutes = () => {
               permissions={["stock.view", "stock.view_movements", "stock.view_critical"]}
             >
               <StockRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/cash/*"
+          element={
+            <PermissionRoute
+              permissions={[
+                "cash_sessions.view",
+                "cash_sessions.view_history",
+                "cash_registers.view",
+              ]}
+            >
+              <CashRoutes />
             </PermissionRoute>
           }
         />
