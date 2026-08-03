@@ -26,6 +26,10 @@ Ejecutar desde `server/src/db`:
    - `procedures/business_users.sql`
    - `procedures/subscriptions.sql`
    - `procedures/deposits.sql`
+   - `procedures/cash_registers.sql`
+   - `procedures/cash_session_payment_summaries.sql`
+   - `procedures/cash_sessions.sql`
+   - `procedures/cash_movements.sql`
    - `procedures/product-categories.sql`
    - `procedures/products.sql`
    - `procedures/customers.sql`
@@ -73,8 +77,8 @@ Incluyen:
 - Catalogo de permisos.
 - Permisos predeterminados por rol `ADMIN` y `SELLER`.
 
-No se incluye seed global para `payment_methods` porque la tabla requiere
-`idBusiness`; los metodos de pago son datos tenant-specific.
+No se incluye seed global para `payment_methods` ni `cash_registers` porque
+requieren `idBusiness`; se crean dentro del flujo de registro del negocio.
 
 ## Reset de desarrollo
 
@@ -113,6 +117,10 @@ Estas observaciones se reportan sin modificar semanticamente el modelo:
 - Se centralizo `utf8mb4_unicode_ci`.
 - Se usaron nombres explicitos del dump para indices y constraints.
 - Se separaron seeds requeridos por la aplicacion.
+- Se agrego el modelo de cajas, sesiones, movimientos y snapshots de cierre.
+- Se agrego `sales.idCashSession` obligatorio para instalaciones nuevas.
+- Se agregaron `payment_methods.code` y `payment_methods.affects_cash` para
+  identificar efectivo sin depender del texto visible.
 
 ## Correcciones no aplicadas
 

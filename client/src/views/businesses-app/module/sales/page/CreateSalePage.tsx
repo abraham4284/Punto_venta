@@ -13,6 +13,7 @@ import type { Customer } from "../../customers/types/customers.types";
 import { useCustomers } from "../../customers/hooks/useCustomers";
 import type { DepositResponse } from "../../deposits/types/deposits.types";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
+import { useCash } from "../../cash/hooks/useCash";
 import {
   CartTable,
   POSHotkeysLegend,
@@ -58,6 +59,11 @@ export const CreateSalePage = () => {
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
   const { customers, getCustomers, resetCustomers } = useCustomers();
   const { deposits, getDeposits, resetDeposits } = useDeposits();
+  const {
+    currentSession,
+    loading: cashLoading,
+    refreshDashboard: refreshCashDashboard,
+  } = useCash();
   const {
     header,
     cart,
@@ -108,11 +114,20 @@ export const CreateSalePage = () => {
   useEffect(() => {
     getCustomers();
     getDeposits();
+    void refreshCashDashboard();
     return () => {
       resetCustomers();
       resetDeposits();
     };
-  }, [getCustomers, getDeposits, resetCustomers, resetDeposits]);
+  }, [getCustomers, getDeposits, refreshCashDashboard, resetCustomers, resetDeposits]);
+
+  useEffect(() => {
+    const nextCashSessionId = currentSession?.idCashSession ?? null;
+
+    if (header.idCashSession !== nextCashSessionId) {
+      updateHeaderField("idCashSession", nextCashSessionId);
+    }
+  }, [currentSession?.idCashSession, header.idCashSession, updateHeaderField]);
 
   const handleCustomerSelect = (customer: Customer) => {
     updateHeaderField("idCustomer", customer.idCustomer);
@@ -187,6 +202,11 @@ export const CreateSalePage = () => {
       return;
     }
 
+    if (!header.idCashSession) {
+      toast.error("Debes abrir una caja antes de registrar una venta");
+      return;
+    }
+
     if (loadingProducts) {
       toast.error("Espera a que se carguen los productos del deposito");
       return;
@@ -227,13 +247,14 @@ export const CreateSalePage = () => {
     addToCart([{ product, quantity: 1 }]);
     toast.success(`${product.name} agregado al carrito`);
     setBarcodeSearch("");
-  }, [addToCart, barcodeSearch, cart, header.idDeposit, loadingProducts, priceType, products]);
+  }, [addToCart, barcodeSearch, cart, header.idCashSession, header.idDeposit, loadingProducts, priceType, products]);
 
   const handleSubmit = useCallback(async () => {
     try {
       createSaleFormSchema.parse({
         idCustomer: header.idCustomer ? header.idCustomer : null,
         idDeposit: header.idDeposit,
+        idCashSession: header.idCashSession,
         idPaymentMethod: header.idPaymentMethod,
         items: cart.map((item) => ({
           idProduct: item.idProduct,
@@ -249,6 +270,8 @@ export const CreateSalePage = () => {
       const { status, message } = await submitSale();
       if (!status) {
         toast.error(message);
+      } else {
+        await refreshCashDashboard();
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -258,8 +281,10 @@ export const CreateSalePage = () => {
   }, [
     cart,
     header.idCustomer,
+    header.idCashSession,
     header.idDeposit,
     header.idPaymentMethod,
+    refreshCashDashboard,
     setValidationErrors,
     submitSale,
   ]);
@@ -270,8 +295,13 @@ export const CreateSalePage = () => {
       return;
     }
 
+    if (!header.idCashSession) {
+      toast.error("Debes abrir una caja antes de registrar una venta");
+      return;
+    }
+
     setIsProductModalOpen(true);
-  }, [header.idDeposit]);
+  }, [header.idCashSession, header.idDeposit]);
 
   useSalesHotkeys({
     onOpenSearch: handleOpenProductSearch,
@@ -292,6 +322,24 @@ export const CreateSalePage = () => {
       </section>
 
       <POSHotkeysLegend />
+
+      {!cashLoading && !currentSession && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="flex flex-col justify-between gap-3 p-4 md:flex-row md:items-center">
+            <div>
+              <p className="font-semibold text-amber-950">
+                Debes abrir una caja antes de registrar una venta.
+              </p>
+              <p className="text-sm text-amber-900/80">
+                El sistema exige que toda venta pertenezca a una sesion de caja abierta.
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={() => navigate("/admin/cash")}>
+              Ir a caja
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <section className="grid gap-5">
         <div className="grid gap-4 md:grid-cols-3">
@@ -352,7 +400,7 @@ export const CreateSalePage = () => {
               id="barcode-sale"
               ref={barcodeInputRef}
               value={barcodeSearch}
-              disabled={!header.idDeposit}
+              disabled={!header.idDeposit || !header.idCashSession}
               onChange={(event) => setBarcodeSearch(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -363,7 +411,7 @@ export const CreateSalePage = () => {
               placeholder={
                 header.idDeposit
                   ? "Escanea o ingresa el codigo..."
-                  : "Selecciona un deposito para escanear"
+                  : "Abre caja y selecciona deposito para escanear"
               }
               className="pl-9"
               autoFocus
@@ -373,7 +421,7 @@ export const CreateSalePage = () => {
         <Button
           type="button"
           variant="outline"
-          disabled={!header.idDeposit || !barcodeSearch.trim()}
+          disabled={!header.idDeposit || !header.idCashSession || !barcodeSearch.trim()}
           onClick={handleBarcodeSubmit}
         >
           Agregar por codigo
@@ -387,7 +435,7 @@ export const CreateSalePage = () => {
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <Button
               type="button"
-              disabled={!header.idDeposit}
+              disabled={!header.idDeposit || !header.idCashSession}
               onClick={handleOpenProductSearch}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -461,7 +509,7 @@ export const CreateSalePage = () => {
         <Button type="button" variant="outline" onClick={resetSale}>
           Cancelar
         </Button>
-        <Button type="button" disabled={saving} onClick={handleSubmit}>
+        <Button type="button" disabled={saving || !header.idCashSession} onClick={handleSubmit}>
           {saving ? "Procesando..." : "Registrar venta"}
         </Button>
       </div>

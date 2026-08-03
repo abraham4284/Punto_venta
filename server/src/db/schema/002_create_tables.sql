@@ -231,11 +231,69 @@ CREATE TABLE IF NOT EXISTS `deposits` (
 CREATE TABLE IF NOT EXISTS `payment_methods` (
   `idPaymentMethod` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `affects_cash` tinyint(1) NOT NULL DEFAULT '0',
   `is_default` tinyint NOT NULL DEFAULT '0',
   `is_active` tinyint NOT NULL DEFAULT '1',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`idPaymentMethod`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cash_registers` (
+  `idCashRegister` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_default` tinyint(1) NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idCashRegister`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cash_sessions` (
+  `idCashSession` bigint NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idCashRegister` int NOT NULL,
+  `opened_by_user_id` int NOT NULL,
+  `closed_by_user_id` int DEFAULT NULL,
+  `status` enum('OPEN','CLOSED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'OPEN',
+  `opened_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `closed_at` datetime DEFAULT NULL,
+  `opening_amount` decimal(18,2) NOT NULL,
+  `expected_cash_amount` decimal(18,2) DEFAULT NULL,
+  `counted_cash_amount` decimal(18,2) DEFAULT NULL,
+  `difference_amount` decimal(18,2) DEFAULT NULL,
+  `opening_observation` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `closing_observation` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idCashSession`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cash_movements` (
+  `idCashMovement` bigint NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idCashSession` bigint NOT NULL,
+  `idUser` int NOT NULL,
+  `movement_type` enum('INCOME','EXPENSE') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `category` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `amount` decimal(18,2) NOT NULL,
+  `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idCashMovement`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cash_session_payment_summaries` (
+  `idCashSessionPaymentSummary` bigint NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idCashSession` bigint NOT NULL,
+  `idPaymentMethod` int NOT NULL,
+  `sales_count` int NOT NULL DEFAULT '0',
+  `total_amount` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idCashSessionPaymentSummary`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `product_categories` (
@@ -312,6 +370,7 @@ CREATE TABLE IF NOT EXISTS `sales` (
   `idSale` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `idDeposit` int NOT NULL,
+  `idCashSession` bigint NOT NULL,
   `idUser` int NOT NULL,
   `idCustomer` int DEFAULT NULL,
   `idPaymentMethod` int DEFAULT NULL,

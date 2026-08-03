@@ -273,6 +273,35 @@ BEGIN
     'OWNER'
   );
 
+  INSERT INTO cash_registers (
+    idBusiness,
+    name,
+    description,
+    is_default,
+    is_active
+  )
+  VALUES (
+    v_idBusiness,
+    'Caja principal',
+    'Caja creada automaticamente al registrar el negocio',
+    1,
+    1
+  );
+
+  INSERT INTO payment_methods (
+    idBusiness,
+    code,
+    name,
+    affects_cash,
+    is_default,
+    is_active
+  )
+  VALUES
+    (v_idBusiness, 'CASH', 'Efectivo', 1, 1, 1),
+    (v_idBusiness, 'TRANSFER', 'Transferencia', 0, 0, 1),
+    (v_idBusiness, 'CARD', 'Tarjeta', 0, 0, 1),
+    (v_idBusiness, 'OTHER', 'Otro', 0, 0, 1);
+
   SELECT idSubscriptionPlan, trial_days
   INTO v_idSubscriptionPlan, v_trialDays
   FROM subscription_plans

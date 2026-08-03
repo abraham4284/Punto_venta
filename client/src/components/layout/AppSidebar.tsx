@@ -14,6 +14,7 @@ import {
   PackagePlus,
   PackageSearch,
   ReceiptText,
+  Landmark,
   ShoppingCart,
   Tags,
   Truck,
@@ -67,6 +68,9 @@ const iconByRoute: Record<string, LucideIcon> = {
   "/admin/categories-product": Tags,
   "/admin/products": Package,
   "/admin/deposits": Warehouse,
+  "/admin/cash": Landmark,
+  "/admin/cash/history": ClipboardList,
+  "/admin/cash/registers": Warehouse,
   "/admin/stock": Boxes,
   "/admin/stock/movements": ClipboardList,
   "/admin/stock/critical": PackageSearch,
@@ -123,10 +127,30 @@ const navigationGroups: NavigationGroup[] = [
   },
   {
     title: "Ventas",
-    items: buildItems(saleNav).map((item) => ({
-      ...item,
-      permission: item.url.endsWith("/history") ? "sales.view" : "sales.create",
-    })),
+    items: [
+      {
+        title: "Caja",
+        url: "/admin/cash",
+        icon: Landmark,
+        permission: "cash_sessions.view",
+      },
+      {
+        title: "Historial de caja",
+        url: "/admin/cash/history",
+        icon: ClipboardList,
+        permission: "cash_sessions.view_history",
+      },
+      {
+        title: "Configuracion de cajas",
+        url: "/admin/cash/registers",
+        icon: Warehouse,
+        permission: "cash_registers.view",
+      },
+      ...buildItems(saleNav).map((item) => ({
+        ...item,
+        permission: item.url.endsWith("/history") ? "sales.view" : "sales.create",
+      })),
+    ],
   },
   {
     title: "Compras",

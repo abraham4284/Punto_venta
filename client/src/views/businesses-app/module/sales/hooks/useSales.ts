@@ -21,6 +21,7 @@ import type {
 const initialHeader: SaleHeaderInput = {
   idCustomer: null,
   idDeposit: null,
+  idCashSession: null,
   idPaymentMethod: null,
   saleDate: new Date(),
   subtotal: 0,
@@ -140,16 +141,16 @@ export const useSales = () => {
     };
   }, [cart, header.discountPercent]);
 
-  const clearErrors = () => {
+  const clearErrors = useCallback(() => {
     setError(null);
     setFieldErrors({});
-  };
+  }, []);
 
-  const setValidationErrors = (errors: Record<string, string>) => {
+  const setValidationErrors = useCallback((errors: Record<string, string>) => {
     setFieldErrors(errors);
-  };
+  }, []);
 
-  const handleApiError = (error: unknown) => {
+  const handleApiError = useCallback((error: unknown) => {
     const axiosError = error as AxiosError<ApiErrorResponse>;
     const backendErrors = axiosError.response?.data?.errors ?? [];
 
@@ -160,26 +161,26 @@ export const useSales = () => {
     if (backendErrors.length > 0) {
       setFieldErrors(mapErrorsToRecord(backendErrors));
     }
-  };
+  }, []);
 
-  const updateHeaderField = <K extends keyof SaleHeaderInput>(
-    field: K,
-    value: SaleHeaderInput[K],
-  ) => {
-    setHeader((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
+  const updateHeaderField = useCallback(
+    <K extends keyof SaleHeaderInput>(field: K, value: SaleHeaderInput[K]) => {
+      setHeader((current) => ({
+        ...current,
+        [field]: value,
+      }));
+    },
+    [],
+  );
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
     setProducts([]);
     setHeader((current) => ({
       ...current,
       discountPercent: 0,
     }));
-  };
+  }, []);
 
   const resetSaleState = () => {
     setHeader(initialHeader);
@@ -389,6 +390,7 @@ export const useSales = () => {
     return {
       idCustomer: header.idCustomer,
       idDeposit: Number(header.idDeposit),
+      idCashSession: Number(header.idCashSession),
       idPaymentMethod: header.idPaymentMethod,
       subtotal: toMoney(subtotal),
       discountTotal: toMoney(discountTotal),

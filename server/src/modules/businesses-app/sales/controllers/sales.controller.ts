@@ -19,6 +19,14 @@ import {
   parseSaleStatus,
 } from "../helpers/index.js";
 
+interface ControllerError {
+  code?: string;
+  errno?: number;
+  sqlMessage?: string;
+  message?: string;
+  sqlState?: string;
+}
+
 function getZodErrors(error: z.ZodError) {
   return error.issues.map(function mapIssue(issue) {
     return {
@@ -28,8 +36,35 @@ function getZodErrors(error: z.ZodError) {
   });
 }
 
-function isDuplicateEntryError(error: any): boolean {
-  return error?.code === "ER_DUP_ENTRY" || error?.errno === 1062;
+function toControllerError(error: unknown): ControllerError {
+  if (error && typeof error === "object") {
+    return error as ControllerError;
+  }
+
+  return {
+    message: "Error inesperado",
+  };
+}
+
+function getControllerMessage(error: ControllerError): string {
+  return error.sqlMessage || error.message || "Error inesperado";
+}
+
+function isDuplicateEntryError(error: unknown): boolean {
+  const parsedError = toControllerError(error);
+  return parsedError.code === "ER_DUP_ENTRY" || parsedError.errno === 1062;
+}
+
+function getSaleErrorStatus(message: string): number {
+  const conflictErrors = new Set([
+    "OPEN_CASH_SESSION_REQUIRED",
+    "CASH_SESSION_NOT_FOUND",
+    "CASH_SESSION_CLOSED",
+    "CASH_REGISTER_INACTIVE",
+    "CLOSED_CASH_SESSION_SALE_CANNOT_BE_CANCELLED",
+  ]);
+
+  return conflictErrors.has(message) ? 409 : 400;
 }
 
 function parseNullableText(value: unknown): string | null {
@@ -58,7 +93,7 @@ export async function createSaleController(
       message: "Venta procesada con exito",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -75,9 +110,11 @@ export async function createSaleController(
       });
     }
 
-    return res.status(400).json({
+    const message = getControllerMessage(toControllerError(error));
+    console.log(error,'msssage')
+    return res.status(getSaleErrorStatus(message)).json({
       status: false,
-      message: error.sqlMessage || error.message,
+      message,
     });
   }
 }
@@ -107,10 +144,12 @@ export async function getSalesController(
       message: "Ventas obtenidas correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const parsedError = toControllerError(error);
+
     return res.status(400).json({
       status: false,
-      message: error.sqlMessage || error.message,
+      message: getControllerMessage(parsedError),
     });
   }
 }
@@ -132,7 +171,7 @@ export async function getSaleByIdController(
       message: "Venta obtenida correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -141,9 +180,11 @@ export async function getSaleByIdController(
       });
     }
 
+    const parsedError = toControllerError(error);
+
     return res.status(400).json({
       status: false,
-      message: error.sqlMessage || error.message,
+      message: getControllerMessage(parsedError),
     });
   }
 }
@@ -165,7 +206,7 @@ export async function cancelSaleController(
       message: "Venta anulada correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -174,10 +215,13 @@ export async function cancelSaleController(
       });
     }
 
-    return res.status(400).json({
+    const parsedError = toControllerError(error);
+    const message = getControllerMessage(parsedError);
+
+    return res.status(getSaleErrorStatus(message)).json({
       status: false,
-      message: error.sqlMessage || error.message,
-      sqlState: error.sqlState,
+      message,
+      sqlState: parsedError.sqlState,
     });
   }
 }
@@ -202,7 +246,7 @@ export async function getProductsWithStockByDepositController(
       message: "Productos con stock obtenidos correctamente",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -211,9 +255,11 @@ export async function getProductsWithStockByDepositController(
       });
     }
 
+    const parsedError = toControllerError(error);
+
     return res.status(400).json({
       status: false,
-      message: error.sqlMessage || error.message,
+      message: getControllerMessage(parsedError),
     });
   }
 }

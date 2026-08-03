@@ -1,5 +1,5 @@
 /* Required permissions and default role permissions seed. */
-USE `punto_venta_dev_clean`;
+USE `punto_venta_dev_clean_2`;
 
 INSERT INTO permissions (code, module, action, name, description, is_active)
 VALUES
@@ -25,6 +25,18 @@ VALUES
 ('stock.transfer','stock','transfer','Transferir stock','Permite transferir stock entre depositos',1),
 ('stock.view_movements','stock','view_movements','Ver movimientos de stock','Permite ver auditoria de movimientos',1),
 ('stock.view_critical','stock','view_critical','Ver stock critico','Permite ver informe critico de inventario',1),
+('cash_registers.view','cash_registers','view','Ver cajas','Permite ver cajas del negocio',1),
+('cash_registers.create','cash_registers','create','Crear cajas','Permite crear cajas del negocio',1),
+('cash_registers.update','cash_registers','update','Editar cajas','Permite editar cajas del negocio',1),
+('cash_registers.change_status','cash_registers','change_status','Cambiar estado de cajas','Permite activar, desactivar o marcar cajas predeterminadas',1),
+('cash_sessions.view','cash_sessions','view','Ver caja actual','Permite ver la sesion de caja actual',1),
+('cash_sessions.open','cash_sessions','open','Abrir caja','Permite abrir sesiones de caja',1),
+('cash_sessions.close','cash_sessions','close','Cerrar caja','Permite cerrar sesiones de caja',1),
+('cash_sessions.view_history','cash_sessions','view_history','Ver historial de caja','Permite ver sesiones historicas de caja',1),
+('cash_sessions.view_all_users','cash_sessions','view_all_users','Ver cajas de otros usuarios','Permite auditar sesiones operadas por otros usuarios',1),
+('cash_movements.view','cash_movements','view','Ver movimientos de caja','Permite ver ingresos y egresos manuales de caja',1),
+('cash_movements.create','cash_movements','create','Crear movimientos de caja','Permite registrar ingresos y egresos manuales de caja',1),
+('cash_reports.view','cash_reports','view','Ver reportes de caja','Permite ver reportes y resumenes de caja',1),
 ('customers.view','customers','view','Ver clientes','Permite ver clientes',1),
 ('customers.create','customers','create','Crear clientes','Permite crear clientes',1),
 ('customers.update','customers','update','Editar clientes','Permite editar clientes',1),
@@ -67,6 +79,9 @@ WHERE code IN (
   'products.view','products.create','products.update','products.change_prices','products.import','products.change_status',
   'categories.view','categories.create','categories.update','categories.change_status',
   'stock.view','stock.adjust','stock.transfer','stock.view_movements','stock.view_critical',
+  'cash_registers.view','cash_registers.create','cash_registers.update','cash_registers.change_status',
+  'cash_sessions.view','cash_sessions.open','cash_sessions.close','cash_sessions.view_history','cash_sessions.view_all_users',
+  'cash_movements.view','cash_movements.create','cash_reports.view',
   'customers.view','customers.create','customers.update','customers.change_status',
   'suppliers.view','suppliers.create','suppliers.update','suppliers.change_status',
   'deposits.view','deposits.create','deposits.update','deposits.change_status',
@@ -84,6 +99,11 @@ WHERE code IN (
   'sales.create',
   'products.view',
   'stock.view',
+  'cash_registers.view',
+  'cash_sessions.view',
+  'cash_sessions.open',
+  'cash_movements.view',
+  'cash_movements.create',
   'deposits.view',
   'customers.view',
   'customers.create',

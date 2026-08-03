@@ -31,6 +31,10 @@ export const createSaleFormSchema = z.object({
     .number({ error: "Selecciona un deposito" })
     .int("Selecciona un deposito valido")
     .positive("Selecciona un deposito"),
+  idCashSession: z
+    .number({ error: "Debes abrir una caja antes de registrar una venta" })
+    .int("La sesion de caja no es valida")
+    .positive("Debes abrir una caja antes de registrar una venta"),
   idPaymentMethod: z
     .number()
     .int("Selecciona una cuenta valida")

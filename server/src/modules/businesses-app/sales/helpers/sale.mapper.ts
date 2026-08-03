@@ -23,6 +23,7 @@ export function mapSale(sale: SaleDbRow): SaleResponse {
     customerName: sale.customer_name,
     idDeposit: sale.idDeposit,
     depositName: sale.deposit_name,
+    idCashSession: sale.idCashSession,
     idPaymentMethod: sale.idPaymentMethod,
     paymentMethodName: sale.payment_method_name,
     saleDate: sale.sale_date,

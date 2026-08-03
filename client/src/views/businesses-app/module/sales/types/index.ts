@@ -56,6 +56,7 @@ export interface ProductWithStockResponse {
 export interface SaleHeaderInput {
   idCustomer: number | null;
   idDeposit: number | null;
+  idCashSession: number | null;
   idPaymentMethod: number | null;
   saleDate: Date;
   subtotal: number;
@@ -99,6 +100,7 @@ export interface ProductSelection {
 export interface CreateSalePayload {
   idCustomer: number | null;
   idDeposit: number;
+  idCashSession: number;
   idPaymentMethod: number | null;
   subtotal: number;
   discountTotal: number;
@@ -117,6 +119,7 @@ export interface SaleResponse {
   customerName: string | null;
   idDeposit: number;
   depositName: string;
+  idCashSession: number;
   idPaymentMethod: number | null;
   paymentMethodName: string | null;
   saleDate: Date;

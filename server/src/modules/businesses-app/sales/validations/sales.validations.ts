@@ -72,6 +72,11 @@ export const createSaleSchema = z
       .int("El deposito debe ser un numero entero")
       .positive("El deposito debe ser valido"),
 
+    idCashSession: z
+      .number({ error: "La sesion de caja es obligatoria" })
+      .int("La sesion de caja debe ser un numero entero")
+      .positive("Debe existir una caja abierta para registrar la venta"),
+
     idPaymentMethod: nullablePositiveIntSchema,
 
     subtotal: moneySchema("El subtotal"),
