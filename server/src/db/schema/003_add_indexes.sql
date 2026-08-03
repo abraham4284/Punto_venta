@@ -15,6 +15,8 @@ CREATE PROCEDURE sp_add_index_if_not_exists(
   IN p_sql TEXT
 )
 BEGIN
+  DECLARE CONTINUE HANDLER FOR 1553 BEGIN END;
+
   IF NOT EXISTS (
     SELECT 1
     FROM information_schema.STATISTICS

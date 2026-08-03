@@ -111,7 +111,7 @@ export async function createSaleController(
     }
 
     const message = getControllerMessage(toControllerError(error));
-
+    console.log(error,'msssage')
     return res.status(getSaleErrorStatus(message)).json({
       status: false,
       message,

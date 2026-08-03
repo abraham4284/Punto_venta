@@ -214,7 +214,7 @@ BEGIN
   SELECT sale_number
   INTO v_sale_number
   FROM sales
-  WHERE s.idSale = p_idSale
+  WHERE idSale = p_idSale
     AND idBusiness = p_idBusiness
   LIMIT 1;
 
@@ -355,7 +355,7 @@ BEGIN
   INNER JOIN cash_sessions cs
     ON cs.idCashSession = s.idCashSession
     AND cs.idBusiness = s.idBusiness
-  WHERE idSale = p_idSale
+  WHERE s.idSale = p_idSale
     AND s.idBusiness = p_idBusiness
   LIMIT 1
   FOR UPDATE;
