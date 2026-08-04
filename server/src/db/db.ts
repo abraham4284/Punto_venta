@@ -10,7 +10,7 @@ const DB_NAME = process.env.DB_NAME;
 const DB_PORT = Number(process.env.DB_PORT || 3306);
 
 if (!DB_HOST || !DB_USER || !DB_PASSWORD || !DB_NAME) {
-  throw new Error("Faltan variables de entorno de conexión a MySQL");
+  throw new Error("Faltan variables de entorno de conexion a MySQL");
 }
 
 export const pool = createPool({
@@ -27,12 +27,21 @@ export const pool = createPool({
   keepAliveInitialDelay: 0,
 });
 
-(async (): Promise<void> => {
+(async function testDatabaseConnection(): Promise<void> {
   try {
     const connection = await pool.getConnection();
-    console.log("✅ DB conectada correctamente a MySQL");
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log("DB conectada correctamente a MySQL");
+    }
+
     connection.release();
   } catch (error) {
-    console.error("❌ Error real de conexión a MySQL:", error);
+    const message =
+      error instanceof Error ? error.message : "Error desconocido de conexion";
+    console.error({
+      code: "DB_CONNECTION_ERROR",
+      message,
+    });
   }
 })();

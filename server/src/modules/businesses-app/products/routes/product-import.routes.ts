@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
+import { importRateLimiter } from "@/middlewares/rate-limit/rate-limit.middleware.js";
 import { requirePermission } from "@/middlewares/requirePermission.middleware.js";
 import {
   confirmProductImportController,
@@ -20,6 +21,7 @@ router.post(
   "/products/import/preview",
   requireAuth,
   requirePermission("products.import"),
+  importRateLimiter,
   productImportUploadMiddleware,
   previewProductImportController,
 );
@@ -27,6 +29,7 @@ router.post(
   "/products/import/confirm",
   requireAuth,
   requirePermission("products.import"),
+  importRateLimiter,
   confirmProductImportController,
 );
 

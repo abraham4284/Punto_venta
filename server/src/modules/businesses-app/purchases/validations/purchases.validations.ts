@@ -94,7 +94,8 @@ export const createPurchaseSchema = z
       .array(createPurchaseDetailSchema, {
         error: "La compra debe incluir productos",
       })
-      .min(1, "La compra debe incluir al menos un producto"),
+      .min(1, "La compra debe incluir al menos un producto")
+      .max(100, "La compra no puede superar los 100 productos"),
   })
   .strict()
   .superRefine(function validatePurchaseMath(data, ctx) {

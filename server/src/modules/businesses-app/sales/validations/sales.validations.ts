@@ -100,7 +100,8 @@ export const createSaleSchema = z
       .array(createSaleDetailSchema, {
         error: "La venta debe incluir productos",
       })
-      .min(1, "La venta debe incluir al menos un producto"),
+      .min(1, "La venta debe incluir al menos un producto")
+      .max(100, "La venta no puede superar los 100 productos"),
   })
   .strict()
   .superRefine(function validateSaleMath(data, ctx) {

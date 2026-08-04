@@ -1,4 +1,9 @@
 import { Router } from "express";
+import {
+  businessLoginRateLimiter,
+  refreshRateLimiter,
+  registerRateLimiter,
+} from "@/middlewares/rate-limit/rate-limit.middleware.js";
 import { validateSchema } from "../middleware/validateSchema.js";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import {
@@ -17,9 +22,19 @@ import {
 
 const router = Router();
 
-router.post("/register", validateSchema(registerSchema), registerController);
-router.post("/login", validateSchema(loginSchema), loginController);
-router.post("/refresh", refreshTokenController);
+router.post(
+  "/register",
+  registerRateLimiter,
+  validateSchema(registerSchema),
+  registerController,
+);
+router.post(
+  "/login",
+  businessLoginRateLimiter,
+  validateSchema(loginSchema),
+  loginController,
+);
+router.post("/refresh", refreshRateLimiter, refreshTokenController);
 router.post("/logout", requireAuth, logoutController);
 router.get("/me", requireAuth, me);
 router.get("/auth/user-info/:idUser", requireAuth, getUserInfoByIdController);
