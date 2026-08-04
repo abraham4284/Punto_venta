@@ -90,6 +90,46 @@ export function mapPlatformSqlError(error: unknown): never {
     );
   }
 
+  if (message.includes("BUSINESS_USER_NOT_FOUND")) {
+    throw createPlatformModuleError(
+      "Usuario del negocio no encontrado",
+      404,
+      "BUSINESS_USER_NOT_FOUND",
+    );
+  }
+
+  if (message.includes("BUSINESS_USER_NOT_IN_BUSINESS")) {
+    throw createPlatformModuleError(
+      "El usuario no pertenece al negocio seleccionado",
+      404,
+      "BUSINESS_USER_NOT_IN_BUSINESS",
+    );
+  }
+
+  if (message.includes("BUSINESS_USER_INACTIVE")) {
+    throw createPlatformModuleError(
+      "No se puede restablecer la contrasena de un usuario inactivo",
+      409,
+      "BUSINESS_USER_INACTIVE",
+    );
+  }
+
+  if (message.includes("CANNOT_RESET_PLATFORM_USER_FROM_BUSINESS_FLOW")) {
+    throw createPlatformModuleError(
+      "Este usuario tambien pertenece a plataforma y no puede restablecerse desde el flujo de negocios",
+      409,
+      "CANNOT_RESET_PLATFORM_USER_FROM_BUSINESS_FLOW",
+    );
+  }
+
+  if (message.includes("BUSINESS_USER_PASSWORD_RESET_FAILED")) {
+    throw createPlatformModuleError(
+      "No se pudo restablecer la contrasena del usuario",
+      409,
+      "BUSINESS_USER_PASSWORD_RESET_FAILED",
+    );
+  }
+
   throw createPlatformModuleError(message, 400, "PLATFORM_ERROR");
 }
 

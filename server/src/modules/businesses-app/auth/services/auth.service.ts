@@ -17,6 +17,7 @@ import type {
   SessionDbRow,
   UserInfoDbRow,
   UserInfoResponse,
+  UserPasswordHashRow,
 } from "../types/auth.types.js";
 
 const REFRESH_DAYS = 7;
@@ -320,7 +321,6 @@ export async function refreshTokenService(refreshToken: string) {
       refreshToken: newRefreshToken,
     };
   } catch (error) {
-    console.error("Error en refreshTokenService:", error);
     throw error;
   }
 }
@@ -394,8 +394,43 @@ export async function getAuthenticatedUserContextService(
 export async function updatePasswordService(
   idUser: number,
   idBusiness: number,
+  currentPassword: string,
   password: string,
+  currentLoginId?: number,
 ): Promise<{ idUser: number; updated: boolean }> {
+  const [currentRows] = await pool.query<RowDataPacket[]>(
+    `SELECT u.idUser, u.password_hash
+     FROM users u
+     INNER JOIN business_users bu
+       ON bu.idUser = u.idUser
+       AND bu.idBusiness = ?
+       AND bu.is_active = 1
+     WHERE u.idUser = ?
+       AND u.is_active = 1
+     LIMIT 1`,
+    [idBusiness, idUser],
+  );
+  const currentUser = (currentRows as UserPasswordHashRow[])[0];
+
+  if (!currentUser) {
+    throw new Error("Usuario no encontrado o inactivo");
+  }
+
+  const currentPasswordMatch = await bcrypt.compare(
+    currentPassword,
+    currentUser.password_hash,
+  );
+
+  if (!currentPasswordMatch) {
+    throw new Error("La contrasena actual no es correcta");
+  }
+
+  const samePassword = await bcrypt.compare(password, currentUser.password_hash);
+
+  if (samePassword) {
+    throw new Error("La nueva contrasena debe ser diferente a la actual");
+  }
+
   const passwordHash = await bcrypt.hash(password, 10);
 
   const [rows] = await pool.query<RowDataPacket[]>(
@@ -409,6 +444,17 @@ export async function updatePasswordService(
   if (!updatedUser?.updated) {
     throw new Error("No se pudo actualizar la contrasena del usuario");
   }
+
+  await pool.query(
+    `UPDATE user_sessions
+     SET revoked_at = NOW()
+     WHERE idUser = ?
+       AND idBusiness = ?
+       AND auth_context = 'BUSINESS'
+       AND revoked_at IS NULL
+       AND (? IS NULL OR idLogin <> ?)`,
+    [idUser, idBusiness, currentLoginId ?? null, currentLoginId ?? null],
+  );
 
   return {
     idUser: updatedUser.idUser,

@@ -1,4 +1,4 @@
-// import type { Request } from "express";
+import type { RowDataPacket } from "mysql2";
 
 export type UserRole = "OWNER" | "ADMIN" | "SELLER";
 
@@ -42,7 +42,13 @@ export interface RegisterDbRow {
 }
 
 export interface UpdatePasswordBody {
+  currentPassword: string;
   password: string;
+}
+
+export interface UserPasswordHashRow extends RowDataPacket {
+  idUser: number;
+  password_hash: string;
 }
 
 export interface LoginDbRow {

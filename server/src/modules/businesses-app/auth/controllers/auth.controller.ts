@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { setAuthCookies, clearAuthCookies } from "@/libs/cookies.js";
+import { verifyRefreshToken } from "@/libs/tokens.js";
 import {
   getAuthenticatedUserContextService,
   getUserInfoByIdService,
@@ -46,6 +47,28 @@ async function assertCanAccessBusinessUser(
     (error as Error & { statusCode?: number }).statusCode = 403;
     throw error;
   }
+}
+
+function getCurrentBusinessLoginId(req: Request): number | undefined {
+  const refreshToken = req.cookies?.refresh_token as string | undefined;
+
+  if (!refreshToken) return undefined;
+
+  try {
+    const payload = verifyRefreshToken(refreshToken);
+
+    if (
+      payload.context === "BUSINESS" &&
+      payload.idUser === req.user?.idUser &&
+      payload.idBusiness === req.user?.idBusiness
+    ) {
+      return payload.idLogin;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
 }
 
 export async function registerController(
@@ -231,7 +254,6 @@ export async function updatePasswordController(
         message: "El identificador del usuario debe ser valido",
       });
     }
-    console.log(req.body,'lo que llega')
     const data = updatePasswordSchema.parse(req.body);
     await assertCanAccessBusinessUser(
       req.user!.idUser,
@@ -243,7 +265,9 @@ export async function updatePasswordController(
     const result = await updatePasswordService(
       idUser,
       req.user!.idBusiness,
+      data.currentPassword,
       data.password,
+      getCurrentBusinessLoginId(req),
     );
 
     return res.status(200).json({

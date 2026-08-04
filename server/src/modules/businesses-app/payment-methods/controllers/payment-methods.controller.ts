@@ -98,7 +98,6 @@ export async function createPaymentMethodController(
       data: result,
     });
   } catch (error: unknown) {
-    console.log(error,'error')
     return sendControllerError(res, error);
   }
 }

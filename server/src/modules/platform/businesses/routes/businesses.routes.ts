@@ -11,7 +11,9 @@ import {
   listPlatformBusinessRecentSalesController,
   listPlatformBusinessUsersController,
   listPlatformBusinessesController,
+  resetPlatformBusinessUserPasswordController,
 } from "../controllers/businesses.controller.js";
+import { resetBusinessUserPasswordRateLimit } from "../middlewares/reset-password-rate-limit.middleware.js";
 
 const router = Router();
 
@@ -56,6 +58,12 @@ router.patch(
   "/businesses/:idBusiness/status",
   requirePlatformRoles(["SUPER_ADMIN"]),
   changePlatformBusinessStatusController,
+);
+router.post(
+  "/businesses/:idBusiness/users/:idUser/reset-password",
+  requirePlatformRoles(["SUPER_ADMIN"]),
+  resetBusinessUserPasswordRateLimit,
+  resetPlatformBusinessUserPasswordController,
 );
 
 export default router;

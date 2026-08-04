@@ -76,6 +76,7 @@ export type UserInfoResponse = {
 };
 
 export type UpdatePasswordBody = {
+  currentPassword: string;
   password: string;
 };
 

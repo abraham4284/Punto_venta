@@ -61,6 +61,25 @@ export interface PlatformBusinessUser {
   lastLoginAt: string | null;
 }
 
+export interface ResetBusinessUserPasswordBody {
+  mode: "GENERATE";
+}
+
+export interface ResetBusinessUserPasswordResponse {
+  user: {
+    idBusiness: number;
+    idUser: number;
+    name: string;
+    username: string;
+    email: string | null;
+    role: string;
+    mustChangePassword: boolean;
+  };
+  temporaryPassword: string;
+  sessionsRevoked: number;
+  warning: string;
+}
+
 export interface PlatformBusinessActivity {
   lastLoginAt: string | null;
   lastSaleAt: string | null;

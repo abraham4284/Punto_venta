@@ -16,11 +16,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { useAuthStore } from "../store/auth.store";
 
 type PasswordFormState = {
+  currentPassword: string;
   password: string;
   confirmPassword: string;
 };
 
 const initialFormState: PasswordFormState = {
+  currentPassword: "",
   password: "",
   confirmPassword: "",
 };
@@ -61,6 +63,7 @@ export const ProfilePage = () => {
 
   const [formState, setFormState] = useState<PasswordFormState>(initialFormState);
   const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -70,10 +73,19 @@ export const ProfilePage = () => {
   const backendPasswordError = passwordFieldErrors.find(
     (error) => error.field === "password",
   )?.message;
+  const backendCurrentPasswordError = passwordFieldErrors.find(
+    (error) => error.field === "currentPassword",
+  )?.message;
+
+  const currentPasswordError =
+    backendCurrentPasswordError ||
+    (submitted && formState.currentPassword.length === 0
+      ? "La contrasena actual es obligatoria"
+      : "");
 
   const passwordLengthError =
-    formState.password.length > 0 && formState.password.length < 5
-      ? "La contrasena debe tener al menos 5 caracteres"
+    formState.password.length > 0 && formState.password.length < 8
+      ? "La nueva contrasena debe tener al menos 8 caracteres"
       : "";
 
   const confirmPasswordError =
@@ -87,12 +99,18 @@ export const ProfilePage = () => {
 
   const canSubmit = useMemo(() => {
     return (
-      formState.password.length >= 5 &&
-      formState.confirmPassword.length >= 5 &&
+      formState.currentPassword.length > 0 &&
+      formState.password.length >= 8 &&
+      formState.confirmPassword.length >= 8 &&
       formState.password === formState.confirmPassword &&
       !passwordLoading
     );
-  }, [formState.confirmPassword, formState.password, passwordLoading]);
+  }, [
+    formState.confirmPassword,
+    formState.currentPassword,
+    formState.password,
+    passwordLoading,
+  ]);
 
   const handleChange = (field: keyof PasswordFormState, value: string) => {
     clearPasswordErrors();
@@ -111,8 +129,13 @@ export const ProfilePage = () => {
       return;
     }
 
-    if (formState.password.length < 5) {
-      toast.error("La contrasena debe tener al menos 5 caracteres");
+    if (!formState.currentPassword) {
+      toast.error("Ingresa tu contrasena actual");
+      return;
+    }
+
+    if (formState.password.length < 8) {
+      toast.error("La nueva contrasena debe tener al menos 8 caracteres");
       return;
     }
 
@@ -121,7 +144,11 @@ export const ProfilePage = () => {
       return;
     }
 
-    const result = await updateUserPassword(user.idUser, formState.password);
+    const result = await updateUserPassword(
+      user.idUser,
+      formState.currentPassword,
+      formState.password,
+    );
 
     if (!result.success) {
       toast.error(result.message || "No se pudo actualizar la contrasena");
@@ -131,6 +158,7 @@ export const ProfilePage = () => {
     toast.success(result.message);
     setFormState(initialFormState);
     setSubmitted(false);
+    setShowCurrentPassword(false);
     setShowPassword(false);
     setShowConfirmPassword(false);
   };
@@ -236,13 +264,56 @@ export const ProfilePage = () => {
               <div>
                 <CardTitle>Cambio de contrasena</CardTitle>
                 <CardDescription>
-                  Actualiza tu clave de acceso de forma segura.
+                  {user?.mustChangePassword
+                    ? "Ingresa tu contrasena temporal y defini una clave propia para continuar."
+                    : "Actualiza tu clave de acceso de forma segura."}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Contrasena actual</Label>
+                <div className="relative">
+                  <Input
+                    id="currentPassword"
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={formState.currentPassword}
+                    disabled={passwordLoading}
+                    aria-invalid={Boolean(currentPasswordError)}
+                    placeholder={
+                      user?.mustChangePassword
+                        ? "Ingresa la contrasena temporal"
+                        : "Ingresa tu contrasena actual"
+                    }
+                    className="pr-10"
+                    onChange={(event) =>
+                      handleChange("currentPassword", event.target.value)
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2"
+                    disabled={passwordLoading}
+                    onClick={() => setShowCurrentPassword((current) => !current)}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                {currentPasswordError && (
+                  <p className="text-sm text-destructive">
+                    {currentPasswordError}
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="password">Nueva contrasena</Label>
                 <div className="relative">
@@ -252,7 +323,7 @@ export const ProfilePage = () => {
                     value={formState.password}
                     disabled={passwordLoading}
                     aria-invalid={Boolean(passwordError)}
-                    placeholder="Minimo 5 caracteres"
+                    placeholder="Minimo 8 caracteres"
                     className="pr-10"
                     onChange={(event) =>
                       handleChange("password", event.target.value)
