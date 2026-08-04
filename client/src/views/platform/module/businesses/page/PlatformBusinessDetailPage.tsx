@@ -1,13 +1,21 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, KeyRound } from "lucide-react";
+import { toast, Toaster } from "react-hot-toast";
 import { Meta } from "@/components/Meta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { usePlatformAuthStore } from "@/views/platform/module/auth/store/platformAuth.store";
+import { BusinessUserPasswordResetModal } from "../components/BusinessUserPasswordResetModal";
 import { usePlatformBusinessDetail } from "../hooks/usePlatformBusinessDetail";
-import type { UsageMetric } from "../types";
+import type {
+  PlatformBusinessUser,
+  ResetBusinessUserPasswordResponse,
+  UsageMetric,
+} from "../types";
 
 type DetailTab = "summary" | "users" | "activity" | "usage" | "sales" | "purchases";
 
@@ -68,8 +76,50 @@ export const PlatformBusinessDetailPage = () => {
   const { idBusiness } = useParams();
   const numericId = Number(idBusiness);
   const [activeTab, setActiveTab] = useState<DetailTab>("summary");
-  const { business, users, activity, usage, sales, purchases, loading, error } =
-    usePlatformBusinessDetail(numericId);
+  const platformUser = usePlatformAuthStore((state) => state.platformUser);
+  const [selectedResetUser, setSelectedResetUser] =
+    useState<PlatformBusinessUser | null>(null);
+  const [resetResult, setResetResult] =
+    useState<ResetBusinessUserPasswordResponse | null>(null);
+  const {
+    business,
+    users,
+    activity,
+    usage,
+    sales,
+    purchases,
+    loading,
+    resetPasswordLoadingId,
+    error,
+    resetBusinessUserPassword,
+  } = usePlatformBusinessDetail(numericId);
+  const canResetPasswords = platformUser?.platformRole === "SUPER_ADMIN";
+
+  const handleOpenResetModal = (user: PlatformBusinessUser) => {
+    setSelectedResetUser(user);
+    setResetResult(null);
+  };
+
+  const handleCloseResetModal = () => {
+    if (resetPasswordLoadingId) return;
+
+    setSelectedResetUser(null);
+    setResetResult(null);
+  };
+
+  const handleConfirmResetPassword = async () => {
+    if (!selectedResetUser) return;
+
+    const result = await resetBusinessUserPassword(selectedResetUser.idUser);
+
+    if (!result.success || !result.data) {
+      toast.error(result.message);
+      return;
+    }
+
+    toast.success(result.message);
+    setResetResult(result.data);
+  };
 
   return (
     <>
@@ -184,6 +234,7 @@ export const PlatformBusinessDetailPage = () => {
                         <TableHead>Rol</TableHead>
                         <TableHead>Estado</TableHead>
                         <TableHead>Ultimo acceso</TableHead>
+                        {canResetPasswords ? <TableHead>Acciones</TableHead> : null}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -194,8 +245,38 @@ export const PlatformBusinessDetailPage = () => {
                             <div className="text-xs text-muted-foreground">{user.email || user.username}</div>
                           </TableCell>
                           <TableCell>{user.role}</TableCell>
-                          <TableCell>{user.effectiveIsActive ? "Activo" : "Inactivo"}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-2">
+                              <Badge variant={user.effectiveIsActive ? "default" : "destructive"}>
+                                {user.effectiveIsActive ? "Activo" : "Inactivo"}
+                              </Badge>
+                              {user.mustChangePassword ? (
+                                <Badge variant="outline">Debe cambiar clave</Badge>
+                              ) : null}
+                            </div>
+                          </TableCell>
                           <TableCell>{formatDate(user.lastLoginAt)}</TableCell>
+                          {canResetPasswords ? (
+                            <TableCell>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={
+                                  !user.effectiveIsActive ||
+                                  resetPasswordLoadingId === user.idUser
+                                }
+                                onClick={() => handleOpenResetModal(user)}
+                              >
+                                {resetPasswordLoadingId === user.idUser ? (
+                                  <Spinner className="mr-2 h-4 w-4" />
+                                ) : (
+                                  <KeyRound className="mr-2 h-4 w-4" />
+                                )}
+                                Restablecer
+                              </Button>
+                            </TableCell>
+                          ) : null}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -291,6 +372,16 @@ export const PlatformBusinessDetailPage = () => {
             ) : null}
           </>
         ) : null}
+
+        <BusinessUserPasswordResetModal
+          isOpen={Boolean(selectedResetUser)}
+          user={selectedResetUser}
+          result={resetResult}
+          loading={Boolean(resetPasswordLoadingId)}
+          onClose={handleCloseResetModal}
+          onConfirm={handleConfirmResetPassword}
+        />
+        <Toaster position="top-right" reverseOrder={false} />
       </div>
     </>
   );

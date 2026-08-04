@@ -92,8 +92,6 @@ export async function createPurchaseService(
       JSON.stringify(purchaseData.details),
     ],
   );
-  console.log(rows,'rows')
-
   const result = rows as unknown as [PurchaseDbRow[], PurchaseDetailDbRow[]];
   const purchase = result[0]?.[0];
 

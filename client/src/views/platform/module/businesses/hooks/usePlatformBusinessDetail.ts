@@ -7,6 +7,7 @@ import {
   getPlatformBusinessRecentSalesRequest,
   getPlatformBusinessUsageRequest,
   getPlatformBusinessUsersRequest,
+  resetBusinessUserPasswordRequest,
 } from "../api/platform-businesses.api";
 import type {
   PlatformBusinessActivity,
@@ -15,6 +16,7 @@ import type {
   PlatformBusinessSale,
   PlatformBusinessUsage,
   PlatformBusinessUser,
+  ResetBusinessUserPasswordResponse,
 } from "../types";
 
 const getErrorMessage = (error: unknown, fallback: string) => {
@@ -30,6 +32,7 @@ export const usePlatformBusinessDetail = (idBusiness: number) => {
   const [sales, setSales] = useState<PlatformBusinessSale[]>([]);
   const [purchases, setPurchases] = useState<PlatformBusinessPurchase[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resetPasswordLoadingId, setResetPasswordLoadingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDetail = useCallback(async () => {
@@ -74,6 +77,51 @@ export const usePlatformBusinessDetail = (idBusiness: number) => {
     return () => window.clearTimeout(timeoutId);
   }, [fetchDetail]);
 
+  const resetBusinessUserPassword = useCallback(
+    async (idUser: number): Promise<{
+      success: boolean;
+      message: string;
+      data: ResetBusinessUserPasswordResponse | null;
+    }> => {
+      setResetPasswordLoadingId(idUser);
+      setError(null);
+
+      try {
+        const { data } = await resetBusinessUserPasswordRequest(
+          idBusiness,
+          idUser,
+          { mode: "GENERATE" },
+        );
+
+        setUsers((currentUsers) =>
+          currentUsers.map((user) =>
+            user.idUser === idUser
+              ? { ...user, mustChangePassword: true }
+              : user,
+          ),
+        );
+
+        return {
+          success: true,
+          message: data.message,
+          data: data.data,
+        };
+      } catch (requestError) {
+        return {
+          success: false,
+          message: getErrorMessage(
+            requestError,
+            "No se pudo restablecer la contrasena",
+          ),
+          data: null,
+        };
+      } finally {
+        setResetPasswordLoadingId(null);
+      }
+    },
+    [idBusiness],
+  );
+
   return {
     business,
     users,
@@ -82,7 +130,9 @@ export const usePlatformBusinessDetail = (idBusiness: number) => {
     sales,
     purchases,
     loading,
+    resetPasswordLoadingId,
     error,
     refresh: fetchDetail,
+    resetBusinessUserPassword,
   };
 };

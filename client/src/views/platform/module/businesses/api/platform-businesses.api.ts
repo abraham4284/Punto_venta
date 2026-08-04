@@ -11,6 +11,8 @@ import type {
   PlatformBusinessSale,
   PlatformBusinessUsage,
   PlatformBusinessUser,
+  ResetBusinessUserPasswordBody,
+  ResetBusinessUserPasswordResponse,
 } from "../types";
 
 type ParamsRecord = Record<string, string | number | boolean | null | undefined>;
@@ -85,4 +87,15 @@ export const changePlatformBusinessStatusRequest = (
     isActive,
     reason,
   });
+};
+
+export const resetBusinessUserPasswordRequest = (
+  idBusiness: number,
+  idUser: number,
+  data: ResetBusinessUserPasswordBody,
+): Promise<AxiosResponse<PlatformApiResponse<ResetBusinessUserPasswordResponse>>> => {
+  return platformApi.post(
+    `/platform/businesses/${idBusiness}/users/${idUser}/reset-password`,
+    data,
+  );
 };

@@ -13,10 +13,12 @@ import {
   listPlatformBusinessRecentSalesService,
   listPlatformBusinessUsersService,
   listPlatformBusinessesService,
+  resetPlatformBusinessUserPasswordService,
 } from "../services/businesses.service.js";
 import {
   changePlatformBusinessStatusSchema,
   listPlatformBusinessesQuerySchema,
+  resetBusinessUserPasswordSchema,
 } from "../validations/businesses.validations.js";
 
 export async function listPlatformBusinessesController(
@@ -172,6 +174,38 @@ export async function changePlatformBusinessStatusController(
       success: true,
       message: "Estado del negocio actualizado correctamente",
       data: result,
+    });
+  } catch (error) {
+    const response = getControllerErrorResponse(error);
+    return res.status(response.statusCode).json(response.body);
+  }
+}
+
+export async function resetPlatformBusinessUserPasswordController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const idBusiness = getPositiveId(req.params.idBusiness, "El negocio");
+    const idUser = getPositiveId(req.params.idUser, "El usuario");
+    const data = resetBusinessUserPasswordSchema.parse(req.body ?? {});
+    const result = await resetPlatformBusinessUserPasswordService(
+      idBusiness,
+      idUser,
+      data,
+      req.auth!.idUser,
+      req.ip,
+      req.headers["user-agent"],
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Contrasena temporal generada correctamente",
+      data: {
+        ...result,
+        warning:
+          "Mostra o copia esta contrasena ahora. No se volvera a mostrar por seguridad.",
+      },
     });
   } catch (error) {
     const response = getControllerErrorResponse(error);

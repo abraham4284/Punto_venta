@@ -9,11 +9,17 @@ export const loginSchema = z.object({
 });
 
 export const updatePasswordSchema = z.object({
+  currentPassword: z
+    .string({
+      message: "La contrasena actual es obligatoria",
+    })
+    .min(1, "La contrasena actual es obligatoria"),
   password: z
     .string({
-      message: "La contrasena es obligatoria",
+      message: "La nueva contrasena es obligatoria",
     })
-    .min(5, "La contrasena debe tener al menos 5 caracteres"),
+    .min(8, "La nueva contrasena debe tener al menos 8 caracteres")
+    .max(128, "La nueva contrasena no puede superar 128 caracteres"),
 });
 
 export const registerSchema = z.object({

@@ -1,5 +1,3 @@
-USE `punto_venta_dev_clean_2`;
-
 DROP PROCEDURE IF EXISTS sp_platform_business_list;
 DROP PROCEDURE IF EXISTS sp_platform_business_get_by_id;
 DROP PROCEDURE IF EXISTS sp_platform_business_users;
@@ -8,6 +6,7 @@ DROP PROCEDURE IF EXISTS sp_platform_business_usage;
 DROP PROCEDURE IF EXISTS sp_platform_business_recent_sales;
 DROP PROCEDURE IF EXISTS sp_platform_business_recent_purchases;
 DROP PROCEDURE IF EXISTS sp_platform_business_change_status;
+DROP PROCEDURE IF EXISTS sp_platform_business_user_reset_password;
 
 DELIMITER $$
 
@@ -366,6 +365,131 @@ BEGIN
   END IF;
 
   CALL sp_platform_business_get_by_id(p_idBusiness);
+END$$
+
+CREATE PROCEDURE sp_platform_business_user_reset_password(
+  IN p_idBusiness INT,
+  IN p_idUser INT,
+  IN p_temporaryPasswordHash VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_actorPlatformUserId INT
+)
+BEGIN
+  DECLARE v_businessExists INT DEFAULT 0;
+  DECLARE v_userExists INT DEFAULT 0;
+  DECLARE v_membershipExists INT DEFAULT 0;
+  DECLARE v_userIsActive TINYINT DEFAULT 0;
+  DECLARE v_membershipIsActive TINYINT DEFAULT 0;
+  DECLARE v_platformMembershipExists INT DEFAULT 0;
+  DECLARE v_sessionsRevoked INT DEFAULT 0;
+  DECLARE v_name VARCHAR(120);
+  DECLARE v_username VARCHAR(120);
+  DECLARE v_email VARCHAR(160);
+  DECLARE v_role VARCHAR(30);
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  START TRANSACTION;
+
+  SELECT COUNT(*)
+  INTO v_businessExists
+  FROM businesses
+  WHERE idBusiness = p_idBusiness;
+
+  IF v_businessExists = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PLATFORM_BUSINESS_NOT_FOUND';
+  END IF;
+
+  SELECT COUNT(*)
+  INTO v_userExists
+  FROM users
+  WHERE idUser = p_idUser;
+
+  IF v_userExists = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'BUSINESS_USER_NOT_FOUND';
+  END IF;
+
+  SELECT COUNT(*)
+  INTO v_membershipExists
+  FROM business_users bu
+  WHERE bu.idBusiness = p_idBusiness
+    AND bu.idUser = p_idUser;
+
+  IF v_membershipExists = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'BUSINESS_USER_NOT_IN_BUSINESS';
+  END IF;
+
+  SELECT
+    u.is_active,
+    bu.is_active,
+    bu.role,
+    u.name,
+    u.username,
+    u.email
+  INTO
+    v_userIsActive,
+    v_membershipIsActive,
+    v_role,
+    v_name,
+    v_username,
+    v_email
+  FROM users u
+  INNER JOIN business_users bu
+    ON bu.idUser = u.idUser
+    AND bu.idBusiness = p_idBusiness
+  WHERE u.idUser = p_idUser
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_userIsActive = 0 OR v_membershipIsActive = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'BUSINESS_USER_INACTIVE';
+  END IF;
+
+  SELECT COUNT(*)
+  INTO v_platformMembershipExists
+  FROM platform_users pu
+  WHERE pu.idUser = p_idUser
+    AND pu.is_active = 1;
+
+  IF v_platformMembershipExists > 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'CANNOT_RESET_PLATFORM_USER_FROM_BUSINESS_FLOW';
+  END IF;
+
+  UPDATE users
+  SET
+    password_hash = p_temporaryPasswordHash,
+    must_change_password = 1,
+    updated_at = NOW()
+  WHERE idUser = p_idUser
+    AND is_active = 1;
+
+  IF ROW_COUNT() = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'BUSINESS_USER_PASSWORD_RESET_FAILED';
+  END IF;
+
+  UPDATE user_sessions
+  SET revoked_at = NOW()
+  WHERE idUser = p_idUser
+    AND auth_context = 'BUSINESS'
+    AND revoked_at IS NULL;
+
+  SET v_sessionsRevoked = ROW_COUNT();
+
+  COMMIT;
+
+  SELECT
+    p_idBusiness AS idBusiness,
+    p_idUser AS idUser,
+    v_name AS name,
+    v_username AS username,
+    v_email AS email,
+    v_role AS role,
+    v_sessionsRevoked AS sessionsRevoked,
+    1 AS mustChangePassword;
 END$$
 
 DELIMITER ;

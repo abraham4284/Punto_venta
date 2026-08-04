@@ -125,3 +125,18 @@ export interface PlatformBusinessStatusBody {
   isActive: boolean;
   reason: string;
 }
+
+export interface ResetBusinessUserPasswordBody {
+  mode: "GENERATE";
+}
+
+export interface PlatformBusinessUserPasswordResetRow extends RowDataPacket {
+  idBusiness: number;
+  idUser: number;
+  name: string;
+  username: string;
+  email: string | null;
+  role: string;
+  sessionsRevoked: number;
+  mustChangePassword: number;
+}

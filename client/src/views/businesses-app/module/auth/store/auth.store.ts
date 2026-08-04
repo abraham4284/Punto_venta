@@ -45,6 +45,7 @@ type AuthState = {
   fetchUserProfile: (idUser: number) => Promise<void>;
   updateUserPassword: (
     idUser: number,
+    currentPassword: string,
     password: string,
   ) => Promise<AuthActionResult & { errors?: FieldError[] }>;
   clearPasswordErrors: () => void;
@@ -244,11 +245,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  async updateUserPassword(idUser: number, password: string) {
+  async updateUserPassword(
+    idUser: number,
+    currentPassword: string,
+    password: string,
+  ) {
     set({ passwordLoading: true, passwordFieldErrors: [], error: null });
 
     try {
-      const { data } = await updatePassword(idUser, { password });
+      const { data } = await updatePassword(idUser, {
+        currentPassword,
+        password,
+      });
 
       const currentUser = get().user;
       if (currentUser?.idUser === idUser) {
@@ -257,6 +265,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             ...currentUser,
             mustChangePassword: false,
           },
+          profileUser:
+            get().profileUser?.idUser === idUser
+              ? {
+                  ...get().profileUser!,
+                  mustChangePassword: false,
+                }
+              : get().profileUser,
         });
       }
 

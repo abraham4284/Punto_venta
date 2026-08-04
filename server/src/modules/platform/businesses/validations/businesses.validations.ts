@@ -50,3 +50,9 @@ export const changePlatformBusinessStatusSchema = z
       .max(500, "El motivo no puede superar 500 caracteres"),
   })
   .strict();
+
+export const resetBusinessUserPasswordSchema = z
+  .object({
+    mode: z.literal("GENERATE").default("GENERATE"),
+  })
+  .strict();

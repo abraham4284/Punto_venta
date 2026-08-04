@@ -1,4 +1,5 @@
 import { Decimal } from "decimal.js";
+import bcrypt from "bcrypt";
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
 import {
@@ -11,6 +12,7 @@ import {
   mapPlatformSqlError,
 } from "../../helpers/platform-error.helper.js";
 import { createPlatformAuditLogService } from "../../audit/services/audit.service.js";
+import { generateTemporaryPassword } from "../helpers/temporary-password.helper.js";
 import type {
   PlatformBusinessActivityRow,
   PlatformBusinessListQuery,
@@ -19,7 +21,9 @@ import type {
   PlatformBusinessSaleRow,
   PlatformBusinessStatusBody,
   PlatformBusinessUsageRow,
+  PlatformBusinessUserPasswordResetRow,
   PlatformBusinessUserRow,
+  ResetBusinessUserPasswordBody,
   TotalRow,
 } from "../types/index.js";
 
@@ -308,6 +312,73 @@ export async function changePlatformBusinessStatusService(
     });
 
     return updatedBusiness;
+  } catch (error) {
+    mapPlatformSqlError(error);
+  }
+}
+
+export async function resetPlatformBusinessUserPasswordService(
+  idBusiness: number,
+  idUser: number,
+  data: ResetBusinessUserPasswordBody,
+  actorIdUser: number,
+  ipAddress?: string,
+  userAgent?: string,
+) {
+  const temporaryPassword = generateTemporaryPassword();
+  const temporaryPasswordHash = await bcrypt.hash(temporaryPassword, 10);
+
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "CALL sp_platform_business_user_reset_password(?, ?, ?, ?)",
+      [idBusiness, idUser, temporaryPasswordHash, actorIdUser],
+    );
+    const result = rows as unknown as PlatformBusinessUserPasswordResetRow[][];
+    const resetUser = result[0]?.[0];
+
+    if (!resetUser) {
+      throw createPlatformModuleError(
+        "No se pudo restablecer la contrasena del usuario",
+        409,
+        "BUSINESS_USER_PASSWORD_RESET_FAILED",
+      );
+    }
+
+    await createPlatformAuditLogService({
+      actorIdUser,
+      action: "BUSINESS_USER_TEMPORARY_PASSWORD_ASSIGNED",
+      entityType: "BUSINESS_USER",
+      entityId: idUser,
+      idBusiness,
+      previousData: null,
+      newData: {
+        idBusiness: resetUser.idBusiness,
+        idUser: resetUser.idUser,
+        username: resetUser.username,
+        role: resetUser.role,
+        mustChangePassword: Boolean(resetUser.mustChangePassword),
+      },
+      metadata: {
+        mode: data.mode,
+        sessionsRevoked: numberValue(resetUser.sessionsRevoked),
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return {
+      user: {
+        idBusiness: resetUser.idBusiness,
+        idUser: resetUser.idUser,
+        name: resetUser.name,
+        username: resetUser.username,
+        email: resetUser.email,
+        role: resetUser.role,
+        mustChangePassword: Boolean(resetUser.mustChangePassword),
+      },
+      temporaryPassword,
+      sessionsRevoked: numberValue(resetUser.sessionsRevoked),
+    };
   } catch (error) {
     mapPlatformSqlError(error);
   }
