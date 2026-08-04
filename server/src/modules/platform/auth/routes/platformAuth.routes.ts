@@ -1,4 +1,9 @@
 import { Router } from "express";
+import {
+  platformLoginRateLimiter,
+  refreshRateLimiter,
+  registerRateLimiter,
+} from "@/middlewares/rate-limit/rate-limit.middleware.js";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requirePlatformContext } from "@/middlewares/requirePlatformContext.middleware.js";
 import {
@@ -12,10 +17,14 @@ import {
 
 const router = Router();
 
-router.post("/auth/bootstrap", bootstrapPlatformController);
-router.post("/auth/base-user", createPlatformBaseUserController);
-router.post("/auth/login", loginPlatformController);
-router.post("/auth/refresh", refreshPlatformController);
+router.post("/auth/bootstrap", registerRateLimiter, bootstrapPlatformController);
+router.post(
+  "/auth/base-user",
+  registerRateLimiter,
+  createPlatformBaseUserController,
+);
+router.post("/auth/login", platformLoginRateLimiter, loginPlatformController);
+router.post("/auth/refresh", refreshRateLimiter, refreshPlatformController);
 router.post(
   "/auth/logout",
   requireAuth,

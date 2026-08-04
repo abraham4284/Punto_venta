@@ -122,7 +122,7 @@ export const CashHistoryPage = () => {
 
         <Card>
           <CardContent className="overflow-x-auto p-0">
-            <table className="w-full min-w-[900px] text-sm">
+            <table className="w-full text-sm">
               <thead className="border-b bg-muted/50">
                 <tr>
                   <th className="p-3 text-left">Caja</th>

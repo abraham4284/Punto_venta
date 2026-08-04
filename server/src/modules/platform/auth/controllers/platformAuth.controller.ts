@@ -33,8 +33,12 @@ async function registerPlatformAuditSafely(
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
     });
-  } catch (error) {
-    console.error("Error registrando auditoria Platform:", error);
+  } catch {
+    console.error({
+      code: "PLATFORM_AUDIT_WRITE_FAILED",
+      action,
+      path: req.originalUrl,
+    });
   }
 }
 

@@ -55,6 +55,19 @@ const isExcludedRefreshRequest = (url?: string): boolean => {
   });
 };
 
+const notifyRequestLimitError = async (statusCode: number): Promise<void> => {
+  const { default: toast } = await import("react-hot-toast");
+
+  if (statusCode === 429) {
+    toast.error("Demasiadas solicitudes. Espera unos minutos e intenta nuevamente.");
+    return;
+  }
+
+  if (statusCode === 413) {
+    toast.error("El contenido o archivo enviado supera el tamano permitido.");
+  }
+};
+
 const refreshSession = (): Promise<void> => {
   if (!refreshPromise) {
     refreshPromise = refreshClient
@@ -125,6 +138,12 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
+
+    if (error.response?.status === 429 || error.response?.status === 413) {
+      await notifyRequestLimitError(error.response.status);
+      return Promise.reject(error);
+    }
+
     if (
       error.response?.status === 402 &&
       (error.response.data as { code?: string } | undefined)?.code ===

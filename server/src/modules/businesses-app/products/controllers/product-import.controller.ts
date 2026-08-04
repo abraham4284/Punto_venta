@@ -23,7 +23,43 @@ interface ImportControllerError {
   message?: string;
 }
 
+function getClientCode(error: ImportControllerError): string {
+  if (error.message === "IMPORT_ROW_LIMIT_EXCEEDED") {
+    return "IMPORT_ROW_LIMIT_EXCEEDED";
+  }
+
+  if (error.message === "IMPORT_COLUMN_LIMIT_EXCEEDED") {
+    return "IMPORT_COLUMN_LIMIT_EXCEEDED";
+  }
+
+  if (error.message === "IMPORT_CELL_LIMIT_EXCEEDED") {
+    return "INVALID_IMPORT_FILE";
+  }
+
+  if (error.message === "INVALID_IMPORT_FILE") {
+    return "INVALID_IMPORT_FILE";
+  }
+
+  return "INVALID_IMPORT_FILE";
+}
+
 function getClientMessage(error: ImportControllerError): string {
+  if (error.message === "IMPORT_ROW_LIMIT_EXCEEDED") {
+    return "El archivo supera la cantidad maxima de filas permitidas";
+  }
+
+  if (error.message === "IMPORT_COLUMN_LIMIT_EXCEEDED") {
+    return "El archivo supera la cantidad maxima de columnas permitidas";
+  }
+
+  if (error.message === "IMPORT_CELL_LIMIT_EXCEEDED") {
+    return "El archivo contiene valores demasiado extensos";
+  }
+
+  if (error.message === "INVALID_IMPORT_FILE") {
+    return "El archivo de importacion no es valido";
+  }
+
   if (error.message) {
     return error.message;
   }
@@ -82,8 +118,11 @@ export async function previewProductImportController(
   } catch (error: unknown) {
     const typedError = error as ImportControllerError;
     return res.status(400).json({
+      success: false,
       status: false,
+      code: getClientCode(typedError),
       message: getClientMessage(typedError),
+      data: null,
     });
   }
 }

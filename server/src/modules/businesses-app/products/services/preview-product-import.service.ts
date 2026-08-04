@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import XLSX from "xlsx";
 import { z } from "zod";
+import { securityConfig } from "@/config/security.config.js";
 import { pool } from "@/db/db.js";
 import { normalizeImportHeader } from "../helpers/normalize-import-header.js";
 import { normalizeImportValue } from "../helpers/normalize-import-value.js";
@@ -18,7 +19,6 @@ import type {
   ProductImportResolvedRow,
 } from "../types/product-import.types.js";
 
-const MAX_IMPORT_ROWS = 5000;
 const IMPORT_TOKEN_TTL_MS = 15 * 60 * 1000;
 const importCache = new Map<string, ImportCacheData>();
 
@@ -175,9 +175,21 @@ function normalizeSheetRows(worksheet: XLSX.WorkSheet): Record<string, unknown>[
     return [];
   }
 
+  if (matrix.length - 1 > securityConfig.importMaxRows) {
+    throw new Error("IMPORT_ROW_LIMIT_EXCEEDED");
+  }
+
   const header = matrix[0].map(function mapHeader(value) {
     return normalizeImportHeader(value);
   });
+  const filledHeader = header.filter(function filterHeader(key) {
+    return Boolean(key);
+  });
+
+  if (filledHeader.length > securityConfig.importMaxColumns) {
+    throw new Error("IMPORT_COLUMN_LIMIT_EXCEEDED");
+  }
+
   const rows: Record<string, unknown>[] = [];
 
   for (let index = 1; index < matrix.length; index += 1) {
@@ -193,6 +205,13 @@ function normalizeSheetRows(worksheet: XLSX.WorkSheet): Record<string, unknown>[
       }
 
       row[key] = values[columnIndex] ?? "";
+
+      if (
+        typeof row[key] === "string" &&
+        row[key].length > securityConfig.importMaxCellLength
+      ) {
+        throw new Error("IMPORT_CELL_LIMIT_EXCEEDED");
+      }
 
       if (normalizeImportValue(row[key])) {
         hasValue = true;
@@ -276,21 +295,31 @@ export async function previewProductImportService(
 ): Promise<ProductImportPreviewResponse> {
   cleanupExpiredImportTokens();
 
-  const workbook = XLSX.read(file.buffer, {
-    type: "buffer",
-    cellDates: false,
-  });
+  if (!file.buffer || file.buffer.length === 0) {
+    throw new Error("INVALID_IMPORT_FILE");
+  }
+
+  let workbook: XLSX.WorkBook;
+
+  try {
+    workbook = XLSX.read(file.buffer, {
+      type: "buffer",
+      cellDates: false,
+      cellFormula: false,
+      cellHTML: false,
+      cellStyles: false,
+    });
+  } catch {
+    throw new Error("INVALID_IMPORT_FILE");
+  }
+
   const firstSheetName = workbook.SheetNames[0];
 
   if (!firstSheetName) {
-    throw new Error("El archivo no contiene hojas para importar");
+    throw new Error("INVALID_IMPORT_FILE");
   }
 
   const rows = normalizeSheetRows(workbook.Sheets[firstSheetName]);
-
-  if (rows.length > MAX_IMPORT_ROWS) {
-    throw new Error("El archivo no puede superar las 5000 filas");
-  }
 
   const categoryMap = await getLookupMap("product_categories", idBusiness);
   const depositMap = await getLookupMap("deposits", idBusiness);

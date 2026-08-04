@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { passwordResetRateLimiter } from "@/middlewares/rate-limit/rate-limit.middleware.js";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requirePlatformContext } from "@/middlewares/requirePlatformContext.middleware.js";
 import { requirePlatformRoles } from "@/middlewares/requirePlatformRoles.middleware.js";
@@ -13,7 +14,6 @@ import {
   listPlatformBusinessesController,
   resetPlatformBusinessUserPasswordController,
 } from "../controllers/businesses.controller.js";
-import { resetBusinessUserPasswordRateLimit } from "../middlewares/reset-password-rate-limit.middleware.js";
 
 const router = Router();
 
@@ -62,7 +62,7 @@ router.patch(
 router.post(
   "/businesses/:idBusiness/users/:idUser/reset-password",
   requirePlatformRoles(["SUPER_ADMIN"]),
-  resetBusinessUserPasswordRateLimit,
+  passwordResetRateLimiter,
   resetPlatformBusinessUserPasswordController,
 );
 

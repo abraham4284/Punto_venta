@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
+import { securityConfig } from "@/config/security.config.js";
 
 const allowedExtensions = [".xlsx", ".xls"];
 const allowedMimeTypes = [
@@ -24,13 +25,15 @@ function fileFilter(
     return;
   }
 
-  callback(new Error("Solo se permiten archivos Excel .xlsx o .xls"));
+  callback(new Error("INVALID_FILE_TYPE"));
 }
 
 const uploadMiddleware = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: securityConfig.uploadMaxFileSizeMb * 1024 * 1024,
+    files: 1,
+    fields: 0,
   },
   fileFilter,
 }).single("file");
@@ -40,5 +43,48 @@ export function productImportUploadMiddleware(
   res: Response,
   next: NextFunction,
 ): void {
-  uploadMiddleware(req, res, next);
+  uploadMiddleware(req, res, function handleUploadError(error: unknown) {
+    if (!error) {
+      next();
+      return;
+    }
+
+    if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+      res.status(413).json({
+        success: false,
+        status: "ERROR",
+        code: "FILE_TOO_LARGE",
+        message: "El archivo supera el tamano permitido.",
+        data: null,
+      });
+      return;
+    }
+
+    if (
+      error instanceof multer.MulterError &&
+      (error.code === "LIMIT_FILE_COUNT" || error.code === "LIMIT_FIELD_COUNT")
+    ) {
+      res.status(400).json({
+        success: false,
+        status: "ERROR",
+        code: "INVALID_IMPORT_FILE",
+        message: "Solo se permite enviar un archivo Excel.",
+        data: null,
+      });
+      return;
+    }
+
+    if (error instanceof Error && error.message === "INVALID_FILE_TYPE") {
+      res.status(400).json({
+        success: false,
+        status: "ERROR",
+        code: "INVALID_FILE_TYPE",
+        message: "Solo se permiten archivos Excel .xlsx o .xls.",
+        data: null,
+      });
+      return;
+    }
+
+    next(error);
+  });
 }
