@@ -26,6 +26,7 @@ Ejecutar desde `server/src/db`:
    - `procedures/business_users.sql`
    - `procedures/subscriptions.sql`
    - `procedures/deposits.sql`
+   - `procedures/payment_methods.sql`
    - `procedures/cash_registers.sql`
    - `procedures/cash_session_payment_summaries.sql`
    - `procedures/cash_sessions.sql`
@@ -89,24 +90,15 @@ instalador. Usar solo en desarrollo.
 
 Estas observaciones se reportan sin modificar semanticamente el modelo:
 
-1. `sales` tiene primary key compuesta (`idSale`, `idDeposit`) aunque `idSale`
-   es `AUTO_INCREMENT`. Tambien existe `uk_sale_business_id`
-   (`idBusiness`, `idSale`) usado por `sale_details`.
-2. `sales.idDeposit` tiene indice `fk_sales_deposits1_idx`, pero no tiene una
-   foreign key explicita hacia `deposits`.
-3. `sale_details` no tiene columna `idDeposit`, pero define
-   `fk_sale_details_deposit` sobre `idBusiness` hacia `deposits(idBusiness)`.
-   Esa relacion no identifica un deposito concreto.
-4. `platform_users` tiene primary key compuesta (`idPlatformUser`, `idUser`) y
+1. `platform_users` tiene primary key compuesta (`idPlatformUser`, `idUser`) y
    tambien `UNIQUE KEY idUser_UNIQUE (idUser)`, mas otro indice sobre `idUser`.
    El indice `fk_platform_users_users1_idx` es redundante frente al unico.
-5. `user_sessions` tiene primary key compuesta (`idLogin`, `idUser`) aunque
+2. `user_sessions` tiene primary key compuesta (`idLogin`, `idUser`) aunque
    `idLogin` es `AUTO_INCREMENT`.
-6. `subscription_plans.code` es `NOT NULL`, pero no tiene unique key en el dump.
+3. `subscription_plans.code` es `NOT NULL`, pero no tiene unique key en el dump.
    Los seeds usan `code` como identificador logico.
-7. `sale_number` y `purchase_number` son `NOT NULL`, pero el dump no define
-   unique key para ellos.
-8. Varias columnas `updated_at` usan `DEFAULT NULL`, mientras otras usan
+4. `purchase_number` es `NOT NULL`, pero el dump no define unique key.
+5. Varias columnas `updated_at` usan `DEFAULT NULL`, mientras otras usan
    `DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`. Se mantuvo tal como
    esta en el dump.
 
@@ -121,6 +113,41 @@ Estas observaciones se reportan sin modificar semanticamente el modelo:
 - Se agrego `sales.idCashSession` obligatorio para instalaciones nuevas.
 - Se agregaron `payment_methods.code` y `payment_methods.affects_cash` para
   identificar efectivo sin depender del texto visible.
+- Se corrigio `payment_methods` para permitir multiples metodos del mismo tipo
+  funcional por negocio: `code` puede repetirse y el nombre visible queda unico
+  por negocio mediante `UNIQUE(idBusiness, name)`.
+- Se dejo `payment_methods.code` como enum controlado:
+  `CASH`, `TRANSFER`, `CARD`, `OTHER`.
+- Se agrego indice normal `idx_payment_methods_business_code`
+  (`idBusiness`, `code`) para consultas sin imponer unicidad por tipo.
+- Se agrego `uk_payment_method_business_id` (`idBusiness`, `idPaymentMethod`)
+  para soportar foreign keys multi-tenant desde ventas.
+- Se agregaron checks booleanos y consistencia de caja en `payment_methods`:
+  solo `CASH` impacta caja.
+- Se corrigio `sales` para que `idSale` sea primary key simple.
+- Se agrego `UNIQUE(sale_number)` para sostener la generacion alfanumerica
+  irrepetible del backend.
+- Se agrego foreign key explicita `sales(idBusiness, idDeposit)` hacia
+  `deposits(idBusiness, idDeposit)`.
+- Se elimino la foreign key incorrecta de `sale_details(idBusiness)` hacia
+  `deposits(idBusiness)`, porque `sale_details` no identifica un deposito
+  concreto.
+- `reset-development.sql` ahora elimina la misma base declarada en el schema
+  limpio: `punto_venta_dev_clean_2`.
+
+## Estado actual del esquema limpio
+
+El esquema ubicado en `schema/` esta listo para crear una base nueva desde cero
+sin depender del dump exportado ni de carpetas historicas. Para el flujo de
+metodos de pago, la estructura final queda asi:
+
+- `payment_methods.code` identifica el tipo funcional del metodo.
+- `payment_methods.name` identifica la cuenta o metodo visible para el usuario.
+- Un negocio puede tener varios `TRANSFER`, `CARD` u `OTHER`.
+- Un negocio no puede repetir el mismo `name` en `payment_methods`.
+- `sales.idPaymentMethod` es obligatorio y referencia el metodo concreto usado.
+- El metodo `CASH / Efectivo` se crea en el registro del negocio desde
+  `procedures/auth.sql`.
 
 ## Correcciones no aplicadas
 

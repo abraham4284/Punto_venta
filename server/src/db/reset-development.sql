@@ -4,5 +4,5 @@
   Do not run in production.
 */
 
-DROP DATABASE IF EXISTS `punto_venta_dev_clean`;
+DROP DATABASE IF EXISTS `punto_venta_dev_clean_2`;
 SOURCE install.sql;

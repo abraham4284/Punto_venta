@@ -15,8 +15,6 @@ CREATE PROCEDURE sp_add_index_if_not_exists(
   IN p_sql TEXT
 )
 BEGIN
-  DECLARE CONTINUE HANDLER FOR 1553 BEGIN END;
-
   IF NOT EXISTS (
     SELECT 1
     FROM information_schema.STATISTICS
@@ -111,6 +109,7 @@ CALL sp_add_index_if_not_exists('purchase_details', 'fk_purchase_details_purchas
 CALL sp_add_index_if_not_exists('purchase_details', 'fk_purchase_details_product', 'ALTER TABLE `purchase_details` ADD KEY `fk_purchase_details_product` (`idBusiness`,`idProduct`)');
 CALL sp_add_index_if_not_exists('purchase_details', 'fk_purchase_details_deposit', 'ALTER TABLE `purchase_details` ADD KEY `fk_purchase_details_deposit` (`idBusiness`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('sales', 'uk_sale_business_id', 'ALTER TABLE `sales` ADD UNIQUE KEY `uk_sale_business_id` (`idBusiness`,`idSale`)');
+CALL sp_add_index_if_not_exists('sales', 'uk_sales_sale_number', 'ALTER TABLE `sales` ADD UNIQUE KEY `uk_sales_sale_number` (`sale_number`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_business_date', 'ALTER TABLE `sales` ADD KEY `idx_sales_business_date` (`idBusiness`,`sale_date`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_payment_method', 'ALTER TABLE `sales` ADD KEY `idx_sales_payment_method` (`idPaymentMethod`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_cash_session', 'ALTER TABLE `sales` ADD KEY `idx_sales_cash_session` (`idCashSession`)');
@@ -118,10 +117,9 @@ CALL sp_add_index_if_not_exists('sales', 'idx_sales_business_cash_session_status
 CALL sp_add_index_if_not_exists('sales', 'fk_sales_user', 'ALTER TABLE `sales` ADD KEY `fk_sales_user` (`idUser`)');
 CALL sp_add_index_if_not_exists('sales', 'fk_sales_customer', 'ALTER TABLE `sales` ADD KEY `fk_sales_customer` (`idBusiness`,`idCustomer`)');
 CALL sp_add_index_if_not_exists('sales', 'fk_sales_payment_method', 'ALTER TABLE `sales` ADD KEY `fk_sales_payment_method` (`idBusiness`,`idPaymentMethod`)');
-CALL sp_add_index_if_not_exists('sales', 'fk_sales_deposits1_idx', 'ALTER TABLE `sales` ADD KEY `fk_sales_deposits1_idx` (`idDeposit`)');
+CALL sp_add_index_if_not_exists('sales', 'fk_sales_deposit', 'ALTER TABLE `sales` ADD KEY `fk_sales_deposit` (`idBusiness`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('sale_details', 'fk_sale_details_sale', 'ALTER TABLE `sale_details` ADD KEY `fk_sale_details_sale` (`idBusiness`,`idSale`)');
 CALL sp_add_index_if_not_exists('sale_details', 'fk_sale_details_product', 'ALTER TABLE `sale_details` ADD KEY `fk_sale_details_product` (`idBusiness`,`idProduct`)');
-CALL sp_add_index_if_not_exists('sale_details', 'fk_sale_details_deposit', 'ALTER TABLE `sale_details` ADD KEY `fk_sale_details_deposit` (`idBusiness`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'idx_stock_movements_business_product', 'ALTER TABLE `stock_movements` ADD KEY `idx_stock_movements_business_product` (`idBusiness`,`idProduct`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'idx_stock_movements_business_date', 'ALTER TABLE `stock_movements` ADD KEY `idx_stock_movements_business_date` (`idBusiness`,`created_at`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_user', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_user` (`idUser`)');
