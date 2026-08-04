@@ -32,7 +32,10 @@ export interface ApiResponse<T> {
 
 export interface PaymentMethodOption {
   idPaymentMethod: number;
+  code: "CASH" | "TRANSFER" | "CARD" | "OTHER";
   name: string;
+  isDefault: boolean;
+  isActive: boolean;
 }
 
 export interface ProductWithStockResponse {
@@ -101,7 +104,7 @@ export interface CreateSalePayload {
   idCustomer: number | null;
   idDeposit: number;
   idCashSession: number;
-  idPaymentMethod: number | null;
+  idPaymentMethod: number;
   subtotal: number;
   discountTotal: number;
   total: number;
@@ -120,8 +123,9 @@ export interface SaleResponse {
   idDeposit: number;
   depositName: string;
   idCashSession: number;
-  idPaymentMethod: number | null;
+  idPaymentMethod: number;
   paymentMethodName: string | null;
+  paymentMethodCode: string | null;
   saleDate: Date;
   subtotal: number;
   discountTotal: number;
@@ -179,6 +183,7 @@ export interface SaleTicketHeader {
   customerName: string;
   userName: string;
   depositName: string;
+  paymentMethodCode: string | null;
   paymentMethodName: string;
 }
 
@@ -206,6 +211,7 @@ export interface PaginatedSalesResponse {
 export interface SaleFilters {
   saleNumber: string;
   idDeposit: number | null;
+  idPaymentMethod: number | null;
   status: "COMPLETED" | "CANCELLED" | null;
   startDate: string;
   endDate: string;

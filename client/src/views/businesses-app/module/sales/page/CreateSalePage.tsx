@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "react-hot-toast";
 import type { Customer } from "../../customers/types/customers.types";
@@ -14,6 +21,8 @@ import { useCustomers } from "../../customers/hooks/useCustomers";
 import type { DepositResponse } from "../../deposits/types/deposits.types";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
 import { useCash } from "../../cash/hooks/useCash";
+import { usePaymentMethods } from "../../payment-methods/hooks/usePaymentMethods";
+import { paymentMethodTypeLabels } from "../../payment-methods/helpers/payment-method.helpers";
 import {
   CartTable,
   POSHotkeysLegend,
@@ -59,6 +68,11 @@ export const CreateSalePage = () => {
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
   const { customers, getCustomers, resetCustomers } = useCustomers();
   const { deposits, getDeposits, resetDeposits } = useDeposits();
+  const {
+    activePaymentMethods,
+    getPaymentMethods,
+    loading: paymentMethodsLoading,
+  } = usePaymentMethods();
   const {
     currentSession,
     loading: cashLoading,
@@ -114,12 +128,20 @@ export const CreateSalePage = () => {
   useEffect(() => {
     getCustomers();
     getDeposits();
+    void getPaymentMethods(true);
     void refreshCashDashboard();
     return () => {
       resetCustomers();
       resetDeposits();
     };
-  }, [getCustomers, getDeposits, refreshCashDashboard, resetCustomers, resetDeposits]);
+  }, [
+    getCustomers,
+    getDeposits,
+    getPaymentMethods,
+    refreshCashDashboard,
+    resetCustomers,
+    resetDeposits,
+  ]);
 
   useEffect(() => {
     const nextCashSessionId = currentSession?.idCashSession ?? null;
@@ -128,6 +150,23 @@ export const CreateSalePage = () => {
       updateHeaderField("idCashSession", nextCashSessionId);
     }
   }, [currentSession?.idCashSession, header.idCashSession, updateHeaderField]);
+
+  useEffect(() => {
+    if (header.idPaymentMethod) return;
+
+    const defaultPaymentMethod = activePaymentMethods.find((paymentMethod) => {
+      return paymentMethod.isDefault;
+    });
+    const firstActivePaymentMethod = activePaymentMethods[0];
+    const selectedPaymentMethod = defaultPaymentMethod ?? firstActivePaymentMethod;
+
+    if (selectedPaymentMethod) {
+      updateHeaderField(
+        "idPaymentMethod",
+        selectedPaymentMethod.idPaymentMethod,
+      );
+    }
+  }, [activePaymentMethods, header.idPaymentMethod, updateHeaderField]);
 
   const handleCustomerSelect = (customer: Customer) => {
     updateHeaderField("idCustomer", customer.idCustomer);
@@ -380,6 +419,41 @@ export const CreateSalePage = () => {
         </div>
 
         <div className="grid gap-2">
+          <Label>
+            Metodo de pago <span className="text-destructive">*</span>
+          </Label>
+          <Select
+            value={header.idPaymentMethod ? String(header.idPaymentMethod) : ""}
+            onValueChange={(value: string | null) => {
+              updateHeaderField(
+                "idPaymentMethod",
+                value ? Number(value) : null,
+              );
+            }}
+            disabled={paymentMethodsLoading || activePaymentMethods.length === 0}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecciona un metodo de pago" />
+            </SelectTrigger>
+            <SelectContent>
+              {activePaymentMethods.map((paymentMethod) => (
+                <SelectItem
+                  key={paymentMethod.idPaymentMethod}
+                  value={String(paymentMethod.idPaymentMethod)}
+                >
+                  {paymentMethod.name} · {paymentMethodTypeLabels[paymentMethod.code]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {getFieldError(fieldErrors, "idPaymentMethod") && (
+            <p className="text-sm text-destructive">
+              {getFieldError(fieldErrors, "idPaymentMethod")}
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-2">
           <Label>Observacion</Label>
           <Textarea
             value={header.observation}
@@ -509,7 +583,11 @@ export const CreateSalePage = () => {
         <Button type="button" variant="outline" onClick={resetSale}>
           Cancelar
         </Button>
-        <Button type="button" disabled={saving || !header.idCashSession} onClick={handleSubmit}>
+        <Button
+          type="button"
+          disabled={saving || !header.idCashSession || !header.idPaymentMethod}
+          onClick={handleSubmit}
+        >
           {saving ? "Procesando..." : "Registrar venta"}
         </Button>
       </div>

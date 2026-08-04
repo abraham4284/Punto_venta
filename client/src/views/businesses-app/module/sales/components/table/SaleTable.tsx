@@ -102,6 +102,7 @@ export const SaleTable = ({
           <TableHead>Fecha</TableHead>
           <TableHead>Cliente</TableHead>
           <TableHead>Deposito</TableHead>
+          <TableHead>Metodo de pago</TableHead>
           <TableHead>Total neto</TableHead>
           <TableHead>Estado</TableHead>
           <TableHead className="text-right">Acciones</TableHead>
@@ -120,6 +121,7 @@ export const SaleTable = ({
             <TableCell>{formatDate(sale.saleDate)}</TableCell>
             <TableCell>{sale.customerName ?? "Consumidor final"}</TableCell>
             <TableCell>{sale.depositName}</TableCell>
+            <TableCell>{sale.paymentMethodName ?? "-"}</TableCell>
             <TableCell className="font-semibold">
               {formatMoney(sale.total)}
             </TableCell>

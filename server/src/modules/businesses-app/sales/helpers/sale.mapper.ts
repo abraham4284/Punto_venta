@@ -26,6 +26,7 @@ export function mapSale(sale: SaleDbRow): SaleResponse {
     idCashSession: sale.idCashSession,
     idPaymentMethod: sale.idPaymentMethod,
     paymentMethodName: sale.payment_method_name,
+    paymentMethodCode: sale.payment_method_code,
     saleDate: sale.sale_date,
     subtotal: Number(sale.subtotal),
     discountTotal: Number(sale.discount_total),

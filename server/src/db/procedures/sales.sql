@@ -18,7 +18,7 @@ BEGIN
   DECLARE v_idSale INT;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashRegisterActive TINYINT;
-  DECLARE v_idPaymentMethod INT;
+  DECLARE v_paymentMethodActive TINYINT;
 
   DECLARE EXIT HANDLER FOR 1062
   BEGIN
@@ -103,33 +103,26 @@ BEGIN
       SET MESSAGE_TEXT = 'El cliente indicado no pertenece al negocio o esta inactivo';
   END IF;
 
-  SET v_idPaymentMethod = p_idPaymentMethod;
-
-  IF v_idPaymentMethod IS NULL THEN
-    SELECT idPaymentMethod
-    INTO v_idPaymentMethod
-    FROM payment_methods
-    WHERE idBusiness = p_idBusiness
-      AND is_default = 1
-      AND is_active = 1
-    ORDER BY idPaymentMethod ASC
-    LIMIT 1;
+  IF p_idPaymentMethod IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'PAYMENT_METHOD_REQUIRED';
   END IF;
 
-  IF v_idPaymentMethod IS NULL THEN
+  SELECT is_active
+  INTO v_paymentMethodActive
+  FROM payment_methods
+  WHERE idPaymentMethod = p_idPaymentMethod
+    AND idBusiness = p_idBusiness
+  LIMIT 1;
+
+  IF v_paymentMethodActive IS NULL THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'El negocio no tiene metodo de pago predeterminado';
+      SET MESSAGE_TEXT = 'PAYMENT_METHOD_NOT_FOUND';
   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1
-    FROM payment_methods
-    WHERE idPaymentMethod = v_idPaymentMethod
-      AND idBusiness = p_idBusiness
-      AND is_active = 1
-  ) THEN
+  IF v_paymentMethodActive = 0 THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'El metodo de pago indicado no pertenece al negocio o esta inactivo';
+      SET MESSAGE_TEXT = 'PAYMENT_METHOD_INACTIVE';
   END IF;
 
   INSERT INTO sales (
@@ -156,7 +149,7 @@ BEGIN
     p_idCustomer,
     p_idDeposit,
     p_idCashSession,
-    v_idPaymentMethod,
+    p_idPaymentMethod,
     NOW(),
     p_subtotal,
     p_discount_total,
@@ -442,6 +435,7 @@ CREATE PROCEDURE sp_get_sales(
   IN p_limit INT,
   IN p_offset INT,
   IN p_idDeposit INT,
+  IN p_idPaymentMethod INT,
   IN p_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_saleNumberSearch VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_startDate DATETIME,
@@ -460,6 +454,7 @@ BEGIN
     d.name AS deposit_name,
     s.idCashSession,
     s.idPaymentMethod,
+    pm.code AS payment_method_code,
     pm.name AS payment_method_name,
     s.sale_date,
     s.subtotal,
@@ -483,6 +478,7 @@ BEGIN
     AND pm.idBusiness = s.idBusiness
   WHERE s.idBusiness = p_idBusiness
     AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_idPaymentMethod IS NULL OR s.idPaymentMethod = p_idPaymentMethod)
     AND (p_status IS NULL OR s.status = p_status)
     AND (
       p_saleNumberSearch IS NULL
@@ -502,6 +498,7 @@ BEGIN
   FROM sales s
   WHERE s.idBusiness = p_idBusiness
     AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_idPaymentMethod IS NULL OR s.idPaymentMethod = p_idPaymentMethod)
     AND (p_status IS NULL OR s.status = p_status)
     AND (
       p_saleNumberSearch IS NULL
@@ -535,6 +532,7 @@ BEGIN
     d.name AS deposit_name,
     s.idCashSession,
     s.idPaymentMethod,
+    pm.code AS payment_method_code,
     pm.name AS payment_method_name,
     s.sale_date,
     s.subtotal,

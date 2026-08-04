@@ -26,6 +26,7 @@ SOURCE procedures/businesses.sql;
 SOURCE procedures/business_users.sql;
 SOURCE procedures/subscriptions.sql;
 SOURCE procedures/deposits.sql;
+SOURCE procedures/payment_methods.sql;
 SOURCE procedures/cash_registers.sql;
 SOURCE procedures/cash_session_payment_summaries.sql;
 SOURCE procedures/cash_sessions.sql;

@@ -68,6 +68,7 @@ const iconByRoute: Record<string, LucideIcon> = {
   "/admin/categories-product": Tags,
   "/admin/products": Package,
   "/admin/deposits": Warehouse,
+  "/admin/payment-methods": CircleDollarSign,
   "/admin/cash": Landmark,
   "/admin/cash/history": ClipboardList,
   "/admin/cash/registers": Warehouse,
@@ -145,6 +146,12 @@ const navigationGroups: NavigationGroup[] = [
         url: "/admin/cash/registers",
         icon: Warehouse,
         permission: "cash_registers.view",
+      },
+      {
+        title: "Metodos de pago",
+        url: "/admin/payment-methods",
+        icon: CircleDollarSign,
+        permission: "payment_methods.view",
       },
       ...buildItems(saleNav).map((item) => ({
         ...item,

@@ -296,11 +296,14 @@ BEGIN
     is_default,
     is_active
   )
-  VALUES
-    (v_idBusiness, 'CASH', 'Efectivo', 1, 1, 1),
-    (v_idBusiness, 'TRANSFER', 'Transferencia', 0, 0, 1),
-    (v_idBusiness, 'CARD', 'Tarjeta', 0, 0, 1),
-    (v_idBusiness, 'OTHER', 'Otro', 0, 0, 1);
+  VALUES (
+    v_idBusiness,
+    'CASH',
+    'Efectivo',
+    1,
+    1,
+    1
+  );
 
   SELECT idSubscriptionPlan, trial_days
   INTO v_idSubscriptionPlan, v_trialDays

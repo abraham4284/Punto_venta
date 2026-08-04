@@ -27,6 +27,7 @@ function mapTicketHeader(row: TicketSaleDbRow): SaleTicketHeader {
     customerName: row.customer_name,
     userName: row.user_name,
     depositName: row.deposit_name,
+    paymentMethodCode: row.payment_method_code,
     paymentMethodName: row.payment_method_name,
   };
 }

@@ -67,8 +67,9 @@ CALL sp_add_index_if_not_exists('suppliers', 'uk_supplier_business_id', 'ALTER T
 CALL sp_add_index_if_not_exists('suppliers', 'idx_suppliers_business_name', 'ALTER TABLE `suppliers` ADD KEY `idx_suppliers_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('deposits', 'uk_deposit_business_name', 'ALTER TABLE `deposits` ADD UNIQUE KEY `uk_deposit_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('deposits', 'uk_deposit_business_id', 'ALTER TABLE `deposits` ADD UNIQUE KEY `uk_deposit_business_id` (`idBusiness`,`idDeposit`)');
+CALL sp_add_index_if_not_exists('payment_methods', 'idx_payment_methods_business', 'ALTER TABLE `payment_methods` ADD KEY `idx_payment_methods_business` (`idBusiness`)');
 CALL sp_add_index_if_not_exists('payment_methods', 'uk_payment_method_business_name', 'ALTER TABLE `payment_methods` ADD UNIQUE KEY `uk_payment_method_business_name` (`idBusiness`,`name`)');
-CALL sp_add_index_if_not_exists('payment_methods', 'uk_payment_method_business_code', 'ALTER TABLE `payment_methods` ADD UNIQUE KEY `uk_payment_method_business_code` (`idBusiness`,`code`)');
+CALL sp_add_index_if_not_exists('payment_methods', 'idx_payment_methods_business_code', 'ALTER TABLE `payment_methods` ADD KEY `idx_payment_methods_business_code` (`idBusiness`,`code`)');
 CALL sp_add_index_if_not_exists('payment_methods', 'uk_payment_method_business_id', 'ALTER TABLE `payment_methods` ADD UNIQUE KEY `uk_payment_method_business_id` (`idBusiness`,`idPaymentMethod`)');
 CALL sp_add_index_if_not_exists('cash_registers', 'uk_cash_register_business_name', 'ALTER TABLE `cash_registers` ADD UNIQUE KEY `uk_cash_register_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('cash_registers', 'uk_cash_register_business_id', 'ALTER TABLE `cash_registers` ADD UNIQUE KEY `uk_cash_register_business_id` (`idBusiness`,`idCashRegister`)');
@@ -111,6 +112,7 @@ CALL sp_add_index_if_not_exists('purchase_details', 'fk_purchase_details_product
 CALL sp_add_index_if_not_exists('purchase_details', 'fk_purchase_details_deposit', 'ALTER TABLE `purchase_details` ADD KEY `fk_purchase_details_deposit` (`idBusiness`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('sales', 'uk_sale_business_id', 'ALTER TABLE `sales` ADD UNIQUE KEY `uk_sale_business_id` (`idBusiness`,`idSale`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_business_date', 'ALTER TABLE `sales` ADD KEY `idx_sales_business_date` (`idBusiness`,`sale_date`)');
+CALL sp_add_index_if_not_exists('sales', 'idx_sales_payment_method', 'ALTER TABLE `sales` ADD KEY `idx_sales_payment_method` (`idPaymentMethod`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_cash_session', 'ALTER TABLE `sales` ADD KEY `idx_sales_cash_session` (`idCashSession`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_business_cash_session_status', 'ALTER TABLE `sales` ADD KEY `idx_sales_business_cash_session_status` (`idBusiness`,`idCashSession`,`status`)');
 CALL sp_add_index_if_not_exists('sales', 'fk_sales_user', 'ALTER TABLE `sales` ADD KEY `fk_sales_user` (`idUser`)');

@@ -37,11 +37,6 @@ function renderItemRow(item: SaleTicketItem): string {
   `;
 }
 
-//  <div class="row"><span>Cliente:</span><span>${escapeHtml(sale.customerName)}</span></div>
-//         <div class="row"><span>Vendedor:</span><span>${escapeHtml(sale.userName)}</span></div>
-//         <div class="row"><span>Deposito:</span><span>${escapeHtml(sale.depositName)}</span></div>
-//         <div class="row"><span>Pago:</span><span>${escapeHtml(sale.paymentMethodName)}</span></div>
-
 export function buildSaleTicketHtml(data: SaleTicketData): string {
   const { sale, items } = data;
   const statusLabel =
@@ -115,7 +110,10 @@ export function buildSaleTicketHtml(data: SaleTicketData): string {
       <section>
         <div class="row"><span>Operacion:</span><strong>${escapeHtml(sale.saleNumber)}</strong></div>
         <div class="row"><span>Fecha:</span><span>${formatDate(sale.saleDate)}</span></div>
-       
+        <div class="row"><span>Cliente:</span><span>${escapeHtml(sale.customerName)}</span></div>
+        <div class="row"><span>Vendedor:</span><span>${escapeHtml(sale.userName)}</span></div>
+        <div class="row"><span>Deposito:</span><span>${escapeHtml(sale.depositName)}</span></div>
+        <div class="row"><span>Pago:</span><span>${escapeHtml(sale.paymentMethodName)}</span></div>
       </section>
 
       <div class="line"></div>

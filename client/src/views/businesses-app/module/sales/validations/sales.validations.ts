@@ -36,10 +36,9 @@ export const createSaleFormSchema = z.object({
     .int("La sesion de caja no es valida")
     .positive("Debes abrir una caja antes de registrar una venta"),
   idPaymentMethod: z
-    .number()
-    .int("Selecciona una cuenta valida")
-    .positive("Selecciona una cuenta valida")
-    .nullable(),
+    .number({ error: "Selecciona un metodo de pago" })
+    .int("Selecciona un metodo de pago valido")
+    .positive("Selecciona un metodo de pago."),
   items: z
     .array(saleDetailSchema)
     .min(1, "Agrega al menos un producto al carrito"),

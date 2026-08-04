@@ -4,6 +4,7 @@ import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
+import { usePaymentMethods } from "../../payment-methods/hooks/usePaymentMethods";
 import {
   PaginationControls,
   SaleFilters,
@@ -15,6 +16,7 @@ import { useSaleManagement } from "../hooks/useSaleManagement";
 export const SaleAllPage = () => {
   const navigate = useNavigate();
   const { deposits, getDeposits, resetDeposits } = useDeposits();
+  const { activePaymentMethods, getPaymentMethods } = usePaymentMethods();
   const {
     sales,
     pagination,
@@ -32,12 +34,13 @@ export const SaleAllPage = () => {
 
   useEffect(() => {
     getDeposits();
+    getPaymentMethods(true);
     getSales(1);
 
     return () => {
       resetDeposits();
     };
-  }, [getDeposits, getSales, resetDeposits]);
+  }, [getDeposits, getPaymentMethods, getSales, resetDeposits]);
 
   return (
     <>
@@ -63,6 +66,7 @@ export const SaleAllPage = () => {
       <SaleFilters
         filters={filters}
         deposits={deposits}
+        paymentMethods={activePaymentMethods}
         onChange={updateFilters}
         onReset={resetFilters}
       />

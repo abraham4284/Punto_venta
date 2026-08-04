@@ -12,6 +12,7 @@ import type {
 const initialFilters: SaleFilters = {
   saleNumber: "",
   idDeposit: null,
+  idPaymentMethod: null,
   status: null,
   startDate: "",
   endDate: "",

@@ -56,14 +56,20 @@ function isDuplicateEntryError(error: unknown): boolean {
 }
 
 function getSaleErrorStatus(message: string): number {
+  const notFoundErrors = new Set([
+    "PAYMENT_METHOD_NOT_FOUND",
+  ]);
+
   const conflictErrors = new Set([
     "OPEN_CASH_SESSION_REQUIRED",
     "CASH_SESSION_NOT_FOUND",
     "CASH_SESSION_CLOSED",
     "CASH_REGISTER_INACTIVE",
     "CLOSED_CASH_SESSION_SALE_CANNOT_BE_CANCELLED",
+    "PAYMENT_METHOD_INACTIVE",
   ]);
 
+  if (notFoundErrors.has(message)) return 404;
   return conflictErrors.has(message) ? 409 : 400;
 }
 
@@ -111,7 +117,6 @@ export async function createSaleController(
     }
 
     const message = getControllerMessage(toControllerError(error));
-    console.log(error,'msssage')
     return res.status(getSaleErrorStatus(message)).json({
       status: false,
       message,
@@ -133,6 +138,7 @@ export async function getSalesController(
       limit,
       offset,
       idDeposit: parseNullablePositiveInteger(req.query.idDeposit),
+      idPaymentMethod: parseNullablePositiveInteger(req.query.idPaymentMethod),
       status: parseSaleStatus(req.query.status),
       saleNumberSearch: parseNullableText(req.query.saleNumber),
       startDate: parseNullableDate(req.query.startDate, false),
