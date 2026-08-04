@@ -39,5 +39,9 @@ CALL sp_add_check_if_not_exists('cash_sessions', 'chk_cash_sessions_status_field
 CALL sp_add_check_if_not_exists('cash_movements', 'chk_cash_movements_amount_positive', 'ALTER TABLE `cash_movements` ADD CONSTRAINT `chk_cash_movements_amount_positive` CHECK (`amount` > 0)');
 CALL sp_add_check_if_not_exists('cash_session_payment_summaries', 'chk_cash_summary_sales_count_non_negative', 'ALTER TABLE `cash_session_payment_summaries` ADD CONSTRAINT `chk_cash_summary_sales_count_non_negative` CHECK (`sales_count` >= 0)');
 CALL sp_add_check_if_not_exists('cash_session_payment_summaries', 'chk_cash_summary_total_amount_non_negative', 'ALTER TABLE `cash_session_payment_summaries` ADD CONSTRAINT `chk_cash_summary_total_amount_non_negative` CHECK (`total_amount` >= 0)');
+CALL sp_add_check_if_not_exists('payment_methods', 'chk_payment_methods_affects_cash_boolean', 'ALTER TABLE `payment_methods` ADD CONSTRAINT `chk_payment_methods_affects_cash_boolean` CHECK (`affects_cash` IN (0, 1))');
+CALL sp_add_check_if_not_exists('payment_methods', 'chk_payment_methods_default_boolean', 'ALTER TABLE `payment_methods` ADD CONSTRAINT `chk_payment_methods_default_boolean` CHECK (`is_default` IN (0, 1))');
+CALL sp_add_check_if_not_exists('payment_methods', 'chk_payment_methods_active_boolean', 'ALTER TABLE `payment_methods` ADD CONSTRAINT `chk_payment_methods_active_boolean` CHECK (`is_active` IN (0, 1))');
+CALL sp_add_check_if_not_exists('payment_methods', 'chk_payment_methods_cash_affects_cash', 'ALTER TABLE `payment_methods` ADD CONSTRAINT `chk_payment_methods_cash_affects_cash` CHECK ((`code` = ''CASH'' AND `affects_cash` = 1) OR (`code` <> ''CASH'' AND `affects_cash` = 0))');
 
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;

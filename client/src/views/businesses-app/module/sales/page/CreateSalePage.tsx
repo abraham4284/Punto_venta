@@ -12,7 +12,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "react-hot-toast";
@@ -125,6 +124,16 @@ export const CreateSalePage = () => {
       .slice(0, 8);
   }, [depositSearch, deposits]);
 
+  const selectedPaymentMethodLabel = useMemo(() => {
+    const selectedPaymentMethod = activePaymentMethods.find((paymentMethod) => {
+      return paymentMethod.idPaymentMethod === header.idPaymentMethod;
+    });
+
+    if (!selectedPaymentMethod) return "";
+
+    return `${selectedPaymentMethod.name} · ${paymentMethodTypeLabels[selectedPaymentMethod.code]}`;
+  }, [activePaymentMethods, header.idPaymentMethod]);
+
   useEffect(() => {
     getCustomers();
     getDeposits();
@@ -200,13 +209,9 @@ export const CreateSalePage = () => {
     if (!defaultDeposit) return;
 
     defaultDepositWasSelected.current = true;
-
-    const timeoutId = window.setTimeout(() => {
-      void handleDepositSelect(defaultDeposit);
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [deposits, header.idDeposit, depositSearch, handleDepositSelect]);
+    setDepositSearch(defaultDeposit.name);
+    void changeDeposit(defaultDeposit.idDeposit);
+  }, [changeDeposit, deposits, header.idDeposit, depositSearch]);
 
   useEffect(() => {
     if (!header.idDeposit) return;
@@ -433,7 +438,15 @@ export const CreateSalePage = () => {
             disabled={paymentMethodsLoading || activePaymentMethods.length === 0}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecciona un metodo de pago" />
+              <span
+                className={
+                  selectedPaymentMethodLabel
+                    ? "flex flex-1 text-left"
+                    : "flex flex-1 text-left text-muted-foreground"
+                }
+              >
+                {selectedPaymentMethodLabel || "Selecciona un metodo de pago"}
+              </span>
             </SelectTrigger>
             <SelectContent>
               {activePaymentMethods.map((paymentMethod) => (

@@ -9,7 +9,18 @@ Copied historical scripts:
 
 1. 001_fix_collations.sql
 2. 002_subscriptions_pk_fix.sql
-3. 003_cash_module_existing_schema.sql
+3. 003_payment_methods_unique_name_fix.sql
+
+Para bases existentes que aun tengan `UNIQUE(idBusiness, code)` en
+`payment_methods`, ejecutar:
+
+1. migrations/003_payment_methods_unique_name_fix.sql
+
+Este cambio elimina la restriccion vieja `uk_payment_method_business_code`,
+mantiene un indice normal para busquedas por `code` y asegura
+`UNIQUE(idBusiness, name)`. Asi un negocio puede cargar varios metodos del
+tipo `TRANSFER`, `CARD` u `OTHER`, por ejemplo Mercado Pago, Uala o Banco
+Nacion, sin duplicar nombres visibles dentro del mismo negocio.
 
 Para bases existentes creadas antes del modulo de cajas, ejecutar:
 

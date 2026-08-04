@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS `deposits` (
 CREATE TABLE IF NOT EXISTS `payment_methods` (
   `idPaymentMethod` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
-  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `code` enum('CASH','TRANSFER','CARD','OTHER') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `affects_cash` tinyint(1) NOT NULL DEFAULT '0',
   `is_default` tinyint NOT NULL DEFAULT '0',
@@ -383,7 +383,7 @@ CREATE TABLE IF NOT EXISTS `sales` (
   `observation` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` enum('COMPLETED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'COMPLETED',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`idSale`,`idDeposit`)
+  PRIMARY KEY (`idSale`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `sale_details` (
