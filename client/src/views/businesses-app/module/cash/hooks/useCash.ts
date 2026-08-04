@@ -48,6 +48,11 @@ export const useCash = () => {
   const [currentSession, setCurrentSession] = useState<CashSessionResponse | null>(null);
   const [summary, setSummary] = useState<CashLiveSummaryResponse | null>(null);
   const [movements, setMovements] = useState<CashMovementResponse[]>([]);
+  const [sessionDetailSummary, setSessionDetailSummary] =
+    useState<CashLiveSummaryResponse | null>(null);
+  const [sessionDetailMovements, setSessionDetailMovements] = useState<
+    CashMovementResponse[]
+  >([]);
   const [history, setHistory] = useState<PaginatedCashSessionsResponse>({
     sessions: [],
     pagination: { totalRecords: 0, currentPage: 1, totalPages: 1, limit: 15 },
@@ -55,6 +60,7 @@ export const useCash = () => {
   const [filters, setFilters] = useState<CashSessionFilters>(emptyCashSessionFilters);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +84,37 @@ export const useCash = () => {
   const refreshMovements = useCallback(async (idCashSession: number) => {
     const { data } = await getCashMovementsRequest(idCashSession);
     setMovements(data.data ?? []);
+  }, []);
+
+  const loadSessionDetail = useCallback(
+    async (idCashSession: number): Promise<boolean> => {
+      setDetailLoading(true);
+      setError(null);
+
+      try {
+        const [summaryResponse, movementsResponse] = await Promise.all([
+          getCashSessionSummaryRequest(idCashSession),
+          getCashMovementsRequest(idCashSession),
+        ]);
+
+        setSessionDetailSummary(summaryResponse.data.data);
+        setSessionDetailMovements(movementsResponse.data.data ?? []);
+        return true;
+      } catch (requestError) {
+        toast.error(
+          getAxiosMessage(requestError, "No se pudo cargar el detalle de caja"),
+        );
+        return false;
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [],
+  );
+
+  const clearSessionDetail = useCallback(() => {
+    setSessionDetailSummary(null);
+    setSessionDetailMovements([]);
   }, []);
 
   const refreshDashboard = useCallback(async () => {
@@ -257,15 +294,20 @@ export const useCash = () => {
     currentSession,
     summary,
     movements,
+    sessionDetailSummary,
+    sessionDetailMovements,
     history,
     filters,
     page,
     loading,
+    detailLoading,
     saving,
     error,
     setPage,
     refreshDashboard,
     refreshHistory,
+    loadSessionDetail,
+    clearSessionDetail,
     openSession,
     closeSession,
     createMovement,

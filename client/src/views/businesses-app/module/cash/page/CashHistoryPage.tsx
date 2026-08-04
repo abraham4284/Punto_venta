@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
+import { Eye } from "lucide-react";
 import { Meta } from "@/components/Meta";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CashSessionDetailModal } from "../components/CashSessionDetailModal";
 import { useCash } from "../hooks/useCash";
-import type { CashSessionFilters, CashSessionStatus } from "../types";
+import type {
+  CashSessionFilters,
+  CashSessionResponse,
+  CashSessionStatus,
+} from "../types";
 
 const formatMoney = (value: number | null): string => {
   if (value === null) return "-";
@@ -18,12 +25,57 @@ const formatDateTime = (value: string | null): string => {
 };
 
 export const CashHistoryPage = () => {
-  const { registers, history, filters, page, loading, setPage, refreshHistory, applyHistoryFilters, clearHistoryFilters } = useCash();
+  const {
+    registers,
+    history,
+    filters,
+    page,
+    loading,
+    detailLoading,
+    sessionDetailSummary,
+    sessionDetailMovements,
+    setPage,
+    refreshHistory,
+    applyHistoryFilters,
+    clearHistoryFilters,
+    loadSessionDetail,
+    clearSessionDetail,
+  } = useCash();
   const [localFilters, setLocalFilters] = useState<CashSessionFilters>(filters);
+  const [selectedSession, setSelectedSession] =
+    useState<CashSessionResponse | null>(null);
 
   useEffect(() => {
     void refreshHistory();
   }, [refreshHistory]);
+
+  const handleOpenDetail = async (session: CashSessionResponse) => {
+    setSelectedSession(session);
+    await loadSessionDetail(session.idCashSession);
+  };
+
+  const handleCloseDetail = () => {
+    if (detailLoading) return;
+
+    setSelectedSession(null);
+    clearSessionDetail();
+  };
+
+  const getStatusBadge = (status: CashSessionStatus) => {
+    if (status === "OPEN") {
+      return (
+        <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+          Abierta
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge className="bg-slate-200 text-slate-700 hover:bg-slate-200">
+        Cerrada
+      </Badge>
+    );
+  };
 
   return (
     <>
@@ -83,13 +135,14 @@ export const CashHistoryPage = () => {
                   <th className="p-3 text-right">Contado</th>
                   <th className="p-3 text-right">Diferencia</th>
                   <th className="p-3 text-left">Estado</th>
+                  <th className="p-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Cargando historial...</td></tr>
+                  <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Cargando historial...</td></tr>
                 ) : history.sessions.length === 0 ? (
-                  <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Sin sesiones para mostrar.</td></tr>
+                  <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Sin sesiones para mostrar.</td></tr>
                 ) : (
                   history.sessions.map((session) => (
                     <tr key={session.idCashSession} className="border-b">
@@ -102,7 +155,19 @@ export const CashHistoryPage = () => {
                       <td className="p-3 text-right">{formatMoney(session.expectedCashAmount)}</td>
                       <td className="p-3 text-right">{formatMoney(session.countedCashAmount)}</td>
                       <td className="p-3 text-right">{formatMoney(session.differenceAmount)}</td>
-                      <td className="p-3">{session.status === "OPEN" ? "Abierta" : "Cerrada"}</td>
+                      <td className="p-3">{getStatusBadge(session.status)}</td>
+                      <td className="p-3 text-right">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={detailLoading}
+                          onClick={() => void handleOpenDetail(session)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver detalle
+                        </Button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -116,6 +181,15 @@ export const CashHistoryPage = () => {
           <span className="text-sm text-muted-foreground">Pagina {history.pagination.currentPage} de {history.pagination.totalPages}</span>
           <Button type="button" variant="outline" disabled={page >= history.pagination.totalPages} onClick={() => setPage(page + 1)}>Siguiente</Button>
         </div>
+
+        <CashSessionDetailModal
+          isOpen={Boolean(selectedSession)}
+          session={selectedSession}
+          summary={sessionDetailSummary}
+          movements={sessionDetailMovements}
+          loading={detailLoading}
+          onClose={handleCloseDetail}
+        />
       </main>
     </>
   );
