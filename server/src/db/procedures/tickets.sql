@@ -22,6 +22,7 @@ BEGIN
     COALESCE(c.name, 'Consumidor Final') AS customer_name,
     u.name AS user_name,
     d.name AS deposit_name,
+    pm.code AS payment_method_code,
     COALESCE(pm.name, 'Sin metodo de pago') AS payment_method_name
   FROM sales s
   INNER JOIN businesses b

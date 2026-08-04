@@ -15,8 +15,9 @@ export interface SaleDbRow {
   idDeposit: number;
   deposit_name: string;
   idCashSession: number;
-  idPaymentMethod: number | null;
+  idPaymentMethod: number;
   payment_method_name: string | null;
+  payment_method_code: string | null;
   sale_date: Date;
   subtotal: string | number;
   discount_total: string | number;
@@ -77,7 +78,7 @@ export interface CreateSalePayload {
   idCustomer?: number | null;
   idDeposit: number;
   idCashSession: number;
-  idPaymentMethod?: number | null;
+  idPaymentMethod: number;
   subtotal: number;
   discountTotal: number;
   total: number;
@@ -100,6 +101,7 @@ export interface GetSalesFilters {
   limit: number;
   offset: number;
   idDeposit?: number | null;
+  idPaymentMethod?: number | null;
   status?: SaleStatus | null;
   saleNumberSearch?: string | null;
   startDate?: Date | null;
@@ -146,8 +148,9 @@ export interface SaleResponse {
   idDeposit: number;
   depositName: string;
   idCashSession: number;
-  idPaymentMethod: number | null;
+  idPaymentMethod: number;
   paymentMethodName: string | null;
+  paymentMethodCode: string | null;
   saleDate: Date;
   subtotal: number;
   discountTotal: number;

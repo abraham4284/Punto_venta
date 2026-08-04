@@ -11,12 +11,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DepositResponse } from "../../../deposits/types/deposits.types";
+import { paymentMethodTypeLabels } from "../../../payment-methods/helpers/payment-method.helpers";
+import type { PaymentMethodResponse } from "../../../payment-methods/types";
 import { SearchBox } from "../search/SearchBox";
 import type { SaleFilters as SaleFiltersState } from "../../types";
 
 type Props = {
   filters: SaleFiltersState;
   deposits: DepositResponse[];
+  paymentMethods: PaymentMethodResponse[];
   onChange: (filters: Partial<SaleFiltersState>) => void;
   onReset: () => void;
 };
@@ -24,10 +27,12 @@ type Props = {
 export const SaleFilters = ({
   filters,
   deposits,
+  paymentMethods,
   onChange,
   onReset,
 }: Props) => {
   const [depositSearch, setDepositSearch] = useState("");
+  const [paymentMethodSearch, setPaymentMethodSearch] = useState("");
   const filteredDeposits = useMemo(() => {
     const value = depositSearch.trim().toLowerCase();
     const activeDeposits = deposits.filter((deposit) => deposit.isActive);
@@ -39,8 +44,27 @@ export const SaleFilters = ({
       .slice(0, 8);
   }, [depositSearch, deposits]);
 
+  const filteredPaymentMethods = useMemo(() => {
+    const value = paymentMethodSearch.trim().toLowerCase();
+    const activePaymentMethods = paymentMethods.filter((paymentMethod) => {
+      return paymentMethod.isActive;
+    });
+
+    if (!value) return activePaymentMethods.slice(0, 8);
+
+    return activePaymentMethods
+      .filter((paymentMethod) => {
+        const label = paymentMethodTypeLabels[paymentMethod.code];
+        return (
+          paymentMethod.name.toLowerCase().includes(value) ||
+          label.toLowerCase().includes(value)
+        );
+      })
+      .slice(0, 8);
+  }, [paymentMethodSearch, paymentMethods]);
+
   return (
-    <div className="grid gap-4 rounded-lg border bg-card p-4 md:grid-cols-6">
+    <div className="grid gap-4 rounded-lg border bg-card p-4 md:grid-cols-7">
       <div className="grid gap-2">
         <Label>N venta</Label>
         <Input
@@ -64,6 +88,25 @@ export const SaleFilters = ({
         onSelect={(deposit) => {
           setDepositSearch(deposit.name);
           onChange({ idDeposit: deposit.idDeposit });
+        }}
+      />
+
+      <SearchBox
+        label="Metodo de pago"
+        value={paymentMethodSearch}
+        placeholder="Buscar metodo..."
+        options={filteredPaymentMethods}
+        getKey={(paymentMethod) => paymentMethod.idPaymentMethod}
+        getLabel={(paymentMethod) =>
+          `${paymentMethod.name} · ${paymentMethodTypeLabels[paymentMethod.code]}`
+        }
+        onSearchChange={(value) => {
+          setPaymentMethodSearch(value);
+          onChange({ idPaymentMethod: null });
+        }}
+        onSelect={(paymentMethod) => {
+          setPaymentMethodSearch(paymentMethod.name);
+          onChange({ idPaymentMethod: paymentMethod.idPaymentMethod });
         }}
       />
 
@@ -110,7 +153,15 @@ export const SaleFilters = ({
       </div>
 
       <div className="flex items-end">
-        <Button type="button" variant="outline" onClick={onReset}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setDepositSearch("");
+            setPaymentMethodSearch("");
+            onReset();
+          }}
+        >
           Limpiar filtros
         </Button>
       </div>

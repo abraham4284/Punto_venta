@@ -33,6 +33,7 @@ export const getSalesRequest = (
       page,
       limit,
       idDeposit: filters.idDeposit ?? undefined,
+      idPaymentMethod: filters.idPaymentMethod ?? undefined,
       status: filters.status ?? undefined,
       saleNumber: filters.saleNumber.trim() || undefined,
       startDate: filters.startDate || undefined,

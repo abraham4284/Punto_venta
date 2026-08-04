@@ -178,7 +178,7 @@ export const InvoiceDocument = ({ sale, business, grossSubtotal }: Props) => {
               Fecha: {formatDate(sale.saleDate)}
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              {/* Forma de pago: {sale.paymentMethodName ?? "Sin metodo informado"} */}
+              Forma de pago: {sale.paymentMethodName ?? "Sin metodo informado"}
             </p>
           </div>
           <div className="rounded-md bg-blue-50 px-4 py-2 text-right">

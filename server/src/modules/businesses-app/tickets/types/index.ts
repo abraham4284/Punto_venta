@@ -16,6 +16,7 @@ export interface TicketSaleDbRow {
   customer_name: string;
   user_name: string;
   deposit_name: string;
+  payment_method_code: string | null;
   payment_method_name: string;
 }
 
@@ -44,6 +45,7 @@ export interface SaleTicketHeader {
   customerName: string;
   userName: string;
   depositName: string;
+  paymentMethodCode: string | null;
   paymentMethodName: string;
 }
 

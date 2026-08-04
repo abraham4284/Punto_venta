@@ -9,6 +9,7 @@ import {
   ClientsRoutes,
   DashboardRoutes,
   DepositsRoutes,
+  PaymentMethodsRoutes,
   ProductsRoutes,
   PurchasesRoutes,
   SalesRoutes,
@@ -59,6 +60,14 @@ export const AdminRoutes = () => {
           element={
             <PermissionRoute permissions={["deposits.view"]}>
               <DepositsRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/payment-methods/*"
+          element={
+            <PermissionRoute permissions={["payment_methods.view"]}>
+              <PaymentMethodsRoutes />
             </PermissionRoute>
           }
         />

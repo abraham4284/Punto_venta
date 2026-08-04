@@ -35,7 +35,7 @@ async function callCreateSaleProcedure(
       data.idCustomer ?? null,
       data.idDeposit,
       data.idCashSession,
-      data.idPaymentMethod ?? null,
+      data.idPaymentMethod,
       data.subtotal,
       data.discountTotal,
       data.total,
@@ -104,12 +104,13 @@ export async function getSalesService(
   filters: GetSalesFilters,
 ): Promise<PaginatedSalesResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       filters.idBusiness,
       filters.limit,
       filters.offset,
       filters.idDeposit ?? null,
+      filters.idPaymentMethod ?? null,
       filters.status ?? null,
       filters.saleNumberSearch ?? null,
       filters.startDate ?? null,

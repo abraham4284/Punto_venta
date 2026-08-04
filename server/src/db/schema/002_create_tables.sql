@@ -373,7 +373,7 @@ CREATE TABLE IF NOT EXISTS `sales` (
   `idCashSession` bigint NOT NULL,
   `idUser` int NOT NULL,
   `idCustomer` int DEFAULT NULL,
-  `idPaymentMethod` int DEFAULT NULL,
+  `idPaymentMethod` int NOT NULL,
   `sale_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `sale_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `subtotal` decimal(18,2) NOT NULL DEFAULT '0.00',

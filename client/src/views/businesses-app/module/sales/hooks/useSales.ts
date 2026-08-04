@@ -391,7 +391,7 @@ export const useSales = () => {
       idCustomer: header.idCustomer,
       idDeposit: Number(header.idDeposit),
       idCashSession: Number(header.idCashSession),
-      idPaymentMethod: header.idPaymentMethod,
+      idPaymentMethod: Number(header.idPaymentMethod),
       subtotal: toMoney(subtotal),
       discountTotal: toMoney(discountTotal),
       total: toMoney(total),
