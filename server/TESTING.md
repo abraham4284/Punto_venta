@@ -18,6 +18,7 @@ npm run typecheck
 npm run build
 npm run test:security
 npm run test:tenant
+npm run test:economic
 npm test
 ```
 
@@ -27,6 +28,7 @@ Para desarrollo:
 npm run test:watch
 npm run test:security:watch
 npm run test:tenant:watch
+npm run test:economic:watch
 ```
 
 ## Alcance Actual
@@ -101,3 +103,55 @@ TEST_DISABLE_RATE_LIMITS=true
 Esto evita falsos `429` en flujos funcionales largos sin debilitar `npm run test:security`, donde los rate limits siguen activos y con valores bajos.
 
 MySQL debe estar iniciado. No hace falta levantar `npm run dev`, no hace falta frontend y no se debe apuntar nunca a una base de desarrollo.
+
+## Tests de Flujos Economicos
+
+La suite de flujos economicos valida operaciones criticas ejecutando el flujo real:
+
+```text
+HTTP -> route -> middleware -> controller -> service -> stored procedure -> MySQL
+```
+
+Para ejecutarla:
+
+```bash
+npm run test:economic
+```
+
+En modo observacion:
+
+```bash
+npm run test:economic:watch
+```
+
+Estos tests cubren:
+
+- Compras que aumentan stock.
+- Compras que crean movimientos `PURCHASE`.
+- Compra sobre deposito sin stock previo.
+- Anulacion de compras.
+- Ventas que descuentan stock.
+- Ventas con varias lineas.
+- Anulacion de ventas y restauracion de stock.
+- Transferencias entre depositos.
+- Rollback por stock insuficiente.
+- Rollback por metodo de pago inactivo.
+- Rollback por sesion de caja cerrada o inexistente.
+- Apertura y cierre de caja.
+- Doble apertura y doble cierre.
+- Impacto de CASH en efectivo esperado.
+- Impacto de TRANSFER fuera del efectivo esperado.
+- Snapshots por metodo de pago al cierre.
+- Movimientos manuales de caja.
+
+La suite usa `Decimal` para comparaciones monetarias y de stock, evitando igualdad insegura de floating point.
+
+Igual que la suite tenant, desactiva rate limits solo bajo entorno seguro:
+
+```text
+NODE_ENV=test
+DB_NAME=punto_venta_integration_test
+TEST_DISABLE_RATE_LIMITS=true
+```
+
+La base `punto_venta_integration_test` sera limpiada durante los tests. No se ejecuta schema, no se levanta servidor HTTP y no se requiere frontend.
