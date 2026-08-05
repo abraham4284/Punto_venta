@@ -1,5 +1,8 @@
 import type { Request } from "express";
-import rateLimit, { ipKeyGenerator as expressIpKeyGenerator } from "express-rate-limit";
+import rateLimit, {
+  MemoryStore,
+  ipKeyGenerator as expressIpKeyGenerator,
+} from "express-rate-limit";
 import { rateLimitConfig } from "@/config/rate-limit.config.js";
 
 function rateLimitResponse(message: string) {
@@ -16,9 +19,20 @@ function ipKeyGenerator(req: Request): string {
   return expressIpKeyGenerator(req.ip || req.socket.remoteAddress || "unknown");
 }
 
+const stores = {
+  global: new MemoryStore(),
+  businessLogin: new MemoryStore(),
+  platformLogin: new MemoryStore(),
+  register: new MemoryStore(),
+  refresh: new MemoryStore(),
+  passwordReset: new MemoryStore(),
+  import: new MemoryStore(),
+};
+
 export const globalApiRateLimiter = rateLimit({
   windowMs: rateLimitConfig.global.windowMs,
   max: rateLimitConfig.global.max,
+  store: stores.global,
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitResponse(
@@ -29,6 +43,7 @@ export const globalApiRateLimiter = rateLimit({
 export const businessLoginRateLimiter = rateLimit({
   windowMs: rateLimitConfig.businessLogin.windowMs,
   max: rateLimitConfig.businessLogin.max,
+  store: stores.businessLogin,
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitResponse(
@@ -39,6 +54,7 @@ export const businessLoginRateLimiter = rateLimit({
 export const platformLoginRateLimiter = rateLimit({
   windowMs: rateLimitConfig.platformLogin.windowMs,
   max: rateLimitConfig.platformLogin.max,
+  store: stores.platformLogin,
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitResponse(
@@ -49,6 +65,7 @@ export const platformLoginRateLimiter = rateLimit({
 export const registerRateLimiter = rateLimit({
   windowMs: rateLimitConfig.register.windowMs,
   max: rateLimitConfig.register.max,
+  store: stores.register,
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitResponse(
@@ -59,6 +76,7 @@ export const registerRateLimiter = rateLimit({
 export const refreshRateLimiter = rateLimit({
   windowMs: rateLimitConfig.refresh.windowMs,
   max: rateLimitConfig.refresh.max,
+  store: stores.refresh,
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitResponse(
@@ -69,6 +87,7 @@ export const refreshRateLimiter = rateLimit({
 export const passwordResetRateLimiter = rateLimit({
   windowMs: rateLimitConfig.passwordReset.windowMs,
   max: rateLimitConfig.passwordReset.max,
+  store: stores.passwordReset,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator(req) {
@@ -83,6 +102,7 @@ export const passwordResetRateLimiter = rateLimit({
 export const importRateLimiter = rateLimit({
   windowMs: rateLimitConfig.import.windowMs,
   max: rateLimitConfig.import.max,
+  store: stores.import,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator(req) {
@@ -94,3 +114,13 @@ export const importRateLimiter = rateLimit({
     "Demasiadas importaciones. Intenta nuevamente mas tarde.",
   ),
 });
+
+export async function resetRateLimitStoresForTests(): Promise<void> {
+  if (process.env.NODE_ENV !== "test") return;
+
+  await Promise.all(
+    Object.values(stores).map(function resetStore(store) {
+      return store.resetAll();
+    }),
+  );
+}

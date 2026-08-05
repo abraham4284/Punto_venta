@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { passwordResetRateLimiter } from "@/middlewares/rate-limit/rate-limit.middleware.js";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requirePlatformContext } from "@/middlewares/requirePlatformContext.middleware.js";
@@ -17,6 +17,20 @@ import {
 
 const router = Router();
 
+function skipUnmatchedBusinessRoutes(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void {
+  if (!req.path.startsWith("/businesses")) {
+    next("router");
+    return;
+  }
+
+  next();
+}
+
+router.use(skipUnmatchedBusinessRoutes);
 router.use(requireAuth, requirePlatformContext);
 
 router.get(

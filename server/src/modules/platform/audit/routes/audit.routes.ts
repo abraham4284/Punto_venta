@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requirePlatformContext } from "@/middlewares/requirePlatformContext.middleware.js";
 import { requirePlatformRoles } from "@/middlewares/requirePlatformRoles.middleware.js";
@@ -9,6 +9,20 @@ import {
 
 const router = Router();
 
+function skipUnmatchedAuditRoutes(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void {
+  if (!req.path.startsWith("/audit-logs")) {
+    next("router");
+    return;
+  }
+
+  next();
+}
+
+router.use(skipUnmatchedAuditRoutes);
 router.use(requireAuth, requirePlatformContext);
 
 router.get(

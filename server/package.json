@@ -5,7 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:security": "vitest run src/tests/security",
+    "test:security:watch": "vitest src/tests/security",
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc && tsc-alias",
@@ -39,6 +42,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.2.0",
-    "dotenv": "^17.4.2"
+    "@types/supertest": "^7.2.1",
+    "dotenv": "^17.4.2",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.10"
   }
 }

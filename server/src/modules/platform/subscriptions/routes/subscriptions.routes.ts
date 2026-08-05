@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requirePlatformContext } from "@/middlewares/requirePlatformContext.middleware.js";
 import { requirePlatformRoles } from "@/middlewares/requirePlatformRoles.middleware.js";
@@ -27,6 +27,33 @@ import {
 
 const router = Router();
 
+const subscriptionRoutePrefixes = [
+  "/business-options",
+  "/subscription-plans",
+  "/business-subscriptions",
+  "/subscription-payments",
+  "/subscription-events",
+  "/subscriptions",
+];
+
+function skipUnmatchedSubscriptionRoutes(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void {
+  const matchesRoute = subscriptionRoutePrefixes.some(function hasPrefix(prefix) {
+    return req.path.startsWith(prefix);
+  });
+
+  if (!matchesRoute) {
+    next("router");
+    return;
+  }
+
+  next();
+}
+
+router.use(skipUnmatchedSubscriptionRoutes);
 router.use(requireAuth, requirePlatformContext);
 
 router.get(

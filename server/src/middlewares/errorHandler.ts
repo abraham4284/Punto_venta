@@ -25,6 +25,10 @@ function isDatabaseError(error: unknown): error is Error & DatabaseError {
 }
 
 function logSafeError(error: unknown, req: Request): void {
+  if (process.env.NODE_ENV === "test") {
+    return;
+  }
+
   if (process.env.NODE_ENV !== "production") {
     console.error(error);
     return;
