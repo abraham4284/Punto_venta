@@ -19,6 +19,7 @@ npm run build
 npm run test:security
 npm run test:tenant
 npm run test:economic
+npm run test:auth
 npm test
 ```
 
@@ -29,6 +30,7 @@ npm run test:watch
 npm run test:security:watch
 npm run test:tenant:watch
 npm run test:economic:watch
+npm run test:auth:watch
 ```
 
 ## Alcance Actual
@@ -155,3 +157,56 @@ TEST_DISABLE_RATE_LIMITS=true
 ```
 
 La base `punto_venta_integration_test` sera limpiada durante los tests. No se ejecuta schema, no se levanta servidor HTTP y no se requiere frontend.
+
+## Tests de Autenticacion y Permisos
+
+La suite de autenticacion y permisos valida la regla principal de seguridad operativa:
+
+```text
+SOLO LOS USUARIOS AUTENTICADOS,
+CON EL CONTEXTO, ROL, PERMISO
+Y SUSCRIPCION CORRECTOS,
+PUEDEN EJECUTAR CADA OPERACION.
+```
+
+Para ejecutarla:
+
+```bash
+npm run test:auth
+```
+
+En modo observacion:
+
+```bash
+npm run test:auth:watch
+```
+
+Estos tests cubren:
+
+- Login BUSINESS valido e invalido.
+- Login PLATFORM valido e invalido.
+- Cookies reales de access y refresh token.
+- Persistencia y revocacion de sesiones en `user_sessions`.
+- Separacion estricta entre tokens BUSINESS y PLATFORM.
+- Rechazo de tokens manipulados, expirados, incompletos o sin `context`.
+- Refresh token BUSINESS y PLATFORM con rotacion de sesiones.
+- Logout BUSINESS y PLATFORM.
+- Roles BUSINESS `OWNER`, `ADMIN` y `SELLER`.
+- Roles PLATFORM `SUPER_ADMIN`, `SUPPORT` y `ANALYST`.
+- Permisos predeterminados por rol.
+- Permisos personalizados `ALLOW` y `DENY`.
+- Verificacion de que una mutacion denegada no produce efectos en DB.
+- Contrasena temporal y bloqueo operativo por `must_change_password`.
+- Cambio obligatorio de contrasena.
+- Rechazo de cambio de contrasena ajena sin permiso.
+- Reset administrativo de contrasena desde Platform.
+- Suscripciones `TRIAL`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`, `CANCELLED` y `EXPIRED`.
+- Bloqueo operativo por suspension aplicado en tiempo real aunque la sesion ya exista.
+
+La suite usa la misma base `punto_venta_integration_test`, no ejecuta schema, no levanta servidor HTTP, no requiere frontend y desactiva rate limits solamente bajo el entorno seguro de tests:
+
+```text
+NODE_ENV=test
+DB_NAME=punto_venta_integration_test
+TEST_DISABLE_RATE_LIMITS=true
+```
