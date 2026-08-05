@@ -10,7 +10,7 @@ import { errorHandler } from "@/middlewares/errorHandler.js";
 import { globalApiRateLimiter } from "@/middlewares/rate-limit/rate-limit.middleware.js";
 import { businessesAppRoutes, platformRoutes } from "@/modules/index.js";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const app = express();
 
@@ -40,7 +40,11 @@ const corsOptions: CorsOptions = {
 
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(morgan("dev"));
+
+if (process.env.NODE_ENV !== "test") {
+  app.use(morgan("dev"));
+}
+
 app.use(cookieParser());
 app.use(express.json({ limit: securityConfig.jsonBodyLimit }));
 app.use(
@@ -54,6 +58,13 @@ app.use(bodyParserErrorMiddleware);
 app.get("/", (_req, res) => res.send("Api funcionando"));
 
 app.use("/api", globalApiRateLimiter);
+
+if (process.env.NODE_ENV === "test") {
+  app.get("/api/__test__/internal-error", () => {
+    throw new Error("Table users does not exist in procedure sp_secret");
+  });
+}
+
 app.use("/api", platformRoutes);
 app.use("/api", businessesAppRoutes);
 

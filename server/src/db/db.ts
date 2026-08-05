@@ -1,7 +1,7 @@
 import { createPool } from "mysql2/promise";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const DB_HOST = process.env.DB_HOST;
 const DB_USER = process.env.DB_USER;
@@ -31,7 +31,7 @@ export const pool = createPool({
   try {
     const connection = await pool.getConnection();
 
-    if (process.env.NODE_ENV !== "production") {
+    if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
       console.log("DB conectada correctamente a MySQL");
     }
 
