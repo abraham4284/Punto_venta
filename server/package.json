@@ -5,10 +5,12 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "npm run test:security && npm run test:tenant",
     "test:watch": "vitest",
     "test:security": "vitest run src/tests/security",
     "test:security:watch": "vitest src/tests/security",
+    "test:tenant": "vitest run --config vitest.tenant.config.ts",
+    "test:tenant:watch": "vitest --config vitest.tenant.config.ts",
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc && tsc-alias",

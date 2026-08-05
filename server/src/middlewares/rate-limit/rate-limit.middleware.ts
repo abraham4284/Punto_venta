@@ -3,7 +3,33 @@ import rateLimit, {
   MemoryStore,
   ipKeyGenerator as expressIpKeyGenerator,
 } from "express-rate-limit";
+import type { NextFunction, Response } from "express";
 import { rateLimitConfig } from "@/config/rate-limit.config.js";
+
+type RateLimitMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => void;
+
+function canDisableRateLimitsForTests(): boolean {
+  return (
+    process.env.NODE_ENV === "test" &&
+    process.env.TEST_DISABLE_RATE_LIMITS === "true" &&
+    process.env.DB_NAME === "punto_venta_integration_test"
+  );
+}
+
+function tenantTestAwareLimiter(limiter: RateLimitMiddleware): RateLimitMiddleware {
+  return function rateLimitMiddleware(req, res, next) {
+    if (canDisableRateLimitsForTests()) {
+      next();
+      return;
+    }
+
+    limiter(req, res, next);
+  };
+}
 
 function rateLimitResponse(message: string) {
   return {
@@ -29,7 +55,7 @@ const stores = {
   import: new MemoryStore(),
 };
 
-export const globalApiRateLimiter = rateLimit({
+export const globalApiRateLimiter = tenantTestAwareLimiter(rateLimit({
   windowMs: rateLimitConfig.global.windowMs,
   max: rateLimitConfig.global.max,
   store: stores.global,
@@ -38,9 +64,9 @@ export const globalApiRateLimiter = rateLimit({
   message: rateLimitResponse(
     "Demasiadas solicitudes. Intenta nuevamente mas tarde.",
   ),
-});
+}));
 
-export const businessLoginRateLimiter = rateLimit({
+export const businessLoginRateLimiter = tenantTestAwareLimiter(rateLimit({
   windowMs: rateLimitConfig.businessLogin.windowMs,
   max: rateLimitConfig.businessLogin.max,
   store: stores.businessLogin,
@@ -49,9 +75,9 @@ export const businessLoginRateLimiter = rateLimit({
   message: rateLimitResponse(
     "Demasiados intentos de inicio de sesion. Intenta nuevamente mas tarde.",
   ),
-});
+}));
 
-export const platformLoginRateLimiter = rateLimit({
+export const platformLoginRateLimiter = tenantTestAwareLimiter(rateLimit({
   windowMs: rateLimitConfig.platformLogin.windowMs,
   max: rateLimitConfig.platformLogin.max,
   store: stores.platformLogin,
@@ -60,9 +86,9 @@ export const platformLoginRateLimiter = rateLimit({
   message: rateLimitResponse(
     "Demasiados intentos de acceso a plataforma. Intenta nuevamente mas tarde.",
   ),
-});
+}));
 
-export const registerRateLimiter = rateLimit({
+export const registerRateLimiter = tenantTestAwareLimiter(rateLimit({
   windowMs: rateLimitConfig.register.windowMs,
   max: rateLimitConfig.register.max,
   store: stores.register,
@@ -71,9 +97,9 @@ export const registerRateLimiter = rateLimit({
   message: rateLimitResponse(
     "Demasiados registros desde esta red. Intenta nuevamente mas tarde.",
   ),
-});
+}));
 
-export const refreshRateLimiter = rateLimit({
+export const refreshRateLimiter = tenantTestAwareLimiter(rateLimit({
   windowMs: rateLimitConfig.refresh.windowMs,
   max: rateLimitConfig.refresh.max,
   store: stores.refresh,
@@ -82,9 +108,9 @@ export const refreshRateLimiter = rateLimit({
   message: rateLimitResponse(
     "Demasiadas solicitudes de renovacion de sesion. Intenta nuevamente mas tarde.",
   ),
-});
+}));
 
-export const passwordResetRateLimiter = rateLimit({
+export const passwordResetRateLimiter = tenantTestAwareLimiter(rateLimit({
   windowMs: rateLimitConfig.passwordReset.windowMs,
   max: rateLimitConfig.passwordReset.max,
   store: stores.passwordReset,
@@ -97,9 +123,9 @@ export const passwordResetRateLimiter = rateLimit({
   message: rateLimitResponse(
     "Demasiados restablecimientos de contrasena. Intenta nuevamente mas tarde.",
   ),
-});
+}));
 
-export const importRateLimiter = rateLimit({
+export const importRateLimiter = tenantTestAwareLimiter(rateLimit({
   windowMs: rateLimitConfig.import.windowMs,
   max: rateLimitConfig.import.max,
   store: stores.import,
@@ -113,7 +139,7 @@ export const importRateLimiter = rateLimit({
   message: rateLimitResponse(
     "Demasiadas importaciones. Intenta nuevamente mas tarde.",
   ),
-});
+}));
 
 export async function resetRateLimitStoresForTests(): Promise<void> {
   if (process.env.NODE_ENV !== "test") return;

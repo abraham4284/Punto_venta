@@ -17,6 +17,7 @@ El setup de tests valida que el nombre de la base termine en `_test` y que sea e
 npm run typecheck
 npm run build
 npm run test:security
+npm run test:tenant
 npm test
 ```
 
@@ -25,6 +26,7 @@ Para desarrollo:
 ```bash
 npm run test:watch
 npm run test:security:watch
+npm run test:tenant:watch
 ```
 
 ## Alcance Actual
@@ -54,3 +56,48 @@ La suite actual cubre:
 ## Variables de Seguridad
 
 `.env.test` no debe versionarse. Solo `.env.test.example` queda en el repositorio como plantilla segura.
+
+## Tests de Aislamiento Multi-Tenant
+
+La suite de aislamiento multi-tenant valida la regla central del sistema BUSINESS:
+
+```text
+NINGUN USUARIO BUSINESS PUEDE LEER,
+MODIFICAR O UTILIZAR RECURSOS
+PERTENECIENTES A OTRO NEGOCIO.
+```
+
+Para ejecutarla:
+
+```bash
+npm run test:tenant
+```
+
+En modo observacion:
+
+```bash
+npm run test:tenant:watch
+```
+
+Estos tests:
+
+- Limpian datos comerciales de la base `punto_venta_integration_test`.
+- Conservan seeds estructurales como planes de suscripcion, permisos y permisos por rol.
+- Crean dos negocios independientes.
+- Autentican usuarios reales mediante `/api/login`.
+- Usan cookies reales de sesion.
+- Crean recursos separados por tenant.
+- Intentan accesos cruzados por parametros, body, filtros y operaciones indirectas.
+- Verifican efectos directamente en MySQL con consultas parametrizadas.
+
+La suite tenant desactiva rate limits solo cuando se cumplen simultaneamente estas condiciones:
+
+```text
+NODE_ENV=test
+DB_NAME=punto_venta_integration_test
+TEST_DISABLE_RATE_LIMITS=true
+```
+
+Esto evita falsos `429` en flujos funcionales largos sin debilitar `npm run test:security`, donde los rate limits siguen activos y con valores bajos.
+
+MySQL debe estar iniciado. No hace falta levantar `npm run dev`, no hace falta frontend y no se debe apuntar nunca a una base de desarrollo.
