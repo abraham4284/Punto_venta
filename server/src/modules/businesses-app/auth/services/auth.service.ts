@@ -75,12 +75,14 @@ export async function loginService(
   }
 
   const accessToken = signAccessToken({
+    context: "BUSINESS",
     idUser: user.idUser,
     idBusiness: user.idBusiness,
-    role: user.role,
+    businessRole: user.role,
   });
 
   const tempRefreshToken = signRefreshToken({
+    context: "BUSINESS",
     idUser: user.idUser,
     idBusiness: user.idBusiness,
     idLogin: 0,

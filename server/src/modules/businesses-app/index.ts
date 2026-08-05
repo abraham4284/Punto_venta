@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requireBusinessContext } from "@/middlewares/requireBusinessContext.middleware.js";
 import { requireOperationalSubscription } from "@/middlewares/requireOperationalSubscription.middleware.js";
+import { requirePasswordChangeCompleted } from "@/middlewares/requirePasswordChange.middleware.js";
 
 import authRoutes from "./auth/index.js";
 import businessRoutes from "./businesses/index.js";
@@ -41,6 +42,7 @@ businessesAppRoutes.use(subscriptionRoutes);
 businessesAppRoutes.use(
   requireAuth,
   requireBusinessContext,
+  requirePasswordChangeCompleted,
   requireOperationalSubscription,
 );
 businessesAppRoutes.use(customerRoutes);

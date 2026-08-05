@@ -44,22 +44,6 @@ export interface BusinessRequestUser {
   role: BusinessRole;
 }
 
-export interface LegacyBusinessAccessTokenInput {
-  idUser: number;
-  idBusiness: number;
-  role: BusinessRole;
-}
+export type AccessTokenInput = AccessTokenPayload;
 
-export interface LegacyBusinessRefreshTokenInput {
-  idUser: number;
-  idBusiness: number;
-  idLogin: number;
-}
-
-export type AccessTokenInput =
-  | AccessTokenPayload
-  | LegacyBusinessAccessTokenInput;
-
-export type RefreshTokenInput =
-  | RefreshTokenPayload
-  | LegacyBusinessRefreshTokenInput;
+export type RefreshTokenInput = RefreshTokenPayload;

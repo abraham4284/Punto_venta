@@ -2,8 +2,8 @@ import jwt from "jsonwebtoken";
 import type {
   AccessTokenInput,
   AccessTokenPayload,
-  BusinessAccessTokenPayload,
-  BusinessRefreshTokenPayload,
+  BusinessRole,
+  PlatformRole,
   RefreshTokenInput,
   RefreshTokenPayload,
 } from "@/types/auth.types.js";
@@ -23,34 +23,12 @@ if (!refreshSecret) {
 const ACCESS_SECRET: string = accessSecret;
 const REFRESH_SECRET: string = refreshSecret;
 
-function normalizeAccessPayload(payload: AccessTokenInput): AccessTokenPayload {
-  if ("context" in payload) {
-    return payload;
-  }
-
-  return {
-    context: "BUSINESS",
-    idUser: payload.idUser,
-    idBusiness: payload.idBusiness,
-    businessRole: payload.role,
-  };
-}
-
-function normalizeRefreshPayload(payload: RefreshTokenInput): RefreshTokenPayload {
-  if ("context" in payload) {
-    return payload;
-  }
-
-  return {
-    context: "BUSINESS",
-    idUser: payload.idUser,
-    idBusiness: payload.idBusiness,
-    idLogin: payload.idLogin,
-  };
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) > 0;
 }
 
 function normalizeVerifiedAccessPayload(payload: unknown): AccessTokenPayload {
@@ -59,19 +37,38 @@ function normalizeVerifiedAccessPayload(payload: unknown): AccessTokenPayload {
   }
 
   if (payload.context === "PLATFORM") {
-    return payload as unknown as AccessTokenPayload;
+    if (
+      !isPositiveInteger(payload.idUser) ||
+      !["SUPER_ADMIN", "SUPPORT", "ANALYST"].includes(String(payload.platformRole))
+    ) {
+      throw new Error("Token invalido");
+    }
+
+    return {
+      context: "PLATFORM",
+      idUser: payload.idUser,
+      platformRole: payload.platformRole as PlatformRole,
+    };
   }
 
   if (payload.context === "BUSINESS") {
-    return payload as unknown as AccessTokenPayload;
+    if (
+      !isPositiveInteger(payload.idUser) ||
+      !isPositiveInteger(payload.idBusiness) ||
+      !["OWNER", "ADMIN", "SELLER"].includes(String(payload.businessRole))
+    ) {
+      throw new Error("Token invalido");
+    }
+
+    return {
+      context: "BUSINESS",
+      idUser: payload.idUser,
+      idBusiness: payload.idBusiness,
+      businessRole: payload.businessRole as BusinessRole,
+    };
   }
 
-  return {
-    context: "BUSINESS",
-    idUser: Number(payload.idUser),
-    idBusiness: Number(payload.idBusiness),
-    businessRole: payload.role as BusinessAccessTokenPayload["businessRole"],
-  };
+  throw new Error("Token invalido");
 }
 
 function normalizeVerifiedRefreshPayload(payload: unknown): RefreshTokenPayload {
@@ -80,29 +77,45 @@ function normalizeVerifiedRefreshPayload(payload: unknown): RefreshTokenPayload 
   }
 
   if (payload.context === "PLATFORM") {
-    return payload as unknown as RefreshTokenPayload;
+    if (!isPositiveInteger(payload.idUser) || !isPositiveInteger(payload.idLogin)) {
+      throw new Error("Token invalido");
+    }
+
+    return {
+      context: "PLATFORM",
+      idUser: payload.idUser,
+      idLogin: payload.idLogin,
+    };
   }
 
   if (payload.context === "BUSINESS") {
-    return payload as unknown as RefreshTokenPayload;
+    if (
+      !isPositiveInteger(payload.idUser) ||
+      !isPositiveInteger(payload.idBusiness) ||
+      !isPositiveInteger(payload.idLogin)
+    ) {
+      throw new Error("Token invalido");
+    }
+
+    return {
+      context: "BUSINESS",
+      idUser: payload.idUser,
+      idBusiness: payload.idBusiness,
+      idLogin: payload.idLogin,
+    };
   }
 
-  return {
-    context: "BUSINESS",
-    idUser: Number(payload.idUser),
-    idBusiness: Number(payload.idBusiness),
-    idLogin: Number(payload.idLogin),
-  } satisfies BusinessRefreshTokenPayload;
+  throw new Error("Token invalido");
 }
 
 export function signAccessToken(payload: AccessTokenInput): string {
-  return jwt.sign(normalizeAccessPayload(payload), ACCESS_SECRET, {
+  return jwt.sign(payload, ACCESS_SECRET, {
     expiresIn: "15m",
   });
 }
 
 export function signRefreshToken(payload: RefreshTokenInput): string {
-  return jwt.sign(normalizeRefreshPayload(payload), REFRESH_SECRET, {
+  return jwt.sign(payload, REFRESH_SECRET, {
     expiresIn: "7d",
   });
 }

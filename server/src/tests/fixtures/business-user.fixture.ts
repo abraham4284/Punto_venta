@@ -7,28 +7,42 @@ export interface BusinessUserFixture {
   idBusiness: number;
   username: string;
   email: string;
+  plainPasswordForTest: string;
   role: "OWNER" | "ADMIN" | "SELLER";
 }
 
 export async function createBusinessUserFixture(input: {
   idBusiness: number;
   role?: "ADMIN" | "SELLER";
+  isActive?: boolean;
+  businessUserIsActive?: boolean;
+  mustChangePassword?: boolean;
+  usernamePrefix?: string;
 }): Promise<BusinessUserFixture> {
   const suffix = randomUUID().replaceAll("-", "").slice(0, 10);
-  const username = `seller_${suffix}`;
-  const email = `seller_${suffix}@tenant.test`;
-  const passwordHash = await bcrypt.hash(`Seller-${suffix}-123`, 10);
+  const usernamePrefix = input.usernamePrefix ?? "business_user";
+  const username = `${usernamePrefix}_${suffix}`;
+  const email = `${usernamePrefix}_${suffix}@tenant.test`;
+  const plainPasswordForTest = `User-${suffix}-123`;
+  const passwordHash = await bcrypt.hash(plainPasswordForTest, 10);
   const role = input.role ?? "SELLER";
   const idUser = await executeInsert(
     `INSERT INTO users (name, username, email, password_hash, is_active, must_change_password)
-     VALUES (?, ?, ?, ?, 1, 0)`,
-    [`Seller ${suffix}`, username, email, passwordHash],
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      `Business User ${suffix}`,
+      username,
+      email,
+      passwordHash,
+      input.isActive === false ? 0 : 1,
+      input.mustChangePassword ? 1 : 0,
+    ],
   );
 
   await executeInsert(
     `INSERT INTO business_users (idBusiness, idUser, role, is_active)
-     VALUES (?, ?, ?, 1)`,
-    [input.idBusiness, idUser, role],
+     VALUES (?, ?, ?, ?)`,
+    [input.idBusiness, idUser, role, input.businessUserIsActive === false ? 0 : 1],
   );
 
   return {
@@ -36,6 +50,7 @@ export async function createBusinessUserFixture(input: {
     idBusiness: input.idBusiness,
     username,
     email,
+    plainPasswordForTest,
     role,
   };
 }

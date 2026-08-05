@@ -1,5 +1,6 @@
 import request from "supertest";
 import { getTestApp } from "@/tests/helpers/test-app.helper.js";
+import { getSessionCookiesForRequest } from "@/tests/helpers/auth-token-test.helper.js";
 
 export interface BusinessTestAuth {
   cookies: string[];
@@ -26,5 +27,5 @@ export async function loginBusinessTestUser(input: {
     throw new Error("El login de prueba no devolvio cookies de sesion");
   }
 
-  return { cookies };
+  return { cookies: getSessionCookiesForRequest(cookies) };
 }
