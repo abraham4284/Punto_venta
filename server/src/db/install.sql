@@ -24,6 +24,7 @@ SOURCE procedures/platform_businesses.sql;
 SOURCE procedures/platform_dashboard.sql;
 SOURCE procedures/businesses.sql;
 SOURCE procedures/business_users.sql;
+SOURCE procedures/notifications.sql;
 SOURCE procedures/subscriptions.sql;
 SOURCE procedures/deposits.sql;
 SOURCE procedures/payment_methods.sql;

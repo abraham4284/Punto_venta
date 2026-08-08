@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
+import { safeEvaluateStockNotification } from "@/modules/notifications/services/notifications.service.js";
 import { generatePurchaseNumber } from "../helpers/generatePurchaseNumber.helper.js";
 import type {
   CancelPurchaseInput,
@@ -97,6 +98,14 @@ export async function createPurchaseService(
 
   if (!purchase) {
     throw new Error("No se pudo registrar la compra");
+  }
+
+  for (const detail of result[1] ?? []) {
+    await safeEvaluateStockNotification({
+      idBusiness: data.idBusiness,
+      idProduct: detail.idProduct,
+      idDeposit: detail.idDeposit,
+    });
   }
 
   return mapPurchaseWithDetails(purchase, result[1] ?? []);

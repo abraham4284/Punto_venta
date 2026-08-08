@@ -24,6 +24,7 @@ Ejecutar desde `server/src/db`:
    - `procedures/platform_dashboard.sql`
    - `procedures/businesses.sql`
    - `procedures/business_users.sql`
+   - `procedures/notifications.sql`
    - `procedures/subscriptions.sql`
    - `procedures/deposits.sql`
    - `procedures/payment_methods.sql`
@@ -111,6 +112,9 @@ Estas observaciones se reportan sin modificar semanticamente el modelo:
 - Se separaron seeds requeridos por la aplicacion.
 - Se agrego el modelo de cajas, sesiones, movimientos y snapshots de cierre.
 - Se agrego `sales.idCashSession` obligatorio para instalaciones nuevas.
+- Se agrego el modelo de notificaciones internas con contexto `BUSINESS` y
+  `PLATFORM`, destinatarios por usuario/plataforma, lectura, archivo,
+  expiracion y resolucion por deduplicacion.
 - Se agregaron `payment_methods.code` y `payment_methods.affects_cash` para
   identificar efectivo sin depender del texto visible.
 - Se corrigio `payment_methods` para permitir multiples metodos del mismo tipo

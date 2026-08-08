@@ -188,6 +188,41 @@ CREATE TABLE IF NOT EXISTS `user_sessions` (
   PRIMARY KEY (`idLogin`,`idUser`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `idNotification` bigint NOT NULL AUTO_INCREMENT,
+  `context` enum('BUSINESS','PLATFORM') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `idBusiness` int DEFAULT NULL,
+  `type` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `severity` enum('INFO','SUCCESS','WARNING','ERROR') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'INFO',
+  `title` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `message` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `action_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `deduplication_key` varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status` enum('ACTIVE','RESOLVED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ACTIVE',
+  `resolved_at` datetime DEFAULT NULL,
+  `expires_at` datetime DEFAULT NULL,
+  `created_by_user_id` int DEFAULT NULL,
+  `created_by_platform_user_id` int DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idNotification`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `notification_recipients` (
+  `idNotificationRecipient` bigint NOT NULL AUTO_INCREMENT,
+  `idNotification` bigint NOT NULL,
+  `idUser` int DEFAULT NULL,
+  `idPlatformUser` int DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT '0',
+  `read_at` datetime DEFAULT NULL,
+  `is_archived` tinyint(1) NOT NULL DEFAULT '0',
+  `archived_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idNotificationRecipient`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `customers` (
   `idCustomer` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,

@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
+import { safeCreateBusinessNotification } from "@/modules/notifications/services/notifications.service.js";
 import { assertSubscriptionResourceAvailable } from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
 import {
   getPermissionSummaryService,
@@ -140,7 +141,25 @@ export async function createBusinessUserService(
       throw new Error("No se pudo crear el usuario");
     }
 
-    return mapBusinessUser(user);
+    const mappedUser = mapBusinessUser(user);
+
+    await safeCreateBusinessNotification({
+      idBusiness: payload.idBusiness,
+      type: "BUSINESS_USER_CREATED",
+      severity: "INFO",
+      title: "Nuevo usuario creado",
+      message: `Se creo el usuario ${mappedUser.name} con rol ${mappedUser.role}.`,
+      actionUrl: "/admin/business-users",
+      metadata: {
+        idUser: mappedUser.idUser,
+        username: mappedUser.username,
+        role: mappedUser.role,
+      },
+      roles: ["OWNER"],
+      createdByUserId: payload.actorUserId,
+    });
+
+    return mappedUser;
   } catch (error: unknown) {
     mapSqlError(error);
   }
@@ -218,7 +237,27 @@ export async function changeBusinessUserStatusService(
       throw new Error("BUSINESS_USER_NOT_FOUND");
     }
 
-    return mapBusinessUser(user);
+    const mappedUser = mapBusinessUser(user);
+
+    if (!payload.isActive) {
+      await safeCreateBusinessNotification({
+        idBusiness: payload.idBusiness,
+        type: "BUSINESS_USER_DEACTIVATED",
+        severity: "WARNING",
+        title: "Usuario desactivado",
+        message: `Se desactivo el usuario ${mappedUser.name}.`,
+        actionUrl: "/admin/business-users",
+        metadata: {
+          idUser: mappedUser.idUser,
+          username: mappedUser.username,
+          role: mappedUser.role,
+        },
+        roles: ["OWNER"],
+        createdByUserId: payload.actorUserId,
+      });
+    }
+
+    return mappedUser;
   } catch (error: unknown) {
     mapSqlError(error);
   }

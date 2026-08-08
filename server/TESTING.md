@@ -1,6 +1,8 @@
 # Backend Testing
 
-Esta carpeta contiene la primera infraestructura automatizada de tests del backend, enfocada solamente en seguridad y comportamiento transversal de Express.
+Esta carpeta contiene la infraestructura automatizada de tests del backend,
+organizada por suites de seguridad, aislamiento multi-tenant, flujos economicos,
+permisos/autenticacion y notificaciones internas.
 
 ## Requisitos
 
@@ -20,6 +22,7 @@ npm run test:security
 npm run test:tenant
 npm run test:economic
 npm run test:auth
+npm run test:notifications
 npm test
 ```
 
@@ -31,6 +34,7 @@ npm run test:security:watch
 npm run test:tenant:watch
 npm run test:economic:watch
 npm run test:auth:watch
+npm run test:notifications:watch
 ```
 
 ## Alcance Actual

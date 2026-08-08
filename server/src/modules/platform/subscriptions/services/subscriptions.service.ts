@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
+import { safeCreateBusinessNotification } from "@/modules/notifications/services/notifications.service.js";
 import {
   mapBusinessSubscription,
   mapCurrentBusinessSubscription,
@@ -84,6 +85,20 @@ function mapBusinessOption(row: BusinessOptionRow): BusinessOptionResponse {
     status: row.status,
     isActive: Boolean(row.isActive),
   };
+}
+
+async function getBusinessIdByBusinessSubscriptionId(
+  idBusinessSubscription: number,
+): Promise<number | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT idBusiness
+       FROM business_subscriptions
+      WHERE idBusinessSubscription = ?
+      LIMIT 1`,
+    [idBusinessSubscription],
+  );
+
+  return rows[0]?.idBusiness ? Number(rows[0].idBusiness) : null;
 }
 
 export async function listBusinessOptionsService(): Promise<
@@ -319,7 +334,24 @@ export async function suspendBusinessSubscriptionService(
       [idBusinessSubscription, data.reason, createdByUserId],
     );
     const result = rows as unknown as BusinessSubscriptionRow[][];
-    return mapBusinessSubscription(result[0][0]);
+    const subscription = mapBusinessSubscription(result[0][0]);
+
+    await safeCreateBusinessNotification({
+      idBusiness: subscription.business.idBusiness,
+      type: "SUBSCRIPTION_SUSPENDED",
+      severity: "ERROR",
+      title: "Suscripcion suspendida",
+      message: "La suscripcion del negocio fue suspendida.",
+      actionUrl: "/admin/subscription",
+      metadata: {
+        idBusinessSubscription,
+        reason: data.reason,
+        status: subscription.status,
+      },
+      roles: ["OWNER", "ADMIN"],
+    });
+
+    return subscription;
   } catch (error) {
     mapSubscriptionSqlError(error);
   }
@@ -335,7 +367,23 @@ export async function reactivateBusinessSubscriptionService(
       [idBusinessSubscription, createdByUserId],
     );
     const result = rows as unknown as BusinessSubscriptionRow[][];
-    return mapBusinessSubscription(result[0][0]);
+    const subscription = mapBusinessSubscription(result[0][0]);
+
+    await safeCreateBusinessNotification({
+      idBusiness: subscription.business.idBusiness,
+      type: "SUBSCRIPTION_RENEWED",
+      severity: "SUCCESS",
+      title: "Suscripcion reactivada",
+      message: "La suscripcion del negocio fue reactivada correctamente.",
+      actionUrl: "/admin/subscription",
+      metadata: {
+        idBusinessSubscription,
+        status: subscription.status,
+      },
+      roles: ["OWNER", "ADMIN"],
+    });
+
+    return subscription;
   } catch (error) {
     mapSubscriptionSqlError(error);
   }
@@ -357,7 +405,25 @@ export async function cancelBusinessSubscriptionService(
       ],
     );
     const result = rows as unknown as BusinessSubscriptionRow[][];
-    return mapBusinessSubscription(result[0][0]);
+    const subscription = mapBusinessSubscription(result[0][0]);
+
+    await safeCreateBusinessNotification({
+      idBusiness: subscription.business.idBusiness,
+      type: "SUBSCRIPTION_CANCELLED",
+      severity: "ERROR",
+      title: "Suscripcion cancelada",
+      message: "La suscripcion del negocio fue cancelada.",
+      actionUrl: "/admin/subscription",
+      metadata: {
+        idBusinessSubscription,
+        reason: data.reason,
+        cancelAtPeriodEnd: data.cancelAtPeriodEnd,
+        status: subscription.status,
+      },
+      roles: ["OWNER", "ADMIN"],
+    });
+
+    return subscription;
   } catch (error) {
     mapSubscriptionSqlError(error);
   }
@@ -451,7 +517,33 @@ export async function createSubscriptionPaymentService(
       ],
     );
     const result = rows as unknown as SubscriptionPaymentRow[][];
-    return mapSubscriptionPayment(result[0][0]);
+    const payment = mapSubscriptionPayment(result[0][0]);
+
+    if (payment.status === "APPROVED") {
+      const idBusiness = await getBusinessIdByBusinessSubscriptionId(
+        payment.idBusinessSubscription,
+      );
+
+      if (idBusiness) {
+        await safeCreateBusinessNotification({
+          idBusiness,
+          type: "SUBSCRIPTION_RENEWED",
+          severity: "SUCCESS",
+          title: "Pago de suscripcion aprobado",
+          message: "Tu pago fue aprobado y la suscripcion quedo actualizada.",
+          actionUrl: "/admin/subscription",
+          metadata: {
+            idSubscriptionPayment: payment.idSubscriptionPayment,
+            paymentNumber: payment.paymentNumber,
+            amount: payment.amount,
+            currency: payment.currency,
+          },
+          roles: ["OWNER", "ADMIN"],
+        });
+      }
+    }
+
+    return payment;
   } catch (error) {
     mapSubscriptionSqlError(error);
   }
@@ -469,7 +561,33 @@ export async function updatePaymentStatusService(
       [idSubscriptionPayment, status, data.observation ?? null, createdByUserId],
     );
     const result = rows as unknown as SubscriptionPaymentRow[][];
-    return mapSubscriptionPayment(result[0][0]);
+    const payment = mapSubscriptionPayment(result[0][0]);
+
+    if (payment.status === "APPROVED") {
+      const idBusiness = await getBusinessIdByBusinessSubscriptionId(
+        payment.idBusinessSubscription,
+      );
+
+      if (idBusiness) {
+        await safeCreateBusinessNotification({
+          idBusiness,
+          type: "SUBSCRIPTION_RENEWED",
+          severity: "SUCCESS",
+          title: "Pago de suscripcion aprobado",
+          message: "Tu pago fue aprobado y la suscripcion quedo actualizada.",
+          actionUrl: "/admin/subscription",
+          metadata: {
+            idSubscriptionPayment: payment.idSubscriptionPayment,
+            paymentNumber: payment.paymentNumber,
+            amount: payment.amount,
+            currency: payment.currency,
+          },
+          roles: ["OWNER", "ADMIN"],
+        });
+      }
+    }
+
+    return payment;
   } catch (error) {
     mapSubscriptionSqlError(error);
   }

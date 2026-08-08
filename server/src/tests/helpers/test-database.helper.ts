@@ -32,6 +32,8 @@ export async function resetIntegrationTestData(): Promise<void> {
 
   try {
     const tables = [
+      "notification_recipients",
+      "notifications",
       "cash_session_payment_summaries",
       "cash_movements",
       "sale_details",
@@ -59,8 +61,24 @@ export async function resetIntegrationTestData(): Promise<void> {
       "businesses",
       "users",
     ];
+    const [existingRows] = await pool.query<RowDataPacket[]>(
+      `SELECT TABLE_NAME AS tableName
+         FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME IN (?)`,
+      [tables],
+    );
+    const existingTables = new Set(
+      existingRows.map(function mapTable(row) {
+        return String(row.tableName);
+      }),
+    );
 
     for (const table of tables) {
+      if (!existingTables.has(table)) {
+        continue;
+      }
+
       await pool.query(`DELETE FROM \`${table}\``);
     }
   } finally {

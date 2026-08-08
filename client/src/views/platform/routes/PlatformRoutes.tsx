@@ -10,6 +10,7 @@ import {
 } from "@/views/platform/module/businesses";
 import { PlatformAuditPage } from "@/views/platform/module/audit";
 import { PlatformUsersPage } from "@/views/platform/module/users";
+import { PlatformNotificationsPage } from "@/views/platform/module/notifications";
 
 export const PlatformRoutes = () => {
   return (
@@ -61,6 +62,16 @@ export const PlatformRoutes = () => {
           <PlatformProtectedRoute>
             <PlatformLayout>
               <PlatformAuditPage />
+            </PlatformLayout>
+          </PlatformProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <PlatformProtectedRoute>
+            <PlatformLayout>
+              <PlatformNotificationsPage />
             </PlatformLayout>
           </PlatformProtectedRoute>
         }
