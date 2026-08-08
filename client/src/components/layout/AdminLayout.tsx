@@ -12,6 +12,7 @@ import { SubscriptionBlockedView } from "@/views/businesses-app/module/subscript
 import { useBusinessSubscriptionStore } from "@/views/businesses-app/module/subscription/store/businessSubscription.store";
 import { PasswordChangeRequiredView } from "@/views/businesses-app/components/PasswordChangeRequiredView";
 import { useAuthStore } from "@/views/businesses-app/module/auth/store/auth.store";
+import { NotificationBell } from "@/views/businesses-app/module/notifications/components/NotificationBell";
 
 type AdminLayoutProps = {
   children: ReactNode;
@@ -60,6 +61,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             <span className="hidden sm:inline">Consultar Precio</span>
             <span className="ml-1 text-xs text-muted-foreground">(F8)</span>
           </Button>
+          <NotificationBell />
         </header>
 
         <SubscriptionBanner />

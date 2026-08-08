@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
+import { safeEvaluateStockNotification } from "@/modules/notifications/services/notifications.service.js";
 import { mapStockMovement } from "../helpers/stock-movement.mapper.js";
 import type {
   GetStockMovementsParams,
@@ -62,6 +63,12 @@ export async function processStockAdjustmentService(
   );
 
   const result = rows as unknown as StockMovementDbRow[][];
+  await safeEvaluateStockNotification({
+    idBusiness: data.idBusiness,
+    idProduct: data.idProduct,
+    idDeposit: data.idDeposit,
+  });
+
   return (result[0] ?? []).map(mapStockMovement);
 }
 
@@ -82,5 +89,16 @@ export async function processStockTransferService(
   );
 
   const result = rows as unknown as StockMovementDbRow[][];
+  await safeEvaluateStockNotification({
+    idBusiness: data.idBusiness,
+    idProduct: data.idProduct,
+    idDeposit: data.idDepositFrom,
+  });
+  await safeEvaluateStockNotification({
+    idBusiness: data.idBusiness,
+    idProduct: data.idProduct,
+    idDeposit: data.idDepositTo,
+  });
+
   return (result[0] ?? []).map(mapStockMovement);
 }

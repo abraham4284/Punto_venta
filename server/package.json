@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "npm run test:security && npm run test:tenant && npm run test:economic && npm run test:auth",
+    "test": "npm run test:security && npm run test:tenant && npm run test:economic && npm run test:auth && npm run test:notifications",
     "test:watch": "vitest",
     "test:security": "vitest run src/tests/security",
     "test:security:watch": "vitest src/tests/security",
@@ -15,6 +15,8 @@
     "test:economic:watch": "vitest --config vitest.economic.config.ts",
     "test:auth": "vitest run --config vitest.auth-permissions.config.ts",
     "test:auth:watch": "vitest --config vitest.auth-permissions.config.ts",
+    "test:notifications": "vitest run --config vitest.notifications.config.ts",
+    "test:notifications:watch": "vitest --config vitest.notifications.config.ts",
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc && tsc-alias",

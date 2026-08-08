@@ -1,5 +1,6 @@
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/db/db.js";
+import { safeEvaluateStockNotification } from "@/modules/notifications/services/notifications.service.js";
 import {
   mapProductWithStock,
   mapSale,
@@ -90,6 +91,14 @@ export async function createSaleService(
     await callCreateSaleDetailProcedure(connection, saleData, idSale);
 
     await connection.commit();
+
+    for (const item of saleData.items) {
+      await safeEvaluateStockNotification({
+        idBusiness: saleData.idBusiness,
+        idProduct: item.idProduct,
+        idDeposit: saleData.idDeposit,
+      });
+    }
 
     return getSaleByIdService(saleData.idBusiness, idSale);
   } catch (error) {

@@ -4,6 +4,7 @@ import { Menu, ShieldAlert, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePlatformAuthStore } from "@/views/platform/module/auth/store/platformAuth.store";
+import { PlatformNotificationBell } from "@/views/platform/module/notifications";
 import { PlatformSidebar } from "./PlatformSidebar";
 
 interface PlatformLayoutProps {
@@ -73,6 +74,7 @@ export const PlatformLayout = ({ children }: PlatformLayoutProps) => {
             </div>
 
             <div className="flex items-center gap-3">
+              <PlatformNotificationBell />
               <Badge variant="outline" className="hidden sm:inline-flex">
                 {platformUser?.platformRole || "SUPER_ADMIN"}
               </Badge>

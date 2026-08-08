@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/db/db.js";
+import { safeCreateBusinessNotification } from "@/modules/notifications/services/notifications.service.js";
 import {
   mapCashLiveSummary,
   mapCashPaymentSummary,
@@ -113,8 +114,29 @@ export async function closeCashSessionService(
     throw new Error("CASH_SESSION_NOT_FOUND");
   }
 
+  const mappedSession = mapCashSession(session);
+
+  if (Number(mappedSession.differenceAmount) !== 0) {
+    await safeCreateBusinessNotification({
+      idBusiness: data.idBusiness,
+      type: "CASH_SESSION_CLOSED_WITH_DIFFERENCE",
+      severity: "WARNING",
+      title: "Cierre de caja con diferencia",
+      message: `La caja se cerro con una diferencia de ${mappedSession.differenceAmount}.`,
+      actionUrl: "/admin/cash/history",
+      metadata: {
+        idCashSession: data.idCashSession,
+        expectedCashAmount: mappedSession.expectedCashAmount,
+        countedCashAmount: mappedSession.countedCashAmount,
+        differenceAmount: mappedSession.differenceAmount,
+      },
+      roles: ["OWNER", "ADMIN"],
+      createdByUserId: data.idUser,
+    });
+  }
+
   return {
-    session: mapCashSession(session),
+    session: mappedSession,
     paymentSummaries: (result[1] ?? []).map(mapCashPaymentSummary),
   };
 }

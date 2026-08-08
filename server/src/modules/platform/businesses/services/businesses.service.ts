@@ -2,6 +2,7 @@ import { Decimal } from "decimal.js";
 import bcrypt from "bcrypt";
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
+import { safeCreateBusinessNotification } from "@/modules/notifications/services/notifications.service.js";
 import {
   buildPaginatedResponse,
   type PaginatedResponse,
@@ -364,6 +365,22 @@ export async function resetPlatformBusinessUserPasswordService(
       },
       ipAddress,
       userAgent,
+    });
+
+    await safeCreateBusinessNotification({
+      idBusiness,
+      type: "TEMPORARY_PASSWORD_ASSIGNED",
+      severity: "WARNING",
+      title: "Contrasena temporal asignada",
+      message: `Se asigno una contrasena temporal al usuario ${resetUser.username}.`,
+      actionUrl: "/admin/business-users",
+      metadata: {
+        idUser: resetUser.idUser,
+        username: resetUser.username,
+        role: resetUser.role,
+        sessionsRevoked: numberValue(resetUser.sessionsRevoked),
+      },
+      roles: ["OWNER"],
     });
 
     return {
