@@ -1,5 +1,6 @@
 import request from "supertest";
 import type { Response } from "supertest";
+import { randomUUID } from "crypto";
 import { getTestApp } from "@/tests/helpers/test-app.helper.js";
 
 export interface PurchaseDetailRequest {
@@ -26,11 +27,13 @@ export function createPurchaseThroughApi(input: {
   discountTotal: number;
   total: number;
   observation?: string | null;
+  idempotencyKey?: string;
   details: PurchaseDetailRequest[];
 }): Promise<Response> {
   return request(getTestApp())
     .post("/api/purchases")
     .set("Cookie", input.cookies)
+    .set("Idempotency-Key", input.idempotencyKey ?? randomUUID())
     .send({
       idSupplier: input.idSupplier,
       subtotal: input.subtotal,
@@ -129,11 +132,13 @@ export function createSaleThroughApi(input: {
   discountTotal: number;
   total: number;
   observation?: string | null;
+  idempotencyKey?: string;
   items: SaleItemRequest[];
 }): Promise<Response> {
   return request(getTestApp())
     .post("/api/sales")
     .set("Cookie", input.cookies)
+    .set("Idempotency-Key", input.idempotencyKey ?? randomUUID())
     .send({
       idCustomer: input.idCustomer,
       idDeposit: input.idDeposit,

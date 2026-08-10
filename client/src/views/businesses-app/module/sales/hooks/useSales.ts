@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Decimal from "decimal.js";
 import type { AxiosError } from "axios";
+import { createIdempotencyKey } from "@/helpers/idempotency.helper";
 import {
   cancelSale,
   createSaleRequest,
@@ -120,6 +121,8 @@ export const useSales = () => {
   const [newSaleId, setNewSaleId] = useState<number | null>(null);
   const [newSaleNumber, setNewSaleNumber] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
+  const submitLockRef = useRef(false);
+  const currentSaleIdempotencyKeyRef = useRef<string | null>(null);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((acc, item) => {
@@ -183,6 +186,8 @@ export const useSales = () => {
   }, []);
 
   const resetSaleState = () => {
+    submitLockRef.current = false;
+    currentSaleIdempotencyKeyRef.current = null;
     setHeader(initialHeader);
     setCart([]);
     setProducts([]);
@@ -198,21 +203,24 @@ export const useSales = () => {
     setIsOpenSuccessModal(false);
   };
 
-  const fetchProductsByDeposit = useCallback(async (idDeposit: number) => {
-    try {
-      setLoadingProducts(true);
-      clearErrors();
+  const fetchProductsByDeposit = useCallback(
+    async (idDeposit: number) => {
+      try {
+        setLoadingProducts(true);
+        clearErrors();
 
-      const response = await getProductsByDepositRequest(idDeposit);
+        const response = await getProductsByDepositRequest(idDeposit);
 
-      setProducts(response.data.data ?? []);
-    } catch (error) {
-      handleApiError(error);
-      setProducts([]);
-    } finally {
-      setLoadingProducts(false);
-    }
-  }, []);
+        setProducts(response.data.data ?? []);
+      } catch (error) {
+        handleApiError(error);
+        setProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    },
+    [clearErrors, handleApiError],
+  );
 
   const changeDeposit = async (idDeposit: number): Promise<boolean> => {
     if (cart.length > 0 && idDeposit !== header.idDeposit) {
@@ -401,15 +409,32 @@ export const useSales = () => {
   };
 
   const submitSale = async () => {
+    if (submitLockRef.current) {
+      return {
+        status: false,
+        processing: true,
+        message: "La venta ya se esta procesando.",
+      };
+    }
+
+    submitLockRef.current = true;
+    currentSaleIdempotencyKeyRef.current =
+      currentSaleIdempotencyKeyRef.current ?? createIdempotencyKey();
+
     try {
       setSaving(true);
       clearErrors();
 
       const payload = buildPayload();
-      const response = await createSaleRequest(payload);
+      const response = await createSaleRequest(
+        payload,
+        currentSaleIdempotencyKeyRef.current,
+      );
+      console.log(payload,'payload')
       const createdSaleId = response.data.data?.idSale ?? null;
       const createdSaleNumber = response.data.data?.saleNumber ?? null;
 
+      currentSaleIdempotencyKeyRef.current = null;
       setNewSaleId(createdSaleId);
       setNewSaleNumber(createdSaleNumber);
       setIsOpenSuccessModal(true);
@@ -421,12 +446,18 @@ export const useSales = () => {
       };
     } catch (error) {
       handleApiError(error);
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+
+      if (axiosError.response) {
+        currentSaleIdempotencyKeyRef.current = null;
+      }
 
       return {
         status: false,
         message: "No se pudo crear la venta",
       };
     } finally {
+      submitLockRef.current = false;
       setSaving(false);
     }
   };

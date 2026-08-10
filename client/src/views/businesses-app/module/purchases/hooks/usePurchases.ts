@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
+import { createIdempotencyKey } from "@/helpers/idempotency.helper";
 import {
   cancelPurchaseApi,
   createPurchaseApi,
@@ -68,6 +69,8 @@ export const usePurchases = () => {
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
+  const submitLockRef = useRef(false);
+  const currentPurchaseIdempotencyKeyRef = useRef<string | null>(null);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0);
@@ -188,12 +191,28 @@ export const usePurchases = () => {
 
   const submitPurchase = async (
     payload: CreatePurchasePayload,
-  ): Promise<{ status: boolean; message: string; errors?: FieldError[] }> => {
+  ): Promise<{ status: boolean; message: string; errors?: FieldError[]; processing?: boolean }> => {
+    if (submitLockRef.current) {
+      return {
+        status: false,
+        processing: true,
+        message: "La compra ya se esta procesando.",
+      };
+    }
+
+    submitLockRef.current = true;
+    currentPurchaseIdempotencyKeyRef.current =
+      currentPurchaseIdempotencyKeyRef.current ?? createIdempotencyKey();
+
     try {
       setSaving(true);
       setFieldErrors([]);
       setError(null);
-      const response = await createPurchaseApi(payload);
+      const response = await createPurchaseApi(
+        payload,
+        currentPurchaseIdempotencyKeyRef.current,
+      );
+      currentPurchaseIdempotencyKeyRef.current = null;
       clearCart();
 
       return {
@@ -202,6 +221,12 @@ export const usePurchases = () => {
       };
     } catch (error) {
       const result = getApiErrors(error, "No se pudo registrar la compra");
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+
+      if (axiosError.response) {
+        currentPurchaseIdempotencyKeyRef.current = null;
+      }
+
       setError(result.message);
       setFieldErrors(result.errors);
 
@@ -211,6 +236,7 @@ export const usePurchases = () => {
         errors: result.errors,
       };
     } finally {
+      submitLockRef.current = false;
       setSaving(false);
     }
   };
@@ -243,6 +269,8 @@ export const usePurchases = () => {
   };
 
   const resetPurchases = useCallback(() => {
+    submitLockRef.current = false;
+    currentPurchaseIdempotencyKeyRef.current = null;
     setCart([]);
     setFilters(initialFilters);
     setData(initialPaginatedData);

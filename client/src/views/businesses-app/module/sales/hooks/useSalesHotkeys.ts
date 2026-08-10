@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { toast } from "react-hot-toast";
 
 interface UseSalesHotkeysProps {
   onOpenSearch: () => void;
@@ -24,6 +25,13 @@ export const useSalesHotkeys = ({
       if (event.key === "F9") {
         event.preventDefault();
         event.stopImmediatePropagation();
+
+        if (isLoading) {
+          toast("La venta se esta procesando. Espera a que finalice.", {
+            id: "sale-processing-warning",
+          });
+          return;
+        }
 
         if (!isCartEmpty && !isLoading) {
           onFinalizeSale();

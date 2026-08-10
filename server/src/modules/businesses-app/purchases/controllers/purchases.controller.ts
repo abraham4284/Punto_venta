@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import {
+  getIdempotencyKeyFromRequest,
+  isIdempotencyError,
+} from "@/helpers/idempotency.helper.js";
+import {
   cancelPurchaseService,
   createPurchaseService,
   getPurchaseByIdService,
@@ -95,14 +99,18 @@ export async function createPurchaseController(
       ...req.body,
       idBusiness: req.user!.idBusiness,
       idUser: req.user!.idUser,
+      idempotencyKey: getIdempotencyKeyFromRequest(req),
     };
     const data = createPurchaseSchema.parse(purchaseData);
     const result = await createPurchaseService(data);
 
-    return res.status(201).json({
+    return res.status(result.idempotentReplay ? 200 : 201).json({
       status: true,
-      message: "Compra registrada correctamente",
-      data: result,
+      message: result.idempotentReplay
+        ? "Compra ya procesada previamente"
+        : "Compra registrada correctamente",
+      idempotentReplay: result.idempotentReplay,
+      data: result.purchase,
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -121,9 +129,18 @@ export async function createPurchaseController(
       });
     }
 
+    const message = error.sqlMessage || error.message;
+
+    if (isIdempotencyError(message)) {
+      return res.status(400).json({
+        status: false,
+        message,
+      });
+    }
+
     return res.status(400).json({
       status: false,
-      message: error.sqlMessage || error.message,
+      message,
     });
   }
 }

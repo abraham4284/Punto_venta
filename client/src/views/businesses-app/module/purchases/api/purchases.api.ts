@@ -10,8 +10,13 @@ import type {
 
 export const createPurchaseApi = (
   payload: CreatePurchasePayload,
+  idempotencyKey: string,
 ): Promise<AxiosResponse<ApiResponse<PurchaseWithDetailsResponse>>> => {
-  return axios.post("/purchases", payload);
+  return axios.post("/purchases", payload, {
+    headers: {
+      "Idempotency-Key": idempotencyKey,
+    },
+  });
 };
 
 export const getPurchasesApi = (

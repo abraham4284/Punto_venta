@@ -24,6 +24,7 @@ export interface SaleDbRow {
   total: string | number;
   payment_detail: string | null;
   status: SaleStatus;
+  idempotency_key?: string;
   observation: string | null;
   created_at: Date;
   updated_at: Date | null;
@@ -83,11 +84,17 @@ export interface CreateSalePayload {
   discountTotal: number;
   total: number;
   observation?: string | null;
+  idempotencyKey: string;
   items: CreateSaleDetailPayload[];
 }
 
 export interface CreateSaleProcedurePayload extends CreateSalePayload {
   saleNumber: string;
+}
+
+export interface CreateSaleServiceResponse {
+  sale: SaleWithDetailsResponse;
+  idempotentReplay: boolean;
 }
 
 export interface CancelSalePayload {
@@ -204,6 +211,7 @@ export interface ProductWithStockResponse {
 export interface SaleIdDbRow {
   idSale: number;
   saleNumber: string;
+  alreadyProcessed: number;
 }
 
 export interface SaleAuthenticatedRequest extends Request {

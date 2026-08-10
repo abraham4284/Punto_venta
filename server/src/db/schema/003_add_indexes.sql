@@ -119,6 +119,7 @@ CALL sp_add_index_if_not_exists('products', 'fk_products_category', 'ALTER TABLE
 CALL sp_add_index_if_not_exists('stock', 'uk_stock_product_deposit', 'ALTER TABLE `stock` ADD UNIQUE KEY `uk_stock_product_deposit` (`idBusiness`,`idProduct`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('stock', 'fk_stock_deposit', 'ALTER TABLE `stock` ADD KEY `fk_stock_deposit` (`idBusiness`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('purchases', 'uk_purchase_business_id', 'ALTER TABLE `purchases` ADD UNIQUE KEY `uk_purchase_business_id` (`idBusiness`,`idPurchase`)');
+CALL sp_add_index_if_not_exists('purchases', 'uq_purchases_business_idempotency', 'ALTER TABLE `purchases` ADD UNIQUE KEY `uq_purchases_business_idempotency` (`idBusiness`,`idempotency_key`)');
 CALL sp_add_index_if_not_exists('purchases', 'idx_purchases_business_date', 'ALTER TABLE `purchases` ADD KEY `idx_purchases_business_date` (`idBusiness`,`purchase_date`)');
 CALL sp_add_index_if_not_exists('purchases', 'fk_purchases_user', 'ALTER TABLE `purchases` ADD KEY `fk_purchases_user` (`idUser`)');
 CALL sp_add_index_if_not_exists('purchases', 'fk_purchases_supplier', 'ALTER TABLE `purchases` ADD KEY `fk_purchases_supplier` (`idBusiness`,`idSupplier`)');
@@ -127,6 +128,7 @@ CALL sp_add_index_if_not_exists('purchase_details', 'fk_purchase_details_product
 CALL sp_add_index_if_not_exists('purchase_details', 'fk_purchase_details_deposit', 'ALTER TABLE `purchase_details` ADD KEY `fk_purchase_details_deposit` (`idBusiness`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('sales', 'uk_sale_business_id', 'ALTER TABLE `sales` ADD UNIQUE KEY `uk_sale_business_id` (`idBusiness`,`idSale`)');
 CALL sp_add_index_if_not_exists('sales', 'uk_sales_sale_number', 'ALTER TABLE `sales` ADD UNIQUE KEY `uk_sales_sale_number` (`sale_number`)');
+CALL sp_add_index_if_not_exists('sales', 'uq_sales_business_idempotency', 'ALTER TABLE `sales` ADD UNIQUE KEY `uq_sales_business_idempotency` (`idBusiness`,`idempotency_key`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_business_date', 'ALTER TABLE `sales` ADD KEY `idx_sales_business_date` (`idBusiness`,`sale_date`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_payment_method', 'ALTER TABLE `sales` ADD KEY `idx_sales_payment_method` (`idPaymentMethod`)');
 CALL sp_add_index_if_not_exists('sales', 'idx_sales_cash_session', 'ALTER TABLE `sales` ADD KEY `idx_sales_cash_session` (`idCashSession`)');
