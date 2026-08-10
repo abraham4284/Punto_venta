@@ -122,7 +122,7 @@ async function callCreateNotificationProcedure(params: {
   recipientPlatformUserIds: number[];
 }): Promise<number> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_notifications_create(?, ?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?, ?, ?, ?, CAST(? AS JSON), CAST(? AS JSON))",
+    "CALL sp_notifications_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       params.context,
       params.idBusiness,

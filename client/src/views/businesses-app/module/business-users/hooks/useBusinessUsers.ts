@@ -139,7 +139,6 @@ export const useBusinessUsers = () => {
   ): Promise<boolean> => {
     setSaving(true);
     setFieldErrors([]);
-
     try {
       await createBusinessUser(body);
       toast.success("Usuario creado correctamente");
