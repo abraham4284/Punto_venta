@@ -122,7 +122,7 @@ export async function createBusinessUserService(
 
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
-      "CALL sp_business_user_create(?, ?, ?, ?, ?, ?, CAST(? AS JSON), ?)",
+      "CALL sp_business_user_create(?, ?, ?, ?, ?, ?, ?, ?)",
       [
         payload.idBusiness,
         payload.name,
@@ -290,7 +290,7 @@ export async function updateBusinessUserPermissionsService(
 
   try {
     await pool.query<RowDataPacket[]>(
-      "CALL sp_business_user_set_permission_overrides(?, ?, CAST(? AS JSON), ?)",
+      "CALL sp_business_user_set_permission_overrides(?, ?, ?, ?)",
       [
         payload.idBusiness,
         payload.idUser,
