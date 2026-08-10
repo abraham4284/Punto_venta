@@ -23,6 +23,12 @@ function moneySchema(fieldName: string) {
     .multipleOf(0.01, `${fieldName} debe tener como maximo 2 decimales`);
 }
 
+const idempotencyKeySchema = z
+  .string({ error: "IDEMPOTENCY_KEY_REQUIRED" })
+  .trim()
+  .uuid("INVALID_IDEMPOTENCY_KEY")
+  .max(64, "INVALID_IDEMPOTENCY_KEY");
+
 const idBusinessSchema = z
   .number({ error: "El negocio es obligatorio" })
   .int("El negocio debe ser un numero entero")
@@ -90,6 +96,7 @@ export const createPurchaseSchema = z
       .optional()
       .nullable()
       .or(emptyStringToNull),
+    idempotencyKey: idempotencyKeySchema,
     details: z
       .array(createPurchaseDetailSchema, {
         error: "La compra debe incluir productos",

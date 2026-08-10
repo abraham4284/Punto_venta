@@ -20,11 +20,17 @@ export interface CreatePurchaseInput {
   discountTotal: number;
   total: number;
   observation?: string | null;
+  idempotencyKey: string;
   details: PurchaseDetailItem[];
 }
 
 export interface CreatePurchaseProcedureInput extends CreatePurchaseInput {
   purchaseNumber: string;
+}
+
+export interface CreatePurchaseServiceResponse {
+  purchase: PurchaseWithDetailsResponse;
+  idempotentReplay: boolean;
 }
 
 export interface CancelPurchaseInput {
@@ -48,6 +54,7 @@ export interface GetPurchasesFilters {
 export interface PurchaseDbRow {
   idPurchase: number;
   purchase_number: string;
+  idempotency_key?: string;
   idBusiness: number;
   idSupplier: number | null;
   supplier_name: string | null;
@@ -63,6 +70,10 @@ export interface PurchaseDbRow {
   status: PurchaseStatus;
   created_at: Date;
   updated_at: Date | null;
+}
+
+export interface IdempotencyReplayDbRow {
+  alreadyProcessed: number;
 }
 
 export interface PurchaseDetailDbRow {

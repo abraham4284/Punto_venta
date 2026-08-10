@@ -11,6 +11,7 @@ import type {
   CancelSalePayload,
   CreateSalePayload,
   CreateSaleProcedurePayload,
+  CreateSaleServiceResponse,
   GetSalesFilters,
   PaginatedSalesResponse,
   ProductWithStockDbRow,
@@ -26,13 +27,14 @@ import type {
 async function callCreateSaleProcedure(
   connection: PoolConnection,
   data: CreateSaleProcedurePayload,
-): Promise<number> {
+): Promise<SaleIdDbRow> {
   const [rows] = await connection.query<RowDataPacket[]>(
-    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idUser,
       data.saleNumber,
+      data.idempotencyKey,
       data.idCustomer ?? null,
       data.idDeposit,
       data.idCashSession,
@@ -50,7 +52,39 @@ async function callCreateSaleProcedure(
     throw new Error("No se pudo crear la venta");
   }
 
-  return sale.idSale;
+  return sale;
+}
+
+function isDuplicateEntryError(error: unknown): boolean {
+  const parsedError = error as { code?: string; errno?: number };
+  return parsedError.code === "ER_DUP_ENTRY" || parsedError.errno === 1062;
+}
+
+async function getSaleByIdempotencyKeyService(
+  idBusiness: number,
+  idempotencyKey: string,
+): Promise<SaleWithDetailsResponse | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT idSale
+       FROM sales
+      WHERE idBusiness = ?
+        AND idempotency_key = ?
+      LIMIT 1`,
+    [idBusiness, idempotencyKey],
+  );
+  const sale = rows[0] as { idSale?: number } | undefined;
+
+  if (!sale?.idSale) {
+    return null;
+  }
+
+  return getSaleByIdService(idBusiness, Number(sale.idSale));
+}
+
+function getSortedSaleItems(data: CreateSalePayload): CreateSalePayload["items"] {
+  return [...data.items].sort(function sortItems(first, second) {
+    return first.idProduct - second.idProduct;
+  });
 }
 
 async function callCreateSaleDetailProcedure(
@@ -58,7 +92,7 @@ async function callCreateSaleDetailProcedure(
   data: CreateSalePayload,
   idSale: number,
 ): Promise<void> {
-  for (const item of data.items) {
+  for (const item of getSortedSaleItems(data)) {
     await connection.query<RowDataPacket[]>(
       "CALL sp_create_sale_detail_and_discount_stock(?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
@@ -78,7 +112,7 @@ async function callCreateSaleDetailProcedure(
 
 export async function createSaleService(
   data: CreateSalePayload,
-): Promise<SaleWithDetailsResponse> {
+): Promise<CreateSaleServiceResponse> {
   const connection = await pool.getConnection();
   const saleData: CreateSaleProcedurePayload = {
     ...data,
@@ -87,12 +121,23 @@ export async function createSaleService(
 
   try {
     await connection.beginTransaction();
-    const idSale = await callCreateSaleProcedure(connection, saleData);
-    await callCreateSaleDetailProcedure(connection, saleData, idSale);
+    const createdSale = await callCreateSaleProcedure(connection, saleData);
+    const idSale = Number(createdSale.idSale);
+
+    if (!createdSale.alreadyProcessed) {
+      await callCreateSaleDetailProcedure(connection, saleData, idSale);
+    }
 
     await connection.commit();
 
-    for (const item of saleData.items) {
+    if (createdSale.alreadyProcessed) {
+      return {
+        sale: await getSaleByIdService(saleData.idBusiness, idSale),
+        idempotentReplay: true,
+      };
+    }
+
+    for (const item of getSortedSaleItems(saleData)) {
       await safeEvaluateStockNotification({
         idBusiness: saleData.idBusiness,
         idProduct: item.idProduct,
@@ -100,9 +145,28 @@ export async function createSaleService(
       });
     }
 
-    return getSaleByIdService(saleData.idBusiness, idSale);
+    return {
+      sale: await getSaleByIdService(saleData.idBusiness, idSale),
+      idempotentReplay: false,
+    };
   } catch (error) {
+    console.log(error,'error')
     await connection.rollback();
+
+    if (isDuplicateEntryError(error)) {
+      const existingSale = await getSaleByIdempotencyKeyService(
+        saleData.idBusiness,
+        saleData.idempotencyKey,
+      );
+
+      if (existingSale) {
+        return {
+          sale: existingSale,
+          idempotentReplay: true,
+        };
+      }
+    }
+
     throw error;
   } finally {
     connection.release();

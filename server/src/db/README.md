@@ -131,6 +131,11 @@ Estas observaciones se reportan sin modificar semanticamente el modelo:
 - Se corrigio `sales` para que `idSale` sea primary key simple.
 - Se agrego `UNIQUE(sale_number)` para sostener la generacion alfanumerica
   irrepetible del backend.
+- Se agrego `sales.idempotency_key` y `purchases.idempotency_key` para evitar
+  doble procesamiento por doble click, retry de red o requests duplicados.
+- Se agregaron `UNIQUE(idBusiness, idempotency_key)` en `sales` y `purchases`.
+  La key es multi-tenant: una key solo se considera repetida dentro del mismo
+  negocio.
 - Se agrego foreign key explicita `sales(idBusiness, idDeposit)` hacia
   `deposits(idBusiness, idDeposit)`.
 - Se elimino la foreign key incorrecta de `sale_details(idBusiness)` hacia
@@ -152,6 +157,29 @@ metodos de pago, la estructura final queda asi:
 - `sales.idPaymentMethod` es obligatorio y referencia el metodo concreto usado.
 - El metodo `CASH / Efectivo` se crea en el registro del negocio desde
   `procedures/auth.sql`.
+
+## Idempotencia de ventas y compras
+
+Los endpoints `POST /sales` y `POST /purchases` exigen el header:
+
+```http
+Idempotency-Key: <uuid>
+```
+
+Regla operativa:
+
+- Mismo negocio + misma key: devuelve la operacion original como replay y no
+  vuelve a insertar cabecera, detalles, stock, caja, movimientos ni
+  notificaciones.
+- Negocios distintos pueden usar la misma key sin cruzar datos.
+- Si el payload cambia pero la key ya fue consumida, se devuelve la operacion
+  original. La key representa el intento logico, no el contenido editable.
+
+Para bases existentes creadas antes de esta regla, ejecutar:
+
+1. `migrations/004_sales_purchases_idempotency.sql`
+2. `procedures/sales.sql`
+3. `procedures/purchases.sql`
 
 ## Correcciones no aplicadas
 

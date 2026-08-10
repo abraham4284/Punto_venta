@@ -601,7 +601,7 @@ export const CreateSalePage = () => {
           disabled={saving || !header.idCashSession || !header.idPaymentMethod}
           onClick={handleSubmit}
         >
-          {saving ? "Procesando..." : "Registrar venta"}
+          {saving ? "Procesando venta..." : "Registrar venta"}
         </Button>
       </div>
 

@@ -19,6 +19,12 @@ const moneySchema = function moneySchema(fieldName: string) {
     .multipleOf(0.01, `${fieldName} debe tener como maximo 2 decimales`);
 };
 
+const idempotencyKeySchema = z
+  .string({ error: "IDEMPOTENCY_KEY_REQUIRED" })
+  .trim()
+  .uuid("INVALID_IDEMPOTENCY_KEY")
+  .max(64, "INVALID_IDEMPOTENCY_KEY");
+
 const roundMoney = function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 };
@@ -95,6 +101,8 @@ export const createSaleSchema = z
       .optional()
       .nullable()
       .or(emptyStringToNull),
+
+    idempotencyKey: idempotencyKeySchema,
 
     items: z
       .array(createSaleDetailSchema, {

@@ -33,7 +33,7 @@ const corsOptions: CorsOptions = {
     callback(new Error("ORIGIN_NOT_ALLOWED"));
   },
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],
   methods: ["OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"],
   exposedHeaders: ["Set-Cookie"],
 };

@@ -6,7 +6,9 @@ import type {
   CancelPurchaseInput,
   CreatePurchaseInput,
   CreatePurchaseProcedureInput,
+  CreatePurchaseServiceResponse,
   GetPurchasesFilters,
+  IdempotencyReplayDbRow,
   PaginatedPurchasesResponse,
   PurchaseDbRow,
   PurchaseDetailDbRow,
@@ -71,44 +73,113 @@ function mapPurchaseWithDetails(
   };
 }
 
+function isDuplicateEntryError(error: unknown): boolean {
+  const parsedError = error as { code?: string; errno?: number };
+  return parsedError.code === "ER_DUP_ENTRY" || parsedError.errno === 1062;
+}
+
+function getSortedPurchaseDetails(
+  details: CreatePurchaseInput["details"],
+): CreatePurchaseInput["details"] {
+  return [...details].sort(function sortDetails(first, second) {
+    if (first.idProduct !== second.idProduct) {
+      return first.idProduct - second.idProduct;
+    }
+
+    return first.idDeposit - second.idDeposit;
+  });
+}
+
+async function getPurchaseByIdempotencyKeyService(
+  idBusiness: number,
+  idempotencyKey: string,
+): Promise<PurchaseWithDetailsResponse | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT idPurchase
+       FROM purchases
+      WHERE idBusiness = ?
+        AND idempotency_key = ?
+      LIMIT 1`,
+    [idBusiness, idempotencyKey],
+  );
+  const purchase = rows[0] as { idPurchase?: number } | undefined;
+
+  if (!purchase?.idPurchase) {
+    return null;
+  }
+
+  return getPurchaseByIdService(idBusiness, Number(purchase.idPurchase));
+}
+
 export async function createPurchaseService(
   data: CreatePurchaseInput,
-): Promise<PurchaseWithDetailsResponse> {
+): Promise<CreatePurchaseServiceResponse> {
   const purchaseData: CreatePurchaseProcedureInput = {
     ...data,
+    details: getSortedPurchaseDetails(data.details),
     purchaseNumber: generatePurchaseNumber(),
   };
 
-  const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_create_purchase(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [
-      purchaseData.idBusiness,
-      purchaseData.idUser,
-      purchaseData.purchaseNumber,
-      purchaseData.idSupplier ?? null,
-      purchaseData.subtotal,
-      purchaseData.discountTotal,
-      purchaseData.total,
-      purchaseData.observation ?? null,
-      JSON.stringify(purchaseData.details),
-    ],
-  );
-  const result = rows as unknown as [PurchaseDbRow[], PurchaseDetailDbRow[]];
-  const purchase = result[0]?.[0];
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "CALL sp_create_purchase(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        purchaseData.idBusiness,
+        purchaseData.idUser,
+        purchaseData.purchaseNumber,
+        purchaseData.idempotencyKey,
+        purchaseData.idSupplier ?? null,
+        purchaseData.subtotal,
+        purchaseData.discountTotal,
+        purchaseData.total,
+        purchaseData.observation ?? null,
+        JSON.stringify(purchaseData.details),
+      ],
+    );
+    const result = rows as unknown as [
+      PurchaseDbRow[],
+      PurchaseDetailDbRow[],
+      IdempotencyReplayDbRow[],
+    ];
+    const purchase = result[0]?.[0];
+    const details = result[1] ?? [];
+    const idempotentReplay = Boolean(result[2]?.[0]?.alreadyProcessed);
 
-  if (!purchase) {
-    throw new Error("No se pudo registrar la compra");
+    if (!purchase) {
+      throw new Error("No se pudo registrar la compra");
+    }
+
+    if (!idempotentReplay) {
+      for (const detail of details) {
+        await safeEvaluateStockNotification({
+          idBusiness: data.idBusiness,
+          idProduct: detail.idProduct,
+          idDeposit: detail.idDeposit,
+        });
+      }
+    }
+
+    return {
+      purchase: mapPurchaseWithDetails(purchase, details),
+      idempotentReplay,
+    };
+  } catch (error) {
+    if (isDuplicateEntryError(error)) {
+      const existingPurchase = await getPurchaseByIdempotencyKeyService(
+        purchaseData.idBusiness,
+        purchaseData.idempotencyKey,
+      );
+
+      if (existingPurchase) {
+        return {
+          purchase: existingPurchase,
+          idempotentReplay: true,
+        };
+      }
+    }
+
+    throw error;
   }
-
-  for (const detail of result[1] ?? []) {
-    await safeEvaluateStockNotification({
-      idBusiness: data.idBusiness,
-      idProduct: detail.idProduct,
-      idDeposit: detail.idDeposit,
-    });
-  }
-
-  return mapPurchaseWithDetails(purchase, result[1] ?? []);
 }
 
 export async function getPurchasesService(

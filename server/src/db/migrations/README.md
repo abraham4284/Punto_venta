@@ -10,6 +10,7 @@ Copied historical scripts:
 1. 001_fix_collations.sql
 2. 002_subscriptions_pk_fix.sql
 3. 003_payment_methods_unique_name_fix.sql
+4. 004_sales_purchases_idempotency.sql
 
 Para bases existentes que aun tengan `UNIQUE(idBusiness, code)` en
 `payment_methods`, ejecutar:
@@ -41,3 +42,16 @@ CREATE TABLE IF NOT EXISTS.
 
 The original files in ../fixed were left untouched for compatibility with the
 current workspace history.
+
+Para bases existentes creadas antes de la proteccion contra doble ejecucion de
+ventas y compras, ejecutar:
+
+1. migrations/004_sales_purchases_idempotency.sql
+2. procedures/sales.sql
+3. procedures/purchases.sql
+
+La migracion agrega `idempotency_key` a `sales` y `purchases`, rellena registros
+historicos con claves `legacy-*` y crea los indices unicos multi-tenant:
+
+- `uq_sales_business_idempotency`
+- `uq_purchases_business_idempotency`

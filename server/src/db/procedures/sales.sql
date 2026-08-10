@@ -5,6 +5,7 @@ CREATE PROCEDURE sp_create_sale(
   IN p_idBusiness INT,
   IN p_idUser INT,
   IN p_sale_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_idempotency_key VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idCustomer INT,
   IN p_idDeposit INT,
   IN p_idCashSession BIGINT,
@@ -19,6 +20,7 @@ BEGIN
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashRegisterActive TINYINT;
   DECLARE v_paymentMethodActive TINYINT;
+  DECLARE v_existingSaleNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE EXIT HANDLER FOR 1062
   BEGIN
@@ -36,6 +38,25 @@ BEGIN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El numero de venta es obligatorio';
   END IF;
+
+  IF p_idempotency_key IS NULL OR TRIM(p_idempotency_key) = '' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'IDEMPOTENCY_KEY_REQUIRED';
+  END IF;
+
+  SELECT idSale, sale_number
+  INTO v_idSale, v_existingSaleNumber
+  FROM sales
+  WHERE idBusiness = p_idBusiness
+    AND idempotency_key = p_idempotency_key
+  LIMIT 1;
+
+  IF v_idSale IS NOT NULL THEN
+    SELECT
+      v_idSale AS idSale,
+      v_existingSaleNumber AS saleNumber,
+      1 AS alreadyProcessed;
+  ELSE
 
   IF NOT EXISTS (
     SELECT 1
@@ -129,6 +150,7 @@ BEGIN
     idBusiness,
     idUser,
     sale_number,
+    idempotency_key,
     idCustomer,
     idDeposit,
     idCashSession,
@@ -146,6 +168,7 @@ BEGIN
     p_idBusiness,
     p_idUser,
     p_sale_number,
+    p_idempotency_key,
     p_idCustomer,
     p_idDeposit,
     p_idCashSession,
@@ -162,7 +185,8 @@ BEGIN
 
   SET v_idSale = LAST_INSERT_ID();
 
-  SELECT v_idSale AS idSale, p_sale_number AS saleNumber;
+    SELECT v_idSale AS idSale, p_sale_number AS saleNumber, 0 AS alreadyProcessed;
+  END IF;
 END$$
 
 DELIMITER ;
@@ -231,7 +255,8 @@ BEGIN
   WHERE s.idBusiness = p_idBusiness
     AND s.idProduct = p_idProduct
     AND s.idDeposit = p_idDeposit
-  LIMIT 1;
+  LIMIT 1
+  FOR UPDATE;
 
   IF p_quantity IS NULL OR p_quantity <= 0 THEN
     SIGNAL SQLSTATE '45000'

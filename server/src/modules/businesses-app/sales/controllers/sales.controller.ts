@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import {
+  getIdempotencyKeyFromRequest,
+  isIdempotencyError,
+} from "@/helpers/idempotency.helper.js";
+import {
   cancelSaleService,
   createSaleService,
   getProductsWithStockByDepositService,
@@ -91,13 +95,17 @@ export async function createSaleController(
       ...req.body,
       idBusiness: req.user!.idBusiness,
       idUser: req.user!.idUser,
+      idempotencyKey: getIdempotencyKeyFromRequest(req),
     };
     const data = createSaleSchema.parse(saleData);
     const result = await createSaleService(data);
-    return res.status(201).json({
+    return res.status(result.idempotentReplay ? 200 : 201).json({
       status: true,
-      message: "Venta procesada con exito",
-      data: result,
+      message: result.idempotentReplay
+        ? "Venta ya procesada previamente"
+        : "Venta procesada con exito",
+      idempotentReplay: result.idempotentReplay,
+      data: result.sale,
     });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
@@ -117,6 +125,13 @@ export async function createSaleController(
     }
 
     const message = getControllerMessage(toControllerError(error));
+    if (isIdempotencyError(message)) {
+      return res.status(400).json({
+        status: false,
+        message,
+      });
+    }
+
     return res.status(getSaleErrorStatus(message)).json({
       status: false,
       message,

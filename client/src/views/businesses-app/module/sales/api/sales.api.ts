@@ -13,8 +13,13 @@ import type {
 
 export const createSaleRequest = (
   payload: CreateSalePayload,
+  idempotencyKey: string,
 ): Promise<AxiosResponse<ApiResponse<SaleResponse>>> => {
-  return axios.post("/sales", payload);
+  return axios.post("/sales", payload, {
+    headers: {
+      "Idempotency-Key": idempotencyKey,
+    },
+  });
 };
 
 export const getProductsByDepositRequest = (

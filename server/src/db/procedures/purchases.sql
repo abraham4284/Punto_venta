@@ -92,6 +92,7 @@ CREATE PROCEDURE sp_create_purchase(
   IN p_idBusiness INT,
   IN p_idUser INT,
   IN p_purchaseNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_idempotencyKey VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_idSupplier INT,
   IN p_subtotal DECIMAL(18,2),
   IN p_discountTotal DECIMAL(18,2),
@@ -109,6 +110,7 @@ BEGIN
   DECLARE v_subtotal DECIMAL(18,2);
   DECLARE v_unitType VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_done INT DEFAULT 0;
+  DECLARE v_existingPurchaseId INT;
 
   DECLARE details_cursor CURSOR FOR
     SELECT
@@ -138,6 +140,23 @@ BEGIN
     RESIGNAL;
   END;
 
+  IF p_idempotencyKey IS NULL OR TRIM(p_idempotencyKey) = '' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'IDEMPOTENCY_KEY_REQUIRED';
+  END IF;
+
+  SELECT idPurchase
+  INTO v_existingPurchaseId
+  FROM purchases
+  WHERE idBusiness = p_idBusiness
+    AND idempotency_key = p_idempotencyKey
+  LIMIT 1;
+
+  IF v_existingPurchaseId IS NOT NULL THEN
+    CALL sp_get_purchase_by_id(p_idBusiness, v_existingPurchaseId);
+    SELECT 1 AS alreadyProcessed;
+  ELSE
+
   IF p_idSupplier IS NOT NULL AND NOT EXISTS (
     SELECT 1
     FROM suppliers
@@ -153,6 +172,7 @@ BEGIN
 
   INSERT INTO purchases (
     purchase_number,
+    idempotency_key,
     idBusiness,
     idSupplier,
     idUser,
@@ -166,6 +186,7 @@ BEGIN
   )
   VALUES (
     p_purchaseNumber,
+    p_idempotencyKey,
     p_idBusiness,
     p_idSupplier,
     p_idUser,
@@ -179,6 +200,8 @@ BEGIN
   );
 
   SET v_idPurchase = LAST_INSERT_ID();
+
+  SET v_done = 0;
 
   OPEN details_cursor;
 
@@ -315,6 +338,8 @@ BEGIN
   COMMIT;
 
   CALL sp_get_purchase_by_id(p_idBusiness, v_idPurchase);
+  SELECT 0 AS alreadyProcessed;
+  END IF;
 END$$
 
 DELIMITER ;
