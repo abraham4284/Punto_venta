@@ -59,7 +59,7 @@ const notifyRequestLimitError = async (statusCode: number): Promise<void> => {
   const { default: toast } = await import("react-hot-toast");
 
   if (statusCode === 429) {
-    toast.error("Demasiadas solicitudes. Espera unos minutos e intenta nuevamente.");
+    toast.error("Demasiadas solicitudes. Espera unos momentos e intenta nuevamente.");
     return;
   }
 

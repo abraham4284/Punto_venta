@@ -13,7 +13,11 @@ import type {
   PlatformNotificationResponse,
 } from "../types";
 
-export const usePlatformNotifications = (initialLimit = 15, autoFetchList = true) => {
+export const usePlatformNotifications = (
+  initialLimit = 15,
+  autoFetchList = true,
+  pollUnreadCount = true,
+) => {
   const [notifications, setNotifications] = useState<PlatformNotificationResponse[]>([]);
   const [pagination, setPagination] =
     useState<PlatformNotificationListResponse["pagination"]>({
@@ -106,7 +110,13 @@ export const usePlatformNotifications = (initialLimit = 15, autoFetchList = true
   };
 
   useEffect(() => {
-    fetchUnreadCount();
+    if (!pollUnreadCount) {
+      return;
+    }
+
+    const initialFetchTimeoutId = window.setTimeout(() => {
+      void fetchUnreadCount();
+    }, 0);
     const intervalId = window.setInterval(fetchUnreadCount, 60000);
     const handleFocus = () => {
       void fetchUnreadCount();
@@ -115,17 +125,24 @@ export const usePlatformNotifications = (initialLimit = 15, autoFetchList = true
     window.addEventListener("focus", handleFocus);
 
     return () => {
+      window.clearTimeout(initialFetchTimeoutId);
       window.clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [fetchUnreadCount]);
+  }, [fetchUnreadCount, pollUnreadCount]);
 
   useEffect(() => {
     if (!autoFetchList) {
       return;
     }
 
-    void fetchNotifications();
+    const timeoutId = window.setTimeout(() => {
+      void fetchNotifications();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [autoFetchList, filters.page, fetchNotifications]);
 
   return {
