@@ -20,7 +20,11 @@ const initialPagination = {
   limit: 15,
 };
 
-export const useNotifications = (initialLimit = 15, autoFetchList = true) => {
+export const useNotifications = (
+  initialLimit = 15,
+  autoFetchList = true,
+  pollUnreadCount = true,
+) => {
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
   const [pagination, setPagination] =
     useState<NotificationListResponse["pagination"]>(initialPagination);
@@ -56,7 +60,7 @@ export const useNotifications = (initialLimit = 15, autoFetchList = true) => {
         });
         setNotifications(response.notifications);
         setPagination(response.pagination);
-      } catch (requestError) {
+      } catch {
         setError("No se pudieron obtener las notificaciones");
         toast.error("No se pudieron obtener las notificaciones");
       } finally {
@@ -112,7 +116,13 @@ export const useNotifications = (initialLimit = 15, autoFetchList = true) => {
   };
 
   useEffect(() => {
-    fetchUnreadCount();
+    if (!pollUnreadCount) {
+      return;
+    }
+
+    const initialFetchTimeoutId = window.setTimeout(() => {
+      void fetchUnreadCount();
+    }, 0);
     const intervalId = window.setInterval(fetchUnreadCount, 60000);
 
     const handleFocus = () => {
@@ -122,17 +132,24 @@ export const useNotifications = (initialLimit = 15, autoFetchList = true) => {
     window.addEventListener("focus", handleFocus);
 
     return () => {
+      window.clearTimeout(initialFetchTimeoutId);
       window.clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [fetchUnreadCount]);
+  }, [fetchUnreadCount, pollUnreadCount]);
 
   useEffect(() => {
     if (!autoFetchList) {
       return;
     }
 
-    void fetchNotifications();
+    const timeoutId = window.setTimeout(() => {
+      void fetchNotifications();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [autoFetchList, filters.page, fetchNotifications]);
 
   return {

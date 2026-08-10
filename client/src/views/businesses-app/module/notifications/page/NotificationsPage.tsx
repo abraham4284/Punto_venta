@@ -46,7 +46,7 @@ export const NotificationsPage = () => {
     markAsRead,
     markAllAsRead,
     archive,
-  } = useNotifications();
+  } = useNotifications(15, true, false);
 
   const renderNotification = (notification: NotificationResponse) => (
     <div

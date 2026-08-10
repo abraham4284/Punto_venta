@@ -33,7 +33,7 @@ export const PlatformNotificationsPage = () => {
     markAsRead,
     markAllAsRead,
     archive,
-  } = usePlatformNotifications();
+  } = usePlatformNotifications(15, true, false);
 
   const renderNotification = (notification: PlatformNotificationResponse) => (
     <div

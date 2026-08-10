@@ -61,8 +61,11 @@ export const globalApiRateLimiter = tenantTestAwareLimiter(rateLimit({
   store: stores.global,
   standardHeaders: true,
   legacyHeaders: false,
+  skip(req) {
+    return req.method === "OPTIONS";
+  },
   message: rateLimitResponse(
-    "Demasiadas solicitudes. Intenta nuevamente mas tarde.",
+    "Demasiadas solicitudes. Espera unos momentos e intenta nuevamente.",
   ),
 }));
 

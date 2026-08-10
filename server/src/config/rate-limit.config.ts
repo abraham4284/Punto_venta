@@ -15,7 +15,7 @@ function getRateLimitNumber(name: string, fallback: number): number {
 export const rateLimitConfig = {
   global: {
     windowMs: getRateLimitNumber("GLOBAL_RATE_LIMIT_WINDOW_MS", 900000),
-    max: getRateLimitNumber("GLOBAL_RATE_LIMIT_MAX", 300),
+    max: getRateLimitNumber("GLOBAL_RATE_LIMIT_MAX", 1000),
   },
   businessLogin: {
     windowMs: getRateLimitNumber("BUSINESS_LOGIN_RATE_LIMIT_WINDOW_MS", 900000),
