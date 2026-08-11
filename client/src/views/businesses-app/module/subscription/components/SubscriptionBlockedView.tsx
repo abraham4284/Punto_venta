@@ -1,6 +1,6 @@
 import { LockKeyhole, LogOut, RefreshCcw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/views/businesses-app";
@@ -65,14 +65,20 @@ export const SubscriptionBlockedView = () => {
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <Button type="button" asChild>
-              <Link to="/admin/subscription">Ver mi suscripcion</Link>
-            </Button>
-            <Button type="button" asChild variant="outline">
-              <a href={getSupportContactUrl()} target="_blank" rel="noreferrer">
-                Contactar soporte
-              </a>
-            </Button>
+            <Link
+              to="/admin/subscription"
+              className={buttonVariants({ variant: "default" })}
+            >
+              Ver mi suscripcion
+            </Link>
+            <a
+              href={getSupportContactUrl()}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Contactar soporte
+            </a>
             <Button
               type="button"
               variant="outline"

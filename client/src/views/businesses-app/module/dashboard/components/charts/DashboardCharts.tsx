@@ -22,7 +22,6 @@ const formatNumber = (value: number): string => {
 
 export const DashboardCharts = ({
   topProducts,
-  salesByPaymentMethod,
 }: Props) => {
   const maxProductQuantity = Math.max(
     ...topProducts.map((product) => product.quantitySold),
