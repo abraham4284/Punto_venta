@@ -10,6 +10,7 @@ import {
 } from "../services/products.service.js";
 import {
   createProductSchema,
+  getProductsQuerySchema,
   toggleProductStatusSchema,
   updateProductPricesSchema,
   updateProductSchema,
@@ -127,7 +128,11 @@ export async function getProductsController(
   res: Response,
 ): Promise<Response> {
   try {
-    const result = await getProductsService(req.user!.idBusiness);
+    const query = getProductsQuerySchema.parse(req.query);
+    const result = await getProductsService({
+      ...query,
+      idBusiness: req.user!.idBusiness,
+    });
 
     return res.status(200).json({
       status: true,
@@ -135,6 +140,14 @@ export async function getProductsController(
       data: result,
     });
   } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        status: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
     const typedError = error as ControllerError;
     return res.status(getErrorStatus(typedError)).json(getErrorPayload(error));
   }

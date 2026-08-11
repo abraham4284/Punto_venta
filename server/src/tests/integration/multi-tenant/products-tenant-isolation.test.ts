@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { RowDataPacket } from "mysql2";
 import { getTestApp } from "@/tests/helpers/test-app.helper.js";
 import {
+  executeMutation,
   querySingleRow,
   resetIntegrationTestData,
 } from "@/tests/helpers/test-database.helper.js";
@@ -30,6 +31,26 @@ interface CountRow extends RowDataPacket {
 
 interface StockQuantityRow extends RowDataPacket {
   quantity: string;
+}
+
+interface ProductListBody {
+  data: {
+    items: Array<{
+      idProduct: number;
+      idProductCategory: number;
+      name: string;
+      barcode: string | null;
+      isActive: boolean;
+    }>;
+    pagination: {
+      page: number;
+      currentPage: number;
+      limit: number;
+      total: number;
+      totalRecords: number;
+      totalPages: number;
+    };
+  };
 }
 
 describe("multi-tenant products and categories", function suite() {
@@ -251,5 +272,157 @@ describe("multi-tenant products and categories", function suite() {
 
     expect(productCount?.total).toBe(1);
     expect(Number(stock?.quantity)).toBe(0);
+  });
+
+  it("pagina productos con orden estable y total filtrado por tenant", async function test() {
+    const categoryA = await createProductCategoryFixture(
+      scenario.tenantA.business.idBusiness,
+      "CATEGORIA_PAGINACION_A",
+    );
+    const categoryB = await createProductCategoryFixture(
+      scenario.tenantB.business.idBusiness,
+      "CATEGORIA_PAGINACION_B",
+    );
+
+    for (let index = 1; index <= 12; index += 1) {
+      await createProductFixture({
+        idBusiness: scenario.tenantA.business.idBusiness,
+        idProductCategory: categoryA.idProductCategory,
+        idDeposit: scenario.tenantA.defaultDeposit.idDeposit,
+        namePrefix: `A-PAG-${String(index).padStart(2, "0")}`,
+      });
+    }
+
+    for (let index = 1; index <= 7; index += 1) {
+      await createProductFixture({
+        idBusiness: scenario.tenantB.business.idBusiness,
+        idProductCategory: categoryB.idProductCategory,
+        idDeposit: scenario.tenantB.defaultDeposit.idDeposit,
+        namePrefix: `B-PAG-${String(index).padStart(2, "0")}`,
+      });
+    }
+
+    const pageOne = await request(getTestApp())
+      .get("/api/products?page=1&limit=5")
+      .set("Cookie", scenario.tenantA.auth.cookies);
+    const pageTwo = await request(getTestApp())
+      .get("/api/products?page=2&limit=5")
+      .set("Cookie", scenario.tenantA.auth.cookies);
+
+    expect(pageOne.status).toBe(200);
+    expect(pageTwo.status).toBe(200);
+
+    const pageOneBody = pageOne.body as ProductListBody;
+    const pageTwoBody = pageTwo.body as ProductListBody;
+    const pageOneIds = pageOneBody.data.items.map(function mapProduct(product) {
+      return product.idProduct;
+    });
+    const pageTwoIds = pageTwoBody.data.items.map(function mapProduct(product) {
+      return product.idProduct;
+    });
+
+    expect(pageOneBody.data.items).toHaveLength(5);
+    expect(pageTwoBody.data.items).toHaveLength(5);
+    expect(pageOneBody.data.pagination.total).toBe(12);
+    expect(pageOneBody.data.pagination.totalRecords).toBe(12);
+    expect(pageOneBody.data.pagination.totalPages).toBe(3);
+    expect(pageOneIds.some(function existsInPageTwo(idProduct) {
+      return pageTwoIds.includes(idProduct);
+    })).toBe(false);
+    expect(JSON.stringify(pageOneBody.data.items)).not.toContain("B-PAG");
+  });
+
+  it("filtra busqueda, categoria y estado antes de paginar", async function test() {
+    const categoryKeyboard = await createProductCategoryFixture(
+      scenario.tenantA.business.idBusiness,
+      "TECLADOS_TEST",
+    );
+    const categoryMouse = await createProductCategoryFixture(
+      scenario.tenantA.business.idBusiness,
+      "MOUSE_TEST",
+    );
+
+    for (let index = 1; index <= 6; index += 1) {
+      await createProductFixture({
+        idBusiness: scenario.tenantA.business.idBusiness,
+        idProductCategory: categoryKeyboard.idProductCategory,
+        idDeposit: scenario.tenantA.defaultDeposit.idDeposit,
+        namePrefix: `Teclado gamer ${String(index).padStart(2, "0")}`,
+      });
+    }
+
+    const inactiveProduct = await createProductFixture({
+      idBusiness: scenario.tenantA.business.idBusiness,
+      idProductCategory: categoryKeyboard.idProductCategory,
+      idDeposit: scenario.tenantA.defaultDeposit.idDeposit,
+      namePrefix: "Teclado gamer inactivo",
+    });
+
+    await createProductFixture({
+      idBusiness: scenario.tenantA.business.idBusiness,
+      idProductCategory: categoryMouse.idProductCategory,
+      idDeposit: scenario.tenantA.defaultDeposit.idDeposit,
+      namePrefix: "Mouse gamer 01",
+    });
+    await executeMutation(
+      "UPDATE products SET is_active = 0 WHERE idProduct = ?",
+      [inactiveProduct.idProduct],
+    );
+
+    const response = await request(getTestApp())
+      .get(
+        `/api/products?page=1&limit=3&search=gamer&idProductCategory=${categoryKeyboard.idProductCategory}&isActive=true`,
+      )
+      .set("Cookie", scenario.tenantA.auth.cookies);
+
+    expect(response.status).toBe(200);
+
+    const body = response.body as ProductListBody;
+    expect(body.data.items).toHaveLength(3);
+    expect(body.data.pagination.total).toBe(6);
+    expect(body.data.pagination.totalPages).toBe(2);
+    expect(
+      body.data.items.every(function isKeyboardActive(product) {
+        return (
+          product.idProductCategory === categoryKeyboard.idProductCategory &&
+          product.isActive &&
+          product.name.includes("Teclado gamer")
+        );
+      }),
+    ).toBe(true);
+  });
+
+  it("devuelve pagina vacia cuando la pagina supera el total", async function test() {
+    const categoryA = await createProductCategoryFixture(
+      scenario.tenantA.business.idBusiness,
+      "CATEGORIA_PAGINA_VACIA",
+    );
+
+    await createProductFixture({
+      idBusiness: scenario.tenantA.business.idBusiness,
+      idProductCategory: categoryA.idProductCategory,
+      idDeposit: scenario.tenantA.defaultDeposit.idDeposit,
+      namePrefix: "Producto pagina vacia",
+    });
+
+    const response = await request(getTestApp())
+      .get("/api/products?page=5&limit=5")
+      .set("Cookie", scenario.tenantA.auth.cookies);
+
+    expect(response.status).toBe(200);
+
+    const body = response.body as ProductListBody;
+    expect(body.data.items).toHaveLength(0);
+    expect(body.data.pagination.total).toBe(1);
+    expect(body.data.pagination.totalPages).toBe(1);
+  });
+
+  it("rechaza limites superiores a 100", async function test() {
+    const response = await request(getTestApp())
+      .get("/api/products?page=1&limit=101")
+      .set("Cookie", scenario.tenantA.auth.cookies);
+
+    expect(response.status).toBe(400);
+    expect(JSON.stringify(response.body)).toContain("El limite no puede superar 100 registros");
   });
 });

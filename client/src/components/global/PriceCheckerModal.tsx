@@ -92,17 +92,42 @@ export const PriceCheckerModal = () => {
   const [products, setProducts] = useState<ProductResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestSequenceRef = useRef(0);
 
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async (searchValue: string) => {
+    const trimmedSearch = searchValue.trim();
+    const requestId = requestSequenceRef.current + 1;
+
+    requestSequenceRef.current = requestId;
+
+    if (!trimmedSearch) {
+      setProducts([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      const response = await getProductsRequest();
-      setProducts(response.data.data ?? []);
+      const response = await getProductsRequest({
+        page: 1,
+        limit: 6,
+        search: trimmedSearch,
+        isActive: true,
+      });
+
+      if (requestId !== requestSequenceRef.current) return;
+
+      setProducts(response.data.data.items ?? []);
     } catch {
+      if (requestId !== requestSequenceRef.current) return;
+
       setError("No se pudieron cargar los productos");
     } finally {
-      setLoading(false);
+      if (requestId === requestSequenceRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -110,15 +135,25 @@ export const PriceCheckerModal = () => {
     if (!isOpen) return;
 
     const timeoutId = window.setTimeout(() => {
-      void loadProducts();
-
       inputRef.current?.focus();
     }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [isOpen, loadProducts]);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timeoutId = window.setTimeout(() => {
+      void loadProducts(query);
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isOpen, loadProducts, query]);
 
   const filteredProducts = useMemo(() => {
     const value = normalizeText(query);

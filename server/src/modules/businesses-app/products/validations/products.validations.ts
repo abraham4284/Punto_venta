@@ -90,6 +90,80 @@ export const createProductSchema = z
   })
   .strict();
 
+function emptyQueryStringToUndefined(value: unknown): unknown {
+  if (value === "" || value === null) {
+    return undefined;
+  }
+
+  return value;
+}
+
+function parseBooleanQuery(value: unknown): unknown {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (value === true || value === "true" || value === "1") {
+    return true;
+  }
+
+  if (value === false || value === "false" || value === "0") {
+    return false;
+  }
+
+  return value;
+}
+
+export const getProductsQuerySchema = z
+  .object({
+    page: z.preprocess(
+      emptyQueryStringToUndefined,
+      z.coerce
+        .number({ error: "La pagina debe ser un numero valido" })
+        .int("La pagina debe ser un numero entero")
+        .min(1, "La pagina debe ser mayor o igual a 1")
+        .default(1),
+    ),
+    limit: z.preprocess(
+      emptyQueryStringToUndefined,
+      z.coerce
+        .number({ error: "El limite debe ser un numero valido" })
+        .int("El limite debe ser un numero entero")
+        .min(1, "El limite debe ser mayor o igual a 1")
+        .max(100, "El limite no puede superar 100 registros")
+        .default(20),
+    ),
+    search: z
+      .preprocess(
+        emptyQueryStringToUndefined,
+        z.string().trim().max(150, "La busqueda no puede superar 150 caracteres").optional(),
+      )
+      .transform(function normalizeSearch(value) {
+        return value && value.length > 0 ? value : null;
+      }),
+    idProductCategory: z
+      .preprocess(
+        emptyQueryStringToUndefined,
+        z.coerce
+          .number({ error: "La categoria debe ser un numero valido" })
+          .int("La categoria debe ser un numero entero")
+          .positive("La categoria debe ser valida")
+          .optional(),
+      )
+      .transform(function normalizeCategory(value) {
+        return value ?? null;
+      }),
+    isActive: z
+      .preprocess(
+        parseBooleanQuery,
+        z.boolean({ error: "El estado debe ser verdadero o falso" }).optional(),
+      )
+      .transform(function normalizeActive(value) {
+        return value ?? null;
+      }),
+  })
+  .strict();
+
 export const updateProductSchema = z
   .object({
     idBusiness: z

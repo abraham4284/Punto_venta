@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import type { AxiosError } from "axios";
 import {
@@ -18,6 +18,7 @@ import type { ApiErrorResponse } from "../types/products.types";
 export type ProductImportStep = "UPLOAD" | "PREVIEW" | "CONFIRM" | "RESULT";
 
 const PREVIEW_PAGE_SIZE = 15;
+const IMPORT_PROGRESS_INTERVAL_MS = 350;
 
 interface RawProductImportError {
   rowNumber: number;
@@ -106,6 +107,8 @@ const normalizeConfirmResponse = (
 };
 
 export const useProductImport = () => {
+  const importProgressTimerRef = useRef<number | null>(null);
+  const importLockRef = useRef(false);
   const [step, setStep] = useState<ProductImportStep>("UPLOAD");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ProductImportPreviewResponse | null>(
@@ -121,7 +124,38 @@ export const useProductImport = () => {
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingConfirm, setLoadingConfirm] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  const clearImportProgressTimer = useCallback(() => {
+    if (importProgressTimerRef.current === null) return;
+
+    window.clearInterval(importProgressTimerRef.current);
+    importProgressTimerRef.current = null;
+  }, []);
+
+  const startImportProgress = useCallback(() => {
+    clearImportProgressTimer();
+    setImportProgress(0);
+
+    importProgressTimerRef.current = window.setInterval(() => {
+      setImportProgress((currentProgress) => {
+        if (currentProgress < 20) return currentProgress + 6;
+        if (currentProgress < 45) return currentProgress + 4;
+        if (currentProgress < 75) return currentProgress + 2;
+        if (currentProgress < 90) return currentProgress + 1;
+        if (currentProgress < 95) return currentProgress + 0.5;
+
+        return currentProgress;
+      });
+    }, IMPORT_PROGRESS_INTERVAL_MS);
+  }, [clearImportProgressTimer]);
+
+  useEffect(() => {
+    return () => {
+      clearImportProgressTimer();
+    };
+  }, [clearImportProgressTimer]);
 
   const getErrorMessage = (error: unknown, fallback: string): string => {
     const axiosError = error as AxiosError<ApiErrorResponse>;
@@ -155,10 +189,13 @@ export const useProductImport = () => {
   };
 
   const selectFile = (file: File | null) => {
+    if (loadingConfirm) return;
+
     setSelectedFile(file);
     setError(null);
     setPreview(null);
     setResult(null);
+    setImportProgress(0);
     setStep("UPLOAD");
   };
 
@@ -193,6 +230,8 @@ export const useProductImport = () => {
   };
 
   const confirmImport = async () => {
+    if (importLockRef.current) return false;
+
     if (!preview?.importToken) {
       const message = "No hay una previsualizacion activa para confirmar";
       setError(message);
@@ -201,13 +240,22 @@ export const useProductImport = () => {
     }
 
     try {
+      importLockRef.current = true;
       setLoadingConfirm(true);
       setError(null);
+      startImportProgress();
 
       const response = await confirmProductImportRequest({
         importToken: preview.importToken,
         importMode,
         importValidRowsOnly,
+      });
+
+      clearImportProgressTimer();
+      setImportProgress(100);
+
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 450);
       });
 
       setResult(
@@ -219,16 +267,21 @@ export const useProductImport = () => {
       toast.success(response.data.message);
       return true;
     } catch (error) {
+      clearImportProgressTimer();
       const message = getErrorMessage(error, "No se pudo confirmar la importacion");
       setError(message);
       toast.error(message);
       return false;
     } finally {
       setLoadingConfirm(false);
+      importLockRef.current = false;
     }
   };
 
   const resetImport = useCallback(() => {
+    if (importLockRef.current) return;
+
+    clearImportProgressTimer();
     setStep("UPLOAD");
     setSelectedFile(null);
     setPreview(null);
@@ -240,8 +293,9 @@ export const useProductImport = () => {
     setLoadingTemplate(false);
     setLoadingPreview(false);
     setLoadingConfirm(false);
+    setImportProgress(0);
     setError(null);
-  }, []);
+  }, [clearImportProgressTimer]);
 
   const filteredPreviewRows = useMemo(() => {
     if (!preview) return [];
@@ -283,6 +337,7 @@ export const useProductImport = () => {
     loadingTemplate,
     loadingPreview,
     loadingConfirm,
+    importProgress,
     error,
     setStep,
     setImportMode,

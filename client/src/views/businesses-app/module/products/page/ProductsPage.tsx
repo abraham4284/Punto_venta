@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Upload } from "lucide-react";
 
 import { Meta } from "@/components/Meta";
@@ -11,6 +11,7 @@ import {
   ImportProductModal,
   ProductMetrics,
   ProductModalForm,
+  ProductPagination,
   ProductPricesModal,
   ProductTable,
 } from "../components";
@@ -25,6 +26,14 @@ import { useBusinessSubscriptionStore } from "../../subscription/store/businessS
 
 export const ProductsPage = () => {
   const [isOpenImportModal, setIsOpenImportModal] = useState(false);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [idProductCategory, setIdProductCategory] = useState<number | null>(
+    null,
+  );
+  const [isActive, setIsActive] = useState<boolean | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const productLimitReached = useBusinessSubscriptionStore(
     (state) => state.subscriptionState?.usage.products.limitReached ?? false,
   );
@@ -32,12 +41,12 @@ export const ProductsPage = () => {
     (state) => state.refreshSubscription,
   );
   const {
-    filteredProducts,
+    products,
+    pagination,
     metrics,
     loadingCategories,
     fieldErrors,
-    search,
-    setSearch,
+    loading: loadingProducts,
     getProducts,
     createProduct,
     updateProduct,
@@ -71,12 +80,56 @@ export const ProductsPage = () => {
     resetDataEdit: resetPriceProduct,
   } = useUtilsState<ProductResponse>();
 
+  const fetchProducts = useCallback(
+    async (nextPage = page) => {
+      await getProducts({
+        page: nextPage,
+        limit,
+        search: debouncedSearch.trim() || null,
+        idProductCategory,
+        isActive,
+      });
+    },
+    [debouncedSearch, getProducts, idProductCategory, isActive, limit, page],
+  );
+
   useEffect(() => {
-    getProducts();
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
+
+  useEffect(() => {
     return () => {
       resetProducts();
     };
-  }, [getProducts, resetProducts]);
+  }, [resetProducts]);
+
+  useEffect(() => {
+    void fetchProducts(page);
+  }, [fetchProducts, page]);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleCategoryChange = (value: number | null) => {
+    setIdProductCategory(value);
+    setPage(1);
+  };
+
+  const handleStatusChange = (value: boolean | null) => {
+    setIsActive(value);
+    setPage(1);
+  };
+
+  const handleLimitChange = (value: number) => {
+    setLimit(value);
+    setPage(1);
+  };
 
   const handleOpenCreate = () => {
     if (productLimitReached) return;
@@ -145,7 +198,14 @@ export const ProductsPage = () => {
   };
 
   const handleImported = async () => {
-    await getProducts();
+    setPage(1);
+    await getProducts({
+      page: 1,
+      limit,
+      search: debouncedSearch.trim() || null,
+      idProductCategory,
+      isActive,
+    });
     await refreshSubscription();
   };
   return (
@@ -195,15 +255,29 @@ export const ProductsPage = () => {
 
       <Card>
         <CardContent className="space-y-4 p-4">
-          <ProductFilter value={search} onChange={setSearch} />
+          <ProductFilter
+            value={search}
+            idProductCategory={idProductCategory}
+            isActive={isActive}
+            categories={categories}
+            onChange={handleSearchChange}
+            onCategoryChange={handleCategoryChange}
+            onStatusChange={handleStatusChange}
+          />
 
           <ProductTable
-            data={filteredProducts}
-            loading={loading}
+            data={products}
+            loading={loadingProducts || loading}
             addDataEdit={addDataEdit}
             toggleModal={toggleModal}
             onOpenPricesModal={handleOpenPricesModal}
             toggleProductStatus={toggleProductStatus}
+          />
+
+          <ProductPagination
+            pagination={pagination}
+            onPageChange={setPage}
+            onLimitChange={handleLimitChange}
           />
         </CardContent>
       </Card>

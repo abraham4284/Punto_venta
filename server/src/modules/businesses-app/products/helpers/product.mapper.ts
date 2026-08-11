@@ -34,6 +34,7 @@ export function mapProduct(product: ProductDbRow): ProductResponse {
     priceSale: toNumber(product.price_sale),
     priceWholesale: toNullableNumber(product.price_wholesale),
     unitType: normalizeUnitType(product.unit_type),
+    stock: toNumber(product.stock),
     stockMin: toNumber(product.stock_min),
     isActive: Boolean(product.is_active),
     createdAt: product.created_at,

@@ -23,6 +23,7 @@ export function extractArrayFromBody(body: unknown): unknown[] {
   if (typeof record.data === "object" && record.data !== null) {
     const data = record.data as Record<string, unknown>;
     if (Array.isArray(data.records)) return data.records;
+    if (Array.isArray(data.items)) return data.items;
     if (Array.isArray(data.movements)) return data.movements;
     if (Array.isArray(data.stock)) return data.stock;
     if (Array.isArray(data.sales)) return data.sales;

@@ -16,6 +16,7 @@ export interface ProductDbRow {
   price_sale: string | number;
   price_wholesale: string | number | null;
   unit_type: ProductUnitType | null;
+  stock: string | number;
   stock_min: string | number;
   is_active: number;
   created_at: Date;
@@ -35,10 +36,34 @@ export interface ProductResponse {
   priceSale: number;
   priceWholesale: number | null;
   unitType: ProductUnitType;
+  stock: number;
   stockMin: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date | null;
+}
+
+export interface ProductListFilters {
+  idBusiness: number;
+  page: number;
+  limit: number;
+  search: string | null;
+  idProductCategory: number | null;
+  isActive: boolean | null;
+}
+
+export interface ProductListPagination {
+  page: number;
+  currentPage: number;
+  limit: number;
+  total: number;
+  totalRecords: number;
+  totalPages: number;
+}
+
+export interface ProductListResponse {
+  items: ProductResponse[];
+  pagination: ProductListPagination;
 }
 
 export interface CreateProductPayload {

@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -77,6 +78,7 @@ export const ImportProductModal = ({
     loadingTemplate,
     loadingPreview,
     loadingConfirm,
+    importProgress,
     error,
     setStep,
     setImportMode,
@@ -97,17 +99,23 @@ export const ImportProductModal = ({
   }, [isOpen, resetImport]);
 
   const handleClose = () => {
+    if (loadingConfirm) return;
+
     resetImport();
     onClose();
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (loadingConfirm) return;
+
     const file = event.target.files?.[0] ?? null;
     selectFile(file);
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    if (loadingConfirm) return;
+
     const file = event.dataTransfer.files?.[0] ?? null;
     selectFile(file);
   };
@@ -126,7 +134,12 @@ export const ImportProductModal = ({
     preview!.summary.validRows + preview!.summary.warningRows > 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && !loadingConfirm) handleClose();
+      }}
+    >
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-6xl">
         <DialogHeader>
           <DialogTitle>Importar productos desde Excel</DialogTitle>
@@ -163,9 +176,13 @@ export const ImportProductModal = ({
                   role="button"
                   tabIndex={0}
                   className="flex min-h-52 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed bg-muted/30 p-6 text-center transition hover:bg-muted/50"
-                  onClick={() => inputRef.current?.click()}
+                  onClick={() => {
+                    if (!loadingConfirm) inputRef.current?.click();
+                  }}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter") inputRef.current?.click();
+                    if (event.key === "Enter" && !loadingConfirm) {
+                      inputRef.current?.click();
+                    }
                   }}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={handleDrop}
@@ -272,6 +289,7 @@ export const ImportProductModal = ({
                           ? "border-primary bg-primary/5"
                           : "hover:bg-muted/50"
                       }`}
+                      disabled={loadingConfirm}
                       onClick={() => setImportMode(option.value)}
                     >
                       <p className="font-medium">{option.title}</p>
@@ -287,6 +305,7 @@ export const ImportProductModal = ({
                     type="checkbox"
                     className="mt-1 h-4 w-4"
                     checked={importValidRowsOnly}
+                    disabled={loadingConfirm}
                     onChange={(event) =>
                       setImportValidRowsOnly(event.target.checked)
                     }
@@ -328,6 +347,24 @@ export const ImportProductModal = ({
                     </p>
                   </div>
                 </div>
+
+                {loadingConfirm && (
+                  <div className="rounded-xl border bg-muted/30 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-medium">Importando productos</p>
+                        <p className="text-sm text-muted-foreground">
+                          Estamos procesando el Excel. La ventana permanecera
+                          bloqueada hasta finalizar.
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold">
+                        {Math.round(importProgress)}%
+                      </span>
+                    </div>
+                    <Progress value={importProgress} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -342,7 +379,12 @@ export const ImportProductModal = ({
         )}
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={handleClose}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loadingConfirm}
+            onClick={handleClose}
+          >
             Cerrar
           </Button>
 
@@ -372,6 +414,7 @@ export const ImportProductModal = ({
               <Button
                 type="button"
                 variant="outline"
+                disabled={loadingConfirm}
                 onClick={() => setStep("PREVIEW")}
               >
                 Volver
