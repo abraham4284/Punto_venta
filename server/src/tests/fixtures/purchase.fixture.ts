@@ -15,15 +15,17 @@ export async function createPurchaseFixture(input: {
   idDeposit: number;
 }): Promise<PurchaseFixture> {
   const purchaseNumber = `PUR-TEST-${randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
+  const idempotencyKey = `fixture-purchase-${randomUUID()}`;
   const idPurchase = await executeInsert(
     `INSERT INTO purchases
-      (idBusiness, idUser, idSupplier, purchase_number, subtotal, discount_total, total, observation, status)
-     VALUES (?, ?, ?, ?, 10, 0, 10, ?, 'COMPLETED')`,
+      (idBusiness, idUser, idSupplier, purchase_number, idempotency_key, subtotal, discount_total, total, observation, status)
+     VALUES (?, ?, ?, ?, ?, 10, 0, 10, ?, 'COMPLETED')`,
     [
       input.idBusiness,
       input.idUser,
       input.idSupplier,
       purchaseNumber,
+      idempotencyKey,
       "Compra fixture",
     ],
   );

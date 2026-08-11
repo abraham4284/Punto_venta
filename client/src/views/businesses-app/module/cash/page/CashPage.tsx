@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowDownCircle, ArrowUpCircle, LockKeyhole, Plus, RefreshCcw } from "lucide-react";
 import { Meta } from "@/components/Meta";
+import { AppLoadingScreen } from "@/components/loading/AppLoadingScreen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toaster } from "react-hot-toast";
@@ -42,15 +43,20 @@ export const CashPage = () => {
     createMovement,
   } = useCash();
 
-  useEffect(() => {
-    void refreshDashboard();
-  }, [refreshDashboard]);
-
   const hasOpenSession = currentSession?.status === "OPEN";
+  const isInitialLoading =
+    loading && !currentSession && !summary && registers.length === 0;
 
   return (
     <>
       <Meta title="Caja" />
+      {isInitialLoading && (
+        <AppLoadingScreen
+          variant="overlay"
+          message="Cargando caja"
+          description="Estamos preparando la caja actual y sus movimientos."
+        />
+      )}
       <main className="space-y-6 p-2 md:p-6">
         <section className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
           <div>

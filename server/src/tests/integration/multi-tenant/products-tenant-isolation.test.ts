@@ -28,6 +28,10 @@ interface CountRow extends RowDataPacket {
   total: number;
 }
 
+interface StockQuantityRow extends RowDataPacket {
+  quantity: string;
+}
+
 describe("multi-tenant products and categories", function suite() {
   let scenario: TwoTenantScenario;
 
@@ -198,5 +202,54 @@ describe("multi-tenant products and categories", function suite() {
 
     expect(count?.total).toBe(0);
     expect(stockCount?.total).toBe(0);
+  });
+
+  it("permite crear producto con stock inicial cero y lo vincula al deposito", async function test() {
+    const categoryA = await createProductCategoryFixture(
+      scenario.tenantA.business.idBusiness,
+      "CATEGORIA_STOCK_CERO",
+    );
+
+    const response = await request(getTestApp())
+      .post("/api/products")
+      .set("Cookie", scenario.tenantA.auth.cookies)
+      .send({
+        idProductCategory: categoryA.idProductCategory,
+        idDeposit: scenario.tenantA.defaultDeposit.idDeposit,
+        initialStock: 0,
+        barcode: "STOCK-CERO-001",
+        name: "Producto con stock cero",
+        description: "Alta de catalogo sin existencias iniciales",
+        imageUrl: null,
+        priceCost: 1500,
+        priceSale: 2500,
+        priceWholesale: null,
+        unitType: "UNIT",
+        stockMin: 5,
+      });
+
+    expect(response.status).toBe(201);
+
+    const productCount = await querySingleRow<CountRow>(
+      "SELECT COUNT(*) AS total FROM products WHERE idBusiness = ? AND barcode = ?",
+      [scenario.tenantA.business.idBusiness, "STOCK-CERO-001"],
+    );
+    const stock = await querySingleRow<StockQuantityRow>(
+      `SELECT s.quantity
+       FROM stock s
+       INNER JOIN products p ON p.idProduct = s.idProduct
+       WHERE s.idBusiness = ?
+         AND s.idDeposit = ?
+         AND p.barcode = ?
+       LIMIT 1`,
+      [
+        scenario.tenantA.business.idBusiness,
+        scenario.tenantA.defaultDeposit.idDeposit,
+        "STOCK-CERO-001",
+      ],
+    );
+
+    expect(productCount?.total).toBe(1);
+    expect(Number(stock?.quantity)).toBe(0);
   });
 });

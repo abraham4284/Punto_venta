@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { AppLoadingScreen } from "@/components/loading/AppLoadingScreen";
 import { useAuthStore } from "@/views/businesses-app/module/auth/store/auth.store";
 import { useBusinessSubscriptionStore } from "@/views/businesses-app/module/subscription/store/businessSubscription.store";
 
@@ -29,7 +30,12 @@ export const AuthInitializer = ({ children }: { children: React.ReactNode }) => 
   }, [clearSubscription, fetchSubscription, status, user?.idBusiness]);
 
   if (status === "checking") {
-    return <div>Cargando sesión...</div>;
+    return (
+      <AppLoadingScreen
+        message="Cargando sistema"
+        description="Estamos verificando tu sesion y preparando tu negocio."
+      />
+    );
   }
 
   return <>{children}</>;
