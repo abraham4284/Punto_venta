@@ -53,7 +53,7 @@ export const ProductCategoriesPage = () => {
   const handleSubmit = async (values: ProductCategoryFormValues) => {
     const payload = {
       name: values.name.trim(),
-      description: values.description.trim() || null,
+      description: values.description?.trim() || null,
       isDefault: values.isDefault,
     };
 
