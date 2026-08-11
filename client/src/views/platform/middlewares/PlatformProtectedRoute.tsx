@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { Spinner } from "@/components/ui/spinner";
+import { AppLoadingScreen } from "@/components/loading/AppLoadingScreen";
 import { usePlatformAuthStore } from "@/views/platform/module/auth/store/platformAuth.store";
 
 interface PlatformProtectedRouteProps {
@@ -27,14 +27,10 @@ export const PlatformProtectedRoute = ({
 
   if (isChecking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 shadow-2xl">
-          <Spinner />
-          <span className="text-sm text-slate-200">
-            Verificando sesion de plataforma...
-          </span>
-        </div>
-      </div>
+      <AppLoadingScreen
+        message="Verificando plataforma"
+        description="Estamos validando tu sesion administrativa."
+      />
     );
   }
 
