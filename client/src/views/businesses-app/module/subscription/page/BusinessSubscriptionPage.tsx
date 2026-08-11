@@ -1,6 +1,7 @@
 import {
   CalendarClock,
   Headphones,
+  type LucideIcon,
   RefreshCcw,
   ShieldCheck,
   Users,
@@ -9,7 +10,7 @@ import {
 } from "lucide-react";
 import { Meta } from "@/components/Meta";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
@@ -41,12 +42,35 @@ const getUsagePercent = (usage?: SubscriptionResourceUsage): number => {
   return Math.min(Math.round((usage.current / usage.limit) * 100), 100);
 };
 
+type UsageCard = {
+  label: string;
+  usage?: SubscriptionResourceUsage;
+  Icon: LucideIcon;
+};
+
 export const BusinessSubscriptionPage = () => {
   const { subscriptionState, loading, error, refreshSubscription } =
     useBusinessSubscription();
   const subscription = subscriptionState?.subscription;
   const plan = subscriptionState?.plan;
   const notification = subscriptionState?.notification;
+  const usageCards: UsageCard[] = [
+    {
+      label: "Usuarios",
+      usage: subscriptionState?.usage.users,
+      Icon: Users,
+    },
+    {
+      label: "Productos",
+      usage: subscriptionState?.usage.products,
+      Icon: Package,
+    },
+    {
+      label: "Depositos",
+      usage: subscriptionState?.usage.deposits,
+      Icon: Warehouse,
+    },
+  ];
 
   return (
     <>
@@ -74,12 +98,15 @@ export const BusinessSubscriptionPage = () => {
               <RefreshCcw className={cn("h-4 w-4", loading && "animate-spin")} />
               Actualizar
             </Button>
-            <Button type="button" asChild>
-              <a href={getSupportContactUrl()} target="_blank" rel="noreferrer">
-                <Headphones className="h-4 w-4" />
-                Soporte
-              </a>
-            </Button>
+            <a
+              href={getSupportContactUrl()}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ variant: "default" })}
+            >
+              <Headphones className="h-4 w-4" />
+              Soporte
+            </a>
           </div>
         </div>
 
@@ -182,14 +209,10 @@ export const BusinessSubscriptionPage = () => {
 
         <Card>
           <CardContent className="grid gap-4 p-5 sm:grid-cols-3">
-            {[
-              ["Usuarios", subscriptionState?.usage.users, Users],
-              ["Productos", subscriptionState?.usage.products, Package],
-              ["Depositos", subscriptionState?.usage.deposits, Warehouse],
-            ].map(([label, usage, Icon]) => (
-              <div key={String(label)} className="rounded-xl border bg-muted/20 p-4">
+            {usageCards.map(({ label, usage, Icon }) => (
+              <div key={label} className="rounded-xl border bg-muted/20 p-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{String(label)}</p>
+                  <p className="text-sm text-muted-foreground">{label}</p>
                   <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <p className="mt-2 text-xl font-semibold">{getUsageLabel(usage)}</p>

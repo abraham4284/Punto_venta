@@ -139,7 +139,9 @@ export const RegisterPage = () => {
   const selectedBusinessType =
     businessTypes.find((item) => item.value === businessType)?.label ??
     "Selecciona un rubro";
-  const shouldShowLogo = Boolean(logoUrl) && failedLogoUrl !== logoUrl;
+  const logoPreviewUrl = logoUrl ?? "";
+  const shouldShowLogo =
+    Boolean(logoPreviewUrl) && failedLogoUrl !== logoPreviewUrl;
 
   return (
     <>
@@ -295,7 +297,7 @@ export const RegisterPage = () => {
                       <Input
                         id="logoUrl"
                         name="logoUrl"
-                        value={logoUrl ?? ""}
+                        value={logoPreviewUrl}
                         onChange={onInputChange}
                         placeholder="https://ejemplo.com/logo.png"
                         disabled={loading}
@@ -315,16 +317,16 @@ export const RegisterPage = () => {
                         <div className="flex min-h-28 items-center justify-center rounded-lg border border-dashed bg-muted/30 p-4">
                           {shouldShowLogo ? (
                             <img
-                              src={logoUrl}
+                              src={logoPreviewUrl}
                               alt="Logo del comercio"
                               className="max-h-24 max-w-full rounded-lg object-contain"
-                              onError={() => setFailedLogoUrl(logoUrl)}
+                              onError={() => setFailedLogoUrl(logoPreviewUrl)}
                             />
                           ) : (
                             <div className="flex flex-col items-center gap-2 text-muted-foreground">
                               <Building2 className="h-9 w-9" />
                               <span className="text-sm">
-                                {logoUrl
+                                {logoPreviewUrl
                                   ? "No se pudo cargar la imagen"
                                   : "Sin logo cargado"}
                               </span>

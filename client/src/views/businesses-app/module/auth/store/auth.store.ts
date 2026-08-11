@@ -74,6 +74,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return { success: false, message: loginRes.message };
       }
 
+      if (loginRes.data?.accessToken) {
+        localStorage.setItem("access_token", loginRes.data.accessToken);
+      }
+
       const { data: meRes } = await meRequest();
       if (!meRes.status) {
         set({ status: "unauthenticated", user: null, error: meRes.message });
@@ -89,9 +93,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         },
         error: null,
       });
-      if (loginRes.data?.accessToken) {
-        localStorage.setItem("access_token", loginRes.data.accessToken);
-      }
       await get().fetchUserProfile(meRes.data.idUser);
 
       return { success: true, message: loginRes.message ?? "Login exitoso" };

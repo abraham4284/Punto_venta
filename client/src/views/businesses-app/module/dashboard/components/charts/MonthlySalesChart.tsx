@@ -55,6 +55,12 @@ const formatNumber = (value: number): string => {
   }).format(value);
 };
 
+const toChartNumber = (value: unknown): number => {
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const chartConfig = {
   totalAmount: {
     label: "Ventas",
@@ -195,16 +201,16 @@ export const MonthlySalesChart = ({
               />
               <Tooltip
                 cursor={{ fill: "var(--muted)" }}
-                formatter={(value: number) => [
-                  formatMoney(value),
+                formatter={(value) => [
+                  formatMoney(toChartNumber(value)),
                   "Ventas",
                 ]}
                 labelFormatter={(label) => {
                   const selected = chartData.find(
-                    (item) => item.shortMonthName === label,
+                    (item) => item.shortMonthName === String(label),
                   );
 
-                  return selected?.monthName || label;
+                  return selected?.monthName || String(label);
                 }}
               />
               <Bar
@@ -216,8 +222,10 @@ export const MonthlySalesChart = ({
                   position="top"
                   offset={10}
                   className="fill-foreground text-[11px]"
-                  formatter={(value: number) =>
-                    value > 0 ? formatMoney(value) : ""
+                  formatter={(value) =>
+                    toChartNumber(value) > 0
+                      ? formatMoney(toChartNumber(value))
+                      : ""
                   }
                 />
               </Bar>
@@ -249,16 +257,16 @@ export const MonthlySalesChart = ({
               />
               <Tooltip
                 cursor={{ stroke: "var(--border)" }}
-                formatter={(value: number) => [
-                  `${formatNumber(value)} ventas`,
+                formatter={(value) => [
+                  `${formatNumber(toChartNumber(value))} ventas`,
                   "Operaciones",
                 ]}
                 labelFormatter={(label) => {
                   const selected = chartData.find(
-                    (item) => item.shortMonthName === label,
+                    (item) => item.shortMonthName === String(label),
                   );
 
-                  return selected?.monthName || label;
+                  return selected?.monthName || String(label);
                 }}
               />
               <Line

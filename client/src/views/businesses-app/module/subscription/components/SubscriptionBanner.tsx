@@ -1,6 +1,6 @@
 import { AlertTriangle, Headphones, RefreshCcw } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   formatSubscriptionDate,
@@ -40,7 +40,7 @@ export const SubscriptionBanner = () => {
             {notification.reason && (
               <p className="text-xs opacity-75">Motivo: {notification.reason}</p>
             )}
-            {subscriptionState.timeline.relevantEndDate && (
+            {subscriptionState?.timeline.relevantEndDate && (
               <p className="text-xs opacity-75">
                 Fecha relevante:{" "}
                 {formatSubscriptionDate(subscriptionState.timeline.relevantEndDate)}
@@ -50,15 +50,21 @@ export const SubscriptionBanner = () => {
         </div>
 
         <div className="flex flex-wrap gap-2 lg:justify-end">
-          <Button type="button" asChild variant="outline" size="sm">
-            <Link to="/admin/subscription">Ver suscripcion</Link>
-          </Button>
-          <Button type="button" asChild variant="outline" size="sm">
-            <a href={getSupportContactUrl()} target="_blank" rel="noreferrer">
-              <Headphones className="h-4 w-4" />
-              Soporte
-            </a>
-          </Button>
+          <Link
+            to="/admin/subscription"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Ver suscripcion
+          </Link>
+          <a
+            href={getSupportContactUrl()}
+            target="_blank"
+            rel="noreferrer"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <Headphones className="h-4 w-4" />
+            Soporte
+          </a>
           <Button
             type="button"
             variant="ghost"

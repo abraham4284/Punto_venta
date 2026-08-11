@@ -1,4 +1,4 @@
-import type { Response } from "express";
+import type { CookieOptions, Response } from "express";
 
 const isProduction = process.env.NODE_ENV === "production";
 const ACCESS_TOKEN_MAX_AGE_MS = 1 * 60 * 60 * 1000;
@@ -6,8 +6,8 @@ const REFRESH_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const baseCookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: "lax" as const,
-};
+  sameSite: isProduction ? "none" : "lax",
+} satisfies CookieOptions;
 
 export const setAuthCookies = (
   res: Response,
