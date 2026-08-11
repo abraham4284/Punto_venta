@@ -3,6 +3,7 @@ import { Plus, ScanLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Meta } from "@/components/Meta";
+import { AppLoadingScreen } from "@/components/loading/AppLoadingScreen";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -63,10 +64,21 @@ export const CreateSalePage = () => {
   const [customerSearch, setCustomerSearch] = useState("");
   const [depositSearch, setDepositSearch] = useState("");
   const [barcodeSearch, setBarcodeSearch] = useState("");
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const defaultDepositWasSelected = useRef(false);
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
-  const { customers, getCustomers, resetCustomers } = useCustomers();
-  const { deposits, getDeposits, resetDeposits } = useDeposits();
+  const {
+    customers,
+    getCustomers,
+    resetCustomers,
+    loading: customersLoading,
+  } = useCustomers();
+  const {
+    deposits,
+    getDeposits,
+    resetDeposits,
+    loading: depositsLoading,
+  } = useDeposits();
   const {
     activePaymentMethods,
     getPaymentMethods,
@@ -134,12 +146,28 @@ export const CreateSalePage = () => {
     return `${selectedPaymentMethod.name} · ${paymentMethodTypeLabels[selectedPaymentMethod.code]}`;
   }, [activePaymentMethods, header.idPaymentMethod]);
 
+  const isPreparingSaleView =
+    !initialDataLoaded ||
+    customersLoading ||
+    depositsLoading ||
+    paymentMethodsLoading ||
+    cashLoading;
+
   useEffect(() => {
-    getCustomers();
-    getDeposits();
-    void getPaymentMethods(true);
-    void refreshCashDashboard();
+    let isMounted = true;
+
+    void Promise.allSettled([
+      getCustomers(),
+      getDeposits(),
+      getPaymentMethods(true),
+    ]).finally(() => {
+      if (isMounted) {
+        setInitialDataLoaded(true);
+      }
+    });
+
     return () => {
+      isMounted = false;
       resetCustomers();
       resetDeposits();
     };
@@ -147,7 +175,6 @@ export const CreateSalePage = () => {
     getCustomers,
     getDeposits,
     getPaymentMethods,
-    refreshCashDashboard,
     resetCustomers,
     resetDeposits,
   ]);
@@ -208,9 +235,13 @@ export const CreateSalePage = () => {
 
     if (!defaultDeposit) return;
 
-    defaultDepositWasSelected.current = true;
-    setDepositSearch(defaultDeposit.name);
-    void changeDeposit(defaultDeposit.idDeposit);
+    const timeoutId = window.setTimeout(() => {
+      defaultDepositWasSelected.current = true;
+      setDepositSearch(defaultDeposit.name);
+      void changeDeposit(defaultDeposit.idDeposit);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [changeDeposit, deposits, header.idDeposit, depositSearch]);
 
   useEffect(() => {
@@ -359,6 +390,13 @@ export const CreateSalePage = () => {
   return (
     <>
       <Meta title="Nueva Venta" />
+      {isPreparingSaleView && (
+        <AppLoadingScreen
+          variant="overlay"
+          message="Preparando punto de venta"
+          description="Cargando caja, depositos, clientes y metodos de pago."
+        />
+      )}
       <main className="space-y-6 bg-white p-2 md:p-6">
       <section>
         <h1 className="text-2xl font-bold tracking-tight">Nueva venta</h1>
@@ -628,6 +666,13 @@ export const CreateSalePage = () => {
         onResetForm={resetSale}
         onViewDetails={handleViewSaleDetails}
       />
+      {saving && (
+        <AppLoadingScreen
+          variant="overlay"
+          message="Procesando venta"
+          description="Estamos registrando la operacion, actualizando stock y caja."
+        />
+      )}
       <Toaster position="top-right" reverseOrder={false} />
       </main>
     </>
