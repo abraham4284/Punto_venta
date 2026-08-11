@@ -4,6 +4,7 @@ import axios, {
 } from "axios";
 
 const URL_BACK = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+const BUSINESS_TOKEN_KEY = "access_token";
 
 export const axiosInstance = axios.create({
   baseURL: URL_BACK,
@@ -72,7 +73,14 @@ const refreshSession = (): Promise<void> => {
   if (!refreshPromise) {
     refreshPromise = refreshClient
       .post("/refresh")
-      .then(() => undefined)
+      .then((response) => {
+        const accessToken = (response.data as { data?: { accessToken?: string } })
+          .data?.accessToken;
+
+        if (accessToken) {
+          localStorage.setItem(BUSINESS_TOKEN_KEY, accessToken);
+        }
+      })
       .finally(() => {
         refreshPromise = null;
       });
@@ -186,5 +194,15 @@ axiosInstance.interceptors.response.use(
     }
   },
 );
+
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem(BUSINESS_TOKEN_KEY);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
 
 export default axiosInstance;
