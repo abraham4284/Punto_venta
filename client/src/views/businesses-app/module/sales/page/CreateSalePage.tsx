@@ -3,7 +3,8 @@ import { Plus, ScanLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Meta } from "@/components/Meta";
-import { AppLoadingScreen } from "@/components/loading/AppLoadingScreen";
+import { ViewLoadingState } from "@/components/loading/ViewLoadingState";
+import { ViewProcessingOverlay } from "@/components/loading/ViewProcessingOverlay";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,7 @@ export const CreateSalePage = () => {
   const [depositSearch, setDepositSearch] = useState("");
   const [barcodeSearch, setBarcodeSearch] = useState("");
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const [initialViewResolved, setInitialViewResolved] = useState(false);
   const defaultDepositWasSelected = useRef(false);
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
   const {
@@ -147,11 +149,12 @@ export const CreateSalePage = () => {
   }, [activePaymentMethods, header.idPaymentMethod]);
 
   const isPreparingSaleView =
-    !initialDataLoaded ||
-    customersLoading ||
-    depositsLoading ||
-    paymentMethodsLoading ||
-    cashLoading;
+    !initialViewResolved &&
+    (!initialDataLoaded ||
+      customersLoading ||
+      depositsLoading ||
+      paymentMethodsLoading ||
+      cashLoading);
 
   useEffect(() => {
     let isMounted = true;
@@ -178,6 +181,16 @@ export const CreateSalePage = () => {
     resetCustomers,
     resetDeposits,
   ]);
+
+  useEffect(() => {
+    if (isPreparingSaleView || initialViewResolved) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setInitialViewResolved(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialViewResolved, isPreparingSaleView]);
 
   useEffect(() => {
     const nextCashSessionId = currentSession?.idCashSession ?? null;
@@ -390,18 +403,25 @@ export const CreateSalePage = () => {
   return (
     <>
       <Meta title="Nueva Venta" />
-      {isPreparingSaleView && (
-        <AppLoadingScreen
-          variant="overlay"
-          message="Preparando punto de venta"
-          description="Cargando caja, depositos, clientes y metodos de pago."
-        />
-      )}
-      <main className="space-y-6 bg-white p-2 md:p-6">
+      <main className="relative space-y-6 bg-white p-2 md:p-6">
       <section>
         <h1 className="text-2xl font-bold tracking-tight">Nueva venta</h1>
         <p className="text-muted-foreground">Carga rapida de venta</p>
       </section>
+
+      {isPreparingSaleView ? (
+        <ViewLoadingState
+          message="Preparando punto de venta..."
+          description="Cargando caja, depositos y configuracion."
+        />
+      ) : (
+        <>
+          {saving && (
+            <ViewProcessingOverlay
+              message="Procesando venta..."
+              description="Registrando la operacion y actualizando el stock."
+            />
+          )}
 
       <POSHotkeysLegend />
 
@@ -666,12 +686,7 @@ export const CreateSalePage = () => {
         onResetForm={resetSale}
         onViewDetails={handleViewSaleDetails}
       />
-      {saving && (
-        <AppLoadingScreen
-          variant="overlay"
-          message="Procesando venta"
-          description="Estamos registrando la operacion, actualizando stock y caja."
-        />
+        </>
       )}
       <Toaster position="top-right" reverseOrder={false} />
       </main>

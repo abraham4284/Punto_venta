@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowDownCircle, ArrowUpCircle, LockKeyhole, Plus, RefreshCcw } from "lucide-react";
 import { Meta } from "@/components/Meta";
-import { AppLoadingScreen } from "@/components/loading/AppLoadingScreen";
+import { ViewLoadingState } from "@/components/loading/ViewLoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Toaster } from "react-hot-toast";
 import { useCash } from "../hooks/useCash";
 import { CloseCashSessionModal } from "../components/CloseCashSessionModal";
@@ -29,6 +30,7 @@ export const CashPage = () => {
   const [openModal, setOpenModal] = useState(false);
   const [movementModal, setMovementModal] = useState(false);
   const [closeModal, setCloseModal] = useState(false);
+  const [initialLoadResolved, setInitialLoadResolved] = useState(false);
   const {
     registers,
     currentSession,
@@ -43,20 +45,23 @@ export const CashPage = () => {
     createMovement,
   } = useCash();
 
+  useEffect(() => {
+    if (loading || initialLoadResolved) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setInitialLoadResolved(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [initialLoadResolved, loading]);
+
   const hasOpenSession = currentSession?.status === "OPEN";
-  const isInitialLoading =
-    loading && !currentSession && !summary && registers.length === 0;
+  const isInitialLoading = loading && !initialLoadResolved;
+  const isRefreshing = loading && initialLoadResolved;
 
   return (
     <>
       <Meta title="Caja" />
-      {isInitialLoading && (
-        <AppLoadingScreen
-          variant="overlay"
-          message="Cargando caja"
-          description="Estamos preparando la caja actual y sus movimientos."
-        />
-      )}
       <main className="space-y-6 p-2 md:p-6">
         <section className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
           <div>
@@ -66,9 +71,16 @@ export const CashPage = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => void refreshDashboard()}>
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Actualizar
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isRefreshing}
+              onClick={() => void refreshDashboard()}
+            >
+              <RefreshCcw
+                className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")}
+              />
+              {isRefreshing ? "Actualizando..." : "Actualizar"}
             </Button>
             {hasOpenSession ? (
               <>
@@ -95,7 +107,14 @@ export const CashPage = () => {
 
         {error && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
 
-        {!hasOpenSession && !loading && (
+        {isInitialLoading && (
+          <ViewLoadingState
+            message="Cargando caja..."
+            description="Obteniendo el estado actual de la caja."
+          />
+        )}
+
+        {!hasOpenSession && (!loading || initialLoadResolved) && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
               <h2 className="text-xl font-semibold">No hay caja abierta</h2>
