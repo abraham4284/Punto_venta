@@ -96,6 +96,32 @@ const isQuantityAllowedForUnit = (
   return Number.isInteger(quantity);
 };
 
+const getMinimumQuantity = (
+  operationType: StockOperationType | "",
+  unitType: ProductUnitType,
+): string => {
+  if (operationType === "INITIAL_STOCK") return "0";
+  return unitType === "UNIT" ? "1" : "0.01";
+};
+
+const validateQuantityByOperation = (
+  quantityValue: string,
+  operationType: StockOperationType | "",
+): string | null => {
+  const quantityIsEmpty = quantityValue.trim() === "";
+  const quantity = Number(quantityValue);
+
+  if (quantityIsEmpty || Number.isNaN(quantity)) {
+    return "Ingresa una cantidad valida";
+  }
+
+  if (operationType === "INITIAL_STOCK") {
+    return quantity < 0 ? "La cantidad inicial no puede ser negativa" : null;
+  }
+
+  return quantity <= 0 ? "La cantidad debe ser mayor a cero" : null;
+};
+
 export const ModalFormStock = ({
   isOpen,
   onClose,
@@ -128,18 +154,23 @@ export const ModalFormStock = ({
   );
   const selectedUnitType = selectedProduct?.unitType ?? "UNIT";
   const selectedUnitOption = getUnitOption(selectedUnitType);
+  const isInitialStock = formSate.operationType === "INITIAL_STOCK";
   const quantityStep = selectedUnitType === "UNIT" ? "1" : "0.01";
-  const quantityMin = selectedUnitType === "UNIT" ? "1" : "0.01";
+  const quantityMin = getMinimumQuantity(
+    formSate.operationType,
+    selectedUnitType,
+  );
   const quantityPlaceholder =
     selectedUnitType === "UNIT"
-      ? "Ej: 5"
+      ? isInitialStock
+        ? "Ej: 0"
+        : "Ej: 5"
       : `Ej: 10.5 ${selectedUnitOption?.shortLabel ?? ""}`.trim();
   const isTransfer = formSate.operationType === "TRANSFER";
   const isAdjustment =
     formSate.operationType === "ADJUSTMENT_IN" ||
     formSate.operationType === "ADJUSTMENT_OUT";
-  const usesSingleDeposit =
-    formSate.operationType === "INITIAL_STOCK" || isAdjustment;
+  const usesSingleDeposit = isInitialStock || isAdjustment;
   const depositEqualityError =
     isTransfer &&
     formSate.idDepositFrom &&
@@ -231,6 +262,7 @@ export const ModalFormStock = ({
 
   const validateForm = (): boolean => {
     const nextErrors: Record<string, string> = {};
+    const quantityIsEmpty = formSate.quantity.trim() === "";
     const quantity = Number(formSate.quantity);
 
     if (!formSate.idProduct) {
@@ -257,12 +289,17 @@ export const ModalFormStock = ({
       nextErrors.idDepositTo = depositEqualityError;
     }
 
-    if (!formSate.quantity || Number.isNaN(quantity) || quantity <= 0) {
-      nextErrors.quantity = "La cantidad debe ser mayor a cero";
+    const quantityError = validateQuantityByOperation(
+      formSate.quantity,
+      formSate.operationType,
+    );
+
+    if (quantityError) {
+      nextErrors.quantity = quantityError;
     }
 
     if (
-      formSate.quantity &&
+      !quantityIsEmpty &&
       !Number.isNaN(quantity) &&
       !isQuantityAllowedForUnit(quantity, selectedUnitType)
     ) {
@@ -617,9 +654,13 @@ export const ModalFormStock = ({
               placeholder={quantityPlaceholder}
             />
             <p className="text-xs text-muted-foreground">
-              {selectedUnitType === "UNIT"
-                ? "Este producto se maneja por unidad, por eso no acepta decimales."
-                : "Este producto permite cantidades decimales."}
+              {isInitialStock
+                ? selectedUnitType === "UNIT"
+                  ? "El alta inicial permite 0 y, por ser unidad, no acepta decimales."
+                  : "El alta inicial permite 0 y cantidades decimales."
+                : selectedUnitType === "UNIT"
+                  ? "Este producto se maneja por unidad, por eso no acepta decimales."
+                  : "Este producto permite cantidades decimales."}
             </p>
             {errors.quantity && (
               <p className="text-sm text-destructive">{errors.quantity}</p>

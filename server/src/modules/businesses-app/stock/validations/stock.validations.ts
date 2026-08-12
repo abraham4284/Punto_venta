@@ -49,7 +49,7 @@ export const createInitialStockSchema = z
 
     quantity: z
       .number({ error: "La cantidad es obligatoria" })
-      .positive("La cantidad inicial debe ser mayor a cero"),
+      .min(0, "La cantidad inicial no puede ser negativa"),
 
     observation: z
       .string()

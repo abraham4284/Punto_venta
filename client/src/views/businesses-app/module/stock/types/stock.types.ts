@@ -23,9 +23,12 @@ export interface StockResponse {
   businessName: string;
   idProduct: number;
   productName: string;
+  barcode: string | null;
   productImageUrl: string | null;
   unitType: ProductUnitType;
   categoryName: string;
+  priceCost: number;
+  priceSale: number;
   idDeposit: number;
   depositName: string;
   quantity: number;
