@@ -1,4 +1,4 @@
-import type { RowDataPacket } from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
 import { mapStock } from "../helpers/stock.mapper.js";
 import type {
@@ -19,9 +19,126 @@ import type {
   StockResponse,
 } from "../types/index.js";
 
+interface ExistenceRow extends RowDataPacket {
+  total: number;
+}
+
+async function createInitialStockZeroService(
+  data: CreateInitialStockPayload,
+): Promise<StockResponse> {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [existingStockRows] = await connection.query<ExistenceRow[]>(
+      `SELECT COUNT(*) AS total
+         FROM stock
+        WHERE idBusiness = ?
+          AND idProduct = ?
+          AND idDeposit = ?`,
+      [data.idBusiness, data.idProduct, data.idDeposit],
+    );
+
+    if (Number(existingStockRows[0]?.total ?? 0) > 0) {
+      throw new Error(
+        "El producto ya se encuentra registrado en este deposito. Realice un ajuste de stock.",
+      );
+    }
+
+    const [productRows] = await connection.query<ExistenceRow[]>(
+      `SELECT COUNT(*) AS total
+         FROM products
+        WHERE idBusiness = ?
+          AND idProduct = ?
+          AND is_active = 1`,
+      [data.idBusiness, data.idProduct],
+    );
+
+    if (Number(productRows[0]?.total ?? 0) === 0) {
+      throw new Error("El producto indicado no existe o no pertenece al negocio");
+    }
+
+    const [depositRows] = await connection.query<ExistenceRow[]>(
+      `SELECT COUNT(*) AS total
+         FROM deposits
+        WHERE idBusiness = ?
+          AND idDeposit = ?
+          AND is_active = 1`,
+      [data.idBusiness, data.idDeposit],
+    );
+
+    if (Number(depositRows[0]?.total ?? 0) === 0) {
+      throw new Error("El deposito indicado no existe o no pertenece al negocio");
+    }
+
+    const [insertResult] = await connection.query<ResultSetHeader>(
+      `INSERT INTO stock (
+        idBusiness,
+        idProduct,
+        idDeposit,
+        quantity,
+        updated_at
+      )
+      VALUES (?, ?, ?, 0, NOW())`,
+      [data.idBusiness, data.idProduct, data.idDeposit],
+    );
+
+    const [stockRows] = await connection.query<RowDataPacket[]>(
+      `SELECT
+        s.idStock,
+        s.idBusiness,
+        b.name AS business_name,
+        s.idProduct,
+        p.name AS product_name,
+        p.image_url AS product_image_url,
+        p.unit_type AS product_unit_type,
+        pc.name AS category_name,
+        s.idDeposit,
+        d.name AS deposit_name,
+        s.quantity,
+        s.updated_at,
+        p.stock_min
+      FROM stock s
+      INNER JOIN businesses b ON b.idBusiness = s.idBusiness
+      INNER JOIN products p
+        ON p.idProduct = s.idProduct
+        AND p.idBusiness = s.idBusiness
+      INNER JOIN deposits d
+        ON d.idDeposit = s.idDeposit
+        AND d.idBusiness = s.idBusiness
+      INNER JOIN product_categories pc
+        ON p.idProductCategory = pc.idProductCategory
+        AND pc.idBusiness = s.idBusiness
+      WHERE s.idBusiness = ?
+        AND s.idStock = ?
+      LIMIT 1`,
+      [data.idBusiness, insertResult.insertId],
+    );
+    const stock = (stockRows as unknown as StockDbRow[])[0];
+
+    if (!stock) {
+      throw new Error("No se pudo registrar el stock inicial");
+    }
+
+    await connection.commit();
+
+    return mapStock(stock);
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 export async function createInitialStockService(
   data: CreateInitialStockPayload,
 ): Promise<StockResponse> {
+  if (data.quantity === 0) {
+    return createInitialStockZeroService(data);
+  }
+
   const [rows] = await pool.query<RowDataPacket[]>(
     "CALL sp_create_initial_stock(?, ?, ?, ?, ?, ?)",
     [

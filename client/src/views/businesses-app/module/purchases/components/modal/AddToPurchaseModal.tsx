@@ -34,6 +34,7 @@ type Props = {
   isOpen: boolean;
   product: ProductResponse | null;
   deposits: DepositResponse[];
+  defaultDepositId?: number | null;
   onClose: () => void;
   onConfirm: (item: PurchaseCartItem) => void;
 };
@@ -62,13 +63,48 @@ export const AddToPurchaseModal = ({
   isOpen,
   product,
   deposits,
+  defaultDepositId = null,
   onClose,
   onConfirm,
 }: Props) => {
   const activeDeposits = useMemo(() => {
     return deposits.filter((deposit) => deposit.isActive);
   }, [deposits]);
-  const defaultDeposit = activeDeposits.find((deposit) => deposit.isDefault);
+  const defaultDeposit = activeDeposits.find((deposit) => {
+    if (defaultDepositId) return deposit.idDeposit === defaultDepositId;
+    return deposit.isDefault;
+  });
+
+  return (
+    <AddToPurchaseModalContent
+      key={`${product?.idProduct ?? "none"}-${defaultDeposit?.idDeposit ?? "none"}-${isOpen ? "open" : "closed"}`}
+      isOpen={isOpen}
+      product={product}
+      activeDeposits={activeDeposits}
+      defaultDeposit={defaultDeposit}
+      onClose={onClose}
+      onConfirm={onConfirm}
+    />
+  );
+};
+
+type AddToPurchaseModalContentProps = {
+  isOpen: boolean;
+  product: ProductResponse | null;
+  activeDeposits: DepositResponse[];
+  defaultDeposit: DepositResponse | undefined;
+  onClose: () => void;
+  onConfirm: (item: PurchaseCartItem) => void;
+};
+
+const AddToPurchaseModalContent = ({
+  isOpen,
+  product,
+  activeDeposits,
+  defaultDeposit,
+  onClose,
+  onConfirm,
+}: AddToPurchaseModalContentProps) => {
   const [formState, setFormState] = useState<FormState>(() => ({
     ...defaultFormState,
     idDeposit: defaultDeposit ? String(defaultDeposit.idDeposit) : "",
@@ -225,7 +261,7 @@ export const AddToPurchaseModal = ({
                 <Label>Cantidad</Label>
                 <Input
                   type="number"
-                  min="0"
+                  min={product.unitType === "UNIT" ? "1" : "0.001"}
                   step={product.unitType === "UNIT" ? "1" : "0.001"}
                   value={formState.quantity}
                   onChange={(event) =>

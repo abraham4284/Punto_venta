@@ -1,4 +1,4 @@
-import { Settings2 } from "lucide-react";
+import { Settings2, ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -23,7 +23,9 @@ type Props = {
   loading: boolean;
   pagination: AdvancedStockPagination;
   onQuickAdjust: (stock: StockResponse) => void;
+  onAddToPurchase?: (stock: StockResponse) => void;
   onPageChange: (page: number) => void;
+  canCreatePurchase?: boolean;
 };
 
 const formatNumber = (value: number) => {
@@ -56,7 +58,9 @@ export const TableStock = ({
   loading,
   pagination,
   onQuickAdjust,
+  onAddToPurchase,
   onPageChange,
+  canCreatePurchase = false,
 }: Props) => {
   if (loading) {
     return (
@@ -180,16 +184,30 @@ export const TableStock = ({
                 </TableCell>
 
                 <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => onQuickAdjust(stock)}
-                    title="Ajuste rapido"
-                    aria-label={`Ajuste rapido para ${stock.productName}`}
-                  >
-                    <Settings2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    {canCreatePurchase && onAddToPurchase && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => onAddToPurchase(stock)}
+                        title="Agregar a compra"
+                        aria-label={`Agregar ${stock.productName} a compra`}
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => onQuickAdjust(stock)}
+                      title="Ajuste rapido"
+                      aria-label={`Ajuste rapido para ${stock.productName}`}
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             );

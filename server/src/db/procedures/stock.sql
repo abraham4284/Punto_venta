@@ -49,9 +49,9 @@ BEGIN
     AND idProduct = p_idProduct
   LIMIT 1;
 
-  IF p_quantity IS NULL OR p_quantity <= 0 THEN
+  IF p_quantity IS NULL OR p_quantity < 0 THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'La cantidad debe ser mayor a cero';
+      SET MESSAGE_TEXT = 'La cantidad inicial no puede ser negativa';
   END IF;
 
   IF v_unit_type = 'UNIT' AND p_quantity <> FLOOR(p_quantity) THEN
@@ -89,38 +89,40 @@ BEGIN
 
   SET v_idStock = LAST_INSERT_ID();
 
-  INSERT INTO stock_movements (
-    idBusiness,
-    idProduct,
-    idUser,
-    movement_type,
-    idDepositFrom,
-    idDepositTo,
-    quantity,
-    reference_type,
-    reference_id,
-    observation,
-    created_at
-  )
-  VALUES (
-    p_idBusiness,
-    p_idProduct,
-    p_idUser,
-    'ADJUSTMENT_IN',
-    NULL,
-    p_idDeposit,
-    p_quantity,
-    'ADJUSTMENT',
-    NULL,
-    p_observation,
-    NOW()
-  );
+  IF p_quantity > 0 THEN
+    INSERT INTO stock_movements (
+      idBusiness,
+      idProduct,
+      idUser,
+      movement_type,
+      idDepositFrom,
+      idDepositTo,
+      quantity,
+      reference_type,
+      reference_id,
+      observation,
+      created_at
+    )
+    VALUES (
+      p_idBusiness,
+      p_idProduct,
+      p_idUser,
+      'ADJUSTMENT_IN',
+      NULL,
+      p_idDeposit,
+      p_quantity,
+      'ADJUSTMENT',
+      NULL,
+      p_observation,
+      NOW()
+    );
 
-  SET v_idMovement = LAST_INSERT_ID();
+    SET v_idMovement = LAST_INSERT_ID();
 
-  UPDATE stock_movements
-  SET reference_id = v_idMovement
-  WHERE idStockMovement = v_idMovement;
+    UPDATE stock_movements
+    SET reference_id = v_idMovement
+    WHERE idStockMovement = v_idMovement;
+  END IF;
 
   COMMIT;
 

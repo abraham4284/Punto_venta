@@ -1,10 +1,12 @@
-import { useEffect } from "react";
-import { Plus } from "lucide-react";
-import { Toaster } from "react-hot-toast";
+import { useEffect, useState } from "react";
+import { Plus, ShoppingCart } from "lucide-react";
+import { toast, Toaster } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUtilsState } from "@/hooks/useUtilsState";
+import { useCan } from "@/views/businesses-app/hooks/useCan";
 
 import {
   CardStockMetric,
@@ -13,12 +15,50 @@ import {
   StockFilter,
   TableStock,
 } from "../components";
+import { AddToPurchaseModal } from "../../purchases/components/modal/AddToPurchaseModal";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
 import { useProducts } from "../../products/hooks/useProducts";
+import type { ProductResponse } from "../../products/types/products.types";
+import type { PurchaseCartItem } from "../../purchases/types";
+import { usePurchaseCartStore } from "../../purchases/store/purchaseCart.store";
 import { useStock } from "../hooks/useStock";
 import type { StockResponse } from "../types/stock.types";
 
+const mapStockToPurchaseProduct = (stock: StockResponse): ProductResponse => {
+  return {
+    idProduct: stock.idProduct,
+    idDeposit: stock.idDeposit,
+    idBusiness: stock.idBusiness,
+    idProductCategory: 0,
+    categoryName: stock.categoryName,
+    productCategoryName: stock.categoryName,
+    barcode: stock.barcode,
+    name: stock.productName,
+    description: null,
+    imageUrl: stock.productImageUrl,
+    priceCost: stock.priceCost,
+    priceSale: stock.priceSale,
+    priceWholesale: null,
+    unitType: stock.unitType,
+    stock: stock.quantity,
+    stockMin: stock.stock_min,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: stock.updatedAt,
+  };
+};
+
 export const StockPage = () => {
+  const navigate = useNavigate();
+  const canCreatePurchase = useCan("purchases.create");
+  const cart = usePurchaseCartStore((state) => state.cart);
+  const addPurchaseItem = usePurchaseCartStore((state) => state.addItem);
+  const [purchaseProduct, setPurchaseProduct] =
+    useState<ProductResponse | null>(null);
+  const [purchaseDepositId, setPurchaseDepositId] = useState<number | null>(
+    null,
+  );
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const {
     getStock,
     refreshStock,
@@ -80,6 +120,17 @@ export const StockPage = () => {
     setIsOpenQuickAdjust(true);
   };
 
+  const handleOpenPurchaseModal = (stock: StockResponse) => {
+    setPurchaseProduct(mapStockToPurchaseProduct(stock));
+    setPurchaseDepositId(stock.idDeposit);
+    setIsPurchaseModalOpen(true);
+  };
+
+  const handleAddPurchaseItem = (item: PurchaseCartItem) => {
+    addPurchaseItem(item);
+    toast.success("Producto agregado al carrito de compra");
+  };
+
   return (
     <>
       <Meta title="Stock" />
@@ -94,10 +145,22 @@ export const StockPage = () => {
           </p>
         </div>
 
-        <Button type="button" onClick={handleOpenCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo stock
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {canCreatePurchase && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/admin/purchases")}
+            >
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Ir a compra ({cart.length})
+            </Button>
+          )}
+          <Button type="button" onClick={handleOpenCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo stock
+          </Button>
+        </div>
       </section>
 
       <CardStockMetric metrics={metrics} />
@@ -117,6 +180,8 @@ export const StockPage = () => {
             pagination={pagination}
             onPageChange={changeStockPage}
             onQuickAdjust={handleOpenQuickAdjust}
+            onAddToPurchase={handleOpenPurchaseModal}
+            canCreatePurchase={canCreatePurchase}
           />
         </CardContent>
       </Card>
@@ -136,6 +201,14 @@ export const StockPage = () => {
         fetchCurrentStockBalance={fetchCurrentStockBalance}
         onClose={closeQuickAdjustModal}
         onSuccess={refreshStock}
+      />
+      <AddToPurchaseModal
+        isOpen={isPurchaseModalOpen}
+        product={purchaseProduct}
+        deposits={deposits}
+        defaultDepositId={purchaseDepositId}
+        onClose={() => setIsPurchaseModalOpen(false)}
+        onConfirm={handleAddPurchaseItem}
       />
       <Toaster position="top-right" reverseOrder={false} />
       </main>

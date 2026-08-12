@@ -8,12 +8,12 @@ import {
   getPurchaseByIdApi,
   getPurchasesApi,
 } from "../api/purchases.api";
+import { usePurchaseCartStore } from "../store/purchaseCart.store";
 import type {
   ApiErrorResponse,
   CreatePurchasePayload,
   FieldError,
   PaginatedPurchasesResponse,
-  PurchaseCartItem,
   PurchaseFilters,
   PurchaseResponse,
   PurchaseWithDetailsResponse,
@@ -58,7 +58,11 @@ const getApiErrors = (error: unknown, fallback: string) => {
 };
 
 export const usePurchases = () => {
-  const [cart, setCart] = useState<PurchaseCartItem[]>([]);
+  const cart = usePurchaseCartStore((state) => state.cart);
+  const addToCart = usePurchaseCartStore((state) => state.addItem);
+  const removeFromCart = usePurchaseCartStore((state) => state.removeItem);
+  const updateCartItem = usePurchaseCartStore((state) => state.updateItem);
+  const clearCart = usePurchaseCartStore((state) => state.clearCart);
   const [filters, setFilters] = useState<PurchaseFilters>(initialFilters);
   const [data, setData] =
     useState<PaginatedPurchasesResponse>(initialPaginatedData);
@@ -83,71 +87,6 @@ export const usePurchases = () => {
       total: Number(total.toFixed(2)),
     };
   }, [cart]);
-
-  const addToCart = (item: PurchaseCartItem) => {
-    setCart((current) => {
-      const existingIndex = current.findIndex(
-        (cartItem) =>
-          cartItem.idProduct === item.idProduct &&
-          cartItem.idDeposit === item.idDeposit,
-      );
-
-      if (existingIndex < 0) return [...current, item];
-
-      return current.map((cartItem, index) => {
-        if (index !== existingIndex) return cartItem;
-
-        const quantity = cartItem.quantity + item.quantity;
-        const discountAmount = cartItem.discountAmount + item.discountAmount;
-        const subtotal = quantity * item.unitPrice - discountAmount;
-
-        return {
-          ...cartItem,
-          quantity,
-          unitPrice: item.unitPrice,
-          discountAmount: Number(discountAmount.toFixed(2)),
-          subtotal: Number(subtotal.toFixed(2)),
-        };
-      });
-    });
-  };
-
-  const removeFromCart = (idProduct: number, idDeposit: number) => {
-    setCart((current) =>
-      current.filter(
-        (item) => item.idProduct !== idProduct || item.idDeposit !== idDeposit,
-      ),
-    );
-  };
-
-  const updateCartItem = (
-    idProduct: number,
-    idDeposit: number,
-    nextItem: Partial<PurchaseCartItem>,
-  ) => {
-    setCart((current) =>
-      current.map((item) => {
-        if (item.idProduct !== idProduct || item.idDeposit !== idDeposit) {
-          return item;
-        }
-
-        const quantity = nextItem.quantity ?? item.quantity;
-        const unitPrice = nextItem.unitPrice ?? item.unitPrice;
-        const discountAmount = nextItem.discountAmount ?? item.discountAmount;
-
-        return {
-          ...item,
-          ...nextItem,
-          quantity,
-          unitPrice,
-          discountAmount,
-          subtotal: Number((quantity * unitPrice - discountAmount).toFixed(2)),
-        };
-      }),
-    );
-  };
-
-  const clearCart = () => setCart([]);
 
   const fetchPurchases = useCallback(async (nextFilters?: PurchaseFilters) => {
     try {
@@ -271,7 +210,6 @@ export const usePurchases = () => {
   const resetPurchases = useCallback(() => {
     submitLockRef.current = false;
     currentPurchaseIdempotencyKeyRef.current = null;
-    setCart([]);
     setFilters(initialFilters);
     setData(initialPaginatedData);
     setSelectedPurchase(null);
