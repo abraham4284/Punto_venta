@@ -4,16 +4,38 @@ import type {
   ApiResponse,
   CreateProductPayload,
   ProductCategoryOption,
+  ProductsListResponse,
+  ProductsQueryParams,
   ProductResponse,
   UpdateProductPricesPayload,
   UpdateProductPayload,
   UpdateProductStatusPayload,
 } from "../types/products.types";
 
-export const getProductsRequest = (): Promise<
-  AxiosResponse<ApiResponse<ProductResponse[]>>
-> => {
-  return axios.get("/products");
+const appendParam = (
+  params: URLSearchParams,
+  key: string,
+  value: string | number | boolean | null | undefined,
+) => {
+  if (value === null || value === undefined || value === "") return;
+
+  params.set(key, String(value));
+};
+
+export const getProductsRequest = (
+  query: ProductsQueryParams = {},
+): Promise<AxiosResponse<ApiResponse<ProductsListResponse>>> => {
+  const params = new URLSearchParams();
+
+  appendParam(params, "page", query.page);
+  appendParam(params, "limit", query.limit);
+  appendParam(params, "search", query.search);
+  appendParam(params, "idProductCategory", query.idProductCategory);
+  appendParam(params, "isActive", query.isActive);
+
+  const queryString = params.toString();
+
+  return axios.get(`/products${queryString ? `?${queryString}` : ""}`);
 };
 
 export const getProductByIdRequest = (

@@ -53,7 +53,7 @@ export const StockPage = () => {
 
   useEffect(() => {
     getStock();
-    getProducts();
+    getProducts({ page: 1, limit: 100, isActive: true });
     getDeposits();
 
     return () => {

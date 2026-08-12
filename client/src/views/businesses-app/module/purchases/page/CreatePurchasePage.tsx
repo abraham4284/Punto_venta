@@ -21,7 +21,7 @@ export const CreatePurchasePage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const {
-    filteredProducts,
+    products,
     loading,
     search,
     setSearch,
@@ -42,11 +42,10 @@ export const CreatePurchasePage = () => {
   } = usePurchases();
 
   const activeProducts = useMemo(() => {
-    return filteredProducts.filter((product) => product.isActive);
-  }, [filteredProducts]);
+    return products.filter((product) => product.isActive);
+  }, [products]);
 
   useEffect(() => {
-    void getProducts();
     void getDeposits();
     void getSuppliers();
 
@@ -65,6 +64,21 @@ export const CreatePurchasePage = () => {
     resetPurchases,
     resetSuppliers,
   ]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void getProducts({
+        page: 1,
+        limit: 100,
+        search: search.trim() || null,
+        isActive: true,
+      });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [getProducts, search]);
 
   const handleOpenProduct = (product: ProductResponse) => {
     setSelectedProduct(product);

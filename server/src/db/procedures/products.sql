@@ -153,7 +153,12 @@ DROP PROCEDURE IF EXISTS sp_get_products;
 DELIMITER $$
 
 CREATE PROCEDURE sp_get_products(
-  IN p_idBusiness INT
+  IN p_idBusiness INT,
+  IN p_limit INT,
+  IN p_offset INT,
+  IN p_search VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_idProductCategory INT,
+  IN p_isActive TINYINT
 )
 BEGIN
   SELECT
@@ -169,6 +174,7 @@ BEGIN
     p.price_sale,
     p.price_wholesale,
     p.unit_type,
+    COALESCE(SUM(s.quantity), 0) AS stock,
     p.stock_min,
     p.is_active,
     p.created_at,
@@ -177,8 +183,48 @@ BEGIN
   INNER JOIN product_categories pc
     ON pc.idProductCategory = p.idProductCategory
     AND pc.idBusiness = p.idBusiness
+  LEFT JOIN stock s
+    ON s.idBusiness = p.idBusiness
+    AND s.idProduct = p.idProduct
   WHERE p.idBusiness = p_idBusiness
-  ORDER BY p.name ASC, p.idProduct ASC;
+    AND (p_search IS NULL OR p_search = ''
+      OR p.name LIKE CONCAT('%', p_search, '%')
+      OR p.barcode LIKE CONCAT('%', p_search, '%')
+      OR p.description LIKE CONCAT('%', p_search, '%'))
+    AND (p_idProductCategory IS NULL OR p.idProductCategory = p_idProductCategory)
+    AND (p_isActive IS NULL OR p.is_active = p_isActive)
+  GROUP BY
+    p.idProduct,
+    p.idBusiness,
+    p.idProductCategory,
+    pc.name,
+    p.barcode,
+    p.name,
+    p.description,
+    p.image_url,
+    p.price_cost,
+    p.price_sale,
+    p.price_wholesale,
+    p.unit_type,
+    p.stock_min,
+    p.is_active,
+    p.created_at,
+    p.updated_at
+  ORDER BY p.name ASC, p.idProduct ASC
+  LIMIT p_limit OFFSET p_offset;
+
+  SELECT COUNT(*) AS totalRecords
+  FROM products p
+  INNER JOIN product_categories pc
+    ON pc.idProductCategory = p.idProductCategory
+    AND pc.idBusiness = p.idBusiness
+  WHERE p.idBusiness = p_idBusiness
+    AND (p_search IS NULL OR p_search = ''
+      OR p.name LIKE CONCAT('%', p_search, '%')
+      OR p.barcode LIKE CONCAT('%', p_search, '%')
+      OR p.description LIKE CONCAT('%', p_search, '%'))
+    AND (p_idProductCategory IS NULL OR p.idProductCategory = p_idProductCategory)
+    AND (p_isActive IS NULL OR p.is_active = p_isActive);
 END$$
 
 DELIMITER ;
@@ -205,6 +251,7 @@ BEGIN
     p.price_sale,
     p.price_wholesale,
     p.unit_type,
+    COALESCE(SUM(s.quantity), 0) AS stock,
     p.stock_min,
     p.is_active,
     p.created_at,
@@ -213,8 +260,28 @@ BEGIN
   INNER JOIN product_categories pc
     ON pc.idProductCategory = p.idProductCategory
     AND pc.idBusiness = p.idBusiness
+  LEFT JOIN stock s
+    ON s.idBusiness = p.idBusiness
+    AND s.idProduct = p.idProduct
   WHERE p.idBusiness = p_idBusiness
     AND p.idProduct = p_idProduct
+  GROUP BY
+    p.idProduct,
+    p.idBusiness,
+    p.idProductCategory,
+    pc.name,
+    p.barcode,
+    p.name,
+    p.description,
+    p.image_url,
+    p.price_cost,
+    p.price_sale,
+    p.price_wholesale,
+    p.unit_type,
+    p.stock_min,
+    p.is_active,
+    p.created_at,
+    p.updated_at
   LIMIT 1;
 END$$
 

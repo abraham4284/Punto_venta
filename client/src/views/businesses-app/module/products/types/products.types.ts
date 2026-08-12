@@ -15,6 +15,28 @@ export interface ApiErrorResponse {
   errors?: FieldError[];
 }
 
+export interface ProductsPagination {
+  page: number;
+  currentPage: number;
+  limit: number;
+  total: number;
+  totalRecords: number;
+  totalPages: number;
+}
+
+export interface ProductsListResponse {
+  items: ProductResponse[];
+  pagination: ProductsPagination;
+}
+
+export interface ProductsQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string | null;
+  idProductCategory?: number | null;
+  isActive?: boolean | null;
+}
+
 export interface ProductCategoryOption {
   idProductCategory: number;
   name: string;

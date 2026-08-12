@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { AxiosError } from "axios";
 import {
   createProductRequest,
@@ -13,6 +13,8 @@ import type {
   CreateProductPayload,
   FieldError,
   ProductCategoryOption,
+  ProductsPagination,
+  ProductsQueryParams,
   ProductResponse,
   ProductUnitType,
   UpdateProductPricesPayload,
@@ -34,14 +36,48 @@ const normalizeProduct = (product: ProductResponse): ProductResponse => {
   };
 };
 
+const defaultPagination: ProductsPagination = {
+  page: 1,
+  currentPage: 1,
+  limit: 20,
+  total: 0,
+  totalRecords: 0,
+  totalPages: 1,
+};
+
+const normalizePagination = (
+  value: Partial<ProductsPagination> | null | undefined,
+  fallback: ProductsQueryParams,
+): ProductsPagination => {
+  const total = Number(value?.total ?? value?.totalRecords ?? 0);
+  const limit = Number(value?.limit ?? fallback.limit ?? 20);
+  const page = Number(value?.page ?? value?.currentPage ?? fallback.page ?? 1);
+
+  return {
+    page,
+    currentPage: Number(value?.currentPage ?? page),
+    limit,
+    total,
+    totalRecords: Number(value?.totalRecords ?? total),
+    totalPages: Math.max(
+      1,
+      Number(value?.totalPages ?? (Math.ceil(total / limit) || 1)),
+    ),
+  };
+};
+
 export const useProducts = () => {
   const [products, setProducts] = useState<ProductResponse[]>([]);
   const [categories, setCategories] = useState<ProductCategoryOption[]>([]);
+  const [pagination, setPagination] =
+    useState<ProductsPagination>(defaultPagination);
   const [loading, setLoading] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
   const [search, setSearch] = useState("");
+  const lastQueryRef = useRef<ProductsQueryParams>({ page: 1, limit: 20 });
+  const requestSequenceRef = useRef(0);
 
   const clearErrors = () => {
     setError(null);
@@ -62,18 +98,42 @@ export const useProducts = () => {
     return errors;
   };
 
-  const getProducts = useCallback(async () => {
+  const getProducts = useCallback(async (params: ProductsQueryParams = {}) => {
+    const query: ProductsQueryParams = {
+      page: 1,
+      limit: 20,
+      ...params,
+    };
+    const requestId = requestSequenceRef.current + 1;
+
+    requestSequenceRef.current = requestId;
+    lastQueryRef.current = query;
+
     try {
       setLoading(true);
       clearErrors();
 
-      const response = await getProductsRequest();
+      const response = await getProductsRequest(query);
+      const responseData = response.data.data;
 
-      setProducts((response.data.data ?? []).map(normalizeProduct));
+      if (requestId !== requestSequenceRef.current) {
+        return;
+      }
+
+      setProducts((responseData.items ?? []).map(normalizeProduct));
+      setPagination(normalizePagination(responseData.pagination, query));
     } catch (error) {
+      if (requestId !== requestSequenceRef.current) {
+        return;
+      }
+
       handleApiError(error);
+      setProducts([]);
+      setPagination(defaultPagination);
     } finally {
-      setLoading(false);
+      if (requestId === requestSequenceRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -97,7 +157,7 @@ export const useProducts = () => {
     try {
       clearErrors();
       const response = await createProductRequest(payload);
-      await getProducts();
+      await getProducts(lastQueryRef.current);
       await useBusinessSubscriptionStore.getState().refreshSubscription();
       return {
         status: true,
@@ -121,7 +181,7 @@ export const useProducts = () => {
     try {
       clearErrors();
       const response = await updateProductRequest(idProduct, payload);
-      await getProducts();
+      await getProducts(lastQueryRef.current);
 
       return {
         status: true,
@@ -147,7 +207,7 @@ export const useProducts = () => {
 
       const response = await updateProductStatusRequest(idProduct, payload);
 
-      await getProducts();
+      await getProducts(lastQueryRef.current);
       await useBusinessSubscriptionStore.getState().refreshSubscription();
 
       return {
@@ -232,12 +292,15 @@ export const useProducts = () => {
     setLoading(false);
     setError(null);
     setProducts([]);
+    setPagination(defaultPagination);
+    lastQueryRef.current = { page: 1, limit: 20 };
   }, []);
 
   return {
     products,
     filteredProducts,
     categories,
+    pagination,
     metrics,
     loading,
     loadingCategories,

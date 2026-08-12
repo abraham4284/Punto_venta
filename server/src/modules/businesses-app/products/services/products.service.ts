@@ -5,11 +5,17 @@ import { mapProduct } from "../helpers/product.mapper.js";
 import type {
   CreateProductPayload,
   ProductDbRow,
+  ProductListFilters,
+  ProductListResponse,
   ProductResponse,
   ToggleProductStatusPayload,
   UpdateProductPricesInput,
   UpdateProductPayload,
 } from "../types/index.js";
+
+interface ProductTotalDbRow extends RowDataPacket {
+  totalRecords: number;
+}
 
 export async function createProductService(
   data: CreateProductPayload,
@@ -46,14 +52,37 @@ export async function createProductService(
 }
 
 export async function getProductsService(
-  idBusiness: number,
-): Promise<ProductResponse[]> {
-  const [rows] = await pool.query<RowDataPacket[]>("CALL sp_get_products(?)", [
-    idBusiness,
-  ]);
+  filters: ProductListFilters,
+): Promise<ProductListResponse> {
+  const offset = (filters.page - 1) * filters.limit;
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_get_products(?, ?, ?, ?, ?, ?)",
+    [
+      filters.idBusiness,
+      filters.limit,
+      offset,
+      filters.search,
+      filters.idProductCategory,
+      filters.isActive === null ? null : filters.isActive ? 1 : 0,
+    ],
+  );
 
-  const result = rows as unknown as ProductDbRow[][];
-  return (result[0] ?? []).map(mapProduct);
+  const result = rows as unknown as [ProductDbRow[], ProductTotalDbRow[]];
+  const items = (result[0] ?? []).map(mapProduct);
+  const total = Number(result[1]?.[0]?.totalRecords ?? 0);
+  const totalPages = Math.max(1, Math.ceil(total / filters.limit));
+
+  return {
+    items,
+    pagination: {
+      page: filters.page,
+      currentPage: filters.page,
+      limit: filters.limit,
+      total,
+      totalRecords: total,
+      totalPages,
+    },
+  };
 }
 
 export async function getProductByIdService(
