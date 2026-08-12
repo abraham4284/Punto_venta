@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { useProductImport } from "../../hooks/useProductImport";
-import type { ProductImportMode } from "../../types/product-import.types";
+import type {
+  ExistingStockImportMode,
+  ProductImportMode,
+} from "../../types/product-import.types";
 import { ProductImportPreviewTable } from "./ProductImportPreviewTable";
 import { ProductImportResult } from "./ProductImportResult";
 
@@ -38,12 +41,33 @@ const importModeOptions: {
   {
     value: "CREATE_ONLY",
     title: "Solo crear nuevos",
-    description: "Los codigos de barra ya existentes se omiten.",
+    description:
+      "No actualiza datos de productos existentes, pero puede crear stock en depositos nuevos.",
   },
   {
     value: "UPDATE_EXISTING",
     title: "Crear y actualizar",
-    description: "Si el codigo existe, actualiza producto y stock.",
+    description:
+      "Actualiza los datos del producto existente sin decidir automaticamente sobre el stock.",
+  },
+];
+
+const existingStockModeOptions: {
+  value: ExistingStockImportMode;
+  title: string;
+  description: string;
+}[] = [
+  {
+    value: "SKIP_EXISTING_STOCK",
+    title: "No modificar stock existente",
+    description:
+      "Si el producto ya tiene stock en ese deposito, la cantidad actual queda intacta.",
+  },
+  {
+    value: "ADD_TO_EXISTING_STOCK",
+    title: "Sumar la cantidad del Excel",
+    description:
+      "La cantidad del Excel se registrara como ingreso adicional de stock.",
   },
 ];
 
@@ -74,6 +98,7 @@ export const ImportProductModal = ({
     previewTotalPages,
     paginatedPreviewRows,
     importMode,
+    existingStockMode,
     importValidRowsOnly,
     loadingTemplate,
     loadingPreview,
@@ -82,6 +107,7 @@ export const ImportProductModal = ({
     error,
     setStep,
     setImportMode,
+    setExistingStockMode,
     setImportValidRowsOnly,
     downloadTemplate,
     selectFile,
@@ -300,6 +326,46 @@ export const ImportProductModal = ({
                   ))}
                 </div>
 
+                <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+                  <div>
+                    <h4 className="font-semibold">
+                      Stock ya existente en el deposito
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Esta decision es independiente de crear o actualizar los
+                      datos del producto.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {existingStockModeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`rounded-lg border p-4 text-left transition ${
+                          existingStockMode === option.value
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-muted/50"
+                        }`}
+                        disabled={loadingConfirm}
+                        onClick={() => setExistingStockMode(option.value)}
+                      >
+                        <p className="font-medium">{option.title}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {option.description}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+
+                  {existingStockMode === "ADD_TO_EXISTING_STOCK" && (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      Las cantidades del Excel se sumaran al stock actual de los
+                      productos que ya existen en esos depositos.
+                    </p>
+                  )}
+                </div>
+
                 <label className="flex items-start gap-3 rounded-lg border p-4">
                   <input
                     type="checkbox"
@@ -344,6 +410,33 @@ export const ImportProductModal = ({
                     <p className="text-xs">Duplicadas</p>
                     <p className="text-xl font-bold">
                       {preview.summary.duplicateRows}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Productos nuevos
+                    </p>
+                    <p className="text-xl font-bold">
+                      {preview.summary.newProducts}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Producto existente + deposito nuevo
+                    </p>
+                    <p className="text-xl font-bold">
+                      {preview.summary.existingProductsNewDeposit}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Stock existente
+                    </p>
+                    <p className="text-xl font-bold">
+                      {preview.summary.existingStockRows}
                     </p>
                   </div>
                 </div>

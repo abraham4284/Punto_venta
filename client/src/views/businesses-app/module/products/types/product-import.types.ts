@@ -4,6 +4,17 @@ export type ProductImportStatus = "VALID" | "WARNING" | "INVALID" | "DUPLICATE";
 
 export type ProductImportMode = "CREATE_ONLY" | "UPDATE_EXISTING";
 
+export type ExistingStockImportMode =
+  | "SKIP_EXISTING_STOCK"
+  | "ADD_TO_EXISTING_STOCK";
+
+export type ProductImportAction =
+  | "CREATE_PRODUCT"
+  | "CREATE_STOCK"
+  | "UPDATE_PRODUCT"
+  | "ADD_STOCK"
+  | "SKIP";
+
 export type ProductImportPreviewFilter =
   | "ALL"
   | "VALID"
@@ -14,7 +25,7 @@ export type ProductImportPreviewFilter =
 export interface ProductImportPreviewRow {
   rowNumber: number;
   status: ProductImportStatus;
-  action: "CREATE" | "UPDATE" | "SKIP";
+  action: ProductImportAction;
   barcode: string | null;
   name: string;
   description: string | null;
@@ -31,6 +42,9 @@ export interface ProductImportPreviewRow {
   initialStock: number;
   isActive: boolean;
   existingProductId: number | null;
+  existingStockId: number | null;
+  existingStockQuantity: number | null;
+  resultingStockQuantity: number | null;
   errors: string[];
   warnings: string[];
 }
@@ -41,6 +55,9 @@ export interface ProductImportPreviewSummary {
   warningRows: number;
   invalidRows: number;
   duplicateRows: number;
+  newProducts: number;
+  existingProductsNewDeposit: number;
+  existingStockRows: number;
 }
 
 export interface ProductImportPreviewResponse {
@@ -53,6 +70,7 @@ export interface ProductImportPreviewResponse {
 export interface ConfirmProductImportPayload {
   importToken: string;
   importMode: ProductImportMode;
+  existingStockMode: ExistingStockImportMode;
   importValidRowsOnly: boolean;
 }
 
@@ -61,6 +79,8 @@ export interface ProductImportResult {
   updated: number;
   skipped: number;
   stockRowsAffected: number;
+  stockRowsUpdated: number;
+  stockQuantityAdded: number;
   movementsCreated: number;
   errors: string[];
   warnings: string[];

@@ -78,12 +78,26 @@ const getStatusClassName = (status: ProductImportPreviewRow["status"]) => {
 
 const getActionLabel = (action: ProductImportPreviewRow["action"]) => {
   const labels = {
-    CREATE: "Crear",
-    UPDATE: "Actualizar",
+    CREATE_PRODUCT: "Nuevo producto",
+    CREATE_STOCK: "Nuevo deposito",
+    UPDATE_PRODUCT: "Actualizar producto",
+    ADD_STOCK: "Stock existente",
     SKIP: "Omitir",
   };
 
   return labels[action];
+};
+
+const getActionClassName = (action: ProductImportPreviewRow["action"]) => {
+  const classNames = {
+    CREATE_PRODUCT: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    CREATE_STOCK: "bg-blue-50 text-blue-700 border-blue-200",
+    UPDATE_PRODUCT: "bg-amber-50 text-amber-700 border-amber-200",
+    ADD_STOCK: "bg-violet-50 text-violet-700 border-violet-200",
+    SKIP: "bg-slate-50 text-slate-700 border-slate-200",
+  };
+
+  return classNames[action];
 };
 
 export const ProductImportPreviewTable = ({
@@ -122,6 +136,7 @@ export const ProductImportPreviewTable = ({
               <TableHead>Deposito</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Stock</TableHead>
+              <TableHead>Resultado</TableHead>
               <TableHead>Detalle</TableHead>
             </TableRow>
           </TableHeader>
@@ -145,8 +160,14 @@ export const ProductImportPreviewTable = ({
                         {row.barcode || "Sin codigo"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Accion: {getActionLabel(row.action)}
+                        Accion:
                       </p>
+                      <Badge
+                        variant="outline"
+                        className={getActionClassName(row.action)}
+                      >
+                        {getActionLabel(row.action)}
+                      </Badge>
                     </div>
                   </TableCell>
                   <TableCell>{row.categoryName}</TableCell>
@@ -161,6 +182,32 @@ export const ProductImportPreviewTable = ({
                   </TableCell>
                   <TableCell>
                     {row.initialStock.toLocaleString("es-AR")} {row.unitType}
+                  </TableCell>
+                  <TableCell>
+                    <div className="min-w-36 text-sm">
+                      {row.existingStockQuantity !== null ? (
+                        <>
+                          <p>
+                            Actual:{" "}
+                            {row.existingStockQuantity.toLocaleString("es-AR")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Si suma:{" "}
+                            {row.resultingStockQuantity?.toLocaleString(
+                              "es-AR",
+                            ) ?? "-"}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p>Nuevo stock</p>
+                          <p className="text-xs text-muted-foreground">
+                            Inicial:{" "}
+                            {row.initialStock.toLocaleString("es-AR")}
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="max-w-80 space-y-1 whitespace-normal">
@@ -194,7 +241,7 @@ export const ProductImportPreviewTable = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   No hay filas para mostrar con este filtro.
                 </TableCell>
               </TableRow>

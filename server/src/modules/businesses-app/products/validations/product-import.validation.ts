@@ -59,6 +59,11 @@ export const confirmProductImportSchema = z
     importMode: z.enum(["CREATE_ONLY", "UPDATE_EXISTING"], {
       error: "El modo de importacion no es valido",
     }),
+    existingStockMode: z
+      .enum(["SKIP_EXISTING_STOCK", "ADD_TO_EXISTING_STOCK"], {
+        error: "El tratamiento del stock existente no es valido",
+      })
+      .default("SKIP_EXISTING_STOCK"),
     importValidRowsOnly: z.boolean({
       error: "La opcion de filas validas es obligatoria",
     }),
