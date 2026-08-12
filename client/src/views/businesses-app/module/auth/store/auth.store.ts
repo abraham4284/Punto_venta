@@ -16,6 +16,7 @@ import type {
   User,
   UserInfoResponse,
 } from "@/views/businesses-app/module/auth/types/auth.types";
+import { usePurchaseCartStore } from "@/views/businesses-app/module/purchases/store/purchaseCart.store";
 
 type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 type AuthActionResult =
@@ -82,6 +83,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!meRes.status) {
         set({ status: "unauthenticated", user: null, error: meRes.message });
         return { success: false, message: meRes.message };
+      }
+
+      const previousBusinessId = get().user?.idBusiness;
+
+      if (
+        previousBusinessId &&
+        previousBusinessId !== meRes.data.idBusiness
+      ) {
+        usePurchaseCartStore.getState().clearCart();
       }
 
       set({
@@ -154,6 +164,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           });
           return { success: false, message: data.message };
         }
+        usePurchaseCartStore.getState().clearCart();
         set({
           status: "authenticated",
           user: {
@@ -170,6 +181,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
       }
 
+      usePurchaseCartStore.getState().clearCart();
       set({
         status: "authenticated",
         user,
@@ -201,6 +213,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async logout() {
     await logoutRequest();
     localStorage.removeItem("access_token");
+    usePurchaseCartStore.getState().clearCart();
     set({
       status: "unauthenticated",
       user: null,
@@ -218,6 +231,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const { data } = await meRequest();
+      const previousBusinessId = get().user?.idBusiness;
+
+      if (
+        previousBusinessId &&
+        previousBusinessId !== data.data.idBusiness
+      ) {
+        usePurchaseCartStore.getState().clearCart();
+      }
+
       set({
         status: "authenticated",
         user: {
@@ -306,6 +328,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   expireSession(message = "La sesion expiro") {
     localStorage.removeItem("access_token");
+    usePurchaseCartStore.getState().clearCart();
     set({
       status: "unauthenticated",
       user: null,
