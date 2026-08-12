@@ -8,6 +8,7 @@ import {
 } from "../api/product-import.api";
 import type {
   ProductImportMode,
+  ExistingStockImportMode,
   ProductImportPreviewResponse,
   ProductImportPreviewFilter,
   ProductImportPreviewRow,
@@ -36,8 +37,12 @@ interface RawProductImportPreviewResponse {
   expiresAt?: string;
   totalRows: number;
   validRows: number;
+  warningRows?: number;
   invalidRows: number;
   duplicateRows: number;
+  newProducts?: number;
+  existingProductsNewDeposit?: number;
+  existingStockRows?: number;
   rows: RawProductImportPreviewRow[];
   errors?: RawProductImportError[];
 }
@@ -48,6 +53,8 @@ interface RawProductImportConfirmResponse {
   updatedProducts: number;
   skippedRows: number;
   stockRecordsCreated: number;
+  stockRecordsUpdated?: number;
+  stockQuantityAdded?: number;
   stockMovementsCreated: number;
   errors?: RawProductImportError[];
   warnings?: string[];
@@ -57,8 +64,8 @@ const getRowAction = (
   row: RawProductImportPreviewRow,
 ): ProductImportPreviewRow["action"] => {
   if (row.action) return row.action;
-  if (row.status === "VALID") return "CREATE";
-  if (row.existingProductId) return "UPDATE";
+  if (row.status === "VALID" && row.existingProductId) return "CREATE_STOCK";
+  if (row.status === "VALID") return "CREATE_PRODUCT";
   return "SKIP";
 };
 
@@ -79,9 +86,12 @@ const normalizePreviewResponse = (
     summary: {
       totalRows: preview.totalRows,
       validRows: preview.validRows,
-      warningRows: 0,
+      warningRows: preview.warningRows ?? 0,
       invalidRows: preview.invalidRows,
       duplicateRows: preview.duplicateRows,
+      newProducts: preview.newProducts ?? 0,
+      existingProductsNewDeposit: preview.existingProductsNewDeposit ?? 0,
+      existingStockRows: preview.existingStockRows ?? 0,
     },
     rows: preview.rows.map((row) => ({
       ...row,
@@ -100,6 +110,8 @@ const normalizeConfirmResponse = (
     updated: result.updatedProducts,
     skipped: result.skippedRows,
     stockRowsAffected: result.stockRecordsCreated,
+    stockRowsUpdated: result.stockRecordsUpdated ?? 0,
+    stockQuantityAdded: result.stockQuantityAdded ?? 0,
     movementsCreated: result.stockMovementsCreated,
     errors: (result.errors ?? []).map((error) => error.message),
     warnings: result.warnings ?? [],
@@ -120,6 +132,8 @@ export const useProductImport = () => {
   const [previewPage, setPreviewPage] = useState(1);
   const [importMode, setImportMode] =
     useState<ProductImportMode>("CREATE_ONLY");
+  const [existingStockMode, setExistingStockMode] =
+    useState<ExistingStockImportMode>("SKIP_EXISTING_STOCK");
   const [importValidRowsOnly, setImportValidRowsOnly] = useState(true);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -248,6 +262,7 @@ export const useProductImport = () => {
       const response = await confirmProductImportRequest({
         importToken: preview.importToken,
         importMode,
+        existingStockMode,
         importValidRowsOnly,
       });
 
@@ -289,6 +304,7 @@ export const useProductImport = () => {
     setPreviewFilter("ALL");
     setPreviewPage(1);
     setImportMode("CREATE_ONLY");
+    setExistingStockMode("SKIP_EXISTING_STOCK");
     setImportValidRowsOnly(true);
     setLoadingTemplate(false);
     setLoadingPreview(false);
@@ -333,6 +349,7 @@ export const useProductImport = () => {
     previewTotalPages,
     paginatedPreviewRows,
     importMode,
+    existingStockMode,
     importValidRowsOnly,
     loadingTemplate,
     loadingPreview,
@@ -341,6 +358,7 @@ export const useProductImport = () => {
     error,
     setStep,
     setImportMode,
+    setExistingStockMode,
     setImportValidRowsOnly,
     downloadTemplate,
     selectFile,

@@ -138,6 +138,7 @@ export async function confirmProductImportController(
       idUser: req.user!.idUser,
       importToken: data.importToken,
       importMode: data.importMode,
+      existingStockMode: data.existingStockMode,
       importValidRowsOnly: data.importValidRowsOnly,
     });
 

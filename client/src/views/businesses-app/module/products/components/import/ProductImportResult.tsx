@@ -24,9 +24,14 @@ const metricItems = (result: ProductImportResultType) => [
     className: "text-amber-700",
   },
   {
-    label: "Stock procesado",
+    label: "Nuevas relaciones stock",
     value: result.stockRowsAffected,
     className: "text-violet-700",
+  },
+  {
+    label: "Stock existente sumado",
+    value: result.stockRowsUpdated,
+    className: "text-indigo-700",
   },
 ];
 
@@ -44,7 +49,7 @@ export const ProductImportResult = ({ result }: ProductImportResultProps) => {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {metricItems(result).map((item) => (
           <Card key={item.label}>
             <CardContent className="p-4">
@@ -63,6 +68,13 @@ export const ProductImportResult = ({ result }: ProductImportResultProps) => {
             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
             <span className="text-sm">
               Movimientos de stock generados: {result.movementsCreated}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-indigo-600" />
+            <span className="text-sm">
+              Cantidad total agregada a stock existente:{" "}
+              {result.stockQuantityAdded.toLocaleString("es-AR")}
             </span>
           </div>
 
