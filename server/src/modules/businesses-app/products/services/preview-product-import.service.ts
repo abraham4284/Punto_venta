@@ -14,9 +14,12 @@ import type {
   ImportCacheData,
   LookupRow,
   ProductImportError,
+  ProductImportAction,
+  ProductImportIdentitySource,
   ProductImportPreviewResponse,
   ProductImportRawRow,
   ProductImportResolvedRow,
+  StockLookupRow,
 } from "../types/product-import.types.js";
 
 const IMPORT_TOKEN_TTL_MS = 15 * 60 * 1000;
@@ -249,25 +252,84 @@ async function getLookupMap(
 async function getExistingProductsMap(
   idBusiness: number,
   barcodes: string[],
-): Promise<Map<string, { idProduct: number; isActive: boolean }>> {
+): Promise<Map<string, ExistingProductRow>> {
   if (barcodes.length === 0) {
-    return new Map<string, { idProduct: number; isActive: boolean }>();
+    return new Map<string, ExistingProductRow>();
   }
 
   const placeholders = barcodes.map(function createPlaceholder() {
     return "?";
   }).join(",");
   const [rows] = await pool.query<ExistingProductRow[]>(
-    `SELECT idProduct, barcode, is_active FROM products WHERE idBusiness = ? AND barcode IN (${placeholders})`,
+    `SELECT idProduct, barcode, name, unit_type, is_active FROM products WHERE idBusiness = ? AND barcode IN (${placeholders})`,
     [idBusiness, ...barcodes],
   );
-  const map = new Map<string, { idProduct: number; isActive: boolean }>();
+  const map = new Map<string, ExistingProductRow>();
 
   for (const row of rows) {
-    map.set(row.barcode, {
-      idProduct: row.idProduct,
-      isActive: Boolean(row.is_active),
-    });
+    if (row.barcode) {
+      map.set(row.barcode, row);
+    }
+  }
+
+  return map;
+}
+
+async function getExistingProductsByNormalizedNameMap(
+  idBusiness: number,
+  normalizedNames: string[],
+): Promise<Map<string, ExistingProductRow[]>> {
+  if (normalizedNames.length === 0) {
+    return new Map<string, ExistingProductRow[]>();
+  }
+
+  const normalizedNameSet = new Set(normalizedNames);
+  const [rows] = await pool.query<ExistingProductRow[]>(
+    `SELECT idProduct, barcode, name, unit_type, is_active
+     FROM products
+     WHERE idBusiness = ?`,
+    [idBusiness],
+  );
+  const map = new Map<string, ExistingProductRow[]>();
+
+  for (const row of rows) {
+    const normalizedName = normalizeLookupKey(row.name);
+
+    if (!normalizedNameSet.has(normalizedName)) {
+      continue;
+    }
+
+    const currentRows = map.get(normalizedName) ?? [];
+    currentRows.push(row);
+    map.set(normalizedName, currentRows);
+  }
+
+  return map;
+}
+
+async function getExistingStockMap(
+  idBusiness: number,
+  productIds: number[],
+): Promise<Map<string, StockLookupRow>> {
+  const uniqueProductIds = Array.from(new Set(productIds));
+
+  if (uniqueProductIds.length === 0) {
+    return new Map<string, StockLookupRow>();
+  }
+
+  const placeholders = uniqueProductIds.map(function createPlaceholder() {
+    return "?";
+  }).join(",");
+  const [rows] = await pool.query<StockLookupRow[]>(
+    `SELECT idStock, idProduct, idDeposit, quantity
+     FROM stock
+     WHERE idBusiness = ? AND idProduct IN (${placeholders})`,
+    [idBusiness, ...uniqueProductIds],
+  );
+  const map = new Map<string, StockLookupRow>();
+
+  for (const row of rows) {
+    map.set(`${row.idProduct}:${row.idDeposit}`, row);
   }
 
   return map;
@@ -275,6 +337,71 @@ async function getExistingProductsMap(
 
 function addError(errors: ProductImportError[], error: ProductImportError): void {
   errors.push(error);
+}
+
+function getProductIdentityKey(
+  source: ProductImportIdentitySource,
+  existingProductId: number | null,
+  normalizedName: string,
+  barcode: string | null,
+): string {
+  if (existingProductId) {
+    return `product:${existingProductId}`;
+  }
+
+  if (source === "BARCODE" && barcode) {
+    return `barcode:${barcode}`;
+  }
+
+  return `name:${normalizedName}`;
+}
+
+function getPreviewAction(input: {
+  existingProductId: number | null;
+  existingStockId: number | null;
+  existingProductIsActive: boolean | null;
+}): ProductImportAction {
+  if (!input.existingProductId) {
+    return "CREATE_PRODUCT";
+  }
+
+  if (input.existingStockId) {
+    return "ADD_STOCK";
+  }
+
+  if (input.existingProductIsActive === false) {
+    return "UPDATE_PRODUCT";
+  }
+
+  return "CREATE_STOCK";
+}
+
+function createInvalidResolvedRow(
+  row: ProductImportRawRow,
+  categoryId: number | undefined,
+  depositId: number | undefined,
+  existingProduct: ExistingProductRow | null,
+  productIdentityKey: string,
+  identitySource: ProductImportIdentitySource,
+  warnings: string[],
+): ProductImportResolvedRow {
+  return {
+    ...row,
+    idProductCategory: categoryId ?? 0,
+    idDeposit: depositId ?? 0,
+    existingProductId: existingProduct?.idProduct ?? null,
+    existingProductIsActive: existingProduct
+      ? Boolean(existingProduct.is_active)
+      : null,
+    existingStockId: null,
+    existingStockQuantity: null,
+    resultingStockQuantity: null,
+    productIdentityKey,
+    identitySource,
+    action: "SKIP",
+    status: "INVALID",
+    warnings,
+  };
 }
 
 export function getProductImportCacheData(
@@ -326,6 +453,7 @@ export async function previewProductImportService(
   const parsedRows: ProductImportRawRow[] = [];
   const errors: ProductImportError[] = [];
   const barcodeCounter = new Map<string, number>();
+  const stockIdentityCounter = new Map<string, number>();
 
   for (const row of rows) {
     const rowNumber = Number(row.rowNumber);
@@ -346,25 +474,89 @@ export async function previewProductImportService(
     }
   }
 
+  for (const row of parsedRows) {
+    const depositId = depositMap.get(normalizeLookupKey(row.depositName));
+
+    if (row.barcode || !depositId) {
+      continue;
+    }
+
+    const stockIdentityKey = `${normalizeLookupKey(row.name)}:${depositId}`;
+    stockIdentityCounter.set(
+      stockIdentityKey,
+      (stockIdentityCounter.get(stockIdentityKey) ?? 0) + 1,
+    );
+  }
+
   const uniqueBarcodes = Array.from(new Set(parsedRows.map(function mapBarcode(row) {
     return row.barcode;
   }).filter(function filterBarcode(barcode): barcode is string {
     return Boolean(barcode);
   })));
+  const uniqueNamesWithoutBarcode = Array.from(new Set(parsedRows.filter(function filterRow(row) {
+    return !row.barcode;
+  }).map(function mapName(row) {
+    return normalizeLookupKey(row.name);
+  })));
   const existingProductMap = await getExistingProductsMap(idBusiness, uniqueBarcodes);
+  const existingProductByNameMap = await getExistingProductsByNormalizedNameMap(
+    idBusiness,
+    uniqueNamesWithoutBarcode,
+  );
+  const productIdsForStock: number[] = [];
+
+  for (const row of parsedRows) {
+    if (row.barcode) {
+      const productByBarcode = existingProductMap.get(row.barcode);
+
+      if (productByBarcode) {
+        productIdsForStock.push(productByBarcode.idProduct);
+      }
+
+      continue;
+    }
+
+    const productsByName = existingProductByNameMap.get(normalizeLookupKey(row.name)) ?? [];
+
+    if (productsByName.length === 1) {
+      productIdsForStock.push(productsByName[0].idProduct);
+    }
+  }
+
+  const existingStockMap = await getExistingStockMap(idBusiness, productIdsForStock);
   const resolvedRows: ProductImportResolvedRow[] = [];
 
   for (const row of parsedRows) {
     const rowErrors: ProductImportError[] = [];
+    const rowWarnings: string[] = [];
     const categoryId = categoryMap.get(normalizeLookupKey(row.categoryName));
     const depositId = depositMap.get(normalizeLookupKey(row.depositName));
-    const existingProduct = row.barcode
+    const normalizedName = normalizeLookupKey(row.name);
+    const productNameMatches = row.barcode
+      ? []
+      : existingProductByNameMap.get(normalizedName) ?? [];
+    let existingProduct = row.barcode
       ? existingProductMap.get(row.barcode) ?? null
-      : null;
+      : productNameMatches.length === 1
+        ? productNameMatches[0]
+        : null;
     const existingProductId = existingProduct?.idProduct ?? null;
     const isInternalDuplicate = row.barcode
       ? (barcodeCounter.get(row.barcode) ?? 0) > 1
-      : false;
+      : depositId
+        ? (stockIdentityCounter.get(`${normalizedName}:${depositId}`) ?? 0) > 1
+        : false;
+    let identitySource: ProductImportIdentitySource = row.barcode
+      ? "BARCODE"
+      : existingProduct
+        ? "NAME"
+        : "FILE_NAME";
+    let productIdentityKey = getProductIdentityKey(
+      identitySource,
+      existingProductId,
+      normalizedName,
+      row.barcode,
+    );
 
     if (!categoryId) {
       addError(rowErrors, {
@@ -386,38 +578,106 @@ export async function previewProductImportService(
       });
     }
 
-    if (rowErrors.length > 0) {
-      errors.push(...rowErrors);
-      resolvedRows.push({
-        ...row,
-        idProductCategory: categoryId ?? 0,
-        idDeposit: depositId ?? 0,
-        existingProductId,
-        existingProductIsActive: existingProduct?.isActive ?? null,
-        status: "INVALID",
-        warnings: [],
+    if (!row.barcode && productNameMatches.length > 1) {
+      addError(rowErrors, {
+        rowNumber: row.rowNumber,
+        field: "name",
+        value: row.name,
+        code: "AMBIGUOUS_PRODUCT_NAME",
+        message: `Hay mas de un producto con nombre equivalente a '${row.name}'. Revise la fila manualmente.`,
       });
-      continue;
+      existingProduct = null;
+      identitySource = "FILE_NAME";
+      productIdentityKey = getProductIdentityKey(
+        identitySource,
+        null,
+        normalizedName,
+        row.barcode,
+      );
+    }
+
+    if (!row.barcode && existingProduct && existingProduct.unit_type !== row.unitType) {
+      addError(rowErrors, {
+        rowNumber: row.rowNumber,
+        field: "unitType",
+        value: row.unitType,
+        code: "UNIT_TYPE_CONFLICT",
+        message: `Producto encontrado por nombre, pero la unidad actual es '${existingProduct.unit_type}' y el Excel indica '${row.unitType}'.`,
+      });
     }
 
     if (isInternalDuplicate) {
-      errors.push({
+      addError(rowErrors, {
         rowNumber: row.rowNumber,
-        field: "barcode",
-        value: row.barcode,
+        field: row.barcode ? "barcode" : "name",
+        value: row.barcode ?? row.name,
         code: "DUPLICATE_IN_FILE",
-        message: `El codigo de barras '${row.barcode ?? ""}' se repite dentro del archivo`,
+        message: row.barcode
+          ? `El codigo de barras '${row.barcode}' se repite dentro del archivo`
+          : `El producto '${row.name}' se repite para el mismo deposito dentro del archivo`,
       });
     }
 
-    if (existingProductId) {
-      errors.push({
-        rowNumber: row.rowNumber,
-        field: "barcode",
-        value: row.barcode,
-        code: "DUPLICATE_IN_DATABASE",
-        message: `El codigo de barras '${row.barcode ?? ""}' ya existe en su comercio`,
-      });
+    if (rowErrors.length > 0) {
+      errors.push(...rowErrors);
+      resolvedRows.push(
+        isInternalDuplicate
+          ? {
+              ...row,
+              idProductCategory: categoryId ?? 0,
+              idDeposit: depositId ?? 0,
+              existingProductId,
+              existingProductIsActive: existingProduct
+                ? Boolean(existingProduct.is_active)
+                : null,
+              existingStockId: null,
+              existingStockQuantity: null,
+              resultingStockQuantity: null,
+              productIdentityKey,
+              identitySource,
+              action: "SKIP",
+              status: "DUPLICATE",
+              warnings: rowWarnings,
+            }
+          : createInvalidResolvedRow(
+              row,
+              categoryId,
+              depositId,
+              existingProduct,
+              productIdentityKey,
+              identitySource,
+              rowWarnings,
+            ),
+      );
+      continue;
+    }
+
+    const stockKey = existingProductId && depositId
+      ? `${existingProductId}:${depositId}`
+      : "";
+    const existingStock = stockKey ? existingStockMap.get(stockKey) ?? null : null;
+    const existingStockQuantity = existingStock
+      ? Number(existingStock.quantity)
+      : null;
+    const resultingStockQuantity = existingStockQuantity === null
+      ? row.initialStock
+      : existingStockQuantity + row.initialStock;
+    const action = getPreviewAction({
+      existingProductId,
+      existingStockId: existingStock?.idStock ?? null,
+      existingProductIsActive: existingProduct
+        ? Boolean(existingProduct.is_active)
+        : null,
+    });
+
+    if (existingProductId && existingStock) {
+      rowWarnings.push(
+        "Este producto ya tiene stock en el deposito. Por defecto no se modificara; puede elegir sumar la cantidad del Excel.",
+      );
+    } else if (existingProductId) {
+      rowWarnings.push(
+        "Se utilizara el producto existente y se creara stock en el deposito indicado.",
+      );
     }
 
     resolvedRows.push({
@@ -425,11 +685,17 @@ export async function previewProductImportService(
       idProductCategory: categoryId ?? 0,
       idDeposit: depositId ?? 0,
       existingProductId,
-      existingProductIsActive: existingProduct?.isActive ?? null,
-      status: isInternalDuplicate || existingProductId ? "DUPLICATE" : "VALID",
-      warnings: existingProductId
-        ? ["Disponible para actualizar usando el modo Actualizar por codigo"]
-        : [],
+      existingProductIsActive: existingProduct
+        ? Boolean(existingProduct.is_active)
+        : null,
+      existingStockId: existingStock?.idStock ?? null,
+      existingStockQuantity,
+      resultingStockQuantity,
+      productIdentityKey,
+      identitySource,
+      action,
+      status: "VALID",
+      warnings: rowWarnings,
     });
   }
 
@@ -440,16 +706,34 @@ export async function previewProductImportService(
   const invalidRows = resolvedRows.filter(function filterInvalid(row) {
     return row.status === "INVALID";
   }).length;
+  const warningRows = resolvedRows.filter(function filterWarning(row) {
+    return row.status === "WARNING" || row.warnings.length > 0;
+  }).length;
   const duplicateRows = resolvedRows.filter(function filterDuplicate(row) {
     return row.status === "DUPLICATE";
+  }).length;
+  const newProducts = new Set(resolvedRows.filter(function filterNew(row) {
+    return row.status === "VALID" && row.action === "CREATE_PRODUCT";
+  }).map(function mapKey(row) {
+    return row.productIdentityKey;
+  })).size;
+  const existingProductsNewDeposit = resolvedRows.filter(function filterStock(row) {
+    return row.status === "VALID" && row.action === "CREATE_STOCK";
+  }).length;
+  const existingStockRows = resolvedRows.filter(function filterExistingStock(row) {
+    return row.status === "VALID" && row.existingStockId !== null;
   }).length;
   const preview: ProductImportPreviewResponse = {
     importToken,
     fileName: file.originalname,
     totalRows: rows.length,
     validRows,
+    warningRows,
     invalidRows,
     duplicateRows,
+    newProducts,
+    existingProductsNewDeposit,
+    existingStockRows,
     rows: resolvedRows,
     errors,
   };

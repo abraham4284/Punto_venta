@@ -37,23 +37,11 @@ function shouldImportRow(
   input: ProductImportConfirmInput,
   errors: ProductImportError[],
 ): boolean {
-  if (row.status === "INVALID") {
+  if (row.status === "INVALID" || row.status === "DUPLICATE") {
     return false;
   }
 
-  if (input.importValidRowsOnly && row.status !== "VALID") {
-    return false;
-  }
-
-  if (row.status === "VALID") {
-    return true;
-  }
-
-  if (input.importMode !== "UPDATE_EXISTING") {
-    return false;
-  }
-
-  if (!row.existingProductId) {
+  if (input.importValidRowsOnly && row.status === "WARNING") {
     return false;
   }
 
@@ -77,9 +65,17 @@ function countProductsThatConsumeLimit(
   input: ProductImportConfirmInput,
   errors: ProductImportError[],
 ): number {
-  return rows.filter(function filterRow(row) {
-    return shouldImportRow(row, input, errors) && consumesProductLimit(row);
-  }).length;
+  const productKeys = new Set<string>();
+
+  for (const row of rows) {
+    if (!shouldImportRow(row, input, errors) || !consumesProductLimit(row)) {
+      continue;
+    }
+
+    productKeys.add(row.productIdentityKey);
+  }
+
+  return productKeys.size;
 }
 
 async function createProduct(
@@ -206,30 +202,12 @@ async function updateProduct(
   );
 }
 
-async function upsertStock(
+async function createStock(
   connection: PoolConnection,
   idBusiness: number,
   idProduct: number,
   row: ProductImportResolvedRow,
-): Promise<boolean> {
-  const [rows] = await connection.query<StockLookupRow[]>(
-    `SELECT idStock
-     FROM stock
-     WHERE idBusiness = ? AND idProduct = ? AND idDeposit = ?
-     LIMIT 1`,
-    [idBusiness, idProduct, row.idDeposit],
-  );
-
-  if (rows[0]) {
-    await connection.query(
-      `UPDATE stock
-       SET quantity = ?, updated_at = NOW()
-       WHERE idBusiness = ? AND idProduct = ? AND idDeposit = ?`,
-      [row.initialStock, idBusiness, idProduct, row.idDeposit],
-    );
-    return false;
-  }
-
+): Promise<void> {
   await connection.query(
     `INSERT INTO stock (
       idBusiness,
@@ -240,7 +218,38 @@ async function upsertStock(
     ) VALUES (?, ?, ?, ?, NOW())`,
     [idBusiness, idProduct, row.idDeposit, row.initialStock],
   );
-  return true;
+}
+
+async function stockExists(
+  connection: PoolConnection,
+  idBusiness: number,
+  idProduct: number,
+  idDeposit: number,
+): Promise<boolean> {
+  const [rows] = await connection.query<StockLookupRow[]>(
+    `SELECT idStock, idProduct, idDeposit, quantity
+     FROM stock
+     WHERE idBusiness = ? AND idProduct = ? AND idDeposit = ?
+     LIMIT 1
+     FOR UPDATE`,
+    [idBusiness, idProduct, idDeposit],
+  );
+
+  return Boolean(rows[0]);
+}
+
+async function addToExistingStock(
+  connection: PoolConnection,
+  idBusiness: number,
+  idProduct: number,
+  row: ProductImportResolvedRow,
+): Promise<void> {
+  await connection.query(
+    `UPDATE stock
+     SET quantity = quantity + ?, updated_at = NOW()
+     WHERE idBusiness = ? AND idProduct = ? AND idDeposit = ?`,
+    [row.initialStock, idBusiness, idProduct, row.idDeposit],
+  );
 }
 
 async function createStockMovement(
@@ -296,6 +305,8 @@ export async function confirmProductImportService(
     updatedProducts: 0,
     skippedRows: 0,
     stockRecordsCreated: 0,
+    stockRecordsUpdated: 0,
+    stockQuantityAdded: 0,
     stockMovementsCreated: 0,
     errors: [],
     warnings: [],
@@ -323,34 +334,72 @@ export async function confirmProductImportService(
       productsToCreateOrReactivate,
     );
 
+    const createdProductByIdentityKey = new Map<string, number>();
+
     for (const row of cachedData.preview.rows) {
       if (!shouldImportRow(row, input, cachedData.preview.errors)) {
         response.skippedRows += 1;
         continue;
       }
 
-      let idProduct = row.existingProductId;
+      let idProduct = row.existingProductId
+        ?? createdProductByIdentityKey.get(row.productIdentityKey)
+        ?? null;
 
       if (idProduct && input.importMode === "UPDATE_EXISTING") {
         await updateProduct(connection, input.idBusiness, idProduct, row);
         response.updatedProducts += 1;
-      } else {
+      } else if (!idProduct) {
         idProduct = await createProduct(connection, input.idBusiness, row);
+        createdProductByIdentityKey.set(row.productIdentityKey, idProduct);
         response.createdProducts += 1;
       }
 
-      const stockWasCreated = await upsertStock(
+      const currentStockExists = await stockExists(
         connection,
         input.idBusiness,
         idProduct,
-        row,
+        row.idDeposit,
       );
 
-      if (stockWasCreated) {
+      if (!currentStockExists) {
+        await createStock(
+          connection,
+          input.idBusiness,
+          idProduct,
+          row,
+        );
         response.stockRecordsCreated += 1;
+
+        if (row.initialStock > 0) {
+          await createStockMovement(
+            connection,
+            input.idBusiness,
+            input.idUser,
+            idProduct,
+            row,
+          );
+          response.stockMovementsCreated += 1;
+        }
+
+        continue;
+      }
+
+      if (input.existingStockMode === "SKIP_EXISTING_STOCK") {
+        response.skippedRows += 1;
+        continue;
       }
 
       if (row.initialStock > 0) {
+        await addToExistingStock(
+          connection,
+          input.idBusiness,
+          idProduct,
+          row,
+        );
+        response.stockRecordsUpdated += 1;
+        response.stockQuantityAdded += row.initialStock;
+
         await createStockMovement(
           connection,
           input.idBusiness,
