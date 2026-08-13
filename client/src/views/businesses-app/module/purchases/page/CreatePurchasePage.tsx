@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, ShoppingCart } from "lucide-react";
+import { CircleCheck, Search, ShoppingCart } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
@@ -110,6 +110,15 @@ export const CreatePurchasePage = () => {
     setIsCartModalOpen(true);
   };
 
+  const handleFinalizePurchase = () => {
+    if (cart.length === 0) {
+      toast.error("Agrega al menos un producto antes de finalizar la compra.");
+      return;
+    }
+
+    setIsCartModalOpen(true);
+  };
+
   return (
     <>
       <Meta title="Nueva Compra" />
@@ -124,10 +133,26 @@ export const CreatePurchasePage = () => {
             </p>
           </div>
 
-          <Button type="button" onClick={() => setIsCartSheetOpen(true)}>
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            Ver carrito ({cart.length})
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setIsCartSheetOpen(true)}
+            >
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Ver carrito ({cart.length})
+            </Button>
+            <Button
+              type="button"
+              className="w-full sm:w-auto"
+              disabled={cart.length === 0}
+              onClick={handleFinalizePurchase}
+            >
+              <CircleCheck className="mr-2 h-4 w-4" />
+              Finalizar compra ({cart.length})
+            </Button>
+          </div>
         </section>
 
         <Card>
@@ -188,6 +213,7 @@ export const CreatePurchasePage = () => {
           isOpen={isCartSheetOpen}
           cart={cart}
           canContinue={true}
+          continueLabel="Finalizar compra"
           onClose={() => setIsCartSheetOpen(false)}
           onContinue={handleContinuePurchase}
           onRemove={removeFromCart}

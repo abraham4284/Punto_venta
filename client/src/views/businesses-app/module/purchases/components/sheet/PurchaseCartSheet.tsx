@@ -15,6 +15,7 @@ type PurchaseCartSheetProps = {
   isOpen: boolean;
   cart: PurchaseCartItem[];
   canContinue: boolean;
+  continueLabel?: string;
   onClose: () => void;
   onContinue: () => void;
   onRemove: (idProduct: number, idDeposit: number) => void;
@@ -43,6 +44,7 @@ export const PurchaseCartSheet = ({
   isOpen,
   cart,
   canContinue,
+  continueLabel = "Continuar compra",
   onClose,
   onContinue,
   onRemove,
@@ -147,7 +149,7 @@ export const PurchaseCartSheet = ({
                 disabled={!canContinue || cart.length === 0}
                 onClick={onContinue}
               >
-                Continuar compra
+                {continueLabel}
               </Button>
             </div>
           </div>
