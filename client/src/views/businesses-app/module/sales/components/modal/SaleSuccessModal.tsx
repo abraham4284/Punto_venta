@@ -43,8 +43,6 @@ export const SaleSuccessModal = ({
         setError("El navegador bloqueo la ventana de impresion.");
         return;
       }
-
-      onResetForm();
     } catch {
       setError("No se pudo generar el ticket de la venta.");
     } finally {

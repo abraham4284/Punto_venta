@@ -97,6 +97,7 @@ export const CreateSalePage = () => {
     products,
     totals,
     priceType,
+    isSaleCompleted,
     loadingProducts,
     saving,
     error,
@@ -281,6 +282,13 @@ export const CreateSalePage = () => {
   };
 
   const handleBarcodeSubmit = useCallback(() => {
+    if (isSaleCompleted) {
+      toast("La venta ya fue registrada. Inicia una nueva venta para continuar.", {
+        id: "sale-completed-warning",
+      });
+      return;
+    }
+
     const barcode = barcodeSearch.trim();
 
     if (!barcode) return;
@@ -335,9 +343,16 @@ export const CreateSalePage = () => {
     addToCart([{ product, quantity: 1 }]);
     toast.success(`${product.name} agregado al carrito`);
     setBarcodeSearch("");
-  }, [addToCart, barcodeSearch, cart, header.idCashSession, header.idDeposit, loadingProducts, priceType, products]);
+  }, [addToCart, barcodeSearch, cart, header.idCashSession, header.idDeposit, isSaleCompleted, loadingProducts, priceType, products]);
 
   const handleSubmit = useCallback(async () => {
+    if (isSaleCompleted) {
+      toast("La venta ya fue registrada. Inicia una nueva venta para continuar.", {
+        id: "sale-completed-warning",
+      });
+      return;
+    }
+
     try {
       createSaleFormSchema.parse({
         idCustomer: header.idCustomer ? header.idCustomer : null,
@@ -372,12 +387,20 @@ export const CreateSalePage = () => {
     header.idCashSession,
     header.idDeposit,
     header.idPaymentMethod,
+    isSaleCompleted,
     refreshCashDashboard,
     setValidationErrors,
     submitSale,
   ]);
 
   const handleOpenProductSearch = useCallback(() => {
+    if (isSaleCompleted) {
+      toast("La venta ya fue registrada. Inicia una nueva venta para continuar.", {
+        id: "sale-completed-warning",
+      });
+      return;
+    }
+
     if (!header.idDeposit) {
       toast.error("Selecciona un deposito para buscar productos");
       return;
@@ -389,7 +412,7 @@ export const CreateSalePage = () => {
     }
 
     setIsProductModalOpen(true);
-  }, [header.idCashSession, header.idDeposit]);
+  }, [header.idCashSession, header.idDeposit, isSaleCompleted]);
 
   useSalesHotkeys({
     onOpenSearch: handleOpenProductSearch,
@@ -398,6 +421,7 @@ export const CreateSalePage = () => {
     },
     isCartEmpty: cart.length === 0,
     isLoading: saving,
+    isBlocked: isOpenSuccessModal || isSaleCompleted,
   });
 
   return (
@@ -545,7 +569,7 @@ export const CreateSalePage = () => {
               id="barcode-sale"
               ref={barcodeInputRef}
               value={barcodeSearch}
-              disabled={!header.idDeposit || !header.idCashSession}
+              disabled={!header.idDeposit || !header.idCashSession || isSaleCompleted}
               onChange={(event) => setBarcodeSearch(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -566,7 +590,7 @@ export const CreateSalePage = () => {
         <Button
           type="button"
           variant="outline"
-          disabled={!header.idDeposit || !header.idCashSession || !barcodeSearch.trim()}
+          disabled={!header.idDeposit || !header.idCashSession || isSaleCompleted || !barcodeSearch.trim()}
           onClick={handleBarcodeSubmit}
         >
           Agregar por codigo
@@ -580,7 +604,7 @@ export const CreateSalePage = () => {
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <Button
               type="button"
-              disabled={!header.idDeposit || !header.idCashSession}
+              disabled={!header.idDeposit || !header.idCashSession || isSaleCompleted}
               onClick={handleOpenProductSearch}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -656,7 +680,7 @@ export const CreateSalePage = () => {
         </Button>
         <Button
           type="button"
-          disabled={saving || !header.idCashSession || !header.idPaymentMethod}
+          disabled={saving || isSaleCompleted || !header.idCashSession || !header.idPaymentMethod}
           onClick={handleSubmit}
         >
           {saving ? "Procesando venta..." : "Registrar venta"}
