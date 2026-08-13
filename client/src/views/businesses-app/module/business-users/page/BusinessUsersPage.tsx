@@ -61,8 +61,6 @@ export const BusinessUsersPage = () => {
     (user) => user.mustChangePassword,
   ).length;
 
-  console.log(safeUsers,'safeUsers')
-
   return (
     <>
       <Meta title="Usuarios y permisos" />

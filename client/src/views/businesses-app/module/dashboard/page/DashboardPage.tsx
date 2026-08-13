@@ -4,8 +4,11 @@ import {
   CalendarDays,
   DollarSign,
   PackageCheck,
+  PackagePlus,
   RefreshCw,
+  Receipt,
   ShoppingCart,
+  Truck,
   TrendingUp,
 } from "lucide-react";
 import { Meta } from "@/components/Meta";
@@ -117,71 +120,120 @@ export const DashboardPage = () => {
 
       {dashboardData && (
         <>
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              title="Ventas de hoy"
-              value={formatMoney(dashboardData.metrics.todaySalesTotal)}
-              description="Total facturado hoy"
-              icon={DollarSign}
-              tone="success"
-            />
-            <MetricCard
-              title="Ventas del mes"
-              value={formatMoney(dashboardData.metrics.monthSalesTotal)}
-              description="Acumulado mensual"
-              icon={TrendingUp}
-              tone="info"
-            />
-            <MetricCard
-              title="Operaciones de hoy"
-              value={formatNumber(dashboardData.metrics.todaySalesCount)}
-              description="Ventas completadas"
-              icon={ShoppingCart}
-              tone="default"
-            />
-            <MetricCard
-              title="Ticket promedio"
-              value={formatMoney(dashboardData.metrics.monthAverageTicket)}
-              description="Promedio mensual"
-              icon={CalendarDays}
-              tone="info"
-            />
-            <MetricCard
-              title="Stock bajo"
-              value={formatNumber(dashboardData.metrics.lowStockProducts)}
-              description="Productos bajo minimo"
-              icon={AlertTriangle}
-              tone={
-                dashboardData.metrics.lowStockProducts > 0
-                  ? "warning"
-                  : "success"
-              }
-            />
-            <MetricCard
-              title="Sin stock"
-              value={formatNumber(dashboardData.metrics.outOfStockProducts)}
-              description="Reposicion urgente"
-              icon={Boxes}
-              tone={
-                dashboardData.metrics.outOfStockProducts > 0
-                  ? "danger"
-                  : "success"
-              }
-            />
-            <MetricCard
-              title="Productos activos"
-              value={formatNumber(dashboardData.metrics.activeProducts)}
-              description="Catalogo disponible"
-              icon={PackageCheck}
-              tone="success"
-            />
-            <MetricCard
-              title="Valor stock costo"
-              value={formatMoney(dashboardData.metrics.stockCostValue)}
-              description="Inventario valorizado"
-              icon={DollarSign}
-              tone="default"
-            />
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Ventas
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="Ventas de hoy"
+                value={formatMoney(dashboardData.metrics.todaySalesTotal)}
+                description="Total facturado hoy"
+                icon={DollarSign}
+                tone="success"
+              />
+              <MetricCard
+                title="Ventas del mes"
+                value={formatMoney(dashboardData.metrics.monthSalesTotal)}
+                description="Acumulado mensual"
+                icon={TrendingUp}
+                tone="info"
+              />
+              <MetricCard
+                title="Operaciones de hoy"
+                value={formatNumber(dashboardData.metrics.todaySalesCount)}
+                description="Ventas completadas"
+                icon={ShoppingCart}
+                tone="default"
+              />
+              <MetricCard
+                title="Ticket promedio"
+                value={formatMoney(dashboardData.metrics.monthAverageTicket)}
+                description="Promedio mensual"
+                icon={CalendarDays}
+                tone="info"
+              />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Compras
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="Compras de hoy"
+                value={formatMoney(dashboardData.metrics.todayPurchasesTotal)}
+                description="Mercaderia ingresada hoy"
+                icon={PackagePlus}
+                tone="info"
+              />
+              <MetricCard
+                title="Compras del mes"
+                value={formatMoney(dashboardData.metrics.monthPurchasesTotal)}
+                description="Acumulado mensual"
+                icon={Truck}
+                tone="default"
+              />
+              <MetricCard
+                title="Operaciones de compra"
+                value={formatNumber(dashboardData.metrics.todayPurchasesCount)}
+                description="Operaciones completadas"
+                icon={Receipt}
+                tone="default"
+              />
+              <MetricCard
+                title="Compra promedio"
+                value={formatMoney(dashboardData.metrics.monthAveragePurchase)}
+                description="Promedio mensual"
+                icon={CalendarDays}
+                tone="info"
+              />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Inventario
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <MetricCard
+                title="Stock bajo"
+                value={formatNumber(dashboardData.metrics.lowStockProducts)}
+                description="Productos bajo minimo"
+                icon={AlertTriangle}
+                tone={
+                  dashboardData.metrics.lowStockProducts > 0
+                    ? "warning"
+                    : "success"
+                }
+              />
+              <MetricCard
+                title="Sin stock"
+                value={formatNumber(dashboardData.metrics.outOfStockProducts)}
+                description="Reposicion urgente"
+                icon={Boxes}
+                tone={
+                  dashboardData.metrics.outOfStockProducts > 0
+                    ? "danger"
+                    : "success"
+                }
+              />
+              <MetricCard
+                title="Productos activos"
+                value={formatNumber(dashboardData.metrics.activeProducts)}
+                description="Catalogo disponible"
+                icon={PackageCheck}
+                tone="success"
+              />
+              <MetricCard
+                title="Valor stock costo"
+                value={formatMoney(dashboardData.metrics.stockCostValue)}
+                description="Inventario valorizado"
+                icon={DollarSign}
+                tone="default"
+              />
+            </div>
           </section>
 
           <MonthlySalesChart

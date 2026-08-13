@@ -21,12 +21,89 @@ function toNumber(value: string | number | null | undefined): number {
   return Number(value ?? 0);
 }
 
-function mapMetrics(row: DashboardMetricsRow | undefined): DashboardMetrics {
+async function getPurchaseMetricsFallback(
+  idBusiness: number,
+): Promise<Pick<
+  DashboardMetrics,
+  | "todayPurchasesTotal"
+  | "monthPurchasesTotal"
+  | "todayPurchasesCount"
+  | "monthAveragePurchase"
+>> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT
+      COALESCE(SUM(CASE
+        WHEN DATE(p.purchase_date) = CURDATE() THEN p.total
+        ELSE 0
+      END), 0) AS todayPurchasesTotal,
+      COALESCE(SUM(CASE
+        WHEN YEAR(p.purchase_date) = YEAR(CURDATE())
+         AND MONTH(p.purchase_date) = MONTH(CURDATE()) THEN p.total
+        ELSE 0
+      END), 0) AS monthPurchasesTotal,
+      COALESCE(SUM(CASE
+        WHEN DATE(p.purchase_date) = CURDATE() THEN 1
+        ELSE 0
+      END), 0) AS todayPurchasesCount,
+      COALESCE(
+        SUM(CASE
+          WHEN YEAR(p.purchase_date) = YEAR(CURDATE())
+           AND MONTH(p.purchase_date) = MONTH(CURDATE()) THEN p.total
+          ELSE 0
+        END)
+        / NULLIF(SUM(CASE
+          WHEN YEAR(p.purchase_date) = YEAR(CURDATE())
+           AND MONTH(p.purchase_date) = MONTH(CURDATE()) THEN 1
+          ELSE 0
+        END), 0),
+        0
+      ) AS monthAveragePurchase
+     FROM purchases p
+     WHERE p.idBusiness = ?
+       AND p.status = 'COMPLETED'`,
+    [idBusiness],
+  );
+  const row = rows[0] as DashboardMetricsRow | undefined;
+
+  return {
+    todayPurchasesTotal: toNumber(row?.todayPurchasesTotal),
+    monthPurchasesTotal: toNumber(row?.monthPurchasesTotal),
+    todayPurchasesCount: toNumber(row?.todayPurchasesCount),
+    monthAveragePurchase: toNumber(row?.monthAveragePurchase),
+  };
+}
+
+function mapMetrics(
+  row: DashboardMetricsRow | undefined,
+  purchaseFallback: Pick<
+    DashboardMetrics,
+    | "todayPurchasesTotal"
+    | "monthPurchasesTotal"
+    | "todayPurchasesCount"
+    | "monthAveragePurchase"
+  >,
+): DashboardMetrics {
   return {
     todaySalesTotal: toNumber(row?.todaySalesTotal),
     monthSalesTotal: toNumber(row?.monthSalesTotal),
     todaySalesCount: toNumber(row?.todaySalesCount),
     monthAverageTicket: toNumber(row?.monthAverageTicket),
+    todayPurchasesTotal:
+      row?.todayPurchasesTotal === undefined
+        ? purchaseFallback.todayPurchasesTotal
+        : toNumber(row.todayPurchasesTotal),
+    monthPurchasesTotal:
+      row?.monthPurchasesTotal === undefined
+        ? purchaseFallback.monthPurchasesTotal
+        : toNumber(row.monthPurchasesTotal),
+    todayPurchasesCount:
+      row?.todayPurchasesCount === undefined
+        ? purchaseFallback.todayPurchasesCount
+        : toNumber(row.todayPurchasesCount),
+    monthAveragePurchase:
+      row?.monthAveragePurchase === undefined
+        ? purchaseFallback.monthAveragePurchase
+        : toNumber(row.monthAveragePurchase),
     lowStockProducts: toNumber(row?.lowStockProducts),
     outOfStockProducts: toNumber(row?.outOfStockProducts),
     activeProducts: toNumber(row?.activeProducts),
@@ -107,8 +184,10 @@ export async function getDashboardDataService(
     AvailableDashboardYearRow[],
   ];
 
+  const purchaseFallback = await getPurchaseMetricsFallback(idBusiness);
+
   return {
-    metrics: mapMetrics(metricsResult[0]?.[0]),
+    metrics: mapMetrics(metricsResult[0]?.[0], purchaseFallback),
     recentSales: (chartsResult[0] ?? []).map(mapRecentSale),
     topProducts: (chartsResult[1] ?? []).map(mapTopProduct),
     salesByPaymentMethod: (chartsResult[2] ?? []).map(mapSalesByPaymentMethod),

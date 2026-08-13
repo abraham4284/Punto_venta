@@ -12,6 +12,7 @@ import { useSuppliers } from "../../suppliers/hooks/useSuppliers";
 import { ProductPurchaseCard } from "../components/card/ProductPurchaseCard";
 import { AddToPurchaseModal } from "../components/modal/AddToPurchaseModal";
 import { PurchaseCartModal } from "../components/modal/PurchaseCartModal";
+import { PurchaseCartSheet } from "../components/sheet/PurchaseCartSheet";
 import { usePurchases } from "../hooks/usePurchases";
 import type { CreatePurchasePayload, PurchaseCartItem } from "../types";
 
@@ -19,6 +20,7 @@ export const CreatePurchasePage = () => {
   const [selectedProduct, setSelectedProduct] =
     useState<ProductResponse | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCartSheetOpen, setIsCartSheetOpen] = useState(false);
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const {
     products,
@@ -103,6 +105,11 @@ export const CreatePurchasePage = () => {
     return true;
   };
 
+  const handleContinuePurchase = () => {
+    setIsCartSheetOpen(false);
+    setIsCartModalOpen(true);
+  };
+
   return (
     <>
       <Meta title="Nueva Compra" />
@@ -117,7 +124,7 @@ export const CreatePurchasePage = () => {
             </p>
           </div>
 
-          <Button type="button" onClick={() => setIsCartModalOpen(true)}>
+          <Button type="button" onClick={() => setIsCartSheetOpen(true)}>
             <ShoppingCart className="mr-2 h-4 w-4" />
             Ver carrito ({cart.length})
           </Button>
@@ -176,6 +183,14 @@ export const CreatePurchasePage = () => {
           onClose={() => setIsCartModalOpen(false)}
           onRemove={removeFromCart}
           onSubmit={handleSubmit}
+        />
+        <PurchaseCartSheet
+          isOpen={isCartSheetOpen}
+          cart={cart}
+          canContinue={true}
+          onClose={() => setIsCartSheetOpen(false)}
+          onContinue={handleContinuePurchase}
+          onRemove={removeFromCart}
         />
         <Toaster position="top-right" reverseOrder={false} />
       </main>
