@@ -16,6 +16,7 @@ import {
   TableStock,
 } from "../components";
 import { AddToPurchaseModal } from "../../purchases/components/modal/AddToPurchaseModal";
+import { PurchaseCartSheet } from "../../purchases/components/sheet/PurchaseCartSheet";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
 import { useProducts } from "../../products/hooks/useProducts";
 import type { ProductResponse } from "../../products/types/products.types";
@@ -53,12 +54,14 @@ export const StockPage = () => {
   const canCreatePurchase = useCan("purchases.create");
   const cart = usePurchaseCartStore((state) => state.cart);
   const addPurchaseItem = usePurchaseCartStore((state) => state.addItem);
+  const removePurchaseItem = usePurchaseCartStore((state) => state.removeItem);
   const [purchaseProduct, setPurchaseProduct] =
     useState<ProductResponse | null>(null);
   const [purchaseDepositId, setPurchaseDepositId] = useState<number | null>(
     null,
   );
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [isPurchaseCartSheetOpen, setIsPurchaseCartSheetOpen] = useState(false);
   const {
     getStock,
     refreshStock,
@@ -129,6 +132,12 @@ export const StockPage = () => {
   const handleAddPurchaseItem = (item: PurchaseCartItem) => {
     addPurchaseItem(item);
     toast.success("Producto agregado al carrito de compra");
+    setIsPurchaseCartSheetOpen(true);
+  };
+
+  const handleContinuePurchase = () => {
+    setIsPurchaseCartSheetOpen(false);
+    navigate("/admin/purchases");
   };
 
   return (
@@ -150,10 +159,10 @@ export const StockPage = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/admin/purchases")}
+              onClick={() => setIsPurchaseCartSheetOpen(true)}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
-              Ir a compra ({cart.length})
+              Carrito ({cart.length})
             </Button>
           )}
           <Button type="button" onClick={handleOpenCreate}>
@@ -209,6 +218,14 @@ export const StockPage = () => {
         defaultDepositId={purchaseDepositId}
         onClose={() => setIsPurchaseModalOpen(false)}
         onConfirm={handleAddPurchaseItem}
+      />
+      <PurchaseCartSheet
+        isOpen={isPurchaseCartSheetOpen}
+        cart={cart}
+        canContinue={canCreatePurchase}
+        onClose={() => setIsPurchaseCartSheetOpen(false)}
+        onContinue={handleContinuePurchase}
+        onRemove={removePurchaseItem}
       />
       <Toaster position="top-right" reverseOrder={false} />
       </main>

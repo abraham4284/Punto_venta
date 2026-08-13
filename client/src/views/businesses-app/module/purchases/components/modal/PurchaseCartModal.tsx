@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import Decimal from "decimal.js";
-import { ShoppingCart } from "lucide-react";
+import { Package, ShoppingCart } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -217,9 +217,10 @@ export const PurchaseCartModal = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Carrito de compra</DialogTitle>
+          <DialogTitle>Confirmar compra</DialogTitle>
           <DialogDescription>
-            Revisa los productos ingresados antes de confirmar el movimiento.
+            Revisa los productos y completa los datos de la compra antes de
+            registrarla.
           </DialogDescription>
         </DialogHeader>
 
@@ -275,14 +276,11 @@ export const PurchaseCartModal = ({
                   setGlobalDiscountPercent(event.target.value)
                 }
               />
-              <p className="text-xs text-muted-foreground">
-                Descuento calculado: {formatMoney(globalDiscountAmount)}
-              </p>
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label>Observacion</Label>
+            <Label>Observación</Label>
             <Textarea
               value={observation}
               onChange={(event) => setObservation(event.target.value)}
@@ -319,7 +317,22 @@ export const PurchaseCartModal = ({
                       key={`${item.idProduct}-${item.idDeposit}`}
                       className="border-t"
                     >
-                      <td className="p-3 font-medium">{item.productName}</td>
+                      <td className="p-3">
+                        <div className="flex min-w-52 items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                            {item.imageUrl ? (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.productName}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <Package className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <span className="font-medium">{item.productName}</span>
+                        </div>
+                      </td>
                       <td className="p-3">{item.depositName}</td>
                       <td className="p-3 text-right">{item.quantity}</td>
                       <td className="p-3 text-right">
@@ -356,11 +369,14 @@ export const PurchaseCartModal = ({
               <strong>{formatMoney(subtotal)}</strong>
             </div>
             <div className="flex justify-between">
-              <span>Descuentos</span>
-              <strong>
-                {formatMoney(itemDiscountTotal + globalDiscountAmount)}
-              </strong>
+              <span>Descuento productos</span>
+              <strong>-{formatMoney(itemDiscountTotal)}</strong>
             </div>
+            <div className="flex justify-between">
+              <span>Descuento general ({globalDiscountPercent || "0"}%)</span>
+              <strong>-{formatMoney(globalDiscountAmount)}</strong>
+            </div>
+            <div className="border-t pt-2" />
             <div className="flex justify-between text-lg">
               <span>Total</span>
               <strong>{formatMoney(total)}</strong>

@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BUSINESS_TYPE_OPTIONS } from "../../types";
 import type { BusinessResponse } from "../../types";
 
 type Props = {
@@ -25,6 +26,10 @@ const formatDate = (value: Date | string | null): string => {
 };
 
 export const BusinessProfileCard = ({ business, onEdit }: Props) => {
+  const businessTypeLabel =
+    BUSINESS_TYPE_OPTIONS.find((option) => option.value === business.businessType)
+      ?.label ?? business.businessType ?? "Sin tipo";
+
   return (
     <Card className="overflow-hidden">
       <div className="h-28 bg-gradient-to-r from-emerald-900 via-slate-900 to-sky-900" />
@@ -45,11 +50,8 @@ export const BusinessProfileCard = ({ business, onEdit }: Props) => {
             <CardTitle className="text-2xl">{business.name}</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="bg-emerald-100 text-emerald-800">
-                {business.businessType ?? "Sin tipo"}
+                {businessTypeLabel}
               </Badge>
-              <span className="text-sm text-muted-foreground">
-                ID negocio #{business.idBusiness}
-              </span>
             </div>
           </div>
         </div>

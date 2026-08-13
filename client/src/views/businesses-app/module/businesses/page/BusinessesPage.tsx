@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Building2, Settings, ShieldCheck } from "lucide-react";
+import { Building2, Globe2, Settings, ShieldCheck } from "lucide-react";
 import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,6 @@ export const BusinessesPage = () => {
     saving,
     error,
     fieldErrors,
-    user,
     getBusiness,
     updateBusiness,
     resetBusiness,
@@ -100,11 +99,27 @@ export const BusinessesPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Building2 className="h-4 w-4" />
-                Perfil
+                Identidad
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              Informacion visible del negocio, slug y tipo operativo.
+              Informacion publica y operativa que identifica al comercio dentro
+              del sistema.
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Globe2 className="h-4 w-4" />
+                Acceso
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <p>
+                El slug del negocio se mantiene como referencia funcional para
+                rutas, enlaces o identificacion comercial.
+              </p>
             </CardContent>
           </Card>
 
@@ -112,12 +127,12 @@ export const BusinessesPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <ShieldCheck className="h-4 w-4" />
-                Tenant
+                Seguridad
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>Usuario autenticado: #{user?.idUser ?? "-"}</p>
-              <p>Negocio del token: #{user?.idBusiness ?? "-"}</p>
+            <CardContent className="text-sm text-muted-foreground">
+              Los datos internos de sesion y autenticacion se gestionan de forma
+              privada y no se exponen en este panel.
             </CardContent>
           </Card>
         </aside>

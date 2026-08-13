@@ -41,6 +41,40 @@ BEGIN
     ), 0) AS monthAverageTicket,
 
     COALESCE((
+      SELECT SUM(p.total)
+      FROM purchases p
+      WHERE p.idBusiness = p_idBusiness
+        AND p.status = 'COMPLETED'
+        AND DATE(p.purchase_date) = CURDATE()
+    ), 0) AS todayPurchasesTotal,
+
+    COALESCE((
+      SELECT SUM(p.total)
+      FROM purchases p
+      WHERE p.idBusiness = p_idBusiness
+        AND p.status = 'COMPLETED'
+        AND YEAR(p.purchase_date) = YEAR(CURDATE())
+        AND MONTH(p.purchase_date) = MONTH(CURDATE())
+    ), 0) AS monthPurchasesTotal,
+
+    COALESCE((
+      SELECT COUNT(*)
+      FROM purchases p
+      WHERE p.idBusiness = p_idBusiness
+        AND p.status = 'COMPLETED'
+        AND DATE(p.purchase_date) = CURDATE()
+    ), 0) AS todayPurchasesCount,
+
+    COALESCE((
+      SELECT SUM(p.total) / NULLIF(COUNT(p.idPurchase), 0)
+      FROM purchases p
+      WHERE p.idBusiness = p_idBusiness
+        AND p.status = 'COMPLETED'
+        AND YEAR(p.purchase_date) = YEAR(CURDATE())
+        AND MONTH(p.purchase_date) = MONTH(CURDATE())
+    ), 0) AS monthAveragePurchase,
+
+    COALESCE((
       SELECT COUNT(*)
       FROM stock st
       INNER JOIN products p
