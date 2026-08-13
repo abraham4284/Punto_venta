@@ -5,6 +5,10 @@ export interface DashboardMetricsRow {
   monthSalesTotal: string | number;
   todaySalesCount: string | number;
   monthAverageTicket: string | number;
+  todayPurchasesTotal?: string | number;
+  monthPurchasesTotal?: string | number;
+  todayPurchasesCount?: string | number;
+  monthAveragePurchase?: string | number;
   lowStockProducts: string | number;
   outOfStockProducts: string | number;
   activeProducts: string | number;
@@ -16,6 +20,10 @@ export interface DashboardMetrics {
   monthSalesTotal: number;
   todaySalesCount: number;
   monthAverageTicket: number;
+  todayPurchasesTotal: number;
+  monthPurchasesTotal: number;
+  todayPurchasesCount: number;
+  monthAveragePurchase: number;
   lowStockProducts: number;
   outOfStockProducts: number;
   activeProducts: number;

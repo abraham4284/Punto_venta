@@ -5,6 +5,10 @@ export interface DashboardMetrics {
   monthSalesTotal: number;
   todaySalesCount: number;
   monthAverageTicket: number;
+  todayPurchasesTotal: number;
+  monthPurchasesTotal: number;
+  todayPurchasesCount: number;
+  monthAveragePurchase: number;
   lowStockProducts: number;
   outOfStockProducts: number;
   activeProducts: number;

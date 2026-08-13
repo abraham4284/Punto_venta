@@ -17,6 +17,10 @@ import type {
   BusinessUserPermissionsResponse,
   PermissionGroup,
 } from "../types";
+import {
+  humanizePermissionLabel,
+  humanizePermissionModule,
+} from "../helpers/permission-labels.helper";
 
 type BusinessUserPermissionsModalProps = {
   isOpen: boolean;
@@ -53,13 +57,25 @@ export const BusinessUserPermissionsModal = ({
   useEffect(() => {
     if (!isOpen || !user) return;
 
-    setLoading(true);
-    onLoad(user.idUser)
-      .then((data) => {
-        setRolePermissions(data.rolePermissions);
-        setOverrides(data.overrides);
-      })
-      .finally(() => setLoading(false));
+    let isMounted = true;
+    const timeoutId = window.setTimeout(() => {
+      setLoading(true);
+      onLoad(user.idUser)
+        .then((data) => {
+          if (!isMounted) return;
+
+          setRolePermissions(data.rolePermissions);
+          setOverrides(data.overrides);
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
+    }, 0);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeoutId);
+    };
   }, [isOpen, onLoad, user]);
 
   const overrideMap = useMemo(() => {
@@ -129,7 +145,7 @@ export const BusinessUserPermissionsModal = ({
               <Card key={group.module}>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center justify-between text-base">
-                    {group.module}
+                    {humanizePermissionModule(group.module)}
                     <Badge variant="outline">{group.permissions.length}</Badge>
                   </CardTitle>
                 </CardHeader>
@@ -140,7 +156,13 @@ export const BusinessUserPermissionsModal = ({
                       className="flex items-center justify-between gap-3 rounded-md border p-3"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">{permission.code}</p>
+                        <p className="text-sm font-medium">
+                          {humanizePermissionLabel(
+                            permission.code,
+                            permission.module,
+                            permission.action,
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {permission.description || "Permiso operativo"}
                         </p>
