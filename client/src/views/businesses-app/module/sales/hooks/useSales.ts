@@ -19,6 +19,8 @@ import type {
   SaleHeaderInput,
 } from "../types";
 
+type SaleLifecycle = "DRAFT" | "PROCESSING" | "COMPLETED";
+
 const initialHeader: SaleHeaderInput = {
   idCustomer: null,
   idDeposit: null,
@@ -120,6 +122,7 @@ export const useSales = () => {
   const [isOpenSuccessModal, setIsOpenSuccessModal] = useState(false);
   const [newSaleId, setNewSaleId] = useState<number | null>(null);
   const [newSaleNumber, setNewSaleNumber] = useState<string | null>(null);
+  const [saleLifecycle, setSaleLifecycle] = useState<SaleLifecycle>("DRAFT");
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const submitLockRef = useRef(false);
   const currentSaleIdempotencyKeyRef = useRef<string | null>(null);
@@ -188,6 +191,7 @@ export const useSales = () => {
   const resetSaleState = () => {
     submitLockRef.current = false;
     currentSaleIdempotencyKeyRef.current = null;
+    setSaleLifecycle("DRAFT");
     setHeader(initialHeader);
     setCart([]);
     setProducts([]);
@@ -409,6 +413,14 @@ export const useSales = () => {
   };
 
   const submitSale = async () => {
+    if (saleLifecycle === "COMPLETED") {
+      return {
+        status: false,
+        completed: true,
+        message: "La venta ya fue registrada. Inicia una nueva venta para continuar.",
+      };
+    }
+
     if (submitLockRef.current) {
       return {
         status: false,
@@ -422,6 +434,7 @@ export const useSales = () => {
       currentSaleIdempotencyKeyRef.current ?? createIdempotencyKey();
 
     try {
+      setSaleLifecycle("PROCESSING");
       setSaving(true);
       clearErrors();
 
@@ -430,13 +443,14 @@ export const useSales = () => {
         payload,
         currentSaleIdempotencyKeyRef.current,
       );
-      console.log(payload,'payload')
       const createdSaleId = response.data.data?.idSale ?? null;
       const createdSaleNumber = response.data.data?.saleNumber ?? null;
 
       currentSaleIdempotencyKeyRef.current = null;
       setNewSaleId(createdSaleId);
       setNewSaleNumber(createdSaleNumber);
+      clearCart();
+      setSaleLifecycle("COMPLETED");
       setIsOpenSuccessModal(true);
 
       return {
@@ -451,6 +465,8 @@ export const useSales = () => {
       if (axiosError.response) {
         currentSaleIdempotencyKeyRef.current = null;
       }
+
+      setSaleLifecycle("DRAFT");
 
       return {
         status: false,
@@ -492,6 +508,7 @@ export const useSales = () => {
     products,
     totals,
     priceType,
+    saleLifecycle,
     loadingProducts,
     saving,
     error,
@@ -500,6 +517,7 @@ export const useSales = () => {
     newSaleId,
     newSaleNumber,
     cancelingId,
+    isSaleCompleted: saleLifecycle === "COMPLETED",
     setPriceType,
     updateHeaderField,
     changeDeposit,

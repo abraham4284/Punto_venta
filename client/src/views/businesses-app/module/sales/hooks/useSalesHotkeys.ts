@@ -6,6 +6,7 @@ interface UseSalesHotkeysProps {
   onFinalizeSale: () => void;
   isCartEmpty: boolean;
   isLoading: boolean;
+  isBlocked?: boolean;
 }
 
 export const useSalesHotkeys = ({
@@ -13,12 +14,21 @@ export const useSalesHotkeys = ({
   onFinalizeSale,
   isCartEmpty,
   isLoading,
+  isBlocked = false,
 }: UseSalesHotkeysProps) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "F2") {
         event.preventDefault();
         event.stopImmediatePropagation();
+
+        if (isBlocked) {
+          toast("La venta ya fue registrada. Inicia una nueva venta para continuar.", {
+            id: "sale-completed-warning",
+          });
+          return;
+        }
+
         onOpenSearch();
       }
 
@@ -29,6 +39,13 @@ export const useSalesHotkeys = ({
         if (isLoading) {
           toast("La venta se esta procesando. Espera a que finalice.", {
             id: "sale-processing-warning",
+          });
+          return;
+        }
+
+        if (isBlocked) {
+          toast("La venta ya fue registrada. Inicia una nueva venta para continuar.", {
+            id: "sale-completed-warning",
           });
           return;
         }
@@ -44,5 +61,5 @@ export const useSalesHotkeys = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [isCartEmpty, isLoading, onFinalizeSale, onOpenSearch]);
+  }, [isBlocked, isCartEmpty, isLoading, onFinalizeSale, onOpenSearch]);
 };
