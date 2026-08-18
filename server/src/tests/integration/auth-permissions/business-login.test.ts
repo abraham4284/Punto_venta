@@ -79,7 +79,8 @@ describe("Auth BUSINESS", function businessAuthSuite() {
       password: "Password-incorrecta-123",
     });
 
-    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe("Usuario o contraseña incorrectos");
     expect(response.headers["set-cookie"]).toBeUndefined();
     expect(response.body.message).not.toContain(fixture.owner.username);
 
