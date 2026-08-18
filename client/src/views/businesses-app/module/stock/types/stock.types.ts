@@ -206,8 +206,7 @@ export interface StockMetrics {
 export type CriticalStockAlertStatus =
   | "CRITICAL_ZERO"
   | "CRITICAL_LOW"
-  | "CRITICAL_EQUAL"
-  | "STOCK_OK";
+  | "CRITICAL_EQUAL";
 
 export interface CriticalStockReportResponse {
   idStock: number;
@@ -216,6 +215,8 @@ export interface CriticalStockReportResponse {
   productName: string;
   barcode: string | null;
   imageUrl: string | null;
+  unitType: ProductUnitType;
+  priceCost: number;
   idDeposit: number;
   depositName: string;
   quantity: number;
@@ -225,13 +226,15 @@ export interface CriticalStockReportResponse {
 }
 
 export interface CriticalStockReportFilters {
-  maxQuantity: number;
+  maxQuantity?: number | null;
   idDeposit?: number | null;
   search?: string | null;
+  alertStatus?: CriticalStockAlertStatus | null;
 }
 
 export interface CriticalStockMetrics {
-  totalCriticalRisk: number;
+  totalRestockItems: number;
   zeroStock: number;
-  insufficientStock: number;
+  lowStock: number;
+  equalStock: number;
 }

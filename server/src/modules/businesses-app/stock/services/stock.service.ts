@@ -247,12 +247,13 @@ export async function getCriticalStockReportService(
   filters: CriticalStockReportFilters,
 ): Promise<CriticalStockReportResponse[]> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_critical_stock_report(?, ?, ?, ?)",
+    "CALL sp_get_critical_stock_report(?, ?, ?, ?, ?)",
     [
       filters.idBusiness,
-      filters.maxQuantity,
       filters.idDeposit ?? null,
       filters.searchProduct ?? null,
+      filters.alertStatus ?? null,
+      filters.maxQuantity ?? null,
     ],
   );
 
@@ -266,6 +267,8 @@ export async function getCriticalStockReportService(
       productName: row.product_name,
       barcode: row.barcode,
       imageUrl: row.image_url,
+      unitType: row.unit_type,
+      priceCost: Number(row.price_cost),
       idDeposit: row.idDeposit,
       depositName: row.deposit_name,
       quantity: Number(row.quantity),
