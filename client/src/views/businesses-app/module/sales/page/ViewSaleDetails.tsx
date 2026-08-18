@@ -1,22 +1,13 @@
 import { useEffect } from "react";
-import { ArrowLeft, Ban, Printer } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Meta } from "@/components/Meta";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useBusinesses } from "../../businesses/hooks/useBusinesses";
-import { InvoiceDocument } from "../components/invoice/InvoiceDocument";
+import { useCustomers } from "../../customers/hooks/useCustomers";
+import { SaleDetailsView } from "../components/details/SaleDetailsView";
+import { SalePrintDocument } from "../components/print/SalePrintDocument";
 import { useSaleDetails } from "../hooks";
 
 export const ViewSaleDetails = () => {
@@ -33,6 +24,8 @@ export const ViewSaleDetails = () => {
     resetSaleDetails,
   } = useSaleDetails();
   const { business, getBusiness, resetBusiness } = useBusinesses();
+  const { customerById, loadingById, getIdCustomers, resetIdCustomers } =
+    useCustomers();
 
   useEffect(() => {
     if (idSale) {
@@ -43,8 +36,25 @@ export const ViewSaleDetails = () => {
     return () => {
       resetSaleDetails();
       resetBusiness();
+      resetIdCustomers();
     };
-  }, [getBusiness, getSale, idSale, resetBusiness, resetSaleDetails]);
+  }, [
+    getBusiness,
+    getSale,
+    idSale,
+    resetBusiness,
+    resetIdCustomers,
+    resetSaleDetails,
+  ]);
+
+  useEffect(() => {
+    if (sale?.idCustomer) {
+      void getIdCustomers(sale.idCustomer);
+      return;
+    }
+
+    resetIdCustomers();
+  }, [getIdCustomers, resetIdCustomers, sale?.idCustomer]);
 
   if (loading) {
     return (
@@ -82,84 +92,30 @@ export const ViewSaleDetails = () => {
   return (
     <>
       <Meta title="Detalle de Venta" />
-      <main className="min-h-screen bg-slate-100 p-3 md:p-6 print:bg-white print:p-0">
-      <div className="no-print mx-auto mb-5 flex max-w-[800px] flex-col justify-between gap-3 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Detalle de comprobante
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Auditoria visual e impresion A4 de la venta {sale.saleNumber}.
-          </p>
+      <main className="min-h-screen bg-muted/30 p-3 md:p-6 print:bg-white print:p-0">
+        <div className="no-print">
+          <SaleDetailsView
+            sale={sale}
+            customer={customerById}
+            customerLoading={loadingById}
+            grossSubtotal={grossSubtotal}
+            canceling={canceling}
+            onBack={() => navigate(-1)}
+            onPrint={() => window.print()}
+            onCancel={() => {
+              void cancelSaleAction(sale.idSale);
+            }}
+          />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={canceling}
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
-          <Button
-            type="button"
-            disabled={canceling}
-            onClick={() => window.print()}
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimir Comprobante
-          </Button>
-          {sale.status === "CANCELLED" ? (
-            <Button type="button" variant="destructive" disabled>
-              <Ban className="mr-2 h-4 w-4" />
-              Venta Anulada
-            </Button>
-          ) : (
-            <AlertDialog>
-              <AlertDialogTrigger
-                render={
-                  <Button type="button" variant="destructive" disabled={canceling} />
-                }
-              >
-                {canceling ? (
-                  <Spinner className="mr-2 h-4 w-4" />
-                ) : (
-                  <Ban className="mr-2 h-4 w-4" />
-                )}
-                Anular Operación
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Anular venta</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    ¿Está seguro de que desea anular esta venta? Esta acción
-                    revertirá el stock de los productos al depósito de origen de
-                    forma automática y es irreversible.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      void cancelSaleAction(sale.idSale);
-                    }}
-                  >
-                    Confirmar anulación
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+        <div className="hidden print:block">
+          <SalePrintDocument
+            sale={sale}
+            business={business}
+            customer={customerById}
+            grossSubtotal={grossSubtotal}
+          />
         </div>
-      </div>
-
-      <InvoiceDocument
-        sale={sale}
-        business={business}
-        grossSubtotal={grossSubtotal}
-      />
       </main>
     </>
   );

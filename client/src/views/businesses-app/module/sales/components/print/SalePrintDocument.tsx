@@ -1,31 +1,33 @@
-import { useEffect } from "react";
+import { Package } from "lucide-react";
 import type { BusinessResponse } from "../../../businesses/types";
-import { useCustomers } from "../../../customers/hooks/useCustomers";
+import type { Customer } from "../../../customers/types/customers.types";
 import type { SaleWithDetailsResponse } from "../../types";
 import { formatCurrency, formatDate } from "@/helpers";
 
-type Props = {
+type SalePrintDocumentProps = {
   sale: SaleWithDetailsResponse;
   business: BusinessResponse | null;
+  customer: Customer | null;
   grossSubtotal: number;
 };
 
 const businessTypeLabels: Record<string, string> = {
   MAXIKIOSCO: "Maxikiosco",
   PRODUCTOS: "Venta de productos",
+  VENTA_PRODUCTOS: "Venta de productos",
   FINANCIERA: "Financiera",
   KIOSCO: "Kiosco",
-  ALMACEN: "Almacen / Despensa",
+  ALMACEN: "Almacén / Despensa",
   MINIMERCADO: "Minimercado",
   SUPERMERCADO: "Supermercado",
   FARMACIA: "Farmacia",
-  FERRETERIA: "Ferreteria",
+  FERRETERIA: "Ferretería",
   INDUMENTARIA: "Indumentaria",
-  TECNOLOGIA: "Tecnologia",
+  TECNOLOGIA: "Tecnología",
   DISTRIBUIDORA: "Distribuidora",
-  GASTRONOMIA: "Gastronomia",
-  LIBRERIA: "Libreria",
-  PERFUMERIA: "Perfumeria",
+  GASTRONOMIA: "Gastronomía",
+  LIBRERIA: "Librería",
+  PERFUMERIA: "Perfumería",
   VETERINARIA: "Veterinaria",
   OTRO: "Comercio",
 };
@@ -42,27 +44,20 @@ const formatQuantity = (value: number): string => {
   }).format(value);
 };
 
-export const InvoiceDocument = ({ sale, business, grossSubtotal }: Props) => {
+export const SalePrintDocument = ({
+  sale,
+  business,
+  customer,
+  grossSubtotal,
+}: SalePrintDocumentProps) => {
   const businessName = business?.name || "Punto de Venta";
   const businessType = getBusinessTypeLabel(business?.businessType);
-  const isFinalConsumer = !sale.idCustomer || !sale.customerName;
+  const customerName = customer?.name || sale.customerName || "Consumidor Final";
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;
-
-  const { customerById, loadingById, getIdCustomers, resetIdCustomers } =
-    useCustomers();
-
-  useEffect(() => {
-    if (sale.idCustomer) {
-      getIdCustomers(sale.idCustomer);
-      return;
-    }
-
-    resetIdCustomers();
-  }, [getIdCustomers, resetIdCustomers, sale.idCustomer]);
 
   return (
     <article className="print-container relative mx-auto min-h-[1120px] w-full max-w-[800px] overflow-hidden bg-white text-slate-950 shadow-2xl print:min-h-screen print:max-w-full print:shadow-none">
-      {sale.status === "CANCELLED" && (
+      {sale.status === "CANCELLED" ? (
         <>
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
             <div className="-rotate-12 rounded-xl border-4 border-red-500/30 px-10 py-4 text-6xl font-black uppercase tracking-[0.2em] text-red-500/20 print:text-red-500/25">
@@ -73,15 +68,15 @@ export const InvoiceDocument = ({ sale, business, grossSubtotal }: Props) => {
             Venta anulada
           </div>
         </>
-      )}
+      ) : null}
+
       <header className="relative h-56 overflow-hidden bg-blue-700 text-white print:h-48">
         <div className="absolute inset-0 bg-blue-800" />
         <div className="absolute -left-20 top-12 h-40 w-[120%] rotate-[-4deg] rounded-[50%] bg-blue-950/45" />
-        {/* <div className="absolute -left-24 top-24 h-44 w-[125%] rotate-[5deg] rounded-[50%] bg-white" /> */}
         <div className="absolute right-16 top-12 flex items-center gap-4 text-right">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-blue-100">
-              Comprobante
+              Comprobante de venta
             </p>
             <h1 className="mt-1 text-3xl font-black tracking-wide">
               {businessName}
@@ -108,47 +103,26 @@ export const InvoiceDocument = ({ sale, business, grossSubtotal }: Props) => {
             <h2 className="text-xl font-black uppercase tracking-wide">
               Datos del cliente
             </h2>
-            {loadingById ? (
-              <div className="mt-3 space-y-1 text-[15px] leading-7 text-slate-700">
+            <div className="mt-3 space-y-1 text-[15px] leading-7 text-slate-700">
+              <p>
+                <strong>Nombre:</strong> {customerName}
+              </p>
+              {customer?.phone ? (
                 <p>
-                  <strong>Cliente:</strong> Cargando datos...
+                  <strong>Teléfono:</strong> {customer.phone}
                 </p>
-              </div>
-            ) : sale.idCustomer && customerById ? (
-              <div className="mt-3 space-y-1 text-[15px] leading-7 text-slate-700">
+              ) : null}
+              {customer?.address ? (
                 <p>
-                  <strong>Nombre:</strong>{" "}
-                  {customerById.name || "Sin nombre registrado"}
+                  <strong>Dirección:</strong> {customer.address}
                 </p>
-                {customerById.phone && (
-                  <p>
-                    <strong>Telefono:</strong> {customerById.phone}
-                  </p>
-                )}
-                {customerById.address && (
-                  <p>
-                    <strong>Direccion:</strong> {customerById.address}
-                  </p>
-                )}
-                {customerById.email && (
-                  <p>
-                    <strong>Email:</strong> {customerById.email}
-                  </p>
-                )}
-                {customerById.observation && (
-                  <p>
-                    <strong>Observacion:</strong> {customerById.observation}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="mt-3 space-y-1 text-[15px] leading-7 text-slate-700">
+              ) : null}
+              {customer?.email ? (
                 <p>
-                  <strong>Nombre:</strong>{" "}
-                  {isFinalConsumer ? "Consumidor Final" : sale.customerName}
+                  <strong>Email:</strong> {customer.email}
                 </p>
-              </div>
-            )}
+              ) : null}
+            </div>
           </section>
 
           <section className="md:text-right">
@@ -163,7 +137,7 @@ export const InvoiceDocument = ({ sale, business, grossSubtotal }: Props) => {
                 <strong>Rubro:</strong> {businessType}
               </p>
               <p>
-                <strong>Deposito:</strong> {sale.depositName}
+                <strong>Depósito:</strong> {sale.depositName}
               </p>
               <p>
                 <strong>Vendedor:</strong> {sale.userName}
@@ -178,12 +152,12 @@ export const InvoiceDocument = ({ sale, business, grossSubtotal }: Props) => {
               Fecha: {formatDate(sale.saleDate)}
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              Forma de pago: {sale.paymentMethodName ?? "Sin metodo informado"}
+              Forma de pago: {sale.paymentMethodName ?? "Sin método informado"}
             </p>
           </div>
           <div className="rounded-md bg-blue-50 px-4 py-2 text-right">
             <p className="text-xs uppercase tracking-[0.24em] text-blue-700">
-              N de comprobante
+              N.º de comprobante
             </p>
             <p className="text-xl font-black text-blue-950">{saleNumber}</p>
           </div>
@@ -213,13 +187,21 @@ export const InvoiceDocument = ({ sale, business, grossSubtotal }: Props) => {
               >
                 <div className="px-1">
                   <div className="flex items-center gap-2">
-                    <img src={item.productImageUrl || "/path/to/default-image.jpg"} alt={item.productName} className="h-12 w-12 object-cover" />
+                    {item.productImageUrl ? (
+                      <img
+                        src={item.productImageUrl}
+                        alt={item.productName}
+                        className="h-12 w-12 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-slate-100 text-slate-500">
+                        <Package className="h-5 w-5" />
+                      </div>
+                    )}
                     <p className="font-semibold">{item.productName}</p>
                   </div>
                 </div>
-                <div className="text-center">
-                  {formatQuantity(item.quantity)}
-                </div>
+                <div className="text-center">{formatQuantity(item.quantity)}</div>
                 <div className="text-center">
                   {formatCurrency(item.unitPrice)}
                 </div>
@@ -234,7 +216,7 @@ export const InvoiceDocument = ({ sale, business, grossSubtotal }: Props) => {
         <footer className="mt-4 grid gap-8 md:grid-cols-[1fr_320px]">
           <section className="space-y-5 text-[15px] leading-7 text-slate-700">
             <p>
-              <strong>Observacion:</strong>{" "}
+              <strong>Observación:</strong>{" "}
               {sale.observation || "Sin observaciones asociadas."}
             </p>
             <p>
