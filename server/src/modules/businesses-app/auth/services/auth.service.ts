@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
+import { createAppError } from "@/helpers/app-error.helper.js";
 import {
   signAccessToken,
   signRefreshToken,
@@ -21,6 +22,15 @@ import type {
 } from "../types/auth.types.js";
 
 const REFRESH_DAYS = 7;
+const INVALID_LOGIN_MESSAGE = "Usuario o contraseña incorrectos";
+
+function createInvalidLoginError() {
+  return createAppError({
+    statusCode: 401,
+    code: "INVALID_LOGIN_CREDENTIALS",
+    message: INVALID_LOGIN_MESSAGE,
+  });
+}
 
 function getRefreshExpirationDate(): Date {
   const expiresAt = new Date();
@@ -65,13 +75,13 @@ export async function loginService(
   const user = result[0]?.[0];
 
   if (!user) {
-    throw new Error("Credenciales inválidas");
+    throw createInvalidLoginError();
   }
 
   const passwordMatch = await bcrypt.compare(data.password, user.password_hash);
 
   if (!passwordMatch) {
-    throw new Error("Credenciales inválidas");
+    throw createInvalidLoginError();
   }
 
   const accessToken = signAccessToken({
