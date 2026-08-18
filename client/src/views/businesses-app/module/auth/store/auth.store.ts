@@ -23,6 +23,8 @@ type AuthActionResult =
   | { success: true; message: string }
   | { success: false; message: string | undefined };
 
+const INVALID_LOGIN_MESSAGE = "Usuario o contraseña incorrectos";
+
 const getAuthErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<ApiMessageResponse>;
 
@@ -109,7 +111,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error: unknown) {
       const e = error as AxiosError<ApiMessageResponse>;
       const msg =
-        e?.response?.data?.message ?? e?.message ?? "Error al iniciar sesión";
+        e?.response?.data?.message ??
+        (e?.response?.status === 401 ? INVALID_LOGIN_MESSAGE : undefined) ??
+        "Error al iniciar sesión";
       set({ status: "unauthenticated", user: null, error: msg });
       return { success: false, message: msg };
     } finally {

@@ -24,6 +24,8 @@ const initialForm: LoginFormValues = {
   password: "",
 };
 
+const INVALID_LOGIN_MESSAGE = "Usuario o contraseña incorrectos";
+
 export const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const login = useAuthStore((state) => state.login);
@@ -44,7 +46,7 @@ export const LoginPage = () => {
     const result = await login(validation.data.username, validation.data.password);
 
     if (!result.success) {
-      toast.error(result.message || "Error al iniciar sesion");
+      toast.error(result.message || INVALID_LOGIN_MESSAGE);
       return;
     }
 
