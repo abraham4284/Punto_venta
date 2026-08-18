@@ -1,26 +1,17 @@
+import { useEffect, useMemo, useState } from "react";
 import {
-  Archive,
   BarChart3,
   Boxes,
-  Building2,
   ChevronLeft,
-  CircleDollarSign,
-  ClipboardList,
-  CreditCard,
+  ChevronRight,
   Factory,
-  Layers3,
+  Landmark,
   LogOut,
   Package,
   PackagePlus,
-  PackageSearch,
-  ReceiptText,
-  Landmark,
+  Settings,
   ShoppingCart,
-  Tags,
-  Truck,
-  UserRound,
   Users,
-  Warehouse,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -39,181 +30,257 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { peopleNav, productNav, purchaseNav, saleNav, stockNav } from "@/navigation";
 import { useAuthStore } from "@/views/businesses-app";
 import { useBusinesses } from "@/views/businesses-app/module/businesses/hooks/useBusinesses";
-import { useEffect } from "react";
 
-type NavigationItem = {
+type NavigationChild = {
   title: string;
   url: string;
-  icon: LucideIcon;
   permission?: string;
 };
 
-type NavigationGroup = {
+type NavigationParent = {
   title: string;
-  items: NavigationItem[];
+  icon: LucideIcon;
+  children: NavigationChild[];
+  activePatterns?: RegExp[];
 };
 
-const iconByRoute: Record<string, LucideIcon> = {
-  "/admin/dashboard": BarChart3,
-  "/admin/dasbhoard": BarChart3,
-  "/admin/businesses": Building2,
-  "/admin/profile": UserRound,
-  "/admin/users": Users,
-  "/admin/subscription": CreditCard,
-  "/admin/clients": Users,
-  "/admin/suppliers": Truck,
-  "/admin/categories-product": Tags,
-  "/admin/products": Package,
-  "/admin/deposits": Warehouse,
-  "/admin/payment-methods": CircleDollarSign,
-  "/admin/cash": Landmark,
-  "/admin/cash/history": ClipboardList,
-  "/admin/cash/registers": Warehouse,
-  "/admin/stock": Boxes,
-  "/admin/stock/movements": ClipboardList,
-  "/admin/stock/critical": PackageSearch,
-  "/admin/sales": ShoppingCart,
-  "/admin/sales/history": ReceiptText,
-  "/admin/purchases": PackagePlus,
-  "/admin/purchases/history": ClipboardList,
+type NavigationSection = {
+  title: string;
+  items: NavigationParent[];
 };
 
-const buildItems = (
-  links: { title: string; url: string }[],
-): NavigationItem[] => {
-  return links.map((link) => ({
-    title: link.title,
-    url: link.url,
-    icon: iconByRoute[link.url] ?? Layers3,
-  }));
+const businessTypeLabels: Record<string, string> = {
+  MAXIKIOSCO: "Maxikiosco",
+  PRODUCTOS: "Venta de productos",
+  VENTA_PRODUCTOS: "Venta de productos",
+  FINANCIERA: "Financiera",
+  KIOSCO: "Kiosco",
+  ALMACEN: "Almacén / Despensa",
+  MINIMERCADO: "Minimercado",
+  SUPERMERCADO: "Supermercado",
+  FARMACIA: "Farmacia",
+  FERRETERIA: "Ferretería",
+  INDUMENTARIA: "Indumentaria",
+  TECNOLOGIA: "Tecnología",
+  DISTRIBUIDORA: "Distribuidora",
+  GASTRONOMIA: "Gastronomía",
+  LIBRERIA: "Librería",
+  PERFUMERIA: "Perfumería",
+  VETERINARIA: "Veterinaria",
+  OTRO: "Negocio",
 };
 
-const navigationGroups: NavigationGroup[] = [
+const startItem: NavigationChild & { icon: LucideIcon } = {
+  title: "Inicio",
+  url: "/admin/dashboard",
+  icon: BarChart3,
+  permission: "dashboard.view",
+};
+
+const navigationSections: NavigationSection[] = [
   {
-    title: "General",
+    title: "Operación",
     items: [
       {
-        title: "Dashboard / Metricas",
-        url: "/admin/dashboard",
-        icon: BarChart3,
-        permission: "dashboard.view",
+        title: "Ventas",
+        icon: ShoppingCart,
+        activePatterns: [/^\/admin\/sales\/[^/]+$/],
+        children: [
+          {
+            title: "Nueva venta",
+            url: "/admin/sales",
+            permission: "sales.create",
+          },
+          {
+            title: "Historial",
+            url: "/admin/sales/history",
+            permission: "sales.view",
+          },
+        ],
       },
       {
-        title: "Configuracion del negocio",
-        url: "/admin/businesses",
-        icon: Building2,
-        permission: "business.view",
+        title: "Compras",
+        icon: PackagePlus,
+        activePatterns: [/^\/admin\/purchases\/[^/]+$/],
+        children: [
+          {
+            title: "Nueva compra",
+            url: "/admin/purchases",
+            permission: "purchases.create",
+          },
+          {
+            title: "Historial",
+            url: "/admin/purchases/history",
+            permission: "purchases.view",
+          },
+        ],
       },
       {
-        title: "Mi perfil",
-        url: "/admin/profile",
-        icon: UserRound,
-      },
-      {
-        title: "Mi suscripcion",
-        url: "/admin/subscription",
-        icon: CreditCard,
-        permission: "subscription.view",
-      },
-      {
-        title: "Usuarios y permisos",
-        url: "/admin/users",
-        icon: Users,
-        permission: "users.view",
+        title: "Inventario",
+        icon: Boxes,
+        activePatterns: [/^\/admin\/stock(\/.*)?$/],
+        children: [
+          {
+            title: "Stock",
+            url: "/admin/stock",
+            permission: "stock.view",
+          },
+          {
+            title: "Movimientos",
+            url: "/admin/stock/movements",
+            permission: "stock.view_movements",
+          },
+          {
+            title: "Reposición",
+            url: "/admin/stock/critical",
+            permission: "stock.view_critical",
+          },
+        ],
       },
     ],
   },
   {
-    title: "Ventas",
+    title: "Gestión",
+    items: [
+      {
+        title: "Productos",
+        icon: Package,
+        children: [
+          {
+            title: "Productos",
+            url: "/admin/products",
+            permission: "products.view",
+          },
+          {
+            title: "Categorías",
+            url: "/admin/categories-product",
+            permission: "categories.view",
+          },
+        ],
+      },
+      {
+        title: "Contactos",
+        icon: Users,
+        children: [
+          {
+            title: "Clientes",
+            url: "/admin/clients",
+            permission: "customers.view",
+          },
+          {
+            title: "Proveedores",
+            url: "/admin/suppliers",
+            permission: "suppliers.view",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Administración",
     items: [
       {
         title: "Caja",
-        url: "/admin/cash",
         icon: Landmark,
-        permission: "cash_sessions.view",
+        activePatterns: [/^\/admin\/cash(\/.*)?$/],
+        children: [
+          {
+            title: "Caja actual",
+            url: "/admin/cash",
+            permission: "cash_sessions.view",
+          },
+          {
+            title: "Historial",
+            url: "/admin/cash/history",
+            permission: "cash_sessions.view_history",
+          },
+          {
+            title: "Configuración",
+            url: "/admin/cash/registers",
+            permission: "cash_registers.view",
+          },
+        ],
       },
       {
-        title: "Historial de caja",
-        url: "/admin/cash/history",
-        icon: ClipboardList,
-        permission: "cash_sessions.view_history",
+        title: "Configuración",
+        icon: Settings,
+        children: [
+          {
+            title: "Negocio",
+            url: "/admin/businesses",
+            permission: "business.view",
+          },
+          {
+            title: "Depósitos",
+            url: "/admin/deposits",
+            permission: "deposits.view",
+          },
+          {
+            title: "Métodos de pago",
+            url: "/admin/payment-methods",
+            permission: "payment_methods.view",
+          },
+          {
+            title: "Usuarios y permisos",
+            url: "/admin/users",
+            permission: "users.view",
+          },
+          {
+            title: "Suscripción",
+            url: "/admin/subscription",
+            permission: "subscription.view",
+          },
+        ],
       },
-      {
-        title: "Configuracion de cajas",
-        url: "/admin/cash/registers",
-        icon: Warehouse,
-        permission: "cash_registers.view",
-      },
-      {
-        title: "Metodos de pago",
-        url: "/admin/payment-methods",
-        icon: CircleDollarSign,
-        permission: "payment_methods.view",
-      },
-      ...buildItems(saleNav).map((item) => ({
-        ...item,
-        permission: item.url.endsWith("/history") ? "sales.view" : "sales.create",
-      })),
     ],
-  },
-  {
-    title: "Compras",
-    items: buildItems(purchaseNav).map((item) => ({
-      ...item,
-      permission: item.url.endsWith("/history")
-        ? "purchases.view"
-        : "purchases.create",
-    })),
-  },
-  {
-    title: "Stock / Inventario",
-    items: buildItems(stockNav).map((item) => ({
-      ...item,
-      permission: item.url.endsWith("/movements")
-        ? "stock.view_movements"
-        : item.url.endsWith("/critical")
-          ? "stock.view_critical"
-          : "stock.view",
-    })),
-  },
-  {
-    title: "Productos",
-    items: buildItems(productNav).map((item) => ({
-      ...item,
-      permission: item.url.includes("categories")
-        ? "categories.view"
-        : item.url.includes("deposits")
-          ? "deposits.view"
-          : "products.view",
-    })),
-  },
-  {
-    title: "Personas",
-    items: buildItems(peopleNav).map((item) => ({
-      ...item,
-      permission: item.url.includes("suppliers")
-        ? "suppliers.view"
-        : "customers.view",
-    })),
   },
 ];
 
-const getActiveUrl = (pathname: string): string | undefined => {
-  const allItems = navigationGroups.flatMap((group) => group.items);
+const getBusinessTypeLabel = (value: string | null | undefined): string => {
+  if (!value) return "Negocio";
+  return businessTypeLabels[value] ?? value;
+};
 
-  return allItems
-    .map((item) => item.url)
-    .filter((url) => {
-      if (url === "/admin/dashboard") {
-        return pathname === url || pathname.startsWith("/admin/dasbhoard");
-      }
+const hasPermission = (
+  permission: string | undefined,
+  userRole: string | undefined,
+  permissions: string[] | undefined,
+) => {
+  if (!permission || userRole === "OWNER") return true;
+  return permissions?.includes(permission) ?? false;
+};
 
-      return pathname === url || pathname.startsWith(`${url}/`);
-    })
-    .sort((a, b) => b.length - a.length)[0];
+const isDashboardActive = (pathname: string) => {
+  return pathname === "/admin/dashboard" || pathname === "/admin/dasbhoard";
+};
+
+const isChildActive = (pathname: string, child: NavigationChild) => {
+  if (child.url === "/admin/dashboard") {
+    return isDashboardActive(pathname);
+  }
+
+  return pathname === child.url;
+};
+
+const isParentActive = (pathname: string, parent: NavigationParent) => {
+  return (
+    parent.children.some((child) => isChildActive(pathname, child)) ||
+    parent.activePatterns?.some((pattern) => pattern.test(pathname)) ||
+    false
+  );
+};
+
+const getActiveParentTitles = (
+  pathname: string,
+  sections: NavigationSection[],
+) => {
+  return sections.flatMap((section) =>
+    section.items
+      .filter((item) => isParentActive(pathname, item))
+      .map((item) => item.title),
+  );
 };
 
 const getUserInitials = (name: string): string => {
@@ -230,11 +297,11 @@ const getUserInitials = (name: string): string => {
     .toUpperCase();
 };
 
-const NavItem = ({ item }: { item: NavigationItem }) => {
+const StartNavItem = ({ item }: { item: typeof startItem }) => {
   const location = useLocation();
   const { setMobileOpen } = useSidebar();
   const Icon = item.icon;
-  const isActive = getActiveUrl(location.pathname) === item.url;
+  const isActive = isDashboardActive(location.pathname);
 
   return (
     <SidebarMenuItem>
@@ -246,11 +313,94 @@ const NavItem = ({ item }: { item: NavigationItem }) => {
               isActive ? "text-sidebar-primary" : "text-sidebar-foreground/62",
             )}
           />
-          <span className="truncate transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:pointer-events-none group-data-[state=collapsed]/sidebar-wrapper:lg:w-0 group-data-[state=collapsed]/sidebar-wrapper:lg:opacity-0">
+          <span className="truncate transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
             {item.title}
           </span>
         </Link>
       </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+};
+
+type ParentNavItemProps = {
+  item: NavigationParent;
+  isOpen: boolean;
+  isActive: boolean;
+  activeChildUrl: string | null;
+  onToggle: () => void;
+};
+
+const ParentNavItem = ({
+  item,
+  isOpen,
+  isActive,
+  activeChildUrl,
+  onToggle,
+}: ParentNavItemProps) => {
+  const { setMobileOpen } = useSidebar();
+  const Icon = item.icon;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={false}
+        tooltip={item.title}
+        className={cn(
+          isActive &&
+            "text-sidebar-accent-foreground ring-1 ring-sidebar-border",
+        )}
+      >
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          onClick={onToggle}
+        >
+          <Icon
+            className={cn(
+              "h-4 w-4 shrink-0",
+              isActive ? "text-sidebar-primary" : "text-sidebar-foreground/62",
+            )}
+          />
+          <span
+            className={cn(
+              "truncate transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden",
+              isActive && "font-semibold",
+            )}
+          >
+            {item.title}
+          </span>
+          <ChevronRight
+            className={cn(
+              "ml-auto h-4 w-4 shrink-0 text-sidebar-foreground/45 transition-transform duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden",
+              isOpen && "rotate-90",
+            )}
+          />
+        </button>
+      </SidebarMenuButton>
+
+      {isOpen ? (
+        <ul className="ml-5 mt-1 space-y-1 border-l border-sidebar-border pl-3 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
+          {item.children.map((child) => {
+            const isChildSelected = activeChildUrl === child.url;
+
+            return (
+              <li key={child.url}>
+                <Link
+                  to={child.url}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex h-8 items-center rounded-md px-3 text-sm text-sidebar-foreground/72 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    isChildSelected &&
+                      "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+                  )}
+                >
+                  <span className="truncate">{child.title}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </SidebarMenuItem>
   );
 };
@@ -262,19 +412,56 @@ export const AppSidebar = () => {
   const fetchUserProfile = useAuthStore((state) => state.fetchUserProfile);
   const logout = useAuthStore((state) => state.logout);
   const { getBusiness, business, resetBusiness } = useBusinesses();
+  const { open, setOpen } = useSidebar();
+  const location = useLocation();
   const navigate = useNavigate();
   const displayName =
-    profileUser?.name || profileUser?.username || `Usuario ${user?.idUser ?? ""}`.trim();
+    profileUser?.name ||
+    profileUser?.username ||
+    `Usuario ${user?.idUser ?? ""}`.trim();
   const displayRole = profileUser?.role || user?.role || "Administrador";
-  const visibleNavigationGroups = navigationGroups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter((item) => {
-        if (!item.permission || user?.role === "OWNER") return true;
-        return user?.permissions?.includes(item.permission) ?? false;
-      }),
-    }))
-    .filter((group) => group.items.length > 0);
+
+  const visibleStartItem = hasPermission(
+    startItem.permission,
+    user?.role,
+    user?.permissions,
+  )
+    ? startItem
+    : null;
+
+  const visibleNavigationSections = useMemo(() => {
+    return navigationSections
+      .map((section) => ({
+        ...section,
+        items: section.items
+          .map((item) => ({
+            ...item,
+            children: item.children.filter((child) =>
+              hasPermission(child.permission, user?.role, user?.permissions),
+            ),
+          }))
+          .filter((item) => item.children.length > 0),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [user?.permissions, user?.role]);
+
+  const [openGroups, setOpenGroups] = useState<string[]>(() =>
+    getActiveParentTitles(location.pathname, visibleNavigationSections),
+  );
+
+  const handleToggleGroup = (title: string) => {
+    if (!open) {
+      setOpen(true);
+    }
+
+    setOpenGroups((current) => {
+      if (current.includes(title)) {
+        return current.filter((item) => item !== title);
+      }
+
+      return [...current, title];
+    });
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -296,20 +483,40 @@ export const AppSidebar = () => {
     void fetchUserProfile(user.idUser);
   }, [fetchUserProfile, profileLoading, profileUser, user?.idUser]);
 
+  useEffect(() => {
+    const activeGroups = getActiveParentTitles(
+      location.pathname,
+      visibleNavigationSections,
+    );
+
+    if (activeGroups.length === 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setOpenGroups((current) => {
+        const next = Array.from(new Set([...current, ...activeGroups]));
+        return next.length === current.length ? current : next;
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [location.pathname, visibleNavigationSections]);
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 group-data-[state=collapsed]/sidebar-wrapper:lg:justify-center">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
             <Factory className="h-5 w-5" />
           </div>
 
-          <div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:pointer-events-none group-data-[state=collapsed]/sidebar-wrapper:lg:w-0 group-data-[state=collapsed]/sidebar-wrapper:lg:opacity-0">
+          <div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
             <p className="truncate text-sm font-semibold">
               {business?.name || "Nombre de la empresa"}
             </p>
             <p className="truncate text-xs text-sidebar-foreground/55">
-              {business?.businessType || "RUC de la empresa"}
+              {getBusinessTypeLabel(business?.businessType)}
             </p>
           </div>
 
@@ -320,20 +527,42 @@ export const AppSidebar = () => {
       </SidebarHeader>
 
       <SidebarContent>
-        {visibleNavigationGroups.map((group) => (
-          <SidebarGroup key={group.title}>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+        {visibleStartItem ? (
+          <SidebarGroup>
             <SidebarMenu>
-              {group.items.map((item) => (
-                <NavItem key={item.url} item={item} />
-              ))}
+              <StartNavItem item={visibleStartItem} />
+            </SidebarMenu>
+          </SidebarGroup>
+        ) : null}
+
+        {visibleNavigationSections.map((section) => (
+          <SidebarGroup key={section.title}>
+            <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+            <SidebarMenu>
+              {section.items.map((item) => {
+                const activeChild =
+                  item.children.find((child) =>
+                    isChildActive(location.pathname, child),
+                  ) ?? null;
+
+                return (
+                  <ParentNavItem
+                    key={item.title}
+                    item={item}
+                    isOpen={openGroups.includes(item.title)}
+                    isActive={isParentActive(location.pathname, item)}
+                    activeChildUrl={activeChild?.url ?? null}
+                    onToggle={() => handleToggleGroup(item.title)}
+                  />
+                );
+              })}
             </SidebarMenu>
           </SidebarGroup>
         ))}
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/45 p-2">
+        <div className="flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/45 p-2 group-data-[state=collapsed]/sidebar-wrapper:lg:justify-center">
           {profileLoading && !profileUser ? (
             <>
               <div className="h-10 w-10 shrink-0 animate-pulse rounded-lg bg-sidebar-foreground/10" />
@@ -343,13 +572,12 @@ export const AppSidebar = () => {
               </div>
             </>
           ) : (
-            <>
-             <Link to="/admin/profile" className="flex items-center gap-3">
-               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
+            <Link to="/admin/profile" className="flex min-w-0 flex-1 items-center gap-3 group-data-[state=collapsed]/sidebar-wrapper:lg:flex-none">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">
                 {getUserInitials(displayName)}
               </div>
 
-              <div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:pointer-events-none group-data-[state=collapsed]/sidebar-wrapper:lg:w-0 group-data-[state=collapsed]/sidebar-wrapper:lg:opacity-0">
+              <div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
                 <p className="truncate text-sm font-medium text-sidebar-foreground">
                   {displayName}
                 </p>
@@ -357,28 +585,19 @@ export const AppSidebar = () => {
                   {displayRole}
                 </p>
               </div>
-             </Link>
-            </>
+            </Link>
           )}
 
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            title="Cerrar sesion"
-            className="h-9 w-9 shrink-0 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            title="Cerrar sesión"
+            className="h-9 w-9 shrink-0 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[state=collapsed]/sidebar-wrapper:lg:hidden"
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4" />
           </Button>
-        </div>
-
-        <div className="mt-2 flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-sidebar-foreground/50 group-data-[state=collapsed]/sidebar-wrapper:lg:justify-center">
-          <CircleDollarSign className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
-            Gestion financiera y ventas
-          </span>
-          <Archive className="hidden h-3.5 w-3.5 shrink-0 group-data-[state=collapsed]/sidebar-wrapper:lg:block" />
         </div>
       </SidebarFooter>
     </Sidebar>
