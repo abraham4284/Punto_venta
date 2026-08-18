@@ -11,6 +11,7 @@ import {
 import {
   advancedStockQuerySchema,
   createInitialStockSchema,
+  criticalStockReportQuerySchema,
   stockPaginationQuerySchema,
 } from "../validations/stock.validations.js";
 
@@ -32,16 +33,6 @@ function parseNullablePositiveInteger(value: unknown): number | null {
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
-  }
-
-  return parsed;
-}
-
-function parseMaxQuantity(value: unknown): number {
-  const parsed = Number(value);
-
-  if (Number.isNaN(parsed) || parsed < 0) {
-    return 10;
   }
 
   return parsed;
@@ -178,20 +169,29 @@ export async function getCriticalStockReportController(
   res: Response,
 ): Promise<Response> {
   try {
+    const filters = criticalStockReportQuerySchema.parse(req.query);
     const result = await getCriticalStockReportService({
       idBusiness: req.user!.idBusiness,
-      maxQuantity: parseMaxQuantity(req.query.maxQuantity),
-      idDeposit: parseNullablePositiveInteger(req.query.idDeposit),
-      searchProduct:
-        typeof req.query.search === "string" ? req.query.search.trim() : null,
+      maxQuantity: filters.maxQuantity ?? null,
+      idDeposit: filters.idDeposit ?? null,
+      searchProduct: filters.search ?? null,
+      alertStatus: filters.alertStatus ?? null,
     });
 
     return res.status(200).json({
       status: true,
-      message: "Informe de stock critico obtenido correctamente",
+      message: "Panel de reposicion obtenido correctamente",
       data: result,
     });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        status: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
     return res.status(400).json({
       status: false,
       message: error.sqlMessage || error.message,

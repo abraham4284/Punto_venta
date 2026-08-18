@@ -12,6 +12,7 @@ import type {
   AdvancedStockPagination,
   ApiErrorResponse,
   CriticalStockReportResponse,
+  CriticalStockAlertStatus,
   FieldError,
   StockBalanceResponse,
   StockResponse,
@@ -85,8 +86,10 @@ export const useStock = () => {
     CriticalStockReportResponse[]
   >([]);
   const [loadingReport, setLoadingReport] = useState(false);
-  const [maxQuantityFilter, setMaxQuantityFilter] = useState(10);
+  const [maxQuantityFilter, setMaxQuantityFilter] = useState<number | null>(null);
   const [depositFilter, setDepositFilter] = useState<number | null>(null);
+  const [criticalStatusFilter, setCriticalStatusFilter] =
+    useState<CriticalStockAlertStatus | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [loadingStockBalance, setLoadingStockBalance] = useState(false);
 
@@ -189,6 +192,7 @@ export const useStock = () => {
         maxQuantity: maxQuantityFilter,
         idDeposit: depositFilter,
         search: productSearch,
+        alertStatus: criticalStatusFilter,
       });
 
       setCriticalStockData(response.data.data ?? []);
@@ -199,6 +203,7 @@ export const useStock = () => {
     }
   }, [
     clearErrors,
+    criticalStatusFilter,
     depositFilter,
     handleApiError,
     maxQuantityFilter,
@@ -265,19 +270,19 @@ export const useStock = () => {
       return item.alertStatus === "CRITICAL_ZERO";
     }).length;
 
-    const insufficientStock = criticalStockData.filter((item) => {
-      return (
-        item.alertStatus === "CRITICAL_LOW" ||
-        item.alertStatus === "CRITICAL_EQUAL"
-      );
+    const lowStock = criticalStockData.filter((item) => {
+      return item.alertStatus === "CRITICAL_LOW";
     }).length;
 
-    const totalCriticalRisk = zeroStock + insufficientStock;
+    const equalStock = criticalStockData.filter((item) => {
+      return item.alertStatus === "CRITICAL_EQUAL";
+    }).length;
 
     return {
-      totalCriticalRisk,
+      totalRestockItems: zeroStock + lowStock + equalStock,
       zeroStock,
-      insufficientStock,
+      lowStock,
+      equalStock,
     };
   }, [criticalStockData]);
 
@@ -289,6 +294,10 @@ export const useStock = () => {
     setPagination(initialPagination);
     setActiveFilters(initialStockFilters);
     setCriticalStockData([]);
+    setMaxQuantityFilter(null);
+    setDepositFilter(null);
+    setCriticalStatusFilter(null);
+    setProductSearch("");
   }, []);
 
   return {
@@ -306,9 +315,11 @@ export const useStock = () => {
     loadingStockBalance,
     maxQuantityFilter,
     depositFilter,
+    criticalStatusFilter,
     productSearch,
     setMaxQuantityFilter,
     setDepositFilter,
+    setCriticalStatusFilter,
     setProductSearch,
     clearErrors,
     getStock,
