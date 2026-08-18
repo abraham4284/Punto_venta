@@ -88,7 +88,7 @@ const Sidebar = ({
         data-slot="sidebar"
         data-state={open ? "expanded" : "collapsed"}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-300 lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:translate-x-0 lg:shadow-none",
+          "fixed inset-y-0 left-0 z-50 flex w-72 -translate-x-full flex-col overflow-x-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-300 lg:sticky lg:top-0 lg:z-20 lg:h-screen lg:translate-x-0 lg:shadow-none",
           "group-data-[state=collapsed]/sidebar-wrapper:lg:w-[4.75rem]",
           mobileOpen && "translate-x-0",
           className,
@@ -140,7 +140,7 @@ const SidebarContent = ({
 }: React.ComponentProps<"div">) => (
   <div
     data-slot="sidebar-content"
-    className={cn("flex-1 overflow-y-auto px-3 py-4", className)}
+    className={cn("flex-1 overflow-y-auto overflow-x-hidden px-3 py-4", className)}
     {...props}
   />
 );
@@ -213,7 +213,7 @@ const SidebarMenuButton = ({
   const child = React.cloneElement(children, {
     className: cn(
       "group/sidebar-button relative flex h-10 w-full items-center gap-3 overflow-hidden rounded-lg px-3 text-sm font-medium text-sidebar-foreground/78 outline-none transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-      "group-data-[state=collapsed]/sidebar-wrapper:lg:h-11 group-data-[state=collapsed]/sidebar-wrapper:lg:justify-center group-data-[state=collapsed]/sidebar-wrapper:lg:px-0",
+      "group-data-[state=collapsed]/sidebar-wrapper:lg:h-11 group-data-[state=collapsed]/sidebar-wrapper:lg:justify-center group-data-[state=collapsed]/sidebar-wrapper:lg:gap-0 group-data-[state=collapsed]/sidebar-wrapper:lg:px-0",
       isActive &&
         "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border",
       className,
