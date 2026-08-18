@@ -52,13 +52,16 @@ export const createInitialStockRequest = (
 export const getCriticalStockReportRequest = (
   filters: CriticalStockReportFilters,
 ): Promise<AxiosResponse<ApiResponse<CriticalStockReportResponse[]>>> => {
-  return axios.get("/stock/report/critical", {
-    params: {
-      maxQuantity: filters.maxQuantity,
-      idDeposit: filters.idDeposit ?? undefined,
-      search: filters.search || undefined,
-    },
-  });
+  const params = new URLSearchParams();
+
+  appendParam(params, "maxQuantity", filters.maxQuantity);
+  appendParam(params, "idDeposit", filters.idDeposit);
+  appendParam(params, "search", filters.search?.trim());
+  appendParam(params, "alertStatus", filters.alertStatus);
+
+  const query = params.toString();
+
+  return axios.get(`/stock/report/critical${query ? `?${query}` : ""}`);
 };
 
 export const getStockByProductAndDepositRequest = (

@@ -1,4 +1,4 @@
-import { AlertTriangle, PackageX, TrendingDown } from "lucide-react";
+import { AlertTriangle, Equal, PackageX, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import type { CriticalStockMetrics } from "../../types/stock.types";
 
@@ -9,8 +9,8 @@ interface CriticalMetricsProps {
 export const CriticalMetrics = ({ metrics }: CriticalMetricsProps) => {
   const cards = [
     {
-      title: "Productos en riesgo",
-      value: metrics.totalCriticalRisk,
+      title: "Items a reponer",
+      value: metrics.totalRestockItems,
       icon: AlertTriangle,
       className: "bg-amber-50 text-amber-700 ring-amber-100",
     },
@@ -21,15 +21,21 @@ export const CriticalMetrics = ({ metrics }: CriticalMetricsProps) => {
       className: "bg-red-50 text-red-700 ring-red-100",
     },
     {
-      title: "Stock insuficiente",
-      value: metrics.insufficientStock,
+      title: "Bajo minimo",
+      value: metrics.lowStock,
       icon: TrendingDown,
       className: "bg-orange-50 text-orange-700 ring-orange-100",
+    },
+    {
+      title: "En el minimo",
+      value: metrics.equalStock,
+      icon: Equal,
+      className: "bg-yellow-50 text-yellow-700 ring-yellow-100",
     },
   ];
 
   return (
-    <section className="grid gap-4 md:grid-cols-3">
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => {
         const Icon = card.icon;
 

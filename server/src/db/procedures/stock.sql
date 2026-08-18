@@ -367,59 +367,72 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_get_critical_stock_report(
   IN p_idBusiness INT,
-  IN p_maxQuantity DECIMAL(18,2),
   IN p_idDeposit INT,
-  IN p_searchProduct VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+  IN p_searchProduct VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_alertStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_maxQuantity DECIMAL(18,2)
 )
 BEGIN
-  SELECT
-    s.idStock,
-    s.idBusiness,
-    s.idProduct,
-    p.name AS product_name,
-    p.barcode,
-    p.image_url AS image_url,
-    s.idDeposit,
-    d.name AS deposit_name,
-    s.quantity,
-    p.stock_min,
-    CASE
-      WHEN s.quantity = 0 THEN 'CRITICAL_ZERO'
-      WHEN s.quantity > 0 AND s.quantity < p.stock_min THEN 'CRITICAL_LOW'
-      WHEN s.quantity = p.stock_min THEN 'CRITICAL_EQUAL'
-      ELSE 'STOCK_OK'
-    END AS alert_status,
-    CASE
-      WHEN s.quantity = 0 THEN 'Sin stock / Agotado'
-      WHEN s.quantity > 0 AND s.quantity < p.stock_min THEN 'Stock por debajo del minimo'
-      WHEN s.quantity = p.stock_min THEN 'Stock igual al minimo configurado'
-      ELSE 'Stock optimo (Por encima del minimo)'
-    END AS alert_message
-  FROM stock s
-  INNER JOIN products p
-    ON p.idProduct = s.idProduct
-    AND p.idBusiness = s.idBusiness
-  INNER JOIN deposits d
-    ON d.idDeposit = s.idDeposit
-    AND d.idBusiness = s.idBusiness
-  WHERE s.idBusiness = p_idBusiness
-    AND s.quantity <= p_maxQuantity
-    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+  SELECT *
+  FROM (
+    SELECT
+      s.idStock,
+      s.idBusiness,
+      s.idProduct,
+      p.name AS product_name,
+      p.barcode,
+      p.image_url AS image_url,
+      p.unit_type,
+      p.price_cost,
+      s.idDeposit,
+      d.name AS deposit_name,
+      s.quantity,
+      p.stock_min,
+      CASE
+        WHEN s.quantity = 0 THEN 'CRITICAL_ZERO'
+        WHEN s.quantity > 0 AND s.quantity < p.stock_min THEN 'CRITICAL_LOW'
+        WHEN s.quantity = p.stock_min THEN 'CRITICAL_EQUAL'
+      END AS alert_status,
+      CASE
+        WHEN s.quantity = 0 THEN 'Sin stock'
+        WHEN s.quantity > 0 AND s.quantity < p.stock_min THEN 'Bajo minimo'
+        WHEN s.quantity = p.stock_min THEN 'En el minimo'
+      END AS alert_message
+    FROM stock s
+    INNER JOIN products p
+      ON p.idProduct = s.idProduct
+      AND p.idBusiness = s.idBusiness
+    INNER JOIN deposits d
+      ON d.idDeposit = s.idDeposit
+      AND d.idBusiness = s.idBusiness
+    WHERE s.idBusiness = p_idBusiness
+      AND p.is_active = 1
+      AND d.is_active = 1
+      AND s.quantity <= p.stock_min
+      AND (p_maxQuantity IS NULL OR s.quantity <= p_maxQuantity)
+      AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+      AND (
+        p_searchProduct IS NULL
+        OR p_searchProduct = ''
+        OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_searchProduct COLLATE utf8mb4_unicode_ci, '%')
+        OR p.barcode COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_searchProduct COLLATE utf8mb4_unicode_ci, '%')
+      )
+  ) critical_stock
+  WHERE critical_stock.alert_status IS NOT NULL
     AND (
-      p_searchProduct IS NULL
-      OR p_searchProduct = ''
-      OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_searchProduct COLLATE utf8mb4_unicode_ci, '%')
-      OR p.barcode COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_searchProduct COLLATE utf8mb4_unicode_ci, '%')
+      p_alertStatus IS NULL
+      OR p_alertStatus = ''
+      OR critical_stock.alert_status COLLATE utf8mb4_unicode_ci = p_alertStatus COLLATE utf8mb4_unicode_ci
     )
   ORDER BY
     CASE
-      WHEN s.quantity = 0 THEN 1
-      WHEN s.quantity > 0 AND s.quantity < p.stock_min THEN 2
-      WHEN s.quantity = p.stock_min THEN 3
+      WHEN critical_stock.alert_status = 'CRITICAL_ZERO' THEN 1
+      WHEN critical_stock.alert_status = 'CRITICAL_LOW' THEN 2
+      WHEN critical_stock.alert_status = 'CRITICAL_EQUAL' THEN 3
       ELSE 4
     END ASC,
-    s.quantity ASC,
-    p.name ASC;
+    critical_stock.quantity ASC,
+    critical_stock.product_name ASC;
 END$$
 
 DELIMITER ;

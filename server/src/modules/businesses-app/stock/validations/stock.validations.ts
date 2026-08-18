@@ -131,3 +131,20 @@ export const advancedStockQuerySchema = z
       message: "La cantidad minima no puede ser mayor a la cantidad maxima",
     },
   );
+
+export const criticalStockReportQuerySchema = z
+  .object({
+    idDeposit: optionalPositiveInteger,
+    search: z.preprocess(
+      emptyToUndefined,
+      z.string().trim().max(160, "La busqueda no puede superar los 160 caracteres").optional(),
+    ),
+    alertStatus: z.preprocess(
+      emptyToUndefined,
+      z.enum(["CRITICAL_ZERO", "CRITICAL_LOW", "CRITICAL_EQUAL"], {
+        error: "El estado debe ser CRITICAL_ZERO, CRITICAL_LOW o CRITICAL_EQUAL",
+      }).optional(),
+    ),
+    maxQuantity: optionalQuantity,
+  })
+  .strict();

@@ -35,6 +35,7 @@ type Props = {
   product: ProductResponse | null;
   deposits: DepositResponse[];
   defaultDepositId?: number | null;
+  defaultQuantity?: number | null;
   onClose: () => void;
   onConfirm: (item: PurchaseCartItem) => void;
 };
@@ -64,6 +65,7 @@ export const AddToPurchaseModal = ({
   product,
   deposits,
   defaultDepositId = null,
+  defaultQuantity = null,
   onClose,
   onConfirm,
 }: Props) => {
@@ -77,11 +79,12 @@ export const AddToPurchaseModal = ({
 
   return (
     <AddToPurchaseModalContent
-      key={`${product?.idProduct ?? "none"}-${defaultDeposit?.idDeposit ?? "none"}-${isOpen ? "open" : "closed"}`}
+      key={`${product?.idProduct ?? "none"}-${defaultDeposit?.idDeposit ?? "none"}-${defaultQuantity ?? "default"}-${isOpen ? "open" : "closed"}`}
       isOpen={isOpen}
       product={product}
       activeDeposits={activeDeposits}
       defaultDeposit={defaultDeposit}
+      defaultQuantity={defaultQuantity}
       onClose={onClose}
       onConfirm={onConfirm}
     />
@@ -93,6 +96,7 @@ type AddToPurchaseModalContentProps = {
   product: ProductResponse | null;
   activeDeposits: DepositResponse[];
   defaultDeposit: DepositResponse | undefined;
+  defaultQuantity: number | null;
   onClose: () => void;
   onConfirm: (item: PurchaseCartItem) => void;
 };
@@ -102,11 +106,13 @@ const AddToPurchaseModalContent = ({
   product,
   activeDeposits,
   defaultDeposit,
+  defaultQuantity,
   onClose,
   onConfirm,
 }: AddToPurchaseModalContentProps) => {
   const [formState, setFormState] = useState<FormState>(() => ({
     ...defaultFormState,
+    quantity: defaultQuantity && defaultQuantity > 0 ? String(defaultQuantity) : "1",
     idDeposit: defaultDeposit ? String(defaultDeposit.idDeposit) : "",
     unitPrice: product ? String(product.priceCost || "") : "",
   }));
