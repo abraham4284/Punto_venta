@@ -15,8 +15,10 @@ Ejecutar desde `server/src/db`:
 6. Seeds:
    - `seeds/001_subscription_plans.sql`
    - `seeds/002_permissions_and_role_permissions.sql`
+   - `seeds/003_legal_documents.sql`
 7. Stored procedures:
    - `procedures/auth.sql`
+   - `procedures/legal.sql`
    - `procedures/platform_auth.sql`
    - `procedures/platform_audit.sql`
    - `procedures/platform_users.sql`
@@ -78,6 +80,11 @@ Incluyen:
 - Plan base de suscripcion requerido por el registro inicial.
 - Catalogo de permisos.
 - Permisos predeterminados por rol `ADMIN` y `SELLER`.
+- Catalogo base de documentos legales (`TERMS` y `PRIVACY`).
+
+Los seeds legales no incluyen versiones ni contenido contractual real. Para
+habilitar el registro de nuevos negocios se debe publicar una version vigente
+para `TERMS` y otra para `PRIVACY` en `legal_document_versions`.
 
 No se incluye seed global para `payment_methods` ni `cash_registers` porque
 requieren `idBusiness`; se crean dentro del flujo de registro del negocio.
@@ -115,6 +122,10 @@ Estas observaciones se reportan sin modificar semanticamente el modelo:
 - Se agrego el modelo de notificaciones internas con contexto `BUSINESS` y
   `PLATFORM`, destinatarios por usuario/plataforma, lectura, archivo,
   expiracion y resolucion por deduplicacion.
+- Se agrego el MVP legal con documentos, versiones publicables y evidencia de
+  aceptacion/reconocimiento por negocio y usuario.
+- Se agrego seed minimo para `TERMS` y `PRIVACY`, dejando el contenido legal
+  oficial fuera de seeds hasta que se publique desde base de datos.
 - Se agregaron `payment_methods.code` y `payment_methods.affects_cash` para
   identificar efectivo sin depender del texto visible.
 - Se corrigio `payment_methods` para permitir multiples metodos del mismo tipo

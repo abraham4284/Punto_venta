@@ -61,4 +61,12 @@ export const registerSchema = z.object({
     .transform(function transformLogoUrl(value) {
       return value === "" ? null : value;
     }),
+
+  acceptedTerms: z.literal(true, {
+    message: "Debe aceptar los terminos y condiciones para crear la cuenta",
+  }),
+
+  acknowledgedPrivacy: z.literal(true, {
+    message: "Debe reconocer la politica de privacidad para crear la cuenta",
+  }),
 });

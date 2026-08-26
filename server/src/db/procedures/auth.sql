@@ -213,7 +213,11 @@ CREATE PROCEDURE sp_user_register_with_business(
   IN p_business_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_business_type VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_logoUrl VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  IN p_defaultTrialPlanCode VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+  IN p_defaultTrialPlanCode VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_acceptedTerms TINYINT,
+  IN p_acknowledgedPrivacy TINYINT,
+  IN p_ipAddress VARCHAR(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_userAgent VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   DECLARE v_idUser INT;
@@ -221,6 +225,8 @@ BEGIN
   DECLARE v_idSubscriptionPlan INT;
   DECLARE v_idBusinessSubscription INT;
   DECLARE v_trialDays INT DEFAULT 0;
+  DECLARE v_idTermsVersion BIGINT DEFAULT NULL;
+  DECLARE v_idPrivacyVersion BIGINT DEFAULT NULL;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -229,6 +235,55 @@ BEGIN
   END;
 
   START TRANSACTION;
+
+  IF p_acceptedTerms <> 1 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'LEGAL_TERMS_ACCEPTANCE_REQUIRED';
+  END IF;
+
+  IF p_acknowledgedPrivacy <> 1 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'LEGAL_PRIVACY_ACKNOWLEDGEMENT_REQUIRED';
+  END IF;
+
+  SET v_idTermsVersion = (
+    SELECT v.idLegalDocumentVersion
+    FROM legal_documents d
+    INNER JOIN legal_document_versions v
+      ON v.idLegalDocument = d.idLegalDocument
+    WHERE d.code COLLATE utf8mb4_unicode_ci = 'TERMS' COLLATE utf8mb4_unicode_ci
+      AND d.is_active = 1
+      AND d.required_action = 'ACCEPT'
+      AND v.status = 'PUBLISHED'
+      AND v.published_at IS NOT NULL
+      AND v.published_at <= NOW()
+      AND v.effective_at IS NOT NULL
+      AND v.effective_at <= NOW()
+    ORDER BY v.effective_at DESC, v.idLegalDocumentVersion DESC
+    LIMIT 1
+  );
+
+  SET v_idPrivacyVersion = (
+    SELECT v.idLegalDocumentVersion
+    FROM legal_documents d
+    INNER JOIN legal_document_versions v
+      ON v.idLegalDocument = d.idLegalDocument
+    WHERE d.code COLLATE utf8mb4_unicode_ci = 'PRIVACY' COLLATE utf8mb4_unicode_ci
+      AND d.is_active = 1
+      AND d.required_action = 'ACKNOWLEDGE'
+      AND v.status = 'PUBLISHED'
+      AND v.published_at IS NOT NULL
+      AND v.published_at <= NOW()
+      AND v.effective_at IS NOT NULL
+      AND v.effective_at <= NOW()
+    ORDER BY v.effective_at DESC, v.idLegalDocumentVersion DESC
+    LIMIT 1
+  );
+
+  IF v_idTermsVersion IS NULL OR v_idPrivacyVersion IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'LEGAL_DOCUMENT_NOT_AVAILABLE';
+  END IF;
 
   INSERT INTO users (
     name,
@@ -272,6 +327,35 @@ BEGIN
     v_idUser,
     'OWNER'
   );
+
+  INSERT INTO legal_acceptances (
+    idLegalDocumentVersion,
+    idBusiness,
+    idUser,
+    action_type,
+    acceptance_method,
+    ip_address,
+    user_agent
+  )
+  VALUES
+    (
+      v_idTermsVersion,
+      v_idBusiness,
+      v_idUser,
+      'ACCEPTED',
+      'REGISTRATION',
+      NULLIF(p_ipAddress, ''),
+      LEFT(NULLIF(p_userAgent, ''), 500)
+    ),
+    (
+      v_idPrivacyVersion,
+      v_idBusiness,
+      v_idUser,
+      'ACKNOWLEDGED',
+      'REGISTRATION',
+      NULLIF(p_ipAddress, ''),
+      LEFT(NULLIF(p_userAgent, ''), 500)
+    );
 
   INSERT INTO cash_registers (
     idBusiness,

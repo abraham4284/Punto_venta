@@ -232,6 +232,10 @@ const navigationSections: NavigationSection[] = [
             url: "/admin/subscription",
             permission: "subscription.view",
           },
+          {
+            title: "Legal",
+            url: "/admin/legal",
+          },
         ],
       },
     ],
