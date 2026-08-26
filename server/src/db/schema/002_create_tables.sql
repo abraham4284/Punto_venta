@@ -90,6 +90,49 @@ CREATE TABLE IF NOT EXISTS `platform_users` (
   PRIMARY KEY (`idPlatformUser`,`idUser`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `legal_documents` (
+  `idLegalDocument` int NOT NULL AUTO_INCREMENT,
+  `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `required_action` enum('ACCEPT','ACKNOWLEDGE','NONE') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'NONE',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idLegalDocument`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `legal_document_versions` (
+  `idLegalDocumentVersion` bigint NOT NULL AUTO_INCREMENT,
+  `idLegalDocument` int NOT NULL,
+  `version` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `content_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` enum('DRAFT','PUBLISHED','RETIRED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'DRAFT',
+  `requires_user_action` tinyint(1) NOT NULL DEFAULT '0',
+  `published_at` datetime DEFAULT NULL,
+  `effective_at` datetime DEFAULT NULL,
+  `created_by_platform_user_id` int DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idLegalDocumentVersion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `legal_acceptances` (
+  `idLegalAcceptance` bigint NOT NULL AUTO_INCREMENT,
+  `idLegalDocumentVersion` bigint NOT NULL,
+  `idBusiness` int NOT NULL,
+  `idUser` int NOT NULL,
+  `action_type` enum('ACCEPTED','ACKNOWLEDGED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `acceptance_method` enum('REGISTRATION','LOGIN_REACCEPTANCE','SETTINGS') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `accepted_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_agent` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idLegalAcceptance`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `business_user_permissions` (
   `idBusinessUserPermission` bigint NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,

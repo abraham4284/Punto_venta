@@ -24,6 +24,8 @@ export interface RegisterBody {
   businessSlug: string;
   businessType?: string;
   logoUrl?: string | null;
+  acceptedTerms: true;
+  acknowledgedPrivacy: true;
 }
 
 export interface RegisterDbRow {

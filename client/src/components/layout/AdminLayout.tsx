@@ -33,7 +33,8 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     subscriptionState?.notification.shouldBlockApplication ?? false;
   const isAllowedWhileBlocked =
     location.pathname.startsWith("/admin/subscription") ||
-    location.pathname.startsWith("/admin/profile");
+    location.pathname.startsWith("/admin/profile") ||
+    location.pathname.startsWith("/admin/legal");
   const isProfileRoute = location.pathname.startsWith("/admin/profile");
 
   return (

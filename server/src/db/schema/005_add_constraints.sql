@@ -32,6 +32,8 @@ END$$
 
 DELIMITER ;
 
+CALL sp_add_check_if_not_exists('legal_documents', 'chk_legal_documents_active_boolean', 'ALTER TABLE `legal_documents` ADD CONSTRAINT `chk_legal_documents_active_boolean` CHECK (`is_active` IN (0, 1))');
+CALL sp_add_check_if_not_exists('legal_document_versions', 'chk_legal_document_versions_requires_action_boolean', 'ALTER TABLE `legal_document_versions` ADD CONSTRAINT `chk_legal_document_versions_requires_action_boolean` CHECK (`requires_user_action` IN (0, 1))');
 CALL sp_add_check_if_not_exists('cash_sessions', 'chk_cash_sessions_opening_amount_non_negative', 'ALTER TABLE `cash_sessions` ADD CONSTRAINT `chk_cash_sessions_opening_amount_non_negative` CHECK (`opening_amount` >= 0)');
 CALL sp_add_check_if_not_exists('cash_sessions', 'chk_cash_sessions_expected_cash_non_negative', 'ALTER TABLE `cash_sessions` ADD CONSTRAINT `chk_cash_sessions_expected_cash_non_negative` CHECK (`expected_cash_amount` IS NULL OR `expected_cash_amount` >= 0)');
 CALL sp_add_check_if_not_exists('cash_sessions', 'chk_cash_sessions_counted_cash_non_negative', 'ALTER TABLE `cash_sessions` ADD CONSTRAINT `chk_cash_sessions_counted_cash_non_negative` CHECK (`counted_cash_amount` IS NULL OR `counted_cash_amount` >= 0)');

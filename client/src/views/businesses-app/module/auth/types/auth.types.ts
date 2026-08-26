@@ -33,6 +33,8 @@ export type RegisterBody = {
   businessSlug: string;
   businessType: string;
   logoUrl?: string | null;
+  acceptedTerms: boolean;
+  acknowledgedPrivacy: boolean;
 };
 
 export type AuthUser = {

@@ -15,6 +15,7 @@ import dashboardRoutes from "./dashboard/index.js";
 import depositRoutes from "./deposits/index.js";
 import paymentMethodRoutes from "./payment-methods/index.js";
 import notificationRoutes from "./notifications/index.js";
+import legalRoutes from "./legal/index.js";
 import productCategoryRoutes from "./product-categories/index.js";
 import productRoutes from "./products/index.js";
 import permissionRoutes from "./permissions/index.js";
@@ -41,6 +42,7 @@ businessesAppRoutes.use(authRoutes);
 businessesAppRoutes.use(businessRoutes);
 businessesAppRoutes.use(subscriptionRoutes);
 businessesAppRoutes.use(notificationRoutes);
+businessesAppRoutes.use(legalRoutes);
 businessesAppRoutes.use(
   requireAuth,
   requireBusinessContext,
@@ -77,6 +79,7 @@ export {
   depositRoutes,
   paymentMethodRoutes,
   notificationRoutes,
+  legalRoutes,
   productCategoryRoutes,
   productRoutes,
   permissionRoutes,
