@@ -34,6 +34,9 @@ export async function resetIntegrationTestData(): Promise<void> {
     const tables = [
       "notification_recipients",
       "notifications",
+      "legal_acceptances",
+      "legal_document_versions",
+      "legal_documents",
       "cash_session_payment_summaries",
       "cash_movements",
       "sale_details",

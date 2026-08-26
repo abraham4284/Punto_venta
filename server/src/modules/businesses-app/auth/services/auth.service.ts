@@ -7,6 +7,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "@/libs/tokens.js";
+import { getLegalDocumentsUnavailableMessage } from "../../legal/services/legal.service.js";
 import { getEffectivePermissionsService } from "../../permissions/services/permissions.service.js";
 import type {
   AuthUser,
@@ -30,6 +31,42 @@ function createInvalidLoginError() {
     code: "INVALID_LOGIN_CREDENTIALS",
     message: INVALID_LOGIN_MESSAGE,
   });
+}
+
+function createRegisterDatabaseError(error: unknown): unknown {
+  const candidate = error as Error & { sqlMessage?: string; sqlState?: string };
+
+  if (candidate.sqlState !== "45000") {
+    return error;
+  }
+
+  const message = candidate.sqlMessage ?? candidate.message;
+
+  if (message === "LEGAL_DOCUMENT_NOT_AVAILABLE") {
+    return createAppError({
+      statusCode: 400,
+      code: "LEGAL_DOCUMENT_NOT_AVAILABLE",
+      message: getLegalDocumentsUnavailableMessage(),
+    });
+  }
+
+  if (message === "LEGAL_TERMS_ACCEPTANCE_REQUIRED") {
+    return createAppError({
+      statusCode: 400,
+      code: "LEGAL_TERMS_ACCEPTANCE_REQUIRED",
+      message: "Debe aceptar los terminos y condiciones para crear la cuenta",
+    });
+  }
+
+  if (message === "LEGAL_PRIVACY_ACKNOWLEDGEMENT_REQUIRED") {
+    return createAppError({
+      statusCode: 400,
+      code: "LEGAL_PRIVACY_ACKNOWLEDGEMENT_REQUIRED",
+      message: "Debe reconocer la politica de privacidad para crear la cuenta",
+    });
+  }
+
+  return error;
 }
 
 function getRefreshExpirationDate(): Date {
@@ -162,20 +199,30 @@ export async function registerService(
 ) {
   const passwordHash = await bcrypt.hash(data.password, 10);
 
-  const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_user_register_with_business(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [
-      data.name,
-      data.username,
-      data.email ?? null,
-      passwordHash,
-      data.businessName,
-      data.businessSlug,
-      data.businessType ?? "FINANCIERA",
-      data.logoUrl ?? null,
-      process.env.DEFAULT_TRIAL_PLAN_CODE ?? "BASIC_MONTHLY",
-    ],
-  );
+  let rows: RowDataPacket[];
+
+  try {
+    [rows] = await pool.query<RowDataPacket[]>(
+      "CALL sp_user_register_with_business(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        data.name,
+        data.username,
+        data.email ?? null,
+        passwordHash,
+        data.businessName,
+        data.businessSlug,
+        data.businessType ?? "FINANCIERA",
+        data.logoUrl ?? null,
+        process.env.DEFAULT_TRIAL_PLAN_CODE ?? "BASIC_MONTHLY",
+        data.acceptedTerms ? 1 : 0,
+        data.acknowledgedPrivacy ? 1 : 0,
+        ip ?? null,
+        userAgent ? userAgent.slice(0, 500) : null,
+      ],
+    );
+  } catch (error) {
+    throw createRegisterDatabaseError(error);
+  }
 
   const result = rows as unknown as RegisterDbRow[][];
   const user = result[0]?.[0];

@@ -9,6 +9,7 @@ import {
   ClientsRoutes,
   DashboardRoutes,
   DepositsRoutes,
+  LegalRoutes,
   NotificationsRoutes,
   PaymentMethodsRoutes,
   ProductsRoutes,
@@ -73,6 +74,7 @@ export const AdminRoutes = () => {
           }
         />
         <Route path="/notifications/*" element={<NotificationsRoutes />} />
+        <Route path="/legal/*" element={<LegalRoutes />} />
         <Route
           path="/stock/*"
           element={

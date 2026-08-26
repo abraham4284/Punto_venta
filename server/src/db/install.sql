@@ -14,9 +14,11 @@ SOURCE schema/004_add_foreign_keys.sql;
 SOURCE schema/005_add_constraints.sql;
 SOURCE seeds/001_subscription_plans.sql;
 SOURCE seeds/002_permissions_and_role_permissions.sql;
+SOURCE seeds/003_legal_documents.sql;
 
 /* Procedures: execute after schema and seeds. Keep this order. */
 SOURCE procedures/auth.sql;
+SOURCE procedures/legal.sql;
 SOURCE procedures/platform_auth.sql;
 SOURCE procedures/platform_audit.sql;
 SOURCE procedures/platform_users.sql;

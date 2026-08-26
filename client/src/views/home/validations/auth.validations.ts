@@ -43,6 +43,12 @@ export const registerSchema = z.object({
     .optional()
     .or(z.literal(""))
     .transform((value) => (value === "" ? null : value)),
+  acceptedTerms: z
+    .boolean()
+    .refine((value) => value, "Debe aceptar los terminos y condiciones"),
+  acknowledgedPrivacy: z
+    .boolean()
+    .refine((value) => value, "Debe reconocer la politica de privacidad"),
 });
 
 export type LoginFormValues = z.infer<typeof loginSchema>;

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  AlertCircle,
   Building2,
   Eye,
   EyeOff,
@@ -32,6 +33,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useForm } from "@/hooks/useForm";
 import { useAuthStore } from "@/views/businesses-app/module/auth";
+import { useLegalDocuments } from "@/views/businesses-app/module/legal/hooks/useLegal";
 import {
   registerSchema,
   type RegisterFormValues,
@@ -59,6 +61,8 @@ const initialForm: RegisterFormValues = {
   businessSlug: "",
   businessType: "KIOSCO",
   logoUrl: "",
+  acceptedTerms: false,
+  acknowledgedPrivacy: false,
 };
 
 const createSlug = (value: string) => {
@@ -86,10 +90,19 @@ export const RegisterPage = () => {
     businessSlug,
     businessType,
     logoUrl,
+    acceptedTerms,
+    acknowledgedPrivacy,
     onInputChange,
     setFormSate,
     formSate,
   } = useForm<RegisterFormValues>(initialForm);
+  const {
+    documents: legalDocuments,
+    loading: legalLoading,
+    error: legalError,
+    requiredDocumentsAvailable,
+    fetchCurrentDocuments,
+  } = useLegalDocuments();
 
   useEffect(() => {
     setFormSate((current) => ({
@@ -98,9 +111,20 @@ export const RegisterPage = () => {
     }));
   }, [businessName, setFormSate]);
 
+  useEffect(() => {
+    void fetchCurrentDocuments();
+  }, [fetchCurrentDocuments]);
+
   const handleBusinessTypeChange = (value: string | null) => {
     if (!value) return;
     setFormSate({ ...formSate, businessType: value });
+  };
+
+  const handleLegalCheckboxChange = (
+    field: "acceptedTerms" | "acknowledgedPrivacy",
+    checked: boolean,
+  ) => {
+    setFormSate({ ...formSate, [field]: checked });
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -115,6 +139,8 @@ export const RegisterPage = () => {
       businessSlug,
       businessType,
       logoUrl,
+      acceptedTerms,
+      acknowledgedPrivacy,
     });
 
     if (!validation.success) {
@@ -142,6 +168,9 @@ export const RegisterPage = () => {
   const logoPreviewUrl = logoUrl ?? "";
   const shouldShowLogo =
     Boolean(logoPreviewUrl) && failedLogoUrl !== logoPreviewUrl;
+  const termsDocument = legalDocuments.find((item) => item.code === "TERMS");
+  const privacyDocument = legalDocuments.find((item) => item.code === "PRIVACY");
+  const canSubmit = !loading && !legalLoading && requiredDocumentsAvailable;
 
   return (
     <>
@@ -338,7 +367,88 @@ export const RegisterPage = () => {
                   </div>
                 </section>
 
-                <Button type="submit" className="w-full" disabled={loading}>
+                <section className="space-y-4 rounded-xl border bg-white p-4">
+                  <div>
+                    <h3 className="font-semibold">Condiciones legales</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Para crear el comercio necesitamos registrar la aceptación
+                      de los términos y el reconocimiento de la política de
+                      privacidad vigente.
+                    </p>
+                  </div>
+
+                  {legalLoading ? (
+                    <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                      <Spinner className="h-4 w-4" />
+                      Cargando documentos legales...
+                    </div>
+                  ) : !requiredDocumentsAvailable ? (
+                    <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>
+                        {legalError ||
+                          "Los documentos legales necesarios para crear una cuenta no están disponibles temporalmente."}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 rounded border-slate-300"
+                      checked={acceptedTerms}
+                      disabled={loading || !requiredDocumentsAvailable}
+                      onChange={(event) =>
+                        handleLegalCheckboxChange(
+                          "acceptedTerms",
+                          event.target.checked,
+                        )
+                      }
+                    />
+                    <span>
+                      Acepto los{" "}
+                      <Link
+                        to="/terms"
+                        target="_blank"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        términos y condiciones
+                      </Link>
+                      {termsDocument ? ` versión ${termsDocument.version}` : ""}.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 rounded border-slate-300"
+                      checked={acknowledgedPrivacy}
+                      disabled={loading || !requiredDocumentsAvailable}
+                      onChange={(event) =>
+                        handleLegalCheckboxChange(
+                          "acknowledgedPrivacy",
+                          event.target.checked,
+                        )
+                      }
+                    />
+                    <span>
+                      Reconozco haber leído la{" "}
+                      <Link
+                        to="/privacy"
+                        target="_blank"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        política de privacidad
+                      </Link>
+                      {privacyDocument
+                        ? ` versión ${privacyDocument.version}`
+                        : ""}
+                      .
+                    </span>
+                  </label>
+                </section>
+
+                <Button type="submit" className="w-full" disabled={!canSubmit}>
                   {loading ? <Spinner className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
                   Registrar comercio
                 </Button>

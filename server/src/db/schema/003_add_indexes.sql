@@ -42,6 +42,14 @@ CALL sp_add_index_if_not_exists('business_users', 'uk_business_user', 'ALTER TAB
 CALL sp_add_index_if_not_exists('business_users', 'fk_business_users_user', 'ALTER TABLE `business_users` ADD KEY `fk_business_users_user` (`idUser`)');
 CALL sp_add_index_if_not_exists('platform_users', 'idUser_UNIQUE', 'ALTER TABLE `platform_users` ADD UNIQUE KEY `idUser_UNIQUE` (`idUser`)');
 CALL sp_add_index_if_not_exists('platform_users', 'fk_platform_users_users1_idx', 'ALTER TABLE `platform_users` ADD KEY `fk_platform_users_users1_idx` (`idUser`)');
+CALL sp_add_index_if_not_exists('legal_documents', 'uq_legal_documents_code', 'ALTER TABLE `legal_documents` ADD UNIQUE KEY `uq_legal_documents_code` (`code`)');
+CALL sp_add_index_if_not_exists('legal_documents', 'idx_legal_documents_active', 'ALTER TABLE `legal_documents` ADD KEY `idx_legal_documents_active` (`is_active`)');
+CALL sp_add_index_if_not_exists('legal_document_versions', 'uq_legal_document_versions_document_version', 'ALTER TABLE `legal_document_versions` ADD UNIQUE KEY `uq_legal_document_versions_document_version` (`idLegalDocument`,`version`)');
+CALL sp_add_index_if_not_exists('legal_document_versions', 'idx_legal_document_versions_document_status_effective', 'ALTER TABLE `legal_document_versions` ADD KEY `idx_legal_document_versions_document_status_effective` (`idLegalDocument`,`status`,`effective_at`,`idLegalDocumentVersion`)');
+CALL sp_add_index_if_not_exists('legal_document_versions', 'idx_legal_document_versions_platform_user', 'ALTER TABLE `legal_document_versions` ADD KEY `idx_legal_document_versions_platform_user` (`created_by_platform_user_id`)');
+CALL sp_add_index_if_not_exists('legal_acceptances', 'uq_legal_acceptances_version_business_user', 'ALTER TABLE `legal_acceptances` ADD UNIQUE KEY `uq_legal_acceptances_version_business_user` (`idLegalDocumentVersion`,`idBusiness`,`idUser`)');
+CALL sp_add_index_if_not_exists('legal_acceptances', 'idx_legal_acceptances_business_user', 'ALTER TABLE `legal_acceptances` ADD KEY `idx_legal_acceptances_business_user` (`idBusiness`,`idUser`)');
+CALL sp_add_index_if_not_exists('legal_acceptances', 'idx_legal_acceptances_accepted_at', 'ALTER TABLE `legal_acceptances` ADD KEY `idx_legal_acceptances_accepted_at` (`accepted_at`)');
 CALL sp_add_index_if_not_exists('business_user_permissions', 'uq_business_user_permission', 'ALTER TABLE `business_user_permissions` ADD UNIQUE KEY `uq_business_user_permission` (`idBusiness`,`idUser`,`idPermission`)');
 CALL sp_add_index_if_not_exists('business_user_permissions', 'idx_business_user_permissions_business_user', 'ALTER TABLE `business_user_permissions` ADD KEY `idx_business_user_permissions_business_user` (`idBusiness`,`idUser`)');
 CALL sp_add_index_if_not_exists('business_user_permissions', 'fk_business_user_permissions_user', 'ALTER TABLE `business_user_permissions` ADD KEY `fk_business_user_permissions_user` (`idUser`)');
