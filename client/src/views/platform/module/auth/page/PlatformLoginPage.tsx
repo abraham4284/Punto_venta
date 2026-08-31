@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { LockKeyhole, ShieldCheck } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
+import { BrandLogo } from "@/components/brand";
 import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,11 +75,15 @@ export const PlatformLoginPage = () => {
     <>
       <Meta title="Plataforma" />
       <Toaster position="top-right" />
-      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_#0f766e_0,_#020617_42%,_#020617_100%)] px-4 py-10">
-        <Card className="w-full max-w-md border-white/10 bg-white/95 shadow-2xl shadow-cyan-950/40">
+      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(22,163,106,0.42)_0,_#101828_42%,_#0b1220_100%)] px-4 py-10">
+        <Card className="w-full max-w-md border-white/10 bg-white/95 shadow-2xl shadow-emerald-950/40">
           <CardHeader className="space-y-3 text-center">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-slate-950 text-cyan-300 shadow-lg">
-              <ShieldCheck className="size-7" />
+            <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+              <BrandLogo
+                variant="isotype"
+                tone="white"
+                imageClassName="h-10 w-10"
+              />
             </div>
             <div>
               <CardTitle className="text-2xl font-bold">

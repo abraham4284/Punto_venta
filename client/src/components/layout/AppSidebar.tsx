@@ -4,7 +4,6 @@ import {
   Boxes,
   ChevronLeft,
   ChevronRight,
-  Factory,
   Landmark,
   LogOut,
   Package,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { BrandLogo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -291,7 +291,7 @@ const getUserInitials = (name: string): string => {
   const parts = name.trim().split(" ").filter(Boolean);
 
   if (parts.length === 0) {
-    return "PV";
+    return "CJ";
   }
 
   return parts
@@ -499,9 +499,13 @@ export const AppSidebar = () => {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-3 group-data-[state=collapsed]/sidebar-wrapper:lg:justify-center">
+        <div className="flex min-w-0 items-center gap-3 group-data-[state=collapsed]/sidebar-wrapper:lg:justify-center">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
-            <Factory className="h-5 w-5" />
+            <BrandLogo
+              variant="isotype"
+              tone="white"
+              imageClassName="h-7 w-7"
+            />
           </div>
 
           <div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
@@ -513,7 +517,7 @@ export const AppSidebar = () => {
             </p>
           </div>
 
-          <SidebarTrigger className="hidden h-9 w-9 shrink-0 rounded-lg border border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground hover:bg-sidebar-accent lg:inline-flex group-data-[state=collapsed]/sidebar-wrapper:lg:[&_svg]:rotate-180">
+          <SidebarTrigger className="hidden h-9 w-9 shrink-0 rounded-lg border border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground hover:bg-sidebar-accent lg:inline-flex group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
             <ChevronLeft className="h-4 w-4" />
           </SidebarTrigger>
         </div>

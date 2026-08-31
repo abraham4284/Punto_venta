@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, LockKeyhole, Store } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
+import { BrandLogo } from "@/components/brand";
 import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,14 +58,12 @@ export const LoginPage = () => {
   return (
     <>
       <Meta title="Iniciar sesion" />
-      <main className="grid min-h-screen bg-slate-50 lg:grid-cols-[0.92fr_1.08fr]">
+      <main className="grid min-h-screen bg-muted lg:grid-cols-[0.92fr_1.08fr]">
         <section className="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
           <Card className="w-full max-w-md border-0 bg-white shadow-xl">
             <CardHeader className="space-y-3 text-center">
-              <Link to="/" className="mx-auto flex items-center justify-center gap-2">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                  <Store className="h-6 w-6" />
-                </span>
+              <Link to="/" className="mx-auto flex items-center justify-center gap-2" aria-label="Cajora">
+                <BrandLogo imageClassName="h-10" />
               </Link>
               <div>
                 <CardTitle className="text-2xl">Iniciar sesion</CardTitle>
@@ -136,13 +135,13 @@ export const LoginPage = () => {
               "url('https://images.unsplash.com/photo-1556745757-8d76bdb6984b?auto=format&fit=crop&w=1400&q=80')",
           }}
         >
-          <div className="absolute inset-0 bg-slate-950/70" />
+          <div className="absolute inset-0 bg-[#101828]/76" />
           <div className="relative flex h-full flex-col justify-end p-12 text-white">
             <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-300">
-              Punto de venta inteligente
+              Cajora para comercios
             </p>
             <h1 className="mt-4 max-w-xl text-5xl font-bold leading-tight">
-              Controla tu negocio con informacion clara en cada decision.
+              Tu negocio, bajo control en cada decision.
             </h1>
             <p className="mt-5 max-w-lg text-white/75">
               Stock, ventas, compras, clientes y reportes trabajando juntos en

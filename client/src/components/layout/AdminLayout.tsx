@@ -49,7 +49,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             <Menu className="h-5 w-5" />
           </SidebarTrigger>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">Punto de venta</p>
+            <p className="text-sm font-semibold">Cajora</p>
             <p className="text-xs text-muted-foreground">Panel administrativo</p>
           </div>
           <Button
