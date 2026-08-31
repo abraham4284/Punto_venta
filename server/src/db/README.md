@@ -86,6 +86,44 @@ Los seeds legales no incluyen versiones ni contenido contractual real. Para
 habilitar el registro de nuevos negocios se debe publicar una version vigente
 para `TERMS` y otra para `PRIVACY` en `legal_document_versions`.
 
+## Publicacion legal Cajora v1.0
+
+La publicacion inicial del MVP de Cajora se mantiene como un evento explicito y
+auditable, separado del instalador normal:
+
+1. Ejecutar el orden base de instalacion indicado arriba.
+2. Ejecutar manualmente `migrations/006_publish_cajora_legal_v1_0.sql`.
+
+El script publica:
+
+- `TERMS` version `1.0`, titulo `Terminos y Condiciones de Cajora`.
+- `PRIVACY` version `1.0`, titulo `Politica de Privacidad de Cajora`.
+- `status = PUBLISHED`.
+- `requires_user_action = 0`.
+- `published_at` y `effective_at` con el mismo `NOW()` de ejecucion.
+
+Los documentos oficiales tienen fecha documental `31 de agosto de 2026`, que se
+conserva dentro de `legal_document_versions.content`.
+
+Como defensa para instalaciones limpias o seeds omitidos accidentalmente, el
+script asegura el catalogo logico minimo de `legal_documents` para `TERMS` y
+`PRIVACY` antes de insertar las versiones. Esta normalizacion solo afecta el
+catalogo legal; no modifica versiones publicadas.
+
+Hashes SHA-256 calculados sobre el contenido final almacenado en UTF-8:
+
+- `TERMS 1.0`: `5430d5d3870113f25f00d98f29ba85b14e78b6591f4f0809c3214b27ed021ab4`
+- `PRIVACY 1.0`: `9cd13785522dac3e837b54f1eb988e936f110ad6805dcf6063b88fcf7930f222`
+
+Regla operativa:
+
+- Una version publicada es inmutable.
+- Cualquier cambio de texto debe publicarse como una nueva version.
+- El script no actualiza silenciosamente `1.0`; si ya existe con otro hash,
+  falla y hace rollback.
+- `install.sql` no ejecuta esta publicacion para evitar publicar documentos
+  juridicos sin una accion intencional.
+
 No se incluye seed global para `payment_methods` ni `cash_registers` porque
 requieren `idBusiness`; se crean dentro del flujo de registro del negocio.
 

@@ -44,3 +44,9 @@ SOURCE procedures/sales.sql;
 SOURCE procedures/purchases.sql;
 SOURCE procedures/tickets.sql;
 SOURCE procedures/dashboard.sql;
+
+/*
+  Legal publication is intentionally manual and auditable.
+  After this install, run migrations/006_publish_cajora_legal_v1_0.sql only
+  when you intentionally want to publish Cajora TERMS/PRIVACY 1.0.
+*/
