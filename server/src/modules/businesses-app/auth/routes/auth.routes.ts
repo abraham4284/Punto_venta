@@ -35,7 +35,7 @@ router.post(
   loginController,
 );
 router.post("/refresh", refreshRateLimiter, refreshTokenController);
-router.post("/logout", requireAuth, logoutController);
+router.post("/logout", logoutController);
 router.get("/me", requireAuth, me);
 router.get("/auth/user-info/:idUser", requireAuth, getUserInfoByIdController);
 router.patch(

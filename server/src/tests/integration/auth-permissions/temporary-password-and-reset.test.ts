@@ -40,7 +40,7 @@ describe("Contrasena temporal y reset administrativo", function temporaryPasswor
       .set("Cookie", ownerAuth.cookies);
 
     expect(meResponse.status).toBe(200);
-    expect(meResponse.body.data.mustChangePassword).toBe(true);
+    expect(meResponse.body.data.user.mustChangePassword).toBe(true);
     expect(productsResponse.status).toBe(403);
     expect(productsResponse.body.code).toBe("PASSWORD_CHANGE_REQUIRED");
     expect(subscriptionResponse.status).toBe(200);

@@ -1,17 +1,24 @@
-export type User = {
+export type UserRole = "OWNER" | "ADMIN" | "SELLER";
+export type BusinessStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+
+export type BusinessSessionUser = {
   idUser: number;
   idBusiness: number;
-  role: string;
-  mustChangePassword?: boolean;
-  permissions?: string[];
-  name?: string;
-  username?: string;
+  name: string;
+  username: string;
   email?: string | null;
-  businessName?: string;
-  businessSlug?: string;
-  businessType?: string | null;
-  logoUrl?: string | null;
+  role: UserRole | string;
+  businessName: string;
+  businessSlug: string;
+  businessType: string | null;
+  logoUrl: string | null;
+  businessStatus: BusinessStatus;
+  mustChangePassword: boolean;
+  permissions: string[];
 };
+
+export type User = BusinessSessionUser;
+
 export type UserCheckAuth = {
   idUser: number;
   username: string;
@@ -37,34 +44,11 @@ export type RegisterBody = {
   acknowledgedPrivacy: boolean;
 };
 
-export type AuthUser = {
-  idUser: number;
-  username?: string;
-  name?: string;
-  email?: string | null;
-  idBusiness: number;
-  role: string;
-  mustChangePassword?: boolean;
-  permissions?: string[];
-  user?: User;
-};
-
-export type AuthSessionUser = User & {
-  name: string;
-  username: string;
-  email: string | null;
-  businessName: string;
-  businessSlug: string;
-  businessType: string | null;
-  logoUrl: string | null;
-  mustChangePassword?: boolean;
-  permissions?: string[];
-};
-
 export type AuthSessionResponse = {
-  accessToken: string;
-  user: AuthSessionUser;
+  user: BusinessSessionUser;
 };
+
+export type AuthUser = BusinessSessionUser;
 
 export type UserInfoResponse = {
   idUser: number;

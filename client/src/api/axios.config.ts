@@ -4,7 +4,9 @@ import axios, {
 } from "axios";
 
 const URL_BACK = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
-const BUSINESS_TOKEN_KEY = "access_token";
+const CSRF_HEADER_NAME = "X-CSRF-Protection";
+const CSRF_HEADER_VALUE = "1";
+const MUTATING_METHODS = new Set(["post", "put", "patch", "delete"]);
 
 export const axiosInstance = axios.create({
   baseURL: URL_BACK,
@@ -19,6 +21,7 @@ const refreshClient = axios.create({
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
+    [CSRF_HEADER_NAME]: CSRF_HEADER_VALUE,
   },
 });
 
@@ -70,23 +73,19 @@ const notifyRequestLimitError = async (statusCode: number): Promise<void> => {
 };
 
 const refreshSession = (): Promise<void> => {
-  if (!refreshPromise) {
-    refreshPromise = refreshClient
-      .post("/refresh")
-      .then((response) => {
-        const accessToken = (response.data as { data?: { accessToken?: string } })
-          .data?.accessToken;
-
-        if (accessToken) {
-          localStorage.setItem(BUSINESS_TOKEN_KEY, accessToken);
-        }
-      })
-      .finally(() => {
-        refreshPromise = null;
-      });
+  if (refreshPromise) {
+    return refreshPromise;
   }
 
-  return refreshPromise;
+  const nextRefreshPromise = refreshClient
+    .post("/refresh")
+    .then(() => undefined)
+    .finally(() => {
+      refreshPromise = null;
+    });
+
+  refreshPromise = nextRefreshPromise;
+  return nextRefreshPromise;
 };
 
 const expireFrontendSession = async (): Promise<void> => {
@@ -196,10 +195,10 @@ axiosInstance.interceptors.response.use(
 );
 
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem(BUSINESS_TOKEN_KEY);
+  const method = config.method?.toLowerCase();
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (method && MUTATING_METHODS.has(method)) {
+    config.headers[CSRF_HEADER_NAME] = CSRF_HEADER_VALUE;
   }
 
   return config;
