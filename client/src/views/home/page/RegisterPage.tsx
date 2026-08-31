@@ -7,11 +7,11 @@ import {
   EyeOff,
   ImageIcon,
   Sparkles,
-  Store,
   UserPlus,
 } from "lucide-react";
 import { toast, Toaster } from "react-hot-toast";
 
+import { BrandLogo } from "@/components/brand";
 import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import {
@@ -175,15 +175,12 @@ export const RegisterPage = () => {
   return (
     <>
       <Meta title="Registrar comercio" />
-      <main className="grid min-h-screen bg-slate-50 lg:grid-cols-[1.08fr_0.92fr]">
+      <main className="grid min-h-screen bg-muted lg:grid-cols-[1.08fr_0.92fr]">
         <section className="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
           <Card className="w-full max-w-2xl border-0 bg-white shadow-xl">
             <CardHeader className="space-y-3">
-              <Link to="/" className="flex w-fit items-center gap-2">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                  <Store className="h-5 w-5" />
-                </span>
-                <span className="font-semibold">MaxiKiosco App</span>
+              <Link to="/" className="flex w-fit items-center gap-2" aria-label="Cajora">
+                <BrandLogo imageClassName="h-9" />
               </Link>
               <div>
                 <CardTitle className="text-2xl">Registrar mi comercio</CardTitle>
@@ -471,11 +468,11 @@ export const RegisterPage = () => {
               "url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1400&q=80')",
           }}
         >
-          <div className="absolute inset-0 bg-slate-950/70" />
+          <div className="absolute inset-0 bg-[#101828]/76" />
           <div className="relative flex h-full flex-col justify-end p-12 text-white">
             <Sparkles className="h-10 w-10 text-emerald-300" />
             <h1 className="mt-5 max-w-xl text-5xl font-bold leading-tight">
-              Tu comercio listo para vender, medir y crecer.
+              Vendé más simple desde el primer día.
             </h1>
             <p className="mt-5 max-w-lg text-white/75">
               Configura el negocio una sola vez y comienza a operar con stock,

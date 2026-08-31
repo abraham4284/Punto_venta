@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, ShieldAlert, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { BrandLogo } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePlatformAuthStore } from "@/views/platform/module/auth/store/platformAuth.store";
@@ -25,15 +26,15 @@ export const PlatformLayout = ({ children }: PlatformLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-950">
+    <div className="min-h-screen bg-muted text-foreground">
       <div className="flex min-h-screen">
         <PlatformSidebar className="hidden lg:flex" />
 
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-slate-950 text-slate-100 lg:hidden">
-            <div className="flex items-center justify-between border-b border-slate-800 p-4">
+          <div className="fixed inset-0 z-50 bg-[#101828] text-slate-100 lg:hidden">
+            <div className="flex items-center justify-between border-b border-white/10 p-4">
               <div className="flex items-center gap-3">
-                <ShieldAlert className="size-5 text-cyan-300" />
+                <BrandLogo variant="isotype" tone="white" imageClassName="h-6 w-6" />
                 <span className="font-semibold">Panel Plataforma</span>
               </div>
               <Button

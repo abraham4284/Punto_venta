@@ -1,9 +1,10 @@
 import { BrowserRouter } from "react-router-dom";
-import { AppRoutes } from "@/routes/AppRoutes";
 import { HelmetProvider } from "react-helmet-async";
-import { AuthInitializer } from "@/components";
 
-export const MaxiKioscoApp = () => {
+import { AuthInitializer } from "@/components";
+import { AppRoutes } from "@/routes/AppRoutes";
+
+export const CajoraApp = () => {
   return (
     <BrowserRouter>
       <AuthInitializer>

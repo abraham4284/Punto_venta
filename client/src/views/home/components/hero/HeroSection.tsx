@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, PackageSearch, ScanBarcode } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const HeroSection = () => {
   return (
-    <section className="overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.16),transparent_32%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]">
+    <section className="overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(22,163,106,0.16),transparent_32%),linear-gradient(180deg,#ffffff_0%,#f7f9fa_100%)]">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_0.95fr] lg:px-8">
         <div className="space-y-7">
           <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
@@ -15,11 +16,12 @@ export const HeroSection = () => {
 
           <div className="space-y-5">
             <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Gestion inteligente e integral para tu negocio
+              Vendé más simple. Controlá todo.
             </h1>
             <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-              Controla ventas, stock por deposito, compras, clientes y reportes
-              desde un panel rapido, claro y preparado para comercios reales.
+              Cajora centraliza ventas, stock por depósito, compras, clientes y
+              reportes en un panel rápido, claro y preparado para comercios
+              reales.
             </p>
           </div>
 
@@ -48,13 +50,18 @@ export const HeroSection = () => {
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-6 rounded-[2rem] bg-emerald-500/10 blur-3xl" />
+          <div className="absolute -inset-6 rounded-[2rem] bg-primary/10 blur-3xl" />
           <div className="relative overflow-hidden rounded-2xl border bg-white shadow-2xl">
-            <div className="flex items-center gap-2 border-b bg-slate-950 px-4 py-3">
+            <div className="flex items-center gap-2 border-b bg-[#101828] px-4 py-3">
               <span className="h-3 w-3 rounded-full bg-red-400" />
               <span className="h-3 w-3 rounded-full bg-amber-400" />
               <span className="h-3 w-3 rounded-full bg-emerald-400" />
-              <span className="ml-3 text-xs text-white/70">Panel MaxiKiosco</span>
+              <span className="ml-3 text-xs text-white/70">Panel Cajora</span>
+              <BrandLogo
+                variant="isotype"
+                tone="white"
+                imageClassName="ml-auto h-6 w-6"
+              />
             </div>
             <div className="grid gap-4 p-5">
               <div className="grid gap-4 sm:grid-cols-3">

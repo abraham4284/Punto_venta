@@ -7,7 +7,7 @@ type MetaProps = {
   title: string;
 };
 
-const DEFAULT_APP_NAME = "Punto_venta";
+const DEFAULT_APP_NAME = "Cajora";
 
 export const Meta = ({ title }: MetaProps) => {
   const user = useAuthStore((state) => state.user);
