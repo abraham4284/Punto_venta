@@ -50,7 +50,7 @@ export const SalePrintDocument = ({
   customer,
   grossSubtotal,
 }: SalePrintDocumentProps) => {
-  const businessName = business?.name || "Punto de Venta";
+  const businessName = business?.name || "Cajora";
   const businessType = getBusinessTypeLabel(business?.businessType);
   const customerName = customer?.name || sale.customerName || "Consumidor Final";
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;

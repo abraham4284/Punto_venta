@@ -285,7 +285,7 @@ export const InfoStockCritical = () => {
   const navigate = useNavigate();
   const canCreatePurchase = useCan("purchases.create");
   const businessName = useAuthStore((state) => {
-    return state.user?.businessName ?? "Punto de Venta";
+    return state.user?.businessName ?? "Cajora";
   });
   const cart = usePurchaseCartStore((state) => state.cart);
   const addPurchaseItem = usePurchaseCartStore((state) => state.addItem);

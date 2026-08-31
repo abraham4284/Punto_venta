@@ -88,7 +88,7 @@ export const ViewPurchaseDetails = () => {
         <div className="hidden print:block">
           <PurchasePrintDocument
             purchase={selectedPurchase}
-            businessName={business?.name ?? "Punto de Venta"}
+            businessName={business?.name ?? "Cajora"}
           />
         </div>
       </main>

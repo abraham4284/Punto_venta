@@ -55,7 +55,7 @@ export const HomePage = () => {
         <section id="precios" className="bg-slate-950 py-20 text-white">
           <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-4 text-center sm:px-6 lg:px-8">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Empeza a ordenar tu comercio desde hoy
+              Tu negocio, bajo control.
             </h2>
             <p className="mt-4 max-w-2xl text-white/70">
               Centraliza ventas, compras, stock y reportes en un sistema simple
@@ -70,7 +70,7 @@ export const HomePage = () => {
 
         <footer className="border-t bg-white py-8">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-            <p>© {new Date().getFullYear()} MaxiKiosco App. Todos los derechos reservados.</p>
+            <p>© {new Date().getFullYear()} Cajora. Todos los derechos reservados.</p>
             <div className="flex gap-4">
               <a href="#funcionalidades" className="hover:text-foreground">
                 Funcionalidades

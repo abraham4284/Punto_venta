@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { BarChart3, Store } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
@@ -13,13 +14,8 @@ export const PublicNavbar = () => {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/85 backdrop-blur-md">
       <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Store className="h-5 w-5" />
-          </span>
-          <span className="font-heading text-lg font-bold">
-            MaxiKiosco App
-          </span>
+        <Link to="/" className="flex items-center gap-2" aria-label="Cajora">
+          <BrandLogo imageClassName="h-8" />
         </Link>
 
         <div className="hidden items-center gap-6 md:flex">
