@@ -1,6 +1,7 @@
 import type { RowDataPacket } from "mysql2";
 
 export type UserRole = "OWNER" | "ADMIN" | "SELLER";
+export type BusinessStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
 
 export interface AuthUser {
   idUser: number;
@@ -8,6 +9,22 @@ export interface AuthUser {
   role: UserRole;
   mustChangePassword?: boolean;
   permissions?: string[];
+}
+
+export interface BusinessSessionUser {
+  idUser: number;
+  idBusiness: number;
+  name: string;
+  username: string;
+  email: string | null;
+  role: UserRole;
+  businessName: string;
+  businessSlug: string;
+  businessType: string | null;
+  logoUrl: string | null;
+  businessStatus: BusinessStatus;
+  mustChangePassword: boolean;
+  permissions: string[];
 }
 
 export interface LoginBody {
@@ -38,7 +55,7 @@ export interface RegisterDbRow {
   businessSlug: string;
   businessType: string | null;
   logoUrl: string | null;
-  businessStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+  businessStatus: BusinessStatus;
   mustChangePassword: number;
   role: UserRole;
 }
@@ -64,8 +81,10 @@ export interface LoginDbRow {
   idBusiness: number;
   business_name: string;
   business_slug: string;
+  business_type?: string | null;
+  logo_url?: string | null;
   business_active: number;
-  business_status: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+  business_status: BusinessStatus;
   role: UserRole;
   business_user_active: number;
 }
@@ -104,14 +123,19 @@ export interface UserInfoDbRow {
   createdAt: Date;
 }
 
-export interface AuthenticatedUserContext extends AuthUser {
-  name?: string;
-  username?: string;
-  email?: string | null;
-  businessName?: string;
-  businessSlug?: string;
-  businessStatus?: "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
-  permissions: string[];
-  user: AuthUser;
+export interface AuthenticatedUserContextDbRow {
+  idUser: number;
+  idBusiness: number;
+  name: string;
+  username: string;
+  email: string | null;
+  role: UserRole;
+  businessName: string;
+  businessSlug: string;
+  businessType: string | null;
+  logoUrl: string | null;
+  businessStatus: BusinessStatus;
+  mustChangePassword: number;
 }
 
+export type AuthenticatedUserContext = BusinessSessionUser;

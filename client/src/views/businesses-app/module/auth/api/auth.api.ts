@@ -2,7 +2,6 @@ import axios from "@/api/axios.config";
 import type { AxiosResponse } from "axios";
 import type { ApiMessageResponse, ApiResponse } from "@/api/axios.response.type";
 import type {
-  AuthUser,
   AuthSessionResponse,
   LoginBody,
   RegisterBody,
@@ -29,7 +28,9 @@ export const refreshRequest = async (): Promise<
   AxiosResponse<ApiMessageResponse>
 > => axios.post("/refresh");
 
-export const meRequest = async (): Promise<AxiosResponse<ApiResponse<AuthUser>>> =>
+export const meRequest = async (): Promise<
+  AxiosResponse<ApiResponse<AuthSessionResponse>>
+> =>
   axios.get("/me");
 
 export const getUserInfoById = async (

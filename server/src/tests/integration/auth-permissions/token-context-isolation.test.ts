@@ -69,6 +69,25 @@ describe("Tokens, refresh y aislamiento de contexto", function tokenSuite() {
     expect(response.status).toBe(401);
   });
 
+  it("rechaza Bearer BUSINESS en rutas Business cuando no existe cookie httpOnly", async function businessBearerWithoutCookieFails() {
+    const business = await createOperationalBusinessFixture("business_bearer");
+    const token = createRawJwtForTest(
+      {
+        context: "BUSINESS",
+        idUser: business.owner.idUser,
+        idBusiness: business.business.idBusiness,
+        businessRole: "OWNER",
+      },
+      getAccessSecret(),
+    );
+
+    const response = await request(app)
+      .get("/api/products")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(401);
+  });
+
   it("rechaza access tokens manipulados con firma invalida, expirados o payload incompleto", async function manipulatedTokensFail() {
     const business = await createOperationalBusinessFixture("manipulated_tokens");
     const invalidSignatureToken = createRawJwtForTest(
@@ -121,6 +140,7 @@ describe("Tokens, refresh y aislamiento de contexto", function tokenSuite() {
       .set("Cookie", business.auth.cookies);
 
     expect(response.status).toBe(200);
+    expect(response.body.data).toBeNull();
 
     const newCookies = response.headers["set-cookie"];
     const newRefreshPayload = decodeRefreshTokenForTest(
@@ -154,6 +174,7 @@ describe("Tokens, refresh y aislamiento de contexto", function tokenSuite() {
       .set("Cookie", platform.auth.cookies);
 
     expect(platformRefresh.status).toBe(200);
+    expect(platformRefresh.body.data.accessToken).toBeTruthy();
     expect(
       decodeRefreshTokenForTest(
         getCookieToken(platformRefresh.headers["set-cookie"], "refresh_token"),
@@ -214,5 +235,55 @@ describe("Tokens, refresh y aislamiento de contexto", function tokenSuite() {
 
     expect(businessRefresh.status).toBeGreaterThanOrEqual(400);
     expect(platformRefresh.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("logout BUSINESS limpia cookies aunque el access token no este vigente", async function logoutWorksWithRefreshOnly() {
+    const business = await createOperationalBusinessFixture("logout_refresh_only");
+    const refreshPayload = decodeRefreshTokenForTest(
+      getCookieToken(business.auth.cookies, "refresh_token"),
+    );
+    const refreshCookie = business.auth.cookies.filter(function onlyRefresh(cookie) {
+      return cookie.startsWith("refresh_token=");
+    });
+
+    const response = await request(app)
+      .post("/api/logout")
+      .set("Cookie", refreshCookie);
+
+    expect(response.status).toBe(200);
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("access_token=;"),
+        expect.stringContaining("refresh_token=;"),
+      ]),
+    );
+    expect((await getUserSessionByIdLogin(refreshPayload.idLogin))?.revoked_at).toBeTruthy();
+  });
+
+  it("valida CSRF para mutaciones BUSINESS originadas desde navegador", async function csrfProtectsBrowserMutations() {
+    const business = await createOperationalBusinessFixture("csrf_allowed");
+    const trustedOriginResponse = await request(app)
+      .post("/api/login")
+      .set("Origin", "http://localhost:5173")
+      .set("X-CSRF-Protection", "1")
+      .send({
+        username: business.owner.username,
+        password: business.owner.plainPasswordForTest,
+      });
+    const badOriginResponse = await request(app)
+      .post("/api/login")
+      .set("Origin", "https://malicioso.test")
+      .set("X-CSRF-Protection", "1")
+      .send({ username: "no_importa", password: "no_importa" });
+    const missingHeaderResponse = await request(app)
+      .post("/api/login")
+      .set("Origin", "http://localhost:5173")
+      .send({ username: "no_importa", password: "no_importa" });
+
+    expect(trustedOriginResponse.status).toBe(200);
+    expect(badOriginResponse.status).toBe(403);
+    expect(badOriginResponse.body.code).toBe("CSRF_VALIDATION_FAILED");
+    expect(missingHeaderResponse.status).toBe(403);
+    expect(missingHeaderResponse.body.code).toBe("CSRF_VALIDATION_FAILED");
   });
 });

@@ -12,6 +12,8 @@ import { getEffectivePermissionsService } from "../../permissions/services/permi
 import type {
   AuthUser,
   AuthenticatedUserContext,
+  AuthenticatedUserContextDbRow,
+  BusinessSessionUser,
   LoginBody,
   RegisterBody,
   RegisterDbRow,
@@ -90,6 +92,105 @@ function mapUserInfo(row: UserInfoDbRow): UserInfoResponse {
     mustChangePassword: Boolean(row.mustChangePassword),
     createdAt: row.createdAt,
   };
+}
+
+function mapLoginSessionUser(
+  row: LoginDbRow,
+  permissions: string[],
+): BusinessSessionUser {
+  return {
+    idUser: row.idUser,
+    name: row.name,
+    username: row.username,
+    email: row.email,
+    idBusiness: row.idBusiness,
+    businessName: row.business_name,
+    businessSlug: row.business_slug,
+    businessType: row.business_type ?? null,
+    logoUrl: row.logo_url ?? null,
+    businessStatus: row.business_status,
+    role: row.role,
+    mustChangePassword: Boolean(row.mustChangePassword),
+    permissions,
+  };
+}
+
+function mapRegisterSessionUser(
+  row: RegisterDbRow,
+  permissions: string[],
+): BusinessSessionUser {
+  return {
+    idUser: row.idUser,
+    name: row.name,
+    username: row.username,
+    email: row.email,
+    idBusiness: row.idBusiness,
+    businessName: row.businessName,
+    businessSlug: row.businessSlug,
+    businessType: row.businessType,
+    logoUrl: row.logoUrl,
+    businessStatus: row.businessStatus,
+    role: row.role,
+    mustChangePassword: Boolean(row.mustChangePassword),
+    permissions,
+  };
+}
+
+function mapAuthenticatedSessionUser(
+  row: AuthenticatedUserContextDbRow,
+  permissions: string[],
+): BusinessSessionUser {
+  return {
+    idUser: row.idUser,
+    name: row.name,
+    username: row.username,
+    email: row.email,
+    idBusiness: row.idBusiness,
+    businessName: row.businessName,
+    businessSlug: row.businessSlug,
+    businessType: row.businessType,
+    logoUrl: row.logoUrl,
+    businessStatus: row.businessStatus,
+    role: row.role,
+    mustChangePassword: Boolean(row.mustChangePassword),
+    permissions,
+  };
+}
+
+async function getAuthenticatedUserContextRow(
+  idUser: number,
+  idBusiness: number,
+): Promise<AuthenticatedUserContextDbRow | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT
+       u.idUser,
+       b.idBusiness,
+       u.name,
+       u.username,
+       u.email,
+       bu.role,
+       b.name AS businessName,
+       b.slug AS businessSlug,
+       b.business_type AS businessType,
+       b.logo_url AS logoUrl,
+       b.status AS businessStatus,
+       u.must_change_password AS mustChangePassword
+     FROM users u
+     INNER JOIN business_users bu
+       ON bu.idUser = u.idUser
+       AND bu.idBusiness = ?
+     INNER JOIN businesses b
+       ON b.idBusiness = bu.idBusiness
+     WHERE u.idUser = ?
+       AND b.idBusiness = ?
+       AND u.is_active = 1
+       AND bu.is_active = 1
+       AND b.is_active = 1
+     LIMIT 1`,
+    [idBusiness, idUser, idBusiness],
+  );
+
+  return (rows as unknown as AuthenticatedUserContextDbRow[])[0] ?? null;
 }
 
 async function getPermissionsForUser(
@@ -172,23 +273,17 @@ export async function loginService(
   );
 
   const permissions = await getPermissionsForUser(user.idBusiness, user.idUser);
+  const contextRow =
+    user.business_type !== undefined && user.logo_url !== undefined
+      ? null
+      : await getAuthenticatedUserContextRow(user.idUser, user.idBusiness);
 
   return {
     accessToken,
     refreshToken,
-    user: {
-      idUser: user.idUser,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      idBusiness: user.idBusiness,
-      businessName: user.business_name,
-      businessSlug: user.business_slug,
-      businessStatus: user.business_status,
-      role: user.role,
-      mustChangePassword: Boolean(user.mustChangePassword),
-      permissions,
-    },
+    user: contextRow
+      ? mapAuthenticatedSessionUser(contextRow, permissions)
+      : mapLoginSessionUser(user, permissions),
   };
 }
 
@@ -286,21 +381,7 @@ export async function registerService(
   return {
     accessToken,
     refreshToken,
-    user: {
-      idUser: user.idUser,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      idBusiness: user.idBusiness,
-      businessName: user.businessName,
-      businessSlug: user.businessSlug,
-      businessType: user.businessType,
-      logoUrl: user.logoUrl,
-      businessStatus: user.businessStatus,
-      role: user.role,
-      mustChangePassword: Boolean(user.mustChangePassword),
-      permissions,
-    },
+    user: mapRegisterSessionUser(user, permissions),
   };
 }
 
@@ -422,32 +503,21 @@ export async function getUserInfoByIdService(
 export async function getAuthenticatedUserContextService(
   authUser: AuthUser,
 ): Promise<AuthenticatedUserContext> {
-  const profile = await getUserInfoByIdService(
+  const user = await getAuthenticatedUserContextRow(
     authUser.idUser,
     authUser.idBusiness,
   );
+
+  if (!user) {
+    throw new Error("Usuario autenticado no encontrado o inactivo");
+  }
+
   const permissions = await getPermissionsForUser(
     authUser.idBusiness,
     authUser.idUser,
   );
 
-  return {
-    idUser: authUser.idUser,
-    idBusiness: authUser.idBusiness,
-    role: authUser.role,
-    name: profile.name,
-    username: profile.username,
-    email: profile.email,
-    mustChangePassword: profile.mustChangePassword,
-    permissions,
-    user: {
-      idUser: authUser.idUser,
-      idBusiness: authUser.idBusiness,
-      role: authUser.role,
-      mustChangePassword: profile.mustChangePassword,
-      permissions,
-    },
-  };
+  return mapAuthenticatedSessionUser(user, permissions);
 }
 
 export async function updatePasswordService(

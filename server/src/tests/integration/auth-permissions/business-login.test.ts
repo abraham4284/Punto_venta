@@ -34,9 +34,15 @@ describe("Auth BUSINESS", function businessAuthSuite() {
     });
 
     expect(response.status).toBe(200);
+    expect(response.body.data.accessToken).toBeUndefined();
     expect(response.body.data.user.idUser).toBe(fixture.owner.idUser);
     expect(response.body.data.user.idBusiness).toBe(fixture.business.idBusiness);
     expect(response.body.data.user.role).toBe("OWNER");
+    expect(response.body.data.user.businessName).toBe(fixture.business.name);
+    expect(response.body.data.user.businessSlug).toBe(fixture.business.slug);
+    expect(response.body.data.user.businessType).toBeTruthy();
+    expect(response.body.data.user.logoUrl ?? null).toBeNull();
+    expect(response.body.data.user.permissions).toContain("dashboard.view");
     expect(response.body.data.user.mustChangePassword).toBe(false);
 
     const cookies = response.headers["set-cookie"];
@@ -68,6 +74,26 @@ describe("Auth BUSINESS", function businessAuthSuite() {
     expect(session?.auth_context).toBe("BUSINESS");
     expect(session?.idBusiness).toBe(fixture.business.idBusiness);
     expect(session?.refresh_token_hash).toBeTruthy();
+
+    const meResponse = await request(app)
+      .get("/api/me")
+      .set("Cookie", [
+        `access_token=${getCookieToken(cookies, "access_token")}`,
+        `refresh_token=${getCookieToken(cookies, "refresh_token")}`,
+      ]);
+
+    expect(meResponse.status).toBe(200);
+    expect(meResponse.body.data.user).toEqual(
+      expect.objectContaining({
+        idUser: fixture.owner.idUser,
+        idBusiness: fixture.business.idBusiness,
+        businessName: fixture.business.name,
+        businessSlug: fixture.business.slug,
+        businessStatus: "ACTIVE",
+        role: "OWNER",
+      }),
+    );
+    expect(meResponse.body.data.user.permissions).toContain("dashboard.view");
   });
 
   it("rechaza credenciales invalidas sin emitir cookies ni crear sesion nueva", async function invalidCredentials() {
