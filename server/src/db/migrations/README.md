@@ -11,6 +11,8 @@ Copied historical scripts:
 2. 002_subscriptions_pk_fix.sql
 3. 003_payment_methods_unique_name_fix.sql
 4. 004_sales_purchases_idempotency.sql
+5. 005_legal_mvp.sql
+6. 006_publish_cajora_legal_v1_0.sql
 
 Para bases existentes que aun tengan `UNIQUE(idBusiness, code)` en
 `payment_methods`, ejecutar:
@@ -55,3 +57,20 @@ historicos con claves `legacy-*` y crea los indices unicos multi-tenant:
 
 - `uq_sales_business_idempotency`
 - `uq_purchases_business_idempotency`
+
+## Publicacion legal Cajora v1.0
+
+`006_publish_cajora_legal_v1_0.sql` publica de forma atomica las versiones
+contractuales iniciales del MVP:
+
+- `TERMS 1.0`
+- `PRIVACY 1.0`
+
+Este script debe ejecutarse manualmente despues de instalar schema, seeds y
+procedures. No forma parte de `install.sql` porque publicar documentos legales
+versionados debe ser una accion explicita.
+
+La migracion resuelve los documentos por `legal_documents.code`, verifica el
+SHA-256 del contenido antes de insertar y no actualiza silenciosamente una
+version `1.0` existente. Si ya existe con un hash distinto, falla y revierte la
+operacion.
