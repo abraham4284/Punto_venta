@@ -18,11 +18,11 @@ INSERT INTO subscription_plans (
 SELECT
   'BASIC_MONTHLY',
   'Plan Basico Mensual',
-  'Plan inicial para prueba gratuita de 30 dias al registrar un nuevo negocio.',
+  'Plan inicial para prueba gratuita de 14 dias al registrar un nuevo negocio.',
   'MONTHLY',
   0.00,
   'ARS',
-  30,
+  14,
   3,
   30,
   5,
