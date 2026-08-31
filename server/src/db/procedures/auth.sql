@@ -16,6 +16,8 @@ BEGIN
     b.idBusiness,
     b.name AS business_name,
     b.slug AS business_slug,
+    b.business_type,
+    b.logo_url,
     b.is_active AS business_active,
     b.status AS business_status,
     bu.role,
@@ -24,6 +26,44 @@ BEGIN
   INNER JOIN business_users bu ON bu.idUser = u.idUser
   INNER JOIN businesses b ON b.idBusiness = bu.idBusiness
   WHERE u.username = p_username
+    AND u.is_active = 1
+    AND bu.is_active = 1
+    AND b.is_active = 1
+  LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_get_authenticated_user_context;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_authenticated_user_context(
+  IN p_idUser INT,
+  IN p_idBusiness INT
+)
+BEGIN
+  SELECT
+    u.idUser,
+    b.idBusiness,
+    u.name,
+    u.username,
+    u.email,
+    bu.role,
+    b.name AS businessName,
+    b.slug AS businessSlug,
+    b.business_type AS businessType,
+    b.logo_url AS logoUrl,
+    b.status AS businessStatus,
+    u.must_change_password AS mustChangePassword
+  FROM users u
+  INNER JOIN business_users bu
+    ON bu.idUser = u.idUser
+    AND bu.idBusiness = p_idBusiness
+  INNER JOIN businesses b
+    ON b.idBusiness = bu.idBusiness
+  WHERE u.idUser = p_idUser
+    AND b.idBusiness = p_idBusiness
     AND u.is_active = 1
     AND bu.is_active = 1
     AND b.is_active = 1

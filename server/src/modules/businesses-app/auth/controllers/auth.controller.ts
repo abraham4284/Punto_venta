@@ -88,7 +88,6 @@ export async function registerController(
       status: "OK",
       message: "Usuario y negocio registrados correctamente",
       data: {
-        accessToken: result.accessToken,
         user: result.user,
       },
     });
@@ -114,7 +113,6 @@ export async function loginController(
       status: "OK",
       message: "Login correcto",
       data: {
-        accessToken: result.accessToken,
         user: result.user,
       },
     });
@@ -143,10 +141,8 @@ export async function refreshTokenController(
 
     res.status(200).json({
       status: "OK",
-      message: "Token renovado correctamente",
-      data: {
-        accessToken: result.accessToken,
-      },
+      message: "Sesion renovada correctamente",
+      data: null,
     });
   } catch (error) {
     clearAuthCookies(res);
@@ -157,23 +153,20 @@ export async function refreshTokenController(
 export async function logoutController(
   req: Request,
   res: Response,
-  next: NextFunction,
 ): Promise<void> {
   try {
     const refreshToken = req.cookies?.refresh_token;
 
     await logoutService(refreshToken);
-
+  } finally {
     clearAuthCookies(res);
-
-    res.status(200).json({
-      status: "OK",
-      message: "Sesion cerrada correctamente",
-      data: null,
-    });
-  } catch (error) {
-    next(error);
   }
+
+  res.status(200).json({
+    status: "OK",
+    message: "Sesion cerrada correctamente",
+    data: null,
+  });
 }
 
 export async function me(
@@ -187,7 +180,9 @@ export async function me(
     res.status(200).json({
       status: "OK",
       message: "Usuario autenticado",
-      data: result,
+      data: {
+        user: result,
+      },
     });
   } catch (error) {
     next(error);

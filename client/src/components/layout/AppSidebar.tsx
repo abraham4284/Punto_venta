@@ -411,19 +411,16 @@ const ParentNavItem = ({
 
 export const AppSidebar = () => {
   const user = useAuthStore((state) => state.user);
-  const profileUser = useAuthStore((state) => state.profileUser);
-  const profileLoading = useAuthStore((state) => state.profileLoading);
-  const fetchUserProfile = useAuthStore((state) => state.fetchUserProfile);
   const logout = useAuthStore((state) => state.logout);
   const { getBusiness, business, resetBusiness } = useBusinesses();
   const { open, setOpen } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
   const displayName =
-    profileUser?.name ||
-    profileUser?.username ||
+    user?.name ||
+    user?.username ||
     `Usuario ${user?.idUser ?? ""}`.trim();
-  const displayRole = profileUser?.role || user?.role || "Administrador";
+  const displayRole = user?.role || "Administrador";
 
   const visibleStartItem = hasPermission(
     startItem.permission,
@@ -478,14 +475,6 @@ export const AppSidebar = () => {
       resetBusiness();
     };
   }, [getBusiness, resetBusiness]);
-
-  useEffect(() => {
-    if (!user?.idUser || profileUser || profileLoading) {
-      return;
-    }
-
-    void fetchUserProfile(user.idUser);
-  }, [fetchUserProfile, profileLoading, profileUser, user?.idUser]);
 
   useEffect(() => {
     const activeGroups = getActiveParentTitles(
@@ -567,7 +556,7 @@ export const AppSidebar = () => {
 
       <SidebarFooter>
         <div className="flex items-center gap-3 rounded-xl border border-sidebar-border bg-sidebar-accent/45 p-2 group-data-[state=collapsed]/sidebar-wrapper:lg:justify-center">
-          {profileLoading && !profileUser ? (
+          {!user ? (
             <>
               <div className="h-10 w-10 shrink-0 animate-pulse rounded-lg bg-sidebar-foreground/10" />
               <div className="min-w-0 flex-1 space-y-2 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">

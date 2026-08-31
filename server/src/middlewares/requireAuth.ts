@@ -5,6 +5,18 @@ function isPlatformRoute(req: Request): boolean {
   return req.originalUrl.startsWith("/api/platform");
 }
 
+function getBearerToken(authHeader: string | undefined): string | undefined {
+  if (!authHeader) return undefined;
+
+  const [scheme, jwtToken] = authHeader.split(" ");
+
+  if (scheme?.toLowerCase() !== "bearer" || !jwtToken) {
+    return undefined;
+  }
+
+  return jwtToken;
+}
+
 export function requireAuth(
   req: Request,
   res: Response,
@@ -12,15 +24,10 @@ export function requireAuth(
 ): void {
   const cookieToken = req.cookies?.access_token as string | undefined;
   const authHeader = req.headers.authorization;
-  let token = cookieToken;
-
-  if (!token && authHeader) {
-    const [scheme, jwtToken] = authHeader.split(" ");
-
-    if (scheme?.toLowerCase() === "bearer" && jwtToken) {
-      token = jwtToken;
-    }
-  }
+  const platformRoute = isPlatformRoute(req);
+  const token = platformRoute
+    ? cookieToken ?? getBearerToken(authHeader)
+    : cookieToken;
 
   if (!token) {
     res.status(401).json({
@@ -34,7 +41,7 @@ export function requireAuth(
     const payload = verifyAccessToken(token);
 
     if (payload.context === "PLATFORM") {
-      if (!isPlatformRoute(req)) {
+      if (!platformRoute) {
         res.status(403).json({
           status: "ERROR",
           message: "Token de plataforma no autorizado para esta ruta",
@@ -47,7 +54,7 @@ export function requireAuth(
       return;
     }
 
-    if (isPlatformRoute(req)) {
+    if (platformRoute) {
       res.status(403).json({
         status: "ERROR",
         message: "Token comercial no autorizado para plataforma",

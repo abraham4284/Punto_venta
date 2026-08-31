@@ -11,12 +11,13 @@ import {
 } from "@/views/businesses-app/module/auth/api/auth.api";
 import type {
   AuthValidationResponse,
+  BusinessSessionUser,
   FieldError,
   RegisterBody,
-  User,
   UserInfoResponse,
 } from "@/views/businesses-app/module/auth/types/auth.types";
 import { usePurchaseCartStore } from "@/views/businesses-app/module/purchases/store/purchaseCart.store";
+import { useBusinessSubscriptionStore } from "@/views/businesses-app/module/subscription/store/businessSubscription.store";
 
 type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 type AuthActionResult =
@@ -24,6 +25,7 @@ type AuthActionResult =
   | { success: false; message: string | undefined };
 
 const INVALID_LOGIN_MESSAGE = "Usuario o contraseña incorrectos";
+const LEGACY_BUSINESS_TOKEN_KEY = "access_token";
 
 const getAuthErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<ApiMessageResponse>;
@@ -31,9 +33,27 @@ const getAuthErrorMessage = (error: unknown, fallback: string): string => {
   return axiosError.response?.data?.message ?? axiosError.message ?? fallback;
 };
 
+const normalizeSessionUser = (user: BusinessSessionUser): BusinessSessionUser => {
+  return {
+    ...user,
+    permissions: user.permissions ?? [],
+    mustChangePassword: Boolean(user.mustChangePassword),
+  };
+};
+
+const clearLegacyBusinessToken = (): void => {
+  localStorage.removeItem(LEGACY_BUSINESS_TOKEN_KEY);
+};
+
+const clearBusinessStores = (): void => {
+  clearLegacyBusinessToken();
+  usePurchaseCartStore.getState().clearCart();
+  useBusinessSubscriptionStore.getState().clearSubscription();
+};
+
 type AuthState = {
   status: AuthStatus;
-  user: User | null;
+  user: BusinessSessionUser | null;
   profileUser: UserInfoResponse | null;
   loading: boolean;
   profileLoading: boolean;
@@ -64,135 +84,77 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   passwordLoading: false,
   passwordFieldErrors: [],
   error: null,
-  isAutenticated: false,
 
-  async login(username, password): Promise<AuthActionResult> {
+  login: async (username, password): Promise<AuthActionResult> => {
     set({ loading: true, error: null });
 
     try {
-      const { data: loginRes } = await loginRequest({ username, password });
+      clearLegacyBusinessToken();
 
-      if (!loginRes.status) {
+      const { data: loginRes } = await loginRequest({ username, password });
+      const sessionUser = loginRes.data?.user;
+
+      if (!loginRes.status || !sessionUser) {
         set({ status: "unauthenticated", user: null, error: loginRes.message });
         return { success: false, message: loginRes.message };
       }
 
-      if (loginRes.data?.accessToken) {
-        localStorage.setItem("access_token", loginRes.data.accessToken);
-      }
-
-      const { data: meRes } = await meRequest();
-      if (!meRes.status) {
-        set({ status: "unauthenticated", user: null, error: meRes.message });
-        return { success: false, message: meRes.message };
-      }
-
       const previousBusinessId = get().user?.idBusiness;
+      const user = normalizeSessionUser(sessionUser);
 
-      if (
-        previousBusinessId &&
-        previousBusinessId !== meRes.data.idBusiness
-      ) {
-        usePurchaseCartStore.getState().clearCart();
+      if (previousBusinessId && previousBusinessId !== user.idBusiness) {
+        clearBusinessStores();
       }
 
       set({
         status: "authenticated",
-        user: {
-          ...meRes.data,
-          mustChangePassword: meRes.data.mustChangePassword,
-          permissions: meRes.data.permissions ?? [],
-        },
+        user,
+        profileUser: null,
         error: null,
       });
-      await get().fetchUserProfile(meRes.data.idUser);
 
       return { success: true, message: loginRes.message ?? "Login exitoso" };
     } catch (error: unknown) {
-      const e = error as AxiosError<ApiMessageResponse>;
+      const axiosError = error as AxiosError<ApiMessageResponse>;
       const msg =
-        e?.response?.data?.message ??
-        (e?.response?.status === 401 ? INVALID_LOGIN_MESSAGE : undefined) ??
-        "Error al iniciar sesión";
-      set({ status: "unauthenticated", user: null, error: msg });
+        axiosError.response?.status === 401
+          ? INVALID_LOGIN_MESSAGE
+          : getAuthErrorMessage(error, "Error al iniciar sesión");
+
+      set({ status: "unauthenticated", user: null, profileUser: null, error: msg });
       return { success: false, message: msg };
     } finally {
       set({ loading: false });
     }
   },
 
-  async register(dataRegisterPayload): Promise<AuthActionResult> {
+  register: async (dataRegisterPayload): Promise<AuthActionResult> => {
     set({ loading: true, error: null });
+
     try {
+      clearLegacyBusinessToken();
+
       const { data: dataRegister } = await registerRequest(dataRegisterPayload);
-      if (!dataRegister.status) {
+      const sessionUser = dataRegister.data?.user;
+
+      if (!dataRegister.status || !sessionUser) {
         set({
           status: "unauthenticated",
           user: null,
-          loading: false,
+          profileUser: null,
           error: dataRegister.message,
         });
         return { success: false, message: dataRegister.message };
       }
 
-      if (dataRegister.data?.accessToken) {
-        localStorage.setItem("access_token", dataRegister.data.accessToken);
-      }
-
-      const registeredUser = dataRegister.data?.user;
-      const user = registeredUser
-        ? {
-            idUser: registeredUser.idUser,
-            idBusiness: registeredUser.idBusiness,
-            role: registeredUser.role,
-            name: registeredUser.name,
-            username: registeredUser.username,
-            email: registeredUser.email,
-            businessName: registeredUser.businessName,
-            businessSlug: registeredUser.businessSlug,
-            businessType: registeredUser.businessType,
-            logoUrl: registeredUser.logoUrl,
-            mustChangePassword: registeredUser.mustChangePassword,
-            permissions: registeredUser.permissions ?? [],
-          }
-        : null;
-
-      if (!user) {
-        const { data } = await meRequest();
-        if (!data.status) {
-          set({
-            status: "unauthenticated",
-            user: null,
-            loading: false,
-            error: data.message,
-          });
-          return { success: false, message: data.message };
-        }
-        usePurchaseCartStore.getState().clearCart();
-        set({
-          status: "authenticated",
-          user: {
-            ...data.data,
-            permissions: data.data.permissions ?? [],
-          },
-          loading: false,
-          error: null,
-        });
-        await get().fetchUserProfile(data.data.idUser);
-        return {
-          success: true,
-          message: dataRegister.message ?? "Registro exitoso",
-        };
-      }
-
-      usePurchaseCartStore.getState().clearCart();
+      clearBusinessStores();
       set({
         status: "authenticated",
-        user,
-        loading: false,
+        user: normalizeSessionUser(sessionUser),
+        profileUser: null,
         error: null,
       });
-      await get().fetchUserProfile(user.idUser);
+
       return {
         success: true,
         message: dataRegister.message ?? "Registro exitoso",
@@ -202,10 +164,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error,
         "Error al registrar el usuario",
       );
+
       set({
         status: "unauthenticated",
         user: null,
-        loading: false,
+        profileUser: null,
         error: message,
       });
       return { success: false, message };
@@ -214,50 +177,57 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  async logout() {
-    await logoutRequest();
-    localStorage.removeItem("access_token");
-    usePurchaseCartStore.getState().clearCart();
-    set({
-      status: "unauthenticated",
-      user: null,
-      profileUser: null,
-      loading: false,
-      profileLoading: false,
-      passwordLoading: false,
-      passwordFieldErrors: [],
-      error: "error",
-    });
+  logout: async (): Promise<void> => {
+    try {
+      await logoutRequest();
+    } finally {
+      clearBusinessStores();
+      set({
+        status: "unauthenticated",
+        user: null,
+        profileUser: null,
+        loading: false,
+        profileLoading: false,
+        passwordLoading: false,
+        passwordFieldErrors: [],
+        error: null,
+      });
+    }
   },
 
-  async checkAuth() {
+  checkAuth: async (): Promise<void> => {
     set({ status: "checking", error: null });
 
     try {
-      const { data } = await meRequest();
-      const previousBusinessId = get().user?.idBusiness;
+      clearLegacyBusinessToken();
 
-      if (
-        previousBusinessId &&
-        previousBusinessId !== data.data.idBusiness
-      ) {
-        usePurchaseCartStore.getState().clearCart();
+      const { data } = await meRequest();
+      const sessionUser = data.data?.user;
+
+      if (!data.status || !sessionUser) {
+        throw new Error(data.message || "Sesion no disponible");
+      }
+
+      const previousBusinessId = get().user?.idBusiness;
+      const user = normalizeSessionUser(sessionUser);
+
+      if (previousBusinessId && previousBusinessId !== user.idBusiness) {
+        clearBusinessStores();
       }
 
       set({
         status: "authenticated",
-        user: {
-          ...data.data,
-          permissions: data.data.permissions ?? [],
-        },
+        user,
+        profileUser: null,
+        error: null,
       });
-      await get().fetchUserProfile(data.data.idUser);
     } catch {
+      clearBusinessStores();
       set({ status: "unauthenticated", user: null, profileUser: null });
     }
   },
 
-  async fetchUserProfile(idUser: number) {
+  fetchUserProfile: async (idUser: number): Promise<void> => {
     set({ profileLoading: true });
 
     try {
@@ -272,11 +242,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  async updateUserPassword(
+  updateUserPassword: async (
     idUser: number,
     currentPassword: string,
     password: string,
-  ) {
+  ) => {
     set({ passwordLoading: true, passwordFieldErrors: [], error: null });
 
     try {
@@ -326,13 +296,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  clearPasswordErrors() {
+  clearPasswordErrors: (): void => {
     set({ passwordFieldErrors: [], error: null });
   },
 
-  expireSession(message = "La sesion expiro") {
-    localStorage.removeItem("access_token");
-    usePurchaseCartStore.getState().clearCart();
+  expireSession: (message = "La sesion expiro"): void => {
+    clearBusinessStores();
     set({
       status: "unauthenticated",
       user: null,

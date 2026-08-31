@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import { securityConfig } from "@/config/security.config.js";
 import { bodyParserErrorMiddleware } from "@/middlewares/bodyParserError.middleware.js";
+import { csrfProtection } from "@/middlewares/csrfProtection.middleware.js";
 import { errorHandler } from "@/middlewares/errorHandler.js";
 import { globalApiRateLimiter } from "@/middlewares/rate-limit/rate-limit.middleware.js";
 import { businessesAppRoutes, platformRoutes } from "@/modules/index.js";
@@ -30,10 +31,15 @@ const corsOptions: CorsOptions = {
       return;
     }
 
-    callback(new Error("ORIGIN_NOT_ALLOWED"));
+    callback(null, false);
   },
   credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Idempotency-Key",
+    "X-CSRF-Protection",
+  ],
   methods: ["OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"],
   exposedHeaders: ["Set-Cookie"],
 };
@@ -54,6 +60,7 @@ app.use(
   }),
 );
 app.use(bodyParserErrorMiddleware);
+app.use(csrfProtection);
 
 app.get("/", (_req, res) => res.send("Api funcionando"));
 
