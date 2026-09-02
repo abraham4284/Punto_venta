@@ -18,7 +18,6 @@ import {
 import { AddToPurchaseModal } from "../../purchases/components/modal/AddToPurchaseModal";
 import { PurchaseCartSheet } from "../../purchases/components/sheet/PurchaseCartSheet";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
-import { useProducts } from "../../products/hooks/useProducts";
 import type { ProductResponse } from "../../products/types/products.types";
 import type { PurchaseCartItem } from "../../purchases/types";
 import { usePurchaseCartStore } from "../../purchases/store/purchaseCart.store";
@@ -43,7 +42,7 @@ const mapStockToPurchaseProduct = (stock: StockResponse): ProductResponse => {
     unitType: stock.unitType,
     stock: stock.quantity,
     stockMin: stock.stock_min,
-    isActive: true,
+    isActive: stock.isActive,
     createdAt: new Date(),
     updatedAt: stock.updatedAt,
   };
@@ -52,6 +51,7 @@ const mapStockToPurchaseProduct = (stock: StockResponse): ProductResponse => {
 export const StockPage = () => {
   const navigate = useNavigate();
   const canCreatePurchase = useCan("purchases.create");
+  const canAdjustStock = useCan("stock.adjust");
   const cart = usePurchaseCartStore((state) => state.cart);
   const addPurchaseItem = usePurchaseCartStore((state) => state.addItem);
   const removePurchaseItem = usePurchaseCartStore((state) => state.removeItem);
@@ -77,7 +77,6 @@ export const StockPage = () => {
     fetchCurrentStockBalance,
   } = useStock();
 
-  const { products, getProducts, resetProducts } = useProducts();
   const { deposits, getDeposits, resetDeposits } = useDeposits();
 
   const {
@@ -96,20 +95,16 @@ export const StockPage = () => {
 
   useEffect(() => {
     getStock();
-    getProducts({ page: 1, limit: 100, isActive: true });
     getDeposits();
 
     return () => {
       resetStock();
-      resetProducts();
       resetDeposits();
     };
   }, [
     getStock,
-    getProducts,
     getDeposits,
     resetStock,
-    resetProducts,
     resetDeposits,
   ]);
 
@@ -165,10 +160,12 @@ export const StockPage = () => {
               Carrito ({cart.length})
             </Button>
           )}
-          <Button type="button" onClick={handleOpenCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo stock
-          </Button>
+          {canAdjustStock && (
+            <Button type="button" onClick={handleOpenCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo stock
+            </Button>
+          )}
         </div>
       </section>
 
@@ -191,6 +188,7 @@ export const StockPage = () => {
             onQuickAdjust={handleOpenQuickAdjust}
             onAddToPurchase={handleOpenPurchaseModal}
             canCreatePurchase={canCreatePurchase}
+            canAdjustStock={canAdjustStock}
           />
         </CardContent>
       </Card>
@@ -198,7 +196,6 @@ export const StockPage = () => {
       <ModalFormStock
         isOpen={isOpen}
         onClose={closeModal}
-        products={products}
         deposits={deposits}
         onSuccess={refreshStock}
       />

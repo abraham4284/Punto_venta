@@ -8,6 +8,7 @@ import {
   getStockBalanceController,
   getStockByIdController,
   getStockController,
+  searchProductsForStockController,
 } from "../controllers/stock.controller.js";
 
 const router = Router();
@@ -24,6 +25,12 @@ router.get(
   requireAuth,
   requirePermission("stock.view_critical"),
   getCriticalStockReportController,
+);
+router.get(
+  "/stock/products/search",
+  requireAuth,
+  requirePermission("stock.adjust"),
+  searchProductsForStockController,
 );
 router.get("/stock/balance", requireAuth, requirePermission("stock.view"), getStockBalanceController);
 router.get("/stock/:id", requireAuth, requirePermission("stock.view"), getStockByIdController);

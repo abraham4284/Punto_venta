@@ -1,7 +1,8 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import type { AxiosError } from "axios";
 import { Search } from "lucide-react";
 import { useForm } from "@/hooks/useForm";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,11 +30,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   PRODUCT_UNIT_TYPE_OPTIONS,
-  type ProductResponse,
   type ProductUnitType,
 } from "../../../products/types/products.types";
 import type { DepositResponse } from "../../../deposits/types/deposits.types";
-import { createInitialStockRequest } from "../../api/stock.api";
+import {
+  createInitialStockRequest,
+  searchProductsForStockRequest,
+} from "../../api/stock.api";
 import {
   processStockAdjustmentRequest,
   processStockTransferRequest,
@@ -43,12 +46,12 @@ import type {
   FieldError,
   StockFormValues,
   StockOperationType,
+  StockProductSearchResponse,
 } from "../../types/stock.types";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  products: ProductResponse[];
   deposits: DepositResponse[];
   onSuccess?: () => void | Promise<void>;
 };
@@ -125,7 +128,6 @@ const validateQuantityByOperation = (
 export const ModalFormStock = ({
   isOpen,
   onClose,
-  products,
   deposits,
   onSuccess,
 }: Props) => {
@@ -136,10 +138,18 @@ export const ModalFormStock = ({
   const [saving, setSaving] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
-
-  const selectedProduct = products.find(
-    (product) => String(product.idProduct) === formSate.idProduct,
+  const [productResults, setProductResults] = useState<
+    StockProductSearchResponse[]
+  >([]);
+  const [selectedProduct, setSelectedProduct] =
+    useState<StockProductSearchResponse | null>(null);
+  const [searchingProducts, setSearchingProducts] = useState(false);
+  const [productSearchError, setProductSearchError] = useState<string | null>(
+    null,
   );
+  const searchTimeoutRef = useRef<number | null>(null);
+  const requestSequenceRef = useRef(0);
+
   const selectedDeposit = deposits.find(
     (deposit) => String(deposit.idDeposit) === formSate.idDeposit,
   );
@@ -178,29 +188,79 @@ export const ModalFormStock = ({
     formSate.idDepositFrom === formSate.idDepositTo
       ? "El deposito origen y destino deben ser distintos"
       : "";
-  const filteredProducts = useMemo(() => {
-    const value = productSearch.trim().toLowerCase();
+  const clearSearchTimeout = () => {
+    if (searchTimeoutRef.current === null) return;
 
-    if (!value) {
-      return products.slice(0, 8);
+    window.clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = null;
+  };
+
+  const resetProductSelector = () => {
+    clearSearchTimeout();
+    requestSequenceRef.current += 1;
+    setProductSearch("");
+    setProductResults([]);
+    setSelectedProduct(null);
+    setSearchingProducts(false);
+    setProductSearchError(null);
+    setIsProductSearchOpen(false);
+  };
+
+  const searchProducts = async (value: string, requestId: number) => {
+    try {
+      const response = await searchProductsForStockRequest({
+        search: value,
+        limit: 8,
+      });
+
+      if (requestId !== requestSequenceRef.current) return;
+
+      setProductResults(response.data.data ?? []);
+      setProductSearchError(null);
+    } catch {
+      if (requestId !== requestSequenceRef.current) return;
+
+      setProductResults([]);
+      setProductSearchError("No se pudieron buscar productos");
+    } finally {
+      if (requestId === requestSequenceRef.current) {
+        setSearchingProducts(false);
+      }
+    }
+  };
+
+  const scheduleProductSearch = (value: string) => {
+    const searchValue = value.trim();
+
+    clearSearchTimeout();
+    requestSequenceRef.current += 1;
+    setProductSearchError(null);
+
+    if (searchValue.length < 2) {
+      setProductResults([]);
+      setSearchingProducts(false);
+      return;
     }
 
-    return products
-      .filter((product) => {
-        const name = product.name.toLowerCase();
-        const barcode = product.barcode?.toLowerCase() ?? "";
+    setSearchingProducts(true);
+    const requestId = requestSequenceRef.current;
 
-        return name.includes(value) || barcode.includes(value);
-      })
-      .slice(0, 8);
-  }, [productSearch, products]);
+    searchTimeoutRef.current = window.setTimeout(() => {
+      void searchProducts(searchValue, requestId);
+    }, 280);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearSearchTimeout();
+    };
+  }, []);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       onResetForm();
       setErrors({});
-      setProductSearch("");
-      setIsProductSearchOpen(false);
+      resetProductSelector();
       onClose();
     }
   };
@@ -210,15 +270,31 @@ export const ModalFormStock = ({
 
     setProductSearch(value);
     setIsProductSearchOpen(true);
+    scheduleProductSearch(value);
 
     if (formSate.idProduct) {
       setFormSate({ ...formSate, idProduct: "" });
     }
+
+    if (selectedProduct) {
+      setSelectedProduct(null);
+    }
   };
 
-  const handleProductSelect = (product: ProductResponse) => {
+  const handleProductSearchFocus = () => {
+    setIsProductSearchOpen(true);
+
+    if (!selectedProduct && productSearch.trim().length >= 2) {
+      scheduleProductSearch(productSearch);
+    }
+  };
+
+  const handleProductSelect = (product: StockProductSearchResponse) => {
     setFormSate({ ...formSate, idProduct: String(product.idProduct) });
     setProductSearch(product.name);
+    setSelectedProduct(product);
+    setProductResults([]);
+    setProductSearchError(null);
     setIsProductSearchOpen(false);
     setErrors((currentErrors) => {
       const restErrors = { ...currentErrors };
@@ -379,8 +455,7 @@ export const ModalFormStock = ({
 
       await onSuccess?.();
       onResetForm();
-      setProductSearch("");
-      setIsProductSearchOpen(false);
+      resetProductSelector();
       onClose();
     } catch (error) {
       handleApiError(error);
@@ -418,7 +493,7 @@ export const ModalFormStock = ({
                 <Input
                   value={productSearch}
                   onChange={handleProductSearchChange}
-                  onFocus={() => setIsProductSearchOpen(true)}
+                  onFocus={handleProductSearchFocus}
                   placeholder="Buscar por nombre o codigo de barras"
                   className="pl-9"
                 />
@@ -426,9 +501,21 @@ export const ModalFormStock = ({
 
               {isProductSearchOpen && (
                 <div className="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-md border bg-popover p-2 text-popover-foreground shadow-lg">
-                  {filteredProducts.length > 0 ? (
+                  {productSearch.trim().length < 2 ? (
+                    <p className="px-2 py-3 text-sm text-muted-foreground">
+                      Escribi al menos 2 caracteres para buscar productos
+                    </p>
+                  ) : searchingProducts ? (
+                    <p className="px-2 py-3 text-sm text-muted-foreground">
+                      Buscando productos...
+                    </p>
+                  ) : productSearchError ? (
+                    <p className="px-2 py-3 text-sm text-destructive">
+                      {productSearchError}
+                    </p>
+                  ) : productResults.length > 0 ? (
                     <div className="grid gap-1">
-                      {filteredProducts.map((product) => (
+                      {productResults.map((product) => (
                         <button
                           key={product.idProduct}
                           type="button"
@@ -451,11 +538,22 @@ export const ModalFormStock = ({
                             <span className="block truncate text-sm font-medium">
                               {product.name}
                             </span>
-                            <span className="block truncate text-xs text-muted-foreground">
-                              Codigo: {product.barcode || "Sin codigo"}
+                            <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              <span>Codigo: {product.barcode || "Sin codigo"}</span>
+                              <Badge
+                                variant={product.isActive ? "secondary" : "outline"}
+                                className={
+                                  product.isActive
+                                    ? "bg-emerald-50 text-emerald-700"
+                                    : "bg-slate-100 text-slate-600"
+                                }
+                              >
+                                {product.isActive ? "Activo" : "Inactivo"}
+                              </Badge>
                             </span>
                             <span className="block text-xs text-muted-foreground">
-                              Precio venta: ${product.priceSale}
+                              Stock total: {product.stock} | Precio venta: $
+                              {product.priceSale}
                             </span>
                           </span>
                         </button>
@@ -463,7 +561,7 @@ export const ModalFormStock = ({
                     </div>
                   ) : (
                     <p className="px-2 py-3 text-sm text-muted-foreground">
-                      No se encontraron productos
+                      No se encontraron productos con esa busqueda
                     </p>
                   )}
                 </div>
@@ -496,11 +594,18 @@ export const ModalFormStock = ({
                 )}
                 <div className="text-sm text-muted-foreground">
                   <p>Precio venta: ${selectedProduct.priceSale}</p>
+                  <p>Stock total actual: {selectedProduct.stock}</p>
                   <p>
                     Stock minimo: {selectedProduct.stockMin}{" "}
                     {selectedUnitOption?.shortLabel ?? "u."}
                   </p>
                   <p>Tipo: {selectedUnitOption?.label ?? "Unidad"}</p>
+                  {!selectedProduct.isActive && (
+                    <p className="mt-2 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+                      Producto inactivo: podés administrar su inventario, pero
+                      no estará disponible para la venta.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -688,8 +793,7 @@ export const ModalFormStock = ({
               onClick={() => {
                 onResetForm();
                 setErrors({});
-                setProductSearch("");
-                setIsProductSearchOpen(false);
+                resetProductSelector();
                 onClose();
               }}
             >

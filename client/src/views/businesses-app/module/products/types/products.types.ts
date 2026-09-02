@@ -59,6 +59,7 @@ export const PRODUCT_UNIT_TYPE_OPTIONS: {
 }[] = [
   { value: "UNIT", label: "Unidad", shortLabel: "u." },
   { value: "KG", label: "Kilogramo", shortLabel: "kg" },
+  { value: "GRAM", label: "Gramo", shortLabel: "g" },
   { value: "LITER", label: "Litro", shortLabel: "l" },
   { value: "METER", label: "Metro", shortLabel: "m" },
 ];

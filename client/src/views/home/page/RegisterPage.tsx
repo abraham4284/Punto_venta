@@ -43,7 +43,6 @@ const businessTypes = [
   { value: "KIOSCO", label: "Kiosco / Maxikiosco" },
   { value: "ALMACEN", label: "Almacen" },
   { value: "VENTA_PRODUCTOS", label: "Venta de productos" },
-  { value: "FINANCIERA", label: "Financiera" },
   { value: "RESTAURANT", label: "Restaurant" },
   { value: "VERDULERIA", label: "Verduleria" },
   { value: "CARNICERIA", label: "Carniceria" },

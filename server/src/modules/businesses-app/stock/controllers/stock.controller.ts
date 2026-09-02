@@ -7,11 +7,13 @@ import {
   getStockBalanceService,
   getStockByIdService,
   getStockService,
+  searchProductsForStockService,
 } from "../services/stock.service.js";
 import {
   advancedStockQuerySchema,
   createInitialStockSchema,
   criticalStockReportQuerySchema,
+  stockProductSearchQuerySchema,
   stockPaginationQuerySchema,
 } from "../validations/stock.validations.js";
 
@@ -157,6 +159,38 @@ export async function getStockBalanceController(
       data: result,
     });
   } catch (error: any) {
+    return res.status(400).json({
+      status: false,
+      message: error.sqlMessage || error.message,
+    });
+  }
+}
+
+export async function searchProductsForStockController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const filters = stockProductSearchQuerySchema.parse(req.query);
+    const result = await searchProductsForStockService(req.user!.idBusiness, {
+      search: filters.search ?? null,
+      limit: filters.limit,
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Productos para stock obtenidos correctamente",
+      data: result,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        status: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
     return res.status(400).json({
       status: false,
       message: error.sqlMessage || error.message,

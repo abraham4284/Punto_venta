@@ -36,7 +36,6 @@ BEGIN
     FROM products
     WHERE idBusiness = p_idBusiness
       AND idProduct = p_idProduct
-      AND is_active = 1
   ) THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El producto indicado no existe o no pertenece al negocio';
@@ -155,6 +154,7 @@ BEGIN
     p.barcode,
     p.image_url AS imageUrl,
     p.unit_type AS unitType,
+    p.is_active AS isActive,
     p.price_cost AS priceCost,
     p.price_sale AS priceSale,
     s.idDeposit,
@@ -257,6 +257,7 @@ BEGIN
     p.name AS product_name,
     p.image_url AS product_image_url,
     p.unit_type AS product_unit_type,
+    p.is_active,
     pc.name AS category_name,
     s.idDeposit,
     d.name AS deposit_name,
@@ -312,6 +313,7 @@ BEGIN
     p.name AS product_name,
     p.image_url AS product_image_url,
     p.unit_type AS product_unit_type,
+    p.is_active,
     pc.name AS category_name,
     s.idDeposit,
     d.name AS deposit_name,
@@ -357,6 +359,75 @@ BEGIN
     AND s.idProduct = p_idProduct
     AND s.idDeposit = p_idDeposit
   LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_search_products_for_stock;
+DELIMITER $$
+
+CREATE PROCEDURE sp_search_products_for_stock(
+  IN p_idBusiness INT,
+  IN p_search VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_limit INT
+)
+BEGIN
+  SELECT
+    p.idProduct,
+    p.idBusiness,
+    p.idProductCategory,
+    pc.name AS product_category_name,
+    p.barcode,
+    p.name,
+    p.description,
+    p.image_url,
+    p.price_cost,
+    p.price_sale,
+    p.price_wholesale,
+    p.unit_type,
+    COALESCE(SUM(s.quantity), 0) AS stock,
+    p.stock_min,
+    p.is_active,
+    p.created_at,
+    p.updated_at
+  FROM products p
+  LEFT JOIN product_categories pc
+    ON pc.idProductCategory = p.idProductCategory
+    AND pc.idBusiness = p.idBusiness
+  LEFT JOIN stock s
+    ON s.idBusiness = p.idBusiness
+    AND s.idProduct = p.idProduct
+  WHERE p.idBusiness = p_idBusiness
+    AND (
+      p_search IS NULL
+      OR p_search = ''
+      OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR p.barcode COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR p.description COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+    )
+  GROUP BY
+    p.idProduct,
+    p.idBusiness,
+    p.idProductCategory,
+    pc.name,
+    p.barcode,
+    p.name,
+    p.description,
+    p.image_url,
+    p.price_cost,
+    p.price_sale,
+    p.price_wholesale,
+    p.unit_type,
+    p.stock_min,
+    p.is_active,
+    p.created_at,
+    p.updated_at
+  ORDER BY
+    CASE WHEN p.is_active = 1 THEN 0 ELSE 1 END ASC,
+    p.name ASC,
+    p.idProduct ASC
+  LIMIT p_limit;
 END$$
 
 DELIMITER ;

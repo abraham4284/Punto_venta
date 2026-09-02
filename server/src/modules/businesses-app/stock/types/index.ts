@@ -12,6 +12,7 @@ export interface StockDbRow {
   product_name: string;
   product_image_url: string | null;
   product_unit_type: ProductUnitType;
+  is_active: number | boolean;
   category_name: string;
   idDeposit: number;
   deposit_name: string;
@@ -28,6 +29,7 @@ export interface StockResponse {
   productName: string;
   productImageUrl: string | null;
   unitType: ProductUnitType;
+  isActive: boolean;
   categoryName: string;
   idDeposit: number;
   depositName: string;
@@ -55,6 +57,51 @@ export interface StockPaginatedResponse {
 
 export interface StockCountRow {
   totalRecords: string | number;
+}
+
+export interface StockProductSearchRow {
+  idProduct: number;
+  idBusiness: number;
+  idProductCategory: number;
+  product_category_name: string | null;
+  barcode: string | null;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  price_cost: string | number;
+  price_sale: string | number;
+  price_wholesale: string | number | null;
+  unit_type: ProductUnitType | null;
+  stock: string | number;
+  stock_min: string | number;
+  is_active: number | boolean;
+  created_at: Date;
+  updated_at: Date | null;
+}
+
+export interface StockProductSearchResponse {
+  idProduct: number;
+  idBusiness: number;
+  idProductCategory: number;
+  productCategoryName: string | null;
+  barcode: string | null;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  priceCost: number;
+  priceSale: number;
+  priceWholesale: number | null;
+  unitType: ProductUnitType;
+  stock: number;
+  stockMin: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
+export interface StockProductSearchFilters {
+  search: string | null;
+  limit: number;
 }
 
 export interface CreateInitialStockPayload {
@@ -151,6 +198,7 @@ export interface AdvancedStockInventoryRow {
   barcode: string | null;
   imageUrl: string | null;
   unitType: ProductUnitType;
+  isActive: number | boolean;
   priceCost: string | number;
   priceSale: string | number;
   idDeposit: number;
@@ -168,6 +216,7 @@ export interface AdvancedStockInventoryItem {
   barcode: string | null;
   imageUrl: string | null;
   unitType: ProductUnitType;
+  isActive: boolean;
   priceCost: number;
   priceSale: number;
   idDeposit: number;
