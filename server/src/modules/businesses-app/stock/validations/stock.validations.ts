@@ -83,6 +83,28 @@ export const stockPaginationQuerySchema = z
   })
   .strict();
 
+export const stockProductSearchQuerySchema = z
+  .object({
+    search: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .trim()
+        .max(160, "La busqueda no puede superar los 160 caracteres")
+        .optional(),
+    ),
+    limit: z.preprocess(
+      emptyToUndefined,
+      z.coerce
+        .number({ error: "El limite debe ser un numero" })
+        .int("El limite debe ser un numero entero")
+        .positive("El limite debe ser mayor a cero")
+        .max(20, "El limite no puede superar 20 registros")
+        .default(8),
+    ),
+  })
+  .strict();
+
 export const advancedStockQuerySchema = z
   .object({
     search: z.preprocess(

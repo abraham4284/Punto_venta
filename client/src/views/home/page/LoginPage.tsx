@@ -79,7 +79,7 @@ export const LoginPage = () => {
                   <Input
                     id="username"
                     name="username"
-                    placeholder="abraham_admin"
+                    placeholder="admin"
                     value={username}
                     onChange={onInputChange}
                     autoFocus
