@@ -26,6 +26,7 @@ type Props = {
   onAddToPurchase?: (stock: StockResponse) => void;
   onPageChange: (page: number) => void;
   canCreatePurchase?: boolean;
+  canAdjustStock?: boolean;
 };
 
 const formatNumber = (value: number) => {
@@ -39,6 +40,14 @@ const getUnitOption = (unitType: StockResponse["unitType"]) => {
   return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => {
     return option.value === unitType;
   });
+};
+
+const getProductStatusBadgeClassName = (isActive: boolean): string => {
+  if (isActive) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  return "border-slate-200 bg-slate-100 text-slate-600";
 };
 
 const getVisiblePages = (currentPage: number, totalPages: number): number[] => {
@@ -61,6 +70,7 @@ export const TableStock = ({
   onAddToPurchase,
   onPageChange,
   canCreatePurchase = false,
+  canAdjustStock = false,
 }: Props) => {
   if (loading) {
     return (
@@ -96,6 +106,7 @@ export const TableStock = ({
             <TableHead>Depósito</TableHead>
             <TableHead className="text-right">Stock actual</TableHead>
             <TableHead>Tipo</TableHead>
+            <TableHead>Activo/Inactivo</TableHead>
             <TableHead className="text-right">Stock mínimo</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Referencia</TableHead>
@@ -115,7 +126,10 @@ export const TableStock = ({
             );
 
             return (
-              <TableRow key={stock.idStock}>
+              <TableRow
+                key={stock.idStock}
+                className={!stock.isActive ? "bg-muted/35" : undefined}
+              >
                 <TableCell>
                   <div className="flex items-center gap-3">
                     {stock.productImageUrl ? (
@@ -158,6 +172,15 @@ export const TableStock = ({
                   </Badge>
                 </TableCell>
 
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={getProductStatusBadgeClassName(stock.isActive)}
+                  >
+                    {stock.isActive ? "Activo" : "Inactivo"}
+                  </Badge>
+                </TableCell>
+
                 <TableCell className="text-right text-muted-foreground">
                   {formatNumber(stock.stock_min)}{" "}
                   {unitOption?.shortLabel ?? "u."}
@@ -197,16 +220,18 @@ export const TableStock = ({
                         <ShoppingCart className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => onQuickAdjust(stock)}
-                      title="Ajuste rapido"
-                      aria-label={`Ajuste rapido para ${stock.productName}`}
-                    >
-                      <Settings2 className="h-4 w-4" />
-                    </Button>
+                    {canAdjustStock && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => onQuickAdjust(stock)}
+                        title="Ajuste rapido"
+                        aria-label={`Ajuste rapido para ${stock.productName}`}
+                      >
+                        <Settings2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

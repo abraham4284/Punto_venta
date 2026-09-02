@@ -16,6 +16,9 @@ import type {
   StockDbRow,
   StockPaginatedResponse,
   StockPaginationFilters,
+  StockProductSearchFilters,
+  StockProductSearchResponse,
+  StockProductSearchRow,
   StockResponse,
 } from "../types/index.js";
 
@@ -50,8 +53,7 @@ async function createInitialStockZeroService(
       `SELECT COUNT(*) AS total
          FROM products
         WHERE idBusiness = ?
-          AND idProduct = ?
-          AND is_active = 1`,
+          AND idProduct = ?`,
       [data.idBusiness, data.idProduct],
     );
 
@@ -93,6 +95,7 @@ async function createInitialStockZeroService(
         p.name AS product_name,
         p.image_url AS product_image_url,
         p.unit_type AS product_unit_type,
+        p.is_active,
         pc.name AS category_name,
         s.idDeposit,
         d.name AS deposit_name,
@@ -243,6 +246,41 @@ export async function getStockBalanceService(
   };
 }
 
+export async function searchProductsForStockService(
+  idBusiness: number,
+  filters: StockProductSearchFilters,
+): Promise<StockProductSearchResponse[]> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_search_products_for_stock(?, ?, ?)",
+    [idBusiness, filters.search ?? null, filters.limit],
+  );
+
+  const result = rows as unknown as StockProductSearchRow[][];
+
+  return (result[0] ?? []).map(function mapProductForStock(row) {
+    return {
+      idProduct: row.idProduct,
+      idBusiness: row.idBusiness,
+      idProductCategory: row.idProductCategory,
+      productCategoryName: row.product_category_name,
+      barcode: row.barcode,
+      name: row.name,
+      description: row.description,
+      imageUrl: row.image_url,
+      priceCost: Number(row.price_cost),
+      priceSale: Number(row.price_sale),
+      priceWholesale:
+        row.price_wholesale === null ? null : Number(row.price_wholesale),
+      unitType: row.unit_type ?? "UNIT",
+      stock: Number(row.stock),
+      stockMin: Number(row.stock_min),
+      isActive: Boolean(row.is_active),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  });
+}
+
 export async function getCriticalStockReportService(
   filters: CriticalStockReportFilters,
 ): Promise<CriticalStockReportResponse[]> {
@@ -318,6 +356,7 @@ export async function getAdvancedStockInventoryService(
         barcode: row.barcode,
         imageUrl: row.imageUrl,
         unitType: row.unitType,
+        isActive: Boolean(row.isActive),
         priceCost: Number(row.priceCost),
         priceSale: Number(row.priceSale),
         idDeposit: row.idDeposit,

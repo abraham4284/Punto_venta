@@ -61,6 +61,7 @@ const mapAdvancedStockToStockResponse = (
     barcode: item.barcode,
     productImageUrl: item.imageUrl,
     unitType: item.unitType ?? "UNIT",
+    isActive: item.isActive,
     categoryName: item.categoryName ?? item.barcode ?? "Sin categoria",
     priceCost: item.priceCost,
     priceSale: item.priceSale,

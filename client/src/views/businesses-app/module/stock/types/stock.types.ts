@@ -26,6 +26,7 @@ export interface StockResponse {
   barcode: string | null;
   productImageUrl: string | null;
   unitType: ProductUnitType;
+  isActive: boolean;
   categoryName: string;
   priceCost: number;
   priceSale: number;
@@ -55,6 +56,7 @@ export interface AdvancedStockInventoryItem {
   barcode: string | null;
   imageUrl: string | null;
   unitType: ProductUnitType;
+  isActive: boolean;
   priceCost: number;
   priceSale: number;
   idDeposit: number;
@@ -85,6 +87,31 @@ export interface ApiErrorResponse {
   status: boolean;
   message: string;
   errors?: FieldError[];
+}
+
+export interface StockProductSearchResponse {
+  idProduct: number;
+  idBusiness: number;
+  idProductCategory: number;
+  productCategoryName: string | null;
+  barcode: string | null;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  priceCost: number;
+  priceSale: number;
+  priceWholesale: number | null;
+  unitType: ProductUnitType;
+  stock: number;
+  stockMin: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date | null;
+}
+
+export interface StockProductSearchQuery {
+  search: string;
+  limit?: number;
 }
 
 export type StockOperationType =

@@ -8,6 +8,8 @@ import type {
   CriticalStockReportResponse,
   CreateInitialStockPayload,
   StockBalanceResponse,
+  StockProductSearchQuery,
+  StockProductSearchResponse,
   StockResponse,
 } from "../types/stock.types";
 
@@ -74,4 +76,15 @@ export const getStockByProductAndDepositRequest = (
       idDeposit,
     },
   });
+};
+
+export const searchProductsForStockRequest = (
+  query: StockProductSearchQuery,
+): Promise<AxiosResponse<ApiResponse<StockProductSearchResponse[]>>> => {
+  const params = new URLSearchParams();
+
+  appendParam(params, "search", query.search.trim());
+  appendParam(params, "limit", query.limit ?? 8);
+
+  return axios.get(`/stock/products/search?${params.toString()}`);
 };
