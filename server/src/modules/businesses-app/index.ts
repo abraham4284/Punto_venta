@@ -10,8 +10,10 @@ import businessUserRoutes from "./business-users/index.js";
 import cashMovementRoutes from "./cash-movements/index.js";
 import cashRegisterRoutes from "./cash-registers/index.js";
 import cashSessionRoutes from "./cash-sessions/index.js";
+import cashSettlementRoutes from "./cash-settlements/index.js";
 import customerRoutes from "./customers/index.js";
 import dashboardRoutes from "./dashboard/index.js";
+import deliveryRoutes from "./deliveries/index.js";
 import depositRoutes from "./deposits/index.js";
 import paymentMethodRoutes from "./payment-methods/index.js";
 import notificationRoutes from "./notifications/index.js";
@@ -21,6 +23,7 @@ import productRoutes from "./products/index.js";
 import permissionRoutes from "./permissions/index.js";
 import purchaseRoutes from "./purchases/index.js";
 import saleRoutes from "./sales/index.js";
+import salePaymentRoutes from "./sale-payments/index.js";
 import stockRoutes from "./stock/index.js";
 import stockMovementRoutes from "./stock_movements/index.js";
 import subscriptionRoutes from "./subscription/index.js";
@@ -60,8 +63,11 @@ businessesAppRoutes.use(productRoutes);
 businessesAppRoutes.use(purchaseRoutes);
 businessesAppRoutes.use(cashRegisterRoutes);
 businessesAppRoutes.use(cashSessionRoutes);
+businessesAppRoutes.use(cashSettlementRoutes);
 businessesAppRoutes.use(cashMovementRoutes);
 businessesAppRoutes.use(saleRoutes);
+businessesAppRoutes.use(salePaymentRoutes);
+businessesAppRoutes.use(deliveryRoutes);
 businessesAppRoutes.use(stockRoutes);
 businessesAppRoutes.use(stockMovementRoutes);
 businessesAppRoutes.use(supplierRoutes);
@@ -74,9 +80,11 @@ export {
   cashMovementRoutes,
   cashRegisterRoutes,
   cashSessionRoutes,
+  cashSettlementRoutes,
   customerRoutes,
   dashboardRoutes,
   depositRoutes,
+  deliveryRoutes,
   paymentMethodRoutes,
   notificationRoutes,
   legalRoutes,
@@ -85,6 +93,7 @@ export {
   permissionRoutes,
   purchaseRoutes,
   saleRoutes,
+  salePaymentRoutes,
   stockRoutes,
   stockMovementRoutes,
   subscriptionRoutes,

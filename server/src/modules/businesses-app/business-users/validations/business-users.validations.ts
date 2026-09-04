@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-const roleSchema = z.enum(["ADMIN", "SELLER"], {
-  message: "El rol debe ser ADMIN o SELLER",
+const roleSchema = z.enum(["ADMIN", "SELLER", "DELIVERY"], {
+  message: "El rol debe ser ADMIN, SELLER o DELIVERY",
 });
 
 const permissionEffectSchema = z.enum(["ALLOW", "DENY"], {
@@ -20,7 +20,7 @@ const permissionOverrideSchema = z.object({
 export const listBusinessUsersQuerySchema = z.object({
   search: z.string().trim().optional().default(""),
   role: z
-    .enum(["OWNER", "ADMIN", "SELLER", "ALL"], {
+    .enum(["OWNER", "ADMIN", "SELLER", "DELIVERY", "ALL"], {
       message: "El rol no es valido",
     })
     .optional()
@@ -51,6 +51,7 @@ export const createBusinessUserSchema = z
       .string()
       .trim()
       .email("Ingrese un correo valido")
+      .nullable()
       .optional()
       .or(z.literal(""))
       .transform(function normalizeEmail(value) {
@@ -81,6 +82,7 @@ export const updateBusinessUserSchema = z
       .string()
       .trim()
       .email("Ingrese un correo valido")
+      .nullable()
       .optional()
       .or(z.literal(""))
       .transform(function normalizeEmail(value) {

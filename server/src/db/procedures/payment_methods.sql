@@ -17,9 +17,10 @@ BEGIN
     pm.created_at,
     (
       SELECT COUNT(*)
-      FROM sales s
-      WHERE s.idBusiness = pm.idBusiness
-        AND s.idPaymentMethod = pm.idPaymentMethod
+      FROM sale_payments sp
+      WHERE sp.idBusiness = pm.idBusiness
+        AND sp.idPaymentMethod = pm.idPaymentMethod
+        AND sp.status <> 'CANCELLED'
     ) AS sales_count
   FROM payment_methods pm
   WHERE pm.idBusiness = p_idBusiness
@@ -49,9 +50,10 @@ BEGIN
     pm.created_at,
     (
       SELECT COUNT(*)
-      FROM sales s
-      WHERE s.idBusiness = pm.idBusiness
-        AND s.idPaymentMethod = pm.idPaymentMethod
+      FROM sale_payments sp
+      WHERE sp.idBusiness = pm.idBusiness
+        AND sp.idPaymentMethod = pm.idPaymentMethod
+        AND sp.status <> 'CANCELLED'
     ) AS sales_count
   FROM payment_methods pm
   WHERE pm.idBusiness = p_idBusiness

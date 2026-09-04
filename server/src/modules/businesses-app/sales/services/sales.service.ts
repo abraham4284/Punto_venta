@@ -5,6 +5,8 @@ import {
   mapProductWithStock,
   mapSale,
   mapSaleDetail,
+  mapSaleDelivery,
+  mapSalePayment,
 } from "../helpers/sale.mapper.js";
 import { generateSaleNumber } from "../helpers/saleNumber.helper.js";
 import type {
@@ -18,6 +20,8 @@ import type {
   ProductWithStockResponse,
   SaleDbRow,
   SaleDetailDbRow,
+  SaleDeliveryDbRow,
+  SalePaymentDbRow,
   SaleIdDbRow,
   SaleResponse,
   SaleWithDetailsResponse,
@@ -29,7 +33,7 @@ async function callCreateSaleProcedure(
   data: CreateSaleProcedurePayload,
 ): Promise<SaleIdDbRow> {
   const [rows] = await connection.query<RowDataPacket[]>(
-    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idUser,
@@ -38,7 +42,6 @@ async function callCreateSaleProcedure(
       data.idCustomer ?? null,
       data.idDeposit,
       data.idCashSession,
-      data.idPaymentMethod,
       data.subtotal,
       data.discountTotal,
       data.total,
@@ -53,6 +56,55 @@ async function callCreateSaleProcedure(
   }
 
   return sale;
+}
+
+async function callCreateSalePaymentsProcedure(
+  connection: PoolConnection,
+  data: CreateSalePayload,
+  idSale: number,
+): Promise<void> {
+  for (const payment of data.payments) {
+    await connection.query<RowDataPacket[]>(
+      "CALL sp_sale_payment_create(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        data.idBusiness,
+        idSale,
+        payment.idPaymentMethod,
+        payment.amount,
+        payment.status,
+        data.idUser,
+        payment.status === "CONFIRMED" ? data.idCashSession : null,
+        payment.reference ?? null,
+        payment.observation ?? null,
+      ],
+    );
+  }
+}
+
+async function callCreateDeliveryProcedure(
+  connection: PoolConnection,
+  data: CreateSalePayload,
+  idSale: number,
+): Promise<void> {
+  if (!data.delivery) {
+    return;
+  }
+
+  await connection.query<RowDataPacket[]>(
+    "CALL sp_delivery_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [
+      data.idBusiness,
+      idSale,
+      data.idUser,
+      data.delivery.assignedToUserId ?? null,
+      data.delivery.recipientName,
+      data.delivery.recipientPhone ?? null,
+      data.delivery.deliveryAddress,
+      data.delivery.deliveryReference ?? null,
+      data.delivery.scheduledAt ?? null,
+      data.delivery.observation ?? null,
+    ],
+  );
 }
 
 function isDuplicateEntryError(error: unknown): boolean {
@@ -126,6 +178,8 @@ export async function createSaleService(
 
     if (!createdSale.alreadyProcessed) {
       await callCreateSaleDetailProcedure(connection, saleData, idSale);
+      await callCreateSalePaymentsProcedure(connection, saleData, idSale);
+      await callCreateDeliveryProcedure(connection, saleData, idSale);
     }
 
     await connection.commit();
@@ -150,7 +204,6 @@ export async function createSaleService(
       idempotentReplay: false,
     };
   } catch (error) {
-    console.log(error,'error')
     await connection.rollback();
 
     if (isDuplicateEntryError(error)) {
@@ -228,7 +281,12 @@ export async function getSaleByIdService(
     [idBusiness, idSale],
   );
 
-  const result = rows as unknown as [SaleDbRow[], SaleDetailDbRow[]];
+  const result = rows as unknown as [
+    SaleDbRow[],
+    SaleDetailDbRow[],
+    SalePaymentDbRow[],
+    SaleDeliveryDbRow[],
+  ];
   const sale = result[0]?.[0];
 
   if (!sale) {
@@ -238,6 +296,8 @@ export async function getSaleByIdService(
   return {
     ...mapSale(sale),
     items: (result[1] ?? []).map(mapSaleDetail),
+    payments: (result[2] ?? []).map(mapSalePayment),
+    delivery: result[3]?.[0] ? mapSaleDelivery(result[3][0]) : null,
   };
 }
 
@@ -249,7 +309,12 @@ export async function cancelSaleService(
     [data.idSale, data.idBusiness],
   );
 
-  const result = rows as unknown as [SaleDbRow[], SaleDetailDbRow[]];
+  const result = rows as unknown as [
+    SaleDbRow[],
+    SaleDetailDbRow[],
+    SalePaymentDbRow[],
+    SaleDeliveryDbRow[],
+  ];
   const sale = result[0]?.[0];
 
   if (!sale) {
@@ -259,6 +324,8 @@ export async function cancelSaleService(
   return {
     ...mapSale(sale),
     items: (result[1] ?? []).map(mapSaleDetail),
+    payments: (result[2] ?? []).map(mapSalePayment),
+    delivery: result[3]?.[0] ? mapSaleDelivery(result[3][0]) : null,
   };
 }
 

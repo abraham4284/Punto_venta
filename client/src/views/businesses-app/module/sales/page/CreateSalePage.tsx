@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, ScanLine } from "lucide-react";
+import { Plus, ScanLine, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Meta } from "@/components/Meta";
@@ -15,6 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast, Toaster } from "react-hot-toast";
 import type { Customer } from "../../customers/types/customers.types";
@@ -93,9 +94,12 @@ export const CreateSalePage = () => {
   } = useCash();
   const {
     header,
+    delivery,
+    payments,
     cart,
     products,
     totals,
+    paymentTotals,
     priceType,
     isSaleCompleted,
     loadingProducts,
@@ -106,6 +110,11 @@ export const CreateSalePage = () => {
     newSaleId,
     newSaleNumber,
     updateHeaderField,
+    updateDeliveryField,
+    toggleDelivery,
+    updatePaymentField,
+    addPaymentRow,
+    removePaymentRow,
     changeDeposit,
     addToCart,
     removeFromCart,
@@ -139,15 +148,24 @@ export const CreateSalePage = () => {
       .slice(0, 8);
   }, [depositSearch, deposits]);
 
-  const selectedPaymentMethodLabel = useMemo(() => {
-    const selectedPaymentMethod = activePaymentMethods.find((paymentMethod) => {
-      return paymentMethod.idPaymentMethod === header.idPaymentMethod;
-    });
+  const selectedCustomer = useMemo(() => {
+    if (!header.idCustomer) return null;
 
-    if (!selectedPaymentMethod) return "";
+    return customers.find((customer) => customer.idCustomer === header.idCustomer) ?? null;
+  }, [customers, header.idCustomer]);
 
-    return `${selectedPaymentMethod.name} · ${paymentMethodTypeLabels[selectedPaymentMethod.code]}`;
-  }, [activePaymentMethods, header.idPaymentMethod]);
+  const getPaymentMethodLabel = useCallback(
+    (idPaymentMethod: number | null) => {
+      const selectedPaymentMethod = activePaymentMethods.find((paymentMethod) => {
+        return paymentMethod.idPaymentMethod === idPaymentMethod;
+      });
+
+      if (!selectedPaymentMethod) return "";
+
+      return `${selectedPaymentMethod.name} · ${paymentMethodTypeLabels[selectedPaymentMethod.code]}`;
+    },
+    [activePaymentMethods],
+  );
 
   const isPreparingSaleView =
     !initialViewResolved &&
@@ -217,6 +235,29 @@ export const CreateSalePage = () => {
       );
     }
   }, [activePaymentMethods, header.idPaymentMethod, updateHeaderField]);
+
+  useEffect(() => {
+    if (!delivery.enabled || !selectedCustomer) return;
+
+    if (!delivery.recipientName.trim()) {
+      updateDeliveryField("recipientName", selectedCustomer.name);
+    }
+
+    if (!delivery.recipientPhone.trim() && selectedCustomer.phone) {
+      updateDeliveryField("recipientPhone", selectedCustomer.phone);
+    }
+
+    if (!delivery.deliveryAddress.trim() && selectedCustomer.address) {
+      updateDeliveryField("deliveryAddress", selectedCustomer.address);
+    }
+  }, [
+    delivery.deliveryAddress,
+    delivery.enabled,
+    delivery.recipientName,
+    delivery.recipientPhone,
+    selectedCustomer,
+    updateDeliveryField,
+  ]);
 
   const handleCustomerSelect = (customer: Customer) => {
     updateHeaderField("idCustomer", customer.idCustomer);
@@ -368,7 +409,26 @@ export const CreateSalePage = () => {
           discount: item.discountAmount,
           total: item.total,
         })),
+        payments: payments
+          .filter((payment) => payment.idPaymentMethod)
+          .map((payment) => ({
+            idPaymentMethod: Number(payment.idPaymentMethod),
+            amount: payment.amount.trim() ? Number(payment.amount) : totals.total,
+          })),
+        delivery: {
+          enabled: delivery.enabled,
+          recipientName: delivery.recipientName,
+          deliveryAddress: delivery.deliveryAddress,
+          deliveryReference: delivery.deliveryReference,
+        },
       });
+
+      if (!paymentTotals.isBalanced) {
+        setValidationErrors({
+          payments: "La suma de los pagos debe coincidir con el total de la venta",
+        });
+        return;
+      }
 
       const { status, message } = await submitSale();
       if (!status) {
@@ -387,6 +447,9 @@ export const CreateSalePage = () => {
     header.idCashSession,
     header.idDeposit,
     header.idPaymentMethod,
+    delivery,
+    payments,
+    paymentTotals.isBalanced,
     isSaleCompleted,
     refreshCashDashboard,
     setValidationErrors,
@@ -505,48 +568,243 @@ export const CreateSalePage = () => {
           />
         </div>
 
-        <div className="grid gap-2">
-          <Label>
-            Metodo de pago <span className="text-destructive">*</span>
-          </Label>
-          <Select
-            value={header.idPaymentMethod ? String(header.idPaymentMethod) : ""}
-            onValueChange={(value: string | null) => {
-              updateHeaderField(
-                "idPaymentMethod",
-                value ? Number(value) : null,
-              );
-            }}
-            disabled={paymentMethodsLoading || activePaymentMethods.length === 0}
-          >
-            <SelectTrigger className="w-full">
-              <span
-                className={
-                  selectedPaymentMethodLabel
-                    ? "flex flex-1 text-left"
-                    : "flex flex-1 text-left text-muted-foreground"
-                }
+        <Card>
+          <CardContent className="grid gap-4 p-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+              <div>
+                <Label className="text-base font-semibold">
+                  Pagos <span className="text-destructive">*</span>
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Usa un medio de pago o repartí el total entre varios métodos.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addPaymentRow}
+                disabled={isSaleCompleted || activePaymentMethods.length === 0}
               >
-                {selectedPaymentMethodLabel || "Selecciona un metodo de pago"}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              {activePaymentMethods.map((paymentMethod) => (
-                <SelectItem
-                  key={paymentMethod.idPaymentMethod}
-                  value={String(paymentMethod.idPaymentMethod)}
-                >
-                  {paymentMethod.name} · {paymentMethodTypeLabels[paymentMethod.code]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {getFieldError(fieldErrors, "idPaymentMethod") && (
-            <p className="text-sm text-destructive">
-              {getFieldError(fieldErrors, "idPaymentMethod")}
-            </p>
-          )}
-        </div>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar otro medio
+              </Button>
+            </div>
+
+            <div className="grid gap-3">
+              {payments.map((payment, index) => {
+                const paymentMethodLabel = getPaymentMethodLabel(payment.idPaymentMethod);
+
+                return (
+                  <div
+                    key={payment.id}
+                    className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-[minmax(0,1fr)_180px_auto]"
+                  >
+                    <div className="grid gap-2">
+                      <Label>{index === 0 ? "Medio principal" : "Medio adicional"}</Label>
+                      <Select
+                        value={payment.idPaymentMethod ? String(payment.idPaymentMethod) : ""}
+                        onValueChange={(value: string | null) => {
+                          updatePaymentField(
+                            payment.id,
+                            "idPaymentMethod",
+                            value ? Number(value) : null,
+                          );
+                        }}
+                        disabled={paymentMethodsLoading || activePaymentMethods.length === 0}
+                      >
+                        <SelectTrigger className="w-full">
+                          <span
+                            className={
+                              paymentMethodLabel
+                                ? "flex flex-1 text-left"
+                                : "flex flex-1 text-left text-muted-foreground"
+                            }
+                          >
+                            {paymentMethodLabel || "Selecciona un metodo"}
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activePaymentMethods.map((paymentMethod) => (
+                            <SelectItem
+                              key={paymentMethod.idPaymentMethod}
+                              value={String(paymentMethod.idPaymentMethod)}
+                            >
+                              {paymentMethod.name} · {paymentMethodTypeLabels[paymentMethod.code]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>Importe</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={payment.amount}
+                        onChange={(event) =>
+                          updatePaymentField(
+                            payment.id,
+                            "amount",
+                            event.target.value.replace(",", "."),
+                          )
+                        }
+                        placeholder={index === 0 ? formatMoney(totals.total) : "0.00"}
+                        disabled={isSaleCompleted}
+                      />
+                    </div>
+
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={payments.length === 1 || isSaleCompleted}
+                        onClick={() => removePaymentRow(payment.id)}
+                        aria-label="Quitar medio de pago"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="grid gap-2 rounded-lg bg-muted/30 p-3 text-sm md:grid-cols-3">
+              <div>
+                <p className="text-muted-foreground">Total</p>
+                <p className="font-semibold">{formatMoney(paymentTotals.total)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Asignado</p>
+                <p className="font-semibold">{formatMoney(paymentTotals.assigned)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Pendiente</p>
+                <p className="font-semibold">{formatMoney(paymentTotals.pending)}</p>
+              </div>
+            </div>
+
+            {(getFieldError(fieldErrors, "idPaymentMethod") ||
+              getFieldError(fieldErrors, "payments")) && (
+              <p className="text-sm text-destructive">
+                {getFieldError(fieldErrors, "idPaymentMethod") ||
+                  getFieldError(fieldErrors, "payments")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-dashed">
+          <CardContent className="grid gap-4 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <Label className="text-base font-semibold">Entrega a domicilio</Label>
+                <p className="text-sm text-muted-foreground">
+                  Si activas esta opcion, el pago queda pendiente hasta que el cadete cobre y rinda el efectivo.
+                </p>
+              </div>
+              <Switch
+                checked={delivery.enabled}
+                onCheckedChange={toggleDelivery}
+                disabled={isSaleCompleted}
+              />
+            </div>
+
+            {delivery.enabled && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label>
+                    Destinatario <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    value={delivery.recipientName}
+                    onChange={(event) =>
+                      updateDeliveryField("recipientName", event.target.value)
+                    }
+                    placeholder="Nombre de quien recibe"
+                    disabled={isSaleCompleted}
+                  />
+                  {getFieldError(fieldErrors, "delivery.recipientName") && (
+                    <p className="text-sm text-destructive">
+                      {getFieldError(fieldErrors, "delivery.recipientName")}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Telefono</Label>
+                  <Input
+                    value={delivery.recipientPhone}
+                    onChange={(event) =>
+                      updateDeliveryField("recipientPhone", event.target.value)
+                    }
+                    placeholder="Telefono de contacto"
+                    disabled={isSaleCompleted}
+                  />
+                </div>
+
+                <div className="grid gap-2 md:col-span-2">
+                  <Label>
+                    Direccion de entrega <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    value={delivery.deliveryAddress}
+                    onChange={(event) =>
+                      updateDeliveryField("deliveryAddress", event.target.value)
+                    }
+                    placeholder="Calle, numero, piso o referencias"
+                    disabled={isSaleCompleted}
+                  />
+                  {getFieldError(fieldErrors, "delivery.deliveryAddress") && (
+                    <p className="text-sm text-destructive">
+                      {getFieldError(fieldErrors, "delivery.deliveryAddress")}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-2 md:col-span-2">
+                  <Label>Referencia</Label>
+                  <Input
+                    value={delivery.deliveryReference}
+                    onChange={(event) =>
+                      updateDeliveryField("deliveryReference", event.target.value)
+                    }
+                    placeholder="Entre calles, piso, timbre o referencias para llegar"
+                    disabled={isSaleCompleted}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Fecha programada</Label>
+                  <Input
+                    type="datetime-local"
+                    value={delivery.scheduledAt}
+                    onChange={(event) =>
+                      updateDeliveryField("scheduledAt", event.target.value)
+                    }
+                    disabled={isSaleCompleted}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Observacion de entrega</Label>
+                  <Input
+                    value={delivery.observation}
+                    onChange={(event) =>
+                      updateDeliveryField("observation", event.target.value)
+                    }
+                    placeholder="Detalle interno para el cadete"
+                    disabled={isSaleCompleted}
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid gap-2">
           <Label>Observacion</Label>

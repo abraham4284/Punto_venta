@@ -52,7 +52,8 @@ export const LoginPage = () => {
     }
 
     toast.success("Bienvenido");
-    navigate("/admin/dashboard");
+    const userRole = useAuthStore.getState().user?.role;
+    navigate(userRole === "DELIVERY" ? "/admin/deliveries" : "/admin/dashboard");
   };
 
   return (

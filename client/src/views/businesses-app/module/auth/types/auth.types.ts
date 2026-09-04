@@ -1,4 +1,4 @@
-export type UserRole = "OWNER" | "ADMIN" | "SELLER";
+export type UserRole = "OWNER" | "ADMIN" | "SELLER" | "DELIVERY";
 export type BusinessStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
 
 export type BusinessSessionUser = {

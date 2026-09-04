@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS `subscription_plans` (
   `billing_period` enum('MONTHLY','YEARLY') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `price` decimal(18,2) NOT NULL,
   `currency` char(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ARS',
-  `trial_days` int NOT NULL DEFAULT '30',
+  `trial_days` int NOT NULL DEFAULT '14',
   `max_users` int DEFAULT NULL,
   `max_products` int DEFAULT NULL,
   `max_deposits` int DEFAULT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS `business_users` (
   `idBusinessUser` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `idUser` int NOT NULL,
-  `role` enum('OWNER','ADMIN','SELLER') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'SELLER',
+  `role` enum('OWNER','ADMIN','SELLER','DELIVERY') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'SELLER',
   `is_active` tinyint NOT NULL DEFAULT '1',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`idBusinessUser`)
@@ -368,7 +368,7 @@ CREATE TABLE IF NOT EXISTS `cash_session_payment_summaries` (
   `idBusiness` int NOT NULL,
   `idCashSession` bigint NOT NULL,
   `idPaymentMethod` int NOT NULL,
-  `sales_count` int NOT NULL DEFAULT '0',
+  `payments_count` int NOT NULL DEFAULT '0',
   `total_amount` decimal(18,2) NOT NULL DEFAULT '0.00',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`idCashSessionPaymentSummary`)
@@ -452,14 +452,12 @@ CREATE TABLE IF NOT EXISTS `sales` (
   `idCashSession` bigint NOT NULL,
   `idUser` int NOT NULL,
   `idCustomer` int DEFAULT NULL,
-  `idPaymentMethod` int NOT NULL,
   `sale_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `sale_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `idempotency_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `subtotal` decimal(18,2) NOT NULL DEFAULT '0.00',
   `discount_total` decimal(18,2) NOT NULL DEFAULT '0.00',
   `total` decimal(18,2) NOT NULL DEFAULT '0.00',
-  `payment_detail` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `observation` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `status` enum('COMPLETED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'COMPLETED',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -476,6 +474,93 @@ CREATE TABLE IF NOT EXISTS `sale_details` (
   `discount_amount` decimal(18,2) NOT NULL DEFAULT '0.00',
   `subtotal` decimal(18,2) NOT NULL,
   PRIMARY KEY (`idSaleDetail`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sale_payments` (
+  `idSalePayment` bigint NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idSale` int NOT NULL,
+  `idPaymentMethod` int NOT NULL,
+  `amount` decimal(18,2) NOT NULL,
+  `status` enum('PENDING','COLLECTED','CONFIRMED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_by_user_id` int NOT NULL,
+  `collected_by_user_id` int DEFAULT NULL,
+  `collected_at` datetime DEFAULT NULL,
+  `confirmed_by_user_id` int DEFAULT NULL,
+  `confirmed_at` datetime DEFAULT NULL,
+  `cancelled_by_user_id` int DEFAULT NULL,
+  `cancelled_at` datetime DEFAULT NULL,
+  `cancellation_reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `idCashSession` bigint DEFAULT NULL,
+  `idCashSettlement` bigint DEFAULT NULL,
+  `reference` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `observation` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idSalePayment`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sale_payment_events` (
+  `idSalePaymentEvent` bigint NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idSalePayment` bigint NOT NULL,
+  `event_type` enum('PAYMENT_CREATED','PAYMENT_UPDATED','PAYMENT_METHOD_CHANGED','PAYMENT_COLLECTED','PAYMENT_CONFIRMED','PAYMENT_CANCELLED','PAYMENT_SETTLED','PAYMENT_MIGRATED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `previous_status` enum('PENDING','COLLECTED','CONFIRMED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `new_status` enum('PENDING','COLLECTED','CONFIRMED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `created_by_user_id` int DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idSalePaymentEvent`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `sale_deliveries` (
+  `idSaleDelivery` bigint NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idSale` int NOT NULL,
+  `assigned_to_user_id` int DEFAULT NULL,
+  `created_by_user_id` int NOT NULL,
+  `status` enum('PENDING','ASSIGNED','OUT_FOR_DELIVERY','DELIVERED','FAILED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `recipient_name` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `recipient_phone` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `delivery_address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `delivery_reference` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `scheduled_at` datetime DEFAULT NULL,
+  `assigned_at` datetime DEFAULT NULL,
+  `out_for_delivery_at` datetime DEFAULT NULL,
+  `delivered_at` datetime DEFAULT NULL,
+  `failed_at` datetime DEFAULT NULL,
+  `cancelled_at` datetime DEFAULT NULL,
+  `failure_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `observation` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idSaleDelivery`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `delivery_events` (
+  `idDeliveryEvent` bigint NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idSaleDelivery` bigint NOT NULL,
+  `event_type` enum('DELIVERY_CREATED','DELIVERY_ASSIGNED','DELIVERY_UNASSIGNED','DELIVERY_OUT_FOR_DELIVERY','DELIVERY_FAILED','DELIVERY_RESCHEDULED','DELIVERY_DELIVERED','DELIVERY_CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `previous_status` enum('PENDING','ASSIGNED','OUT_FOR_DELIVERY','DELIVERED','FAILED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `new_status` enum('PENDING','ASSIGNED','OUT_FOR_DELIVERY','DELIVERED','FAILED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `metadata` json DEFAULT NULL,
+  `created_by_user_id` int DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idDeliveryEvent`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `cash_settlements` (
+  `idCashSettlement` bigint NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `collector_user_id` int NOT NULL,
+  `received_by_user_id` int NOT NULL,
+  `idCashSession` bigint NOT NULL,
+  `total_amount` decimal(18,2) NOT NULL,
+  `observation` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `settled_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idCashSettlement`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `stock_movements` (

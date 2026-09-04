@@ -156,12 +156,16 @@ BEGIN
 
   SELECT
     COALESCE(pm.name, 'Sin metodo de pago') AS paymentMethodName,
-    COALESCE(SUM(s.total), 0) AS totalAmount
-  FROM sales s
+    COALESCE(SUM(sp.amount), 0) AS totalAmount
+  FROM sale_payments sp
+  INNER JOIN sales s
+    ON s.idSale = sp.idSale
+    AND s.idBusiness = sp.idBusiness
   LEFT JOIN payment_methods pm
-    ON pm.idPaymentMethod = s.idPaymentMethod
-    AND pm.idBusiness = s.idBusiness
-  WHERE s.idBusiness = p_idBusiness
+    ON pm.idPaymentMethod = sp.idPaymentMethod
+    AND pm.idBusiness = sp.idBusiness
+  WHERE sp.idBusiness = p_idBusiness
+    AND sp.status = 'CONFIRMED'
     AND s.status = 'COMPLETED'
     AND YEAR(s.sale_date) = YEAR(CURDATE())
     AND MONTH(s.sale_date) = MONTH(CURDATE())

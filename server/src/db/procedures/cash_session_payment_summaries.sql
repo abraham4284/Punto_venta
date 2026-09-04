@@ -14,7 +14,8 @@ BEGIN
     pm.name AS paymentMethodName,
     pm.code AS paymentMethodCode,
     pm.affects_cash AS affectsCash,
-    csps.sales_count,
+    csps.payments_count AS sales_count,
+    csps.payments_count AS payments_count,
     csps.total_amount,
     csps.created_at
   FROM cash_session_payment_summaries csps

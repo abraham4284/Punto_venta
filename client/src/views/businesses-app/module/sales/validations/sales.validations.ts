@@ -42,4 +42,31 @@ export const createSaleFormSchema = z.object({
   items: z
     .array(saleDetailSchema)
     .min(1, "Agrega al menos un producto al carrito"),
+  delivery: z
+    .object({
+      enabled: z.boolean(),
+      recipientName: z.string().trim(),
+      deliveryAddress: z.string().trim(),
+      deliveryReference: z.string().trim().optional(),
+    })
+    .superRefine((delivery, ctx) => {
+      if (!delivery.enabled) return;
+
+      if (delivery.recipientName.length < 2) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["recipientName"],
+          message: "Ingresa el nombre del destinatario",
+        });
+      }
+
+      if (delivery.deliveryAddress.length < 5) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["deliveryAddress"],
+          message: "Ingresa una direccion de entrega valida",
+        });
+      }
+    })
+    .optional(),
 });

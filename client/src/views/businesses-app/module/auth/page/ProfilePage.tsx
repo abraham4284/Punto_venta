@@ -32,6 +32,7 @@ const getRoleLabel = (role: string | undefined): string => {
     OWNER: "Propietario",
     ADMIN: "Administrador",
     SELLER: "Vendedor",
+    DELIVERY: "Cadete / Delivery",
   };
 
   if (!role) return "Sin rol asignado";

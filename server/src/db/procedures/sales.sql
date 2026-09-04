@@ -9,7 +9,6 @@ CREATE PROCEDURE sp_create_sale(
   IN p_idCustomer INT,
   IN p_idDeposit INT,
   IN p_idCashSession BIGINT,
-  IN p_idPaymentMethod INT,
   IN p_subtotal DECIMAL(18,2),
   IN p_discount_total DECIMAL(18,2),
   IN p_total DECIMAL(18,2),
@@ -19,7 +18,6 @@ BEGIN
   DECLARE v_idSale INT;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashRegisterActive TINYINT;
-  DECLARE v_paymentMethodActive TINYINT;
   DECLARE v_existingSaleNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE EXIT HANDLER FOR 1062
@@ -124,28 +122,6 @@ BEGIN
       SET MESSAGE_TEXT = 'El cliente indicado no pertenece al negocio o esta inactivo';
   END IF;
 
-  IF p_idPaymentMethod IS NULL THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'PAYMENT_METHOD_REQUIRED';
-  END IF;
-
-  SELECT is_active
-  INTO v_paymentMethodActive
-  FROM payment_methods
-  WHERE idPaymentMethod = p_idPaymentMethod
-    AND idBusiness = p_idBusiness
-  LIMIT 1;
-
-  IF v_paymentMethodActive IS NULL THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'PAYMENT_METHOD_NOT_FOUND';
-  END IF;
-
-  IF v_paymentMethodActive = 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'PAYMENT_METHOD_INACTIVE';
-  END IF;
-
   INSERT INTO sales (
     idBusiness,
     idUser,
@@ -154,12 +130,10 @@ BEGIN
     idCustomer,
     idDeposit,
     idCashSession,
-    idPaymentMethod,
     sale_date,
     subtotal,
     discount_total,
     total,
-    payment_detail,
     status,
     observation,
     created_at
@@ -172,12 +146,10 @@ BEGIN
     p_idCustomer,
     p_idDeposit,
     p_idCashSession,
-    p_idPaymentMethod,
     NOW(),
     p_subtotal,
     p_discount_total,
     p_total,
-    NULL,
     'COMPLETED',
     p_observation,
     NOW()
@@ -347,6 +319,8 @@ BEGIN
   DECLARE v_quantity DECIMAL(18,2);
   DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_deliveryStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_collectedOrConfirmedPayments INT DEFAULT 0;
 
   DECLARE sale_detail_cursor CURSOR FOR
     SELECT sd.idProduct, s.idDeposit, sd.quantity
@@ -398,10 +372,97 @@ BEGIN
       SET MESSAGE_TEXT = 'CLOSED_CASH_SESSION_SALE_CANNOT_BE_CANCELLED';
   END IF;
 
+  SELECT status
+  INTO v_deliveryStatus
+  FROM sale_deliveries
+  WHERE idBusiness = p_idBusiness
+    AND idSale = p_idSale
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_deliveryStatus IN ('OUT_FOR_DELIVERY', 'DELIVERED') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'DELIVERY_SALE_IN_PROGRESS_CANNOT_BE_CANCELLED';
+  END IF;
+
+  SELECT COUNT(*)
+  INTO v_collectedOrConfirmedPayments
+  FROM sale_payments
+  WHERE idBusiness = p_idBusiness
+    AND idSale = p_idSale
+    AND status IN ('COLLECTED', 'CONFIRMED');
+
+  IF v_deliveryStatus IS NOT NULL AND v_collectedOrConfirmedPayments > 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'DELIVERY_SALE_WITH_PAYMENTS_CANNOT_BE_CANCELLED';
+  END IF;
+
   UPDATE sales
   SET status = 'CANCELLED'
   WHERE idSale = p_idSale
     AND idBusiness = p_idBusiness;
+
+  INSERT INTO sale_payment_events (
+    idBusiness,
+    idSalePayment,
+    event_type,
+    previous_status,
+    new_status,
+    metadata,
+    created_by_user_id
+  )
+  SELECT
+    p_idBusiness,
+    sp.idSalePayment,
+    'PAYMENT_CANCELLED',
+    sp.status,
+    'CANCELLED',
+    JSON_OBJECT('reason', 'Venta anulada'),
+    NULL
+  FROM sale_payments sp
+  WHERE sp.idBusiness = p_idBusiness
+    AND sp.idSale = p_idSale
+    AND sp.status IN ('PENDING', 'COLLECTED', 'CONFIRMED');
+
+  UPDATE sale_payments
+  SET
+    status = 'CANCELLED',
+    cancelled_at = NOW(),
+    cancellation_reason = 'Venta anulada'
+  WHERE idBusiness = p_idBusiness
+    AND idSale = p_idSale
+    AND status IN ('PENDING', 'COLLECTED', 'CONFIRMED');
+
+  INSERT INTO delivery_events (
+    idBusiness,
+    idSaleDelivery,
+    event_type,
+    previous_status,
+    new_status,
+    metadata,
+    created_by_user_id
+  )
+  SELECT
+    p_idBusiness,
+    sdv.idSaleDelivery,
+    'DELIVERY_CANCELLED',
+    v_deliveryStatus,
+    'CANCELLED',
+    JSON_OBJECT('reason', 'Venta anulada'),
+    NULL
+  FROM sale_deliveries sdv
+  WHERE sdv.idBusiness = p_idBusiness
+    AND sdv.idSale = p_idSale
+    AND sdv.status IN ('PENDING', 'ASSIGNED', 'FAILED');
+
+  UPDATE sale_deliveries
+  SET
+    status = 'CANCELLED',
+    cancelled_at = NOW(),
+    updated_at = NOW()
+  WHERE idBusiness = p_idBusiness
+    AND idSale = p_idSale
+    AND status IN ('PENDING', 'ASSIGNED', 'FAILED');
 
   OPEN sale_detail_cursor;
 
@@ -478,14 +539,23 @@ BEGIN
     s.idDeposit,
     d.name AS deposit_name,
     s.idCashSession,
-    s.idPaymentMethod,
-    pm.code AS payment_method_code,
-    pm.name AS payment_method_name,
+    MIN(sp.idPaymentMethod) AS idPaymentMethod,
+    GROUP_CONCAT(DISTINCT pm.code ORDER BY pm.name SEPARATOR ', ') AS payment_method_code,
+    GROUP_CONCAT(DISTINCT pm.name ORDER BY pm.name SEPARATOR ', ') AS payment_method_name,
+    COALESCE(SUM(CASE WHEN sp.status = 'CONFIRMED' THEN sp.amount ELSE 0 END), 0) AS confirmed_amount,
+    COALESCE(SUM(CASE WHEN sp.status = 'COLLECTED' THEN sp.amount ELSE 0 END), 0) AS collected_amount,
+    COALESCE(SUM(CASE WHEN sp.status = 'PENDING' THEN sp.amount ELSE 0 END), 0) AS pending_amount,
+    MAX(sdv.status) AS delivery_status,
+    CASE
+      WHEN COALESCE(SUM(CASE WHEN sp.status IN ('COLLECTED','CONFIRMED') THEN sp.amount ELSE 0 END), 0) = 0 THEN 'UNPAID'
+      WHEN COALESCE(SUM(CASE WHEN sp.status IN ('COLLECTED','CONFIRMED') THEN sp.amount ELSE 0 END), 0) < s.total THEN 'PARTIALLY_PAID'
+      ELSE 'PAID'
+    END AS payment_status,
     s.sale_date,
     s.subtotal,
     s.discount_total,
     s.total,
-    s.payment_detail,
+    NULL AS payment_detail,
     s.status,
     s.observation,
     s.created_at,
@@ -498,12 +568,29 @@ BEGIN
   LEFT JOIN customers c
     ON c.idCustomer = s.idCustomer
     AND c.idBusiness = s.idBusiness
+  LEFT JOIN sale_payments sp
+    ON sp.idSale = s.idSale
+    AND sp.idBusiness = s.idBusiness
+    AND sp.status <> 'CANCELLED'
   LEFT JOIN payment_methods pm
-    ON pm.idPaymentMethod = s.idPaymentMethod
-    AND pm.idBusiness = s.idBusiness
+    ON pm.idPaymentMethod = sp.idPaymentMethod
+    AND pm.idBusiness = sp.idBusiness
+  LEFT JOIN sale_deliveries sdv
+    ON sdv.idSale = s.idSale
+    AND sdv.idBusiness = s.idBusiness
   WHERE s.idBusiness = p_idBusiness
     AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
-    AND (p_idPaymentMethod IS NULL OR s.idPaymentMethod = p_idPaymentMethod)
+    AND (
+      p_idPaymentMethod IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM sale_payments spf
+        WHERE spf.idBusiness = s.idBusiness
+          AND spf.idSale = s.idSale
+          AND spf.idPaymentMethod = p_idPaymentMethod
+          AND spf.status <> 'CANCELLED'
+      )
+    )
     AND (p_status IS NULL OR s.status = p_status)
     AND (
       p_saleNumberSearch IS NULL
@@ -512,6 +599,24 @@ BEGIN
     )
     AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
     AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
+  GROUP BY
+    s.idSale,
+    s.sale_number,
+    s.idBusiness,
+    s.idUser,
+    u.name,
+    s.idCustomer,
+    c.name,
+    s.idDeposit,
+    d.name,
+    s.idCashSession,
+    s.sale_date,
+    s.subtotal,
+    s.discount_total,
+    s.total,
+    s.status,
+    s.observation,
+    s.created_at
   ORDER BY s.created_at DESC, s.idSale DESC
   LIMIT p_limit OFFSET p_offset;
 
@@ -523,7 +628,17 @@ BEGIN
   FROM sales s
   WHERE s.idBusiness = p_idBusiness
     AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
-    AND (p_idPaymentMethod IS NULL OR s.idPaymentMethod = p_idPaymentMethod)
+    AND (
+      p_idPaymentMethod IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM sale_payments spf
+        WHERE spf.idBusiness = s.idBusiness
+          AND spf.idSale = s.idSale
+          AND spf.idPaymentMethod = p_idPaymentMethod
+          AND spf.status <> 'CANCELLED'
+      )
+    )
     AND (p_status IS NULL OR s.status = p_status)
     AND (
       p_saleNumberSearch IS NULL
@@ -556,14 +671,23 @@ BEGIN
     s.idDeposit,
     d.name AS deposit_name,
     s.idCashSession,
-    s.idPaymentMethod,
-    pm.code AS payment_method_code,
-    pm.name AS payment_method_name,
+    MIN(sp.idPaymentMethod) AS idPaymentMethod,
+    GROUP_CONCAT(DISTINCT pm.code ORDER BY pm.name SEPARATOR ', ') AS payment_method_code,
+    GROUP_CONCAT(DISTINCT pm.name ORDER BY pm.name SEPARATOR ', ') AS payment_method_name,
+    COALESCE(SUM(CASE WHEN sp.status = 'CONFIRMED' THEN sp.amount ELSE 0 END), 0) AS confirmed_amount,
+    COALESCE(SUM(CASE WHEN sp.status = 'COLLECTED' THEN sp.amount ELSE 0 END), 0) AS collected_amount,
+    COALESCE(SUM(CASE WHEN sp.status = 'PENDING' THEN sp.amount ELSE 0 END), 0) AS pending_amount,
+    MAX(sdv.status) AS delivery_status,
+    CASE
+      WHEN COALESCE(SUM(CASE WHEN sp.status IN ('COLLECTED','CONFIRMED') THEN sp.amount ELSE 0 END), 0) = 0 THEN 'UNPAID'
+      WHEN COALESCE(SUM(CASE WHEN sp.status IN ('COLLECTED','CONFIRMED') THEN sp.amount ELSE 0 END), 0) < s.total THEN 'PARTIALLY_PAID'
+      ELSE 'PAID'
+    END AS payment_status,
     s.sale_date,
     s.subtotal,
     s.discount_total,
     s.total,
-    s.payment_detail,
+    NULL AS payment_detail,
     s.status,
     s.observation,
     s.created_at,
@@ -576,11 +700,36 @@ BEGIN
   LEFT JOIN customers c
     ON c.idCustomer = s.idCustomer
     AND c.idBusiness = s.idBusiness
+  LEFT JOIN sale_payments sp
+    ON sp.idSale = s.idSale
+    AND sp.idBusiness = s.idBusiness
+    AND sp.status <> 'CANCELLED'
   LEFT JOIN payment_methods pm
-    ON pm.idPaymentMethod = s.idPaymentMethod
-    AND pm.idBusiness = s.idBusiness
+    ON pm.idPaymentMethod = sp.idPaymentMethod
+    AND pm.idBusiness = sp.idBusiness
+  LEFT JOIN sale_deliveries sdv
+    ON sdv.idSale = s.idSale
+    AND sdv.idBusiness = s.idBusiness
   WHERE s.idBusiness = p_idBusiness
     AND s.idSale = p_idSale
+  GROUP BY
+    s.idSale,
+    s.sale_number,
+    s.idBusiness,
+    s.idUser,
+    u.name,
+    s.idCustomer,
+    c.name,
+    s.idDeposit,
+    d.name,
+    s.idCashSession,
+    s.sale_date,
+    s.subtotal,
+    s.discount_total,
+    s.total,
+    s.status,
+    s.observation,
+    s.created_at
   LIMIT 1;
 
   SELECT
@@ -611,6 +760,59 @@ BEGIN
   WHERE sd.idBusiness = p_idBusiness
     AND sd.idSale = p_idSale
   ORDER BY sd.idSaleDetail ASC;
+
+  SELECT
+    sp.idSalePayment,
+    sp.idBusiness,
+    sp.idSale,
+    sp.idPaymentMethod,
+    pm.code AS payment_method_code,
+    pm.name AS payment_method_name,
+    pm.affects_cash,
+    sp.amount,
+    sp.status,
+    sp.idCashSession,
+    sp.idCashSettlement,
+    sp.reference,
+    sp.observation,
+    sp.created_at,
+    sp.collected_at,
+    sp.confirmed_at,
+    sp.cancelled_at
+  FROM sale_payments sp
+  INNER JOIN payment_methods pm
+    ON pm.idPaymentMethod = sp.idPaymentMethod
+    AND pm.idBusiness = sp.idBusiness
+  WHERE sp.idBusiness = p_idBusiness
+    AND sp.idSale = p_idSale
+  ORDER BY sp.idSalePayment ASC;
+
+  SELECT
+    sdv.idSaleDelivery,
+    sdv.idBusiness,
+    sdv.idSale,
+    sdv.assigned_to_user_id,
+    assigned_user.name AS assigned_user_name,
+    sdv.status,
+    sdv.recipient_name,
+    sdv.recipient_phone,
+    sdv.delivery_address,
+    sdv.delivery_reference,
+    sdv.scheduled_at,
+    sdv.assigned_at,
+    sdv.out_for_delivery_at,
+    sdv.delivered_at,
+    sdv.failed_at,
+    sdv.cancelled_at,
+    sdv.failure_reason,
+    sdv.observation,
+    sdv.created_at,
+    sdv.updated_at
+  FROM sale_deliveries sdv
+  LEFT JOIN users assigned_user ON assigned_user.idUser = sdv.assigned_to_user_id
+  WHERE sdv.idBusiness = p_idBusiness
+    AND sdv.idSale = p_idSale
+  LIMIT 1;
 END$$
 
 DELIMITER ;

@@ -7,6 +7,18 @@ VALUES
 ('sales.view','sales','view','Ver ventas','Permite ver ventas e historial',1),
 ('sales.create','sales','create','Crear ventas','Permite registrar ventas',1),
 ('sales.cancel','sales','cancel','Anular ventas','Permite anular ventas',1),
+('sale_payments.view','sale_payments','view','Ver pagos de venta','Permite ver pagos asociados a ventas',1),
+('sale_payments.create','sale_payments','create','Crear pagos de venta','Permite registrar pagos asociados a ventas',1),
+('sale_payments.update','sale_payments','update','Editar pagos de venta','Permite corregir pagos pendientes',1),
+('sale_payments.collect','sale_payments','collect','Cobrar pagos en reparto','Permite marcar pagos como cobrados por cadete',1),
+('sale_payments.confirm','sale_payments','confirm','Confirmar pagos','Permite confirmar pagos en caja',1),
+('sale_payments.cancel','sale_payments','cancel','Anular pagos','Permite anular pagos pendientes',1),
+('deliveries.view','deliveries','view','Ver entregas','Permite ver entregas de ventas',1),
+('deliveries.view_all','deliveries','view_all','Ver todas las entregas','Permite ver entregas asignadas a cualquier cadete',1),
+('deliveries.assign','deliveries','assign','Asignar entregas','Permite asignar cadetes a entregas',1),
+('deliveries.update_status','deliveries','update_status','Actualizar entregas','Permite cambiar estado de entregas',1),
+('cash_settlements.view','cash_settlements','view','Ver liquidaciones','Permite ver liquidaciones de efectivo cobradas por cadetes',1),
+('cash_settlements.create','cash_settlements','create','Crear liquidaciones','Permite liquidar efectivo cobrado por cadetes',1),
 ('purchases.view','purchases','view','Ver compras','Permite ver compras e historial',1),
 ('purchases.create','purchases','create','Crear compras','Permite registrar compras',1),
 ('purchases.cancel','purchases','cancel','Anular compras','Permite anular compras',1),
@@ -58,7 +70,7 @@ VALUES
 ('users.view','users','view','Ver usuarios','Permite ver usuarios del negocio',1),
 ('users.create','users','create','Crear usuarios','Permite crear usuarios del negocio',1),
 ('users.update','users','update','Editar usuarios','Permite editar usuarios del negocio',1),
-('users.change_role','users','change_role','Cambiar rol de usuarios','Permite cambiar roles ADMIN/SELLER',1),
+('users.change_role','users','change_role','Cambiar rol de usuarios','Permite cambiar roles ADMIN/SELLER/DELIVERY',1),
 ('users.change_status','users','change_status','Cambiar estado de usuarios','Permite activar o desactivar usuarios',1),
 ('users.manage_permissions','users','manage_permissions','Gestionar permisos','Permite personalizar permisos por usuario',1),
 ('business.view','business','view','Ver negocio','Permite ver configuracion del negocio',1),
@@ -72,7 +84,7 @@ ON DUPLICATE KEY UPDATE
   is_active = VALUES(is_active),
   updated_at = NOW();
 
-DELETE FROM role_permissions WHERE role IN ('ADMIN','SELLER');
+DELETE FROM role_permissions WHERE role IN ('ADMIN','SELLER','DELIVERY');
 
 INSERT INTO role_permissions (role, idPermission)
 SELECT 'ADMIN', idPermission
@@ -80,6 +92,9 @@ FROM permissions
 WHERE code IN (
   'dashboard.view',
   'sales.view','sales.create','sales.cancel',
+  'sale_payments.view','sale_payments.create','sale_payments.update','sale_payments.collect','sale_payments.confirm','sale_payments.cancel',
+  'deliveries.view','deliveries.view_all','deliveries.assign','deliveries.update_status',
+  'cash_settlements.view','cash_settlements.create',
   'purchases.view','purchases.create','purchases.cancel',
   'products.view','products.create','products.update','products.change_prices','products.import','products.change_status',
   'categories.view','categories.create','categories.update','categories.change_status',
@@ -115,4 +130,14 @@ WHERE code IN (
   'customers.view',
   'customers.create',
   'business.view'
+);
+
+INSERT INTO role_permissions (role, idPermission)
+SELECT 'DELIVERY', idPermission
+FROM permissions
+WHERE code IN (
+  'deliveries.view',
+  'deliveries.update_status',
+  'sale_payments.view',
+  'sale_payments.collect'
 );

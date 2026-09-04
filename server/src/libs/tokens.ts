@@ -55,7 +55,7 @@ function normalizeVerifiedAccessPayload(payload: unknown): AccessTokenPayload {
     if (
       !isPositiveInteger(payload.idUser) ||
       !isPositiveInteger(payload.idBusiness) ||
-      !["OWNER", "ADMIN", "SELLER"].includes(String(payload.businessRole))
+      !["OWNER", "ADMIN", "SELLER", "DELIVERY"].includes(String(payload.businessRole))
     ) {
       throw new Error("Token invalido");
     }

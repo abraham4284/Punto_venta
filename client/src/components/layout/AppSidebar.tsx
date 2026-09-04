@@ -10,6 +10,7 @@ import {
   PackagePlus,
   Settings,
   ShoppingCart,
+  Truck,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -97,6 +98,11 @@ const navigationSections: NavigationSection[] = [
             title: "Historial",
             url: "/admin/sales/history",
             permission: "sales.view",
+          },
+          {
+            title: "Entregas",
+            url: "/admin/deliveries",
+            permission: "deliveries.view",
           },
         ],
       },
@@ -197,9 +203,31 @@ const navigationSections: NavigationSection[] = [
             permission: "cash_sessions.view_history",
           },
           {
+            title: "Liquidaciones",
+            url: "/admin/cash-settlements",
+            permission: "cash_settlements.view",
+          },
+          {
             title: "Configuración",
             url: "/admin/cash/registers",
             permission: "cash_registers.view",
+          },
+        ],
+      },
+      {
+        title: "Delivery",
+        icon: Truck,
+        activePatterns: [/^\/admin\/deliveries(\/.*)?$/],
+        children: [
+          {
+            title: "Entregas",
+            url: "/admin/deliveries",
+            permission: "deliveries.view",
+          },
+          {
+            title: "Liquidaciones",
+            url: "/admin/cash-settlements",
+            permission: "cash_settlements.view",
           },
         ],
       },

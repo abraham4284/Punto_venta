@@ -25,7 +25,7 @@ type BusinessUsersTableProps = {
   statusLoadingId: number | null;
   onEdit: (user: BusinessUser) => void;
   onManagePermissions: (user: BusinessUser) => void;
-  onChangeRole: (idUser: number, role: "ADMIN" | "SELLER") => void;
+  onChangeRole: (idUser: number, role: "ADMIN" | "SELLER" | "DELIVERY") => void;
   onChangeStatus: (idUser: number, isActive: boolean) => void;
   canUpdateUsers: boolean;
   canChangeRole: boolean;
@@ -37,6 +37,7 @@ const roleLabels: Record<string, string> = {
   OWNER: "Propietario",
   ADMIN: "Administrador",
   SELLER: "Vendedor",
+  DELIVERY: "Cadete / Delivery",
 };
 
 export const BusinessUsersTable = ({
@@ -98,7 +99,7 @@ export const BusinessUsersTable = ({
                       <Select
                         value={user.role}
                         onValueChange={(value) => {
-                          if (value === "ADMIN" || value === "SELLER") {
+                          if (value === "ADMIN" || value === "SELLER" || value === "DELIVERY") {
                             onChangeRole(user.idUser, value);
                           }
                         }}
@@ -109,6 +110,7 @@ export const BusinessUsersTable = ({
                         <SelectContent>
                           <SelectItem value="ADMIN">Administrador</SelectItem>
                           <SelectItem value="SELLER">Vendedor</SelectItem>
+                          <SelectItem value="DELIVERY">Cadete / Delivery</SelectItem>
                         </SelectContent>
                       </Select>
                     ) : (

@@ -1,4 +1,4 @@
-export type BusinessUserRole = "OWNER" | "ADMIN" | "SELLER";
+export type BusinessUserRole = "OWNER" | "ADMIN" | "SELLER" | "DELIVERY";
 
 export type PermissionEffect = "ALLOW" | "DENY";
 
@@ -39,7 +39,7 @@ export type CreateBusinessUserBody = {
   username: string;
   email: string | null;
   password: string;
-  role: "ADMIN" | "SELLER";
+  role: "ADMIN" | "SELLER" | "DELIVERY";
   permissions?: BusinessUserPermissionPayload[];
 };
 

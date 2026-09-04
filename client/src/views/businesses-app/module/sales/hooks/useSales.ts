@@ -13,6 +13,8 @@ import type {
   CreateSalePayload,
   FieldError,
   PriceType,
+  SaleDeliveryInput,
+  SalePaymentInput,
   ProductSelection,
   ProductWithStockResponse,
   ProductUnitType,
@@ -33,6 +35,31 @@ const initialHeader: SaleHeaderInput = {
   total: 0,
   observation: "",
   status: "COMPLETED",
+};
+
+const initialDelivery: SaleDeliveryInput = {
+  enabled: false,
+  assignedToUserId: null,
+  recipientName: "",
+  recipientPhone: "",
+  deliveryAddress: "",
+  deliveryReference: "",
+  scheduledAt: "",
+  observation: "",
+};
+
+const createPaymentInput = (): SalePaymentInput => {
+  const id =
+    globalThis.crypto?.randomUUID?.() ??
+    `payment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  return {
+    id,
+    idPaymentMethod: null,
+    amount: "",
+    reference: "",
+    observation: "",
+  };
 };
 
 const toMoney = (value: Decimal.Value): number => {
@@ -112,6 +139,10 @@ const mapErrorsToRecord = (errors: FieldError[]): Record<string, string> => {
 
 export const useSales = () => {
   const [header, setHeader] = useState<SaleHeaderInput>(initialHeader);
+  const [delivery, setDelivery] = useState<SaleDeliveryInput>(initialDelivery);
+  const [payments, setPayments] = useState<SalePaymentInput[]>([
+    createPaymentInput(),
+  ]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<ProductWithStockResponse[]>([]);
   const [priceType, setPriceTypeState] = useState<PriceType>("SALE");
@@ -147,6 +178,28 @@ export const useSales = () => {
     };
   }, [cart, header.discountPercent]);
 
+  const paymentTotals = useMemo(() => {
+    const usesImplicitSinglePayment =
+      payments.length === 1 &&
+      Boolean(payments[0]?.idPaymentMethod) &&
+      payments[0]?.amount.trim() === "";
+    const assigned = payments.reduce((acc, payment) => {
+      const amount = Number(payment.amount);
+      return Number.isFinite(amount) ? acc.plus(amount) : acc;
+    }, new Decimal(0));
+    const effectiveAssigned = usesImplicitSinglePayment ? new Decimal(totals.total) : assigned;
+    const pending = Decimal.max(new Decimal(totals.total).minus(effectiveAssigned), 0);
+
+    return {
+      total: totals.total,
+      assigned: toMoney(effectiveAssigned),
+      pending: toMoney(pending),
+      isBalanced: effectiveAssigned
+        .toDecimalPlaces(2)
+        .equals(new Decimal(totals.total).toDecimalPlaces(2)),
+    };
+  }, [payments, totals.total]);
+
   const clearErrors = useCallback(() => {
     setError(null);
     setFieldErrors({});
@@ -175,9 +228,102 @@ export const useSales = () => {
         ...current,
         [field]: value,
       }));
+
+      if (field === "idPaymentMethod") {
+        setPayments((currentPayments) => {
+          const firstPayment = currentPayments[0] ?? createPaymentInput();
+
+          return [
+            {
+              ...firstPayment,
+              idPaymentMethod: value as number | null,
+            },
+            ...currentPayments.slice(1),
+          ];
+        });
+      }
     },
     [],
   );
+
+  const updateDeliveryField = useCallback(
+    <K extends keyof SaleDeliveryInput>(field: K, value: SaleDeliveryInput[K]) => {
+      setDelivery((current) => ({
+        ...current,
+        [field]: value,
+      }));
+    },
+    [],
+  );
+
+  const toggleDelivery = useCallback((enabled: boolean) => {
+    setDelivery((current) => ({
+      ...current,
+      enabled,
+    }));
+  }, []);
+
+  const updatePaymentField = useCallback(
+    <K extends keyof SalePaymentInput>(
+      id: string,
+      field: K,
+      value: SalePaymentInput[K],
+    ) => {
+      const isFirstPayment = payments[0]?.id === id;
+
+      setPayments((currentPayments) =>
+        currentPayments.map((payment) => {
+          if (payment.id !== id) return payment;
+
+          return {
+            ...payment,
+            [field]: value,
+          };
+        }),
+      );
+
+      if (isFirstPayment && field === "idPaymentMethod") {
+        setHeader((current) => ({
+          ...current,
+          idPaymentMethod: value as number | null,
+        }));
+      }
+    },
+    [payments],
+  );
+
+  const addPaymentRow = useCallback(() => {
+    setPayments((currentPayments) => {
+      const normalizedPayments = currentPayments.map((payment, index) => {
+        if (index !== 0 || payment.amount.trim()) {
+          return payment;
+        }
+
+        return {
+          ...payment,
+          amount: totals.total > 0 ? String(totals.total) : "",
+        };
+      });
+
+      return [...normalizedPayments, createPaymentInput()];
+    });
+  }, [totals.total]);
+
+  const removePaymentRow = useCallback((id: string) => {
+    setPayments((currentPayments) => {
+      if (currentPayments.length <= 1) return currentPayments;
+
+      const nextPayments = currentPayments.filter((payment) => payment.id !== id);
+      const firstPayment = nextPayments[0] ?? createPaymentInput();
+
+      setHeader((current) => ({
+        ...current,
+        idPaymentMethod: firstPayment.idPaymentMethod,
+      }));
+
+      return nextPayments.length > 0 ? nextPayments : [createPaymentInput()];
+    });
+  }, []);
 
   const clearCart = useCallback(() => {
     setCart([]);
@@ -193,6 +339,8 @@ export const useSales = () => {
     currentSaleIdempotencyKeyRef.current = null;
     setSaleLifecycle("DRAFT");
     setHeader(initialHeader);
+    setDelivery(initialDelivery);
+    setPayments([createPaymentInput()]);
     setCart([]);
     setProducts([]);
     setPriceTypeState("SALE");
@@ -399,15 +547,48 @@ export const useSales = () => {
     }, new Decimal(0));
     const total = Decimal.max(subtotal.minus(discountTotal), 0);
 
+    const activePayments = payments
+      .filter((payment) => payment.idPaymentMethod && Number(payment.amount) > 0)
+      .map((payment) => ({
+        idPaymentMethod: Number(payment.idPaymentMethod),
+        amount: toMoney(Number(payment.amount)),
+        status: delivery.enabled ? "PENDING" as const : "CONFIRMED" as const,
+        reference: payment.reference.trim() || null,
+        observation: payment.observation.trim() || null,
+      }));
+    const salePayments =
+      activePayments.length > 0
+        ? activePayments
+        : [
+            {
+              idPaymentMethod: Number(header.idPaymentMethod),
+              amount: toMoney(total),
+              status: delivery.enabled ? "PENDING" as const : "CONFIRMED" as const,
+              reference: null,
+              observation: null,
+            },
+          ];
+
     return {
       idCustomer: header.idCustomer,
       idDeposit: Number(header.idDeposit),
       idCashSession: Number(header.idCashSession),
-      idPaymentMethod: Number(header.idPaymentMethod),
       subtotal: toMoney(subtotal),
       discountTotal: toMoney(discountTotal),
       total: toMoney(total),
       observation: header.observation.trim() || null,
+      payments: salePayments,
+      delivery: delivery.enabled
+        ? {
+            assignedToUserId: delivery.assignedToUserId,
+            recipientName: delivery.recipientName.trim(),
+            recipientPhone: delivery.recipientPhone.trim() || null,
+            deliveryAddress: delivery.deliveryAddress.trim(),
+            deliveryReference: delivery.deliveryReference.trim() || null,
+            scheduledAt: delivery.scheduledAt || null,
+            observation: delivery.observation.trim() || null,
+          }
+        : null,
       items: payloadItems,
     };
   };
@@ -504,9 +685,12 @@ export const useSales = () => {
 
   return {
     header,
+    delivery,
+    payments,
     cart,
     products,
     totals,
+    paymentTotals,
     priceType,
     saleLifecycle,
     loadingProducts,
@@ -520,6 +704,11 @@ export const useSales = () => {
     isSaleCompleted: saleLifecycle === "COMPLETED",
     setPriceType,
     updateHeaderField,
+    updateDeliveryField,
+    toggleDelivery,
+    updatePaymentField,
+    addPaymentRow,
+    removePaymentRow,
     changeDeposit,
     fetchProductsByDeposit,
     addToCart,

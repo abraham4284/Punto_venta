@@ -6,7 +6,7 @@ import type {
   UserPermissionOverride,
 } from "@/modules/businesses-app/permissions/types/index.js";
 
-export type ManageableBusinessRole = "ADMIN" | "SELLER";
+export type ManageableBusinessRole = "ADMIN" | "SELLER" | "DELIVERY";
 export type BusinessUserStatusFilter = "ACTIVE" | "INACTIVE";
 
 export interface BusinessUserListFilters {
