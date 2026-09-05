@@ -34,8 +34,15 @@ export interface PaymentMethodOption {
   idPaymentMethod: number;
   code: "CASH" | "TRANSFER" | "CARD" | "OTHER";
   name: string;
+  affectsCash: boolean;
   isDefault: boolean;
   isActive: boolean;
+}
+
+export interface DeliveryUserOption {
+  idUser: number;
+  name: string;
+  username: string;
 }
 
 export interface ProductWithStockResponse {
@@ -85,6 +92,7 @@ export interface SalePaymentInput {
   id: string;
   idPaymentMethod: number | null;
   amount: string;
+  status: "PENDING" | "CONFIRMED";
   reference: string;
   observation: string;
 }

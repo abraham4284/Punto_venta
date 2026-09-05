@@ -42,6 +42,17 @@ export const createSaleFormSchema = z.object({
   items: z
     .array(saleDetailSchema)
     .min(1, "Agrega al menos un producto al carrito"),
+  payments: z
+    .array(
+      z.object({
+        idPaymentMethod: z.number().int().positive("Selecciona un metodo de pago valido"),
+        amount: z.number().positive("El importe debe ser mayor a cero"),
+        status: z.enum(["PENDING", "CONFIRMED"], {
+          message: "El estado del pago no es valido",
+        }),
+      }),
+    )
+    .min(1, "Agrega al menos un pago"),
   delivery: z
     .object({
       enabled: z.boolean(),

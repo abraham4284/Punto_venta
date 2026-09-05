@@ -7,6 +7,7 @@ import {
 import {
   cancelSaleService,
   createSaleService,
+  getDeliveryUsersForSaleService,
   getProductsWithStockByDepositService,
   getSaleByIdService,
   getSalesService,
@@ -163,6 +164,28 @@ export async function getSalesController(
     return res.status(200).json({
       status: true,
       message: "Ventas obtenidas correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
+    const parsedError = toControllerError(error);
+
+    return res.status(400).json({
+      status: false,
+      message: getControllerMessage(parsedError),
+    });
+  }
+}
+
+export async function getDeliveryUsersForSaleController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const result = await getDeliveryUsersForSaleService(req.user!.idBusiness);
+
+    return res.status(200).json({
+      status: true,
+      message: "Cadetes obtenidos correctamente",
       data: result,
     });
   } catch (error: unknown) {

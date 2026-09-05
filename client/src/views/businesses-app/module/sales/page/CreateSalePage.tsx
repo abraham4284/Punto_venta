@@ -25,6 +25,7 @@ import { useDeposits } from "../../deposits/hooks/useDeposits";
 import { useCash } from "../../cash/hooks/useCash";
 import { usePaymentMethods } from "../../payment-methods/hooks/usePaymentMethods";
 import { paymentMethodTypeLabels } from "../../payment-methods/helpers/payment-method.helpers";
+import { getDeliveryUsersForSaleRequest } from "../api/sales.api";
 import {
   CartTable,
   POSHotkeysLegend,
@@ -34,6 +35,7 @@ import {
 } from "../components";
 import { useSalesHotkeys } from "../hooks/useSalesHotkeys";
 import { useSales } from "../hooks/useSales";
+import type { DeliveryUserOption } from "../types";
 import { createSaleFormSchema } from "../validations/sales.validations";
 
 const today = new Date().toISOString().slice(0, 10);
@@ -66,6 +68,8 @@ export const CreateSalePage = () => {
   const [customerSearch, setCustomerSearch] = useState("");
   const [depositSearch, setDepositSearch] = useState("");
   const [barcodeSearch, setBarcodeSearch] = useState("");
+  const [deliveryUsers, setDeliveryUsers] = useState<DeliveryUserOption[]>([]);
+  const [deliveryUsersLoading, setDeliveryUsersLoading] = useState(false);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [initialViewResolved, setInitialViewResolved] = useState(false);
   const defaultDepositWasSelected = useRef(false);
@@ -167,21 +171,70 @@ export const CreateSalePage = () => {
     [activePaymentMethods],
   );
 
+  const getPaymentMethodById = useCallback(
+    (idPaymentMethod: number | null) => {
+      return activePaymentMethods.find((paymentMethod) => {
+        return paymentMethod.idPaymentMethod === idPaymentMethod;
+      }) ?? null;
+    },
+    [activePaymentMethods],
+  );
+
+  const getPaymentStatusLabel = useCallback(
+    (status: "PENDING" | "CONFIRMED") => {
+      return status === "CONFIRMED" ? "Pagado ahora" : "Cobra cadete al entregar";
+    },
+    [],
+  );
+
+  const getDeliveryUserLabel = useCallback(
+    (idUser: number | null) => {
+      const selectedUser = deliveryUsers.find((user) => user.idUser === idUser);
+
+      if (!selectedUser) return "";
+
+      return `${selectedUser.name} (${selectedUser.username})`;
+    },
+    [deliveryUsers],
+  );
+
   const isPreparingSaleView =
     !initialViewResolved &&
     (!initialDataLoaded ||
       customersLoading ||
       depositsLoading ||
       paymentMethodsLoading ||
+      deliveryUsersLoading ||
       cashLoading);
 
   useEffect(() => {
     let isMounted = true;
 
+    const fetchDeliveryUsers = async () => {
+      setDeliveryUsersLoading(true);
+
+      try {
+        const response = await getDeliveryUsersForSaleRequest();
+
+        if (isMounted) {
+          setDeliveryUsers(response.data.data ?? []);
+        }
+      } catch {
+        if (isMounted) {
+          setDeliveryUsers([]);
+        }
+      } finally {
+        if (isMounted) {
+          setDeliveryUsersLoading(false);
+        }
+      }
+    };
+
     void Promise.allSettled([
       getCustomers(),
       getDeposits(),
       getPaymentMethods(true),
+      fetchDeliveryUsers(),
     ]).finally(() => {
       if (isMounted) {
         setInitialDataLoaded(true);
@@ -414,9 +467,11 @@ export const CreateSalePage = () => {
           .map((payment) => ({
             idPaymentMethod: Number(payment.idPaymentMethod),
             amount: payment.amount.trim() ? Number(payment.amount) : totals.total,
+            status: delivery.enabled ? payment.status : "CONFIRMED",
           })),
         delivery: {
           enabled: delivery.enabled,
+          assignedToUserId: delivery.assignedToUserId,
           recipientName: delivery.recipientName,
           deliveryAddress: delivery.deliveryAddress,
           deliveryReference: delivery.deliveryReference,
@@ -594,22 +649,34 @@ export const CreateSalePage = () => {
             <div className="grid gap-3">
               {payments.map((payment, index) => {
                 const paymentMethodLabel = getPaymentMethodLabel(payment.idPaymentMethod);
+                const selectedPaymentMethod = getPaymentMethodById(payment.idPaymentMethod);
+                const canBePendingForDelivery = Boolean(
+                  delivery.enabled && selectedPaymentMethod?.affectsCash,
+                );
 
                 return (
                   <div
                     key={payment.id}
-                    className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-[minmax(0,1fr)_180px_auto]"
+                    className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-[minmax(0,1fr)_180px_190px_auto]"
                   >
                     <div className="grid gap-2">
                       <Label>{index === 0 ? "Medio principal" : "Medio adicional"}</Label>
                       <Select
                         value={payment.idPaymentMethod ? String(payment.idPaymentMethod) : ""}
                         onValueChange={(value: string | null) => {
+                          const nextPaymentMethod = activePaymentMethods.find((paymentMethod) => {
+                            return paymentMethod.idPaymentMethod === Number(value);
+                          });
+
                           updatePaymentField(
                             payment.id,
                             "idPaymentMethod",
                             value ? Number(value) : null,
                           );
+
+                          if (!nextPaymentMethod?.affectsCash && payment.status === "PENDING") {
+                            updatePaymentField(payment.id, "status", "CONFIRMED");
+                          }
                         }}
                         disabled={paymentMethodsLoading || activePaymentMethods.length === 0}
                       >
@@ -654,6 +721,41 @@ export const CreateSalePage = () => {
                         placeholder={index === 0 ? formatMoney(totals.total) : "0.00"}
                         disabled={isSaleCompleted}
                       />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>Estado del pago</Label>
+                      <Select
+                        value={delivery.enabled ? payment.status : "CONFIRMED"}
+                        onValueChange={(value: string | null) => {
+                          if (value === "PENDING" || value === "CONFIRMED") {
+                            updatePaymentField(payment.id, "status", value);
+                          }
+                        }}
+                        disabled={isSaleCompleted || !delivery.enabled}
+                      >
+                        <SelectTrigger className="w-full">
+                          <span className="flex flex-1 text-left">
+                            {delivery.enabled
+                              ? getPaymentStatusLabel(payment.status)
+                              : "Pagado ahora"}
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CONFIRMED">Pagado ahora</SelectItem>
+                          <SelectItem
+                            value="PENDING"
+                            disabled={!canBePendingForDelivery}
+                          >
+                            Cobra cadete al entregar
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {delivery.enabled && !canBePendingForDelivery && payment.status === "PENDING" ? (
+                        <p className="text-xs text-muted-foreground">
+                          El cobro en entrega se reserva para medios que afectan caja.
+                        </p>
+                      ) : null}
                     </div>
 
                     <div className="flex items-end">
@@ -716,6 +818,53 @@ export const CreateSalePage = () => {
 
             {delivery.enabled && (
               <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2 md:col-span-2">
+                  <Label>Cadete asignado</Label>
+                  <Select
+                    value={delivery.assignedToUserId ? String(delivery.assignedToUserId) : "none"}
+                    onValueChange={(value: string | null) => {
+                      updateDeliveryField(
+                        "assignedToUserId",
+                        value && value !== "none" ? Number(value) : null,
+                      );
+                    }}
+                    disabled={isSaleCompleted || deliveryUsersLoading}
+                  >
+                    <SelectTrigger className="w-full">
+                      <span
+                        className={
+                          delivery.assignedToUserId
+                            ? "flex flex-1 text-left"
+                            : "flex flex-1 text-left text-muted-foreground"
+                        }
+                      >
+                        {delivery.assignedToUserId
+                          ? getDeliveryUserLabel(delivery.assignedToUserId)
+                          : deliveryUsersLoading
+                            ? "Cargando cadetes..."
+                            : "Sin asignar por ahora"}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin asignar por ahora</SelectItem>
+                      {deliveryUsers.map((user) => (
+                        <SelectItem key={user.idUser} value={String(user.idUser)}>
+                          {user.name} ({user.username})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {delivery.assignedToUserId ? (
+                    <p className="text-xs text-muted-foreground">
+                      La entrega aparecera en el panel del cadete seleccionado.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Si queda sin asignar, el administrador podra asignarla desde entregas.
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid gap-2">
                   <Label>
                     Destinatario <span className="text-destructive">*</span>

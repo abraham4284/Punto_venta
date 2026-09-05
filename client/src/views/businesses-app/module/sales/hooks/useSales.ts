@@ -48,7 +48,9 @@ const initialDelivery: SaleDeliveryInput = {
   observation: "",
 };
 
-const createPaymentInput = (): SalePaymentInput => {
+const createPaymentInput = (
+  status: SalePaymentInput["status"] = "CONFIRMED",
+): SalePaymentInput => {
   const id =
     globalThis.crypto?.randomUUID?.() ??
     `payment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -57,6 +59,7 @@ const createPaymentInput = (): SalePaymentInput => {
     id,
     idPaymentMethod: null,
     amount: "",
+    status,
     reference: "",
     observation: "",
   };
@@ -261,6 +264,15 @@ export const useSales = () => {
       ...current,
       enabled,
     }));
+
+    if (!enabled) {
+      setPayments((currentPayments) =>
+        currentPayments.map((payment) => ({
+          ...payment,
+          status: "CONFIRMED",
+        })),
+      );
+    }
   }, []);
 
   const updatePaymentField = useCallback(
@@ -552,7 +564,7 @@ export const useSales = () => {
       .map((payment) => ({
         idPaymentMethod: Number(payment.idPaymentMethod),
         amount: toMoney(Number(payment.amount)),
-        status: delivery.enabled ? "PENDING" as const : "CONFIRMED" as const,
+        status: delivery.enabled ? payment.status : "CONFIRMED" as const,
         reference: payment.reference.trim() || null,
         observation: payment.observation.trim() || null,
       }));
@@ -563,7 +575,7 @@ export const useSales = () => {
             {
               idPaymentMethod: Number(header.idPaymentMethod),
               amount: toMoney(total),
-              status: delivery.enabled ? "PENDING" as const : "CONFIRMED" as const,
+              status: delivery.enabled ? payments[0]?.status ?? "CONFIRMED" : "CONFIRMED",
               reference: null,
               observation: null,
             },

@@ -78,6 +78,18 @@ export interface ProductWithStockDbRow {
   stock_quantity: string | number;
 }
 
+export interface DeliveryUserOptionDbRow {
+  idUser: number;
+  name: string;
+  username: string;
+}
+
+export interface DeliveryUserOption {
+  idUser: number;
+  name: string;
+  username: string;
+}
+
 export interface CreateSaleDetailPayload {
   idProduct: number;
   quantity: number;

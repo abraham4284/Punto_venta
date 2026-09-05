@@ -14,6 +14,8 @@ import type {
   CreateSalePayload,
   CreateSaleProcedurePayload,
   CreateSaleServiceResponse,
+  DeliveryUserOption,
+  DeliveryUserOptionDbRow,
   GetSalesFilters,
   PaginatedSalesResponse,
   ProductWithStockDbRow,
@@ -224,6 +226,33 @@ export async function createSaleService(
   } finally {
     connection.release();
   }
+}
+
+export async function getDeliveryUsersForSaleService(
+  idBusiness: number,
+): Promise<DeliveryUserOption[]> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT
+        u.idUser,
+        u.name,
+        u.username
+       FROM business_users bu
+       INNER JOIN users u ON u.idUser = bu.idUser
+       WHERE bu.idBusiness = ?
+         AND bu.role = 'DELIVERY'
+         AND bu.is_active = 1
+         AND u.is_active = 1
+       ORDER BY u.name ASC, u.username ASC`,
+    [idBusiness],
+  );
+
+  return (rows as DeliveryUserOptionDbRow[]).map(function mapDeliveryUser(row) {
+    return {
+      idUser: Number(row.idUser),
+      name: row.name,
+      username: row.username,
+    };
+  });
 }
 
 export async function getSalesService(
