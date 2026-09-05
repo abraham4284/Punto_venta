@@ -442,7 +442,9 @@ CREATE PROCEDURE sp_sale_payment_collect(
 BEGIN
   DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_currentMethod INT;
+  DECLARE v_finalMethod INT;
   DECLARE v_methodAffectsCash TINYINT;
+  DECLARE v_methodActive TINYINT;
   DECLARE v_deliveryAssignedUser INT;
   DECLARE v_deliveryStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -473,25 +475,30 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_PAYMENT_FORBIDDEN';
   END IF;
 
+  SET v_finalMethod = COALESCE(p_idPaymentMethod, v_currentMethod);
+
+  SELECT is_active, affects_cash
+  INTO v_methodActive, v_methodAffectsCash
+  FROM payment_methods
+  WHERE idBusiness = p_idBusiness
+    AND idPaymentMethod = v_finalMethod
+  LIMIT 1;
+
+  IF v_methodActive IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PAYMENT_METHOD_NOT_FOUND';
+  END IF;
+
+  IF v_methodActive = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PAYMENT_METHOD_INACTIVE';
+  END IF;
+
+  IF v_methodAffectsCash <> 1 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_COLLECTION_REQUIRES_CASH_METHOD';
+  END IF;
+
   IF p_idPaymentMethod IS NOT NULL AND p_idPaymentMethod <> v_currentMethod THEN
-    SELECT affects_cash
-    INTO v_methodAffectsCash
-    FROM payment_methods
-    WHERE idBusiness = p_idBusiness
-      AND idPaymentMethod = p_idPaymentMethod
-      AND is_active = 1
-    LIMIT 1;
-
-    IF v_methodAffectsCash IS NULL THEN
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PAYMENT_METHOD_NOT_FOUND';
-    END IF;
-
-    IF v_methodAffectsCash <> 1 THEN
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_COLLECTION_REQUIRES_CASH_METHOD';
-    END IF;
-
     UPDATE sale_payments
-    SET idPaymentMethod = p_idPaymentMethod
+    SET idPaymentMethod = v_finalMethod
     WHERE idBusiness = p_idBusiness
       AND idSalePayment = p_idSalePayment;
 
@@ -510,7 +517,7 @@ BEGIN
       'PAYMENT_METHOD_CHANGED',
       v_status,
       v_status,
-      JSON_OBJECT('previousIdPaymentMethod', v_currentMethod, 'newIdPaymentMethod', p_idPaymentMethod),
+      JSON_OBJECT('previousIdPaymentMethod', v_currentMethod, 'newIdPaymentMethod', v_finalMethod),
       p_actorUserId
     );
   END IF;
@@ -574,8 +581,12 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SALE_PAYMENT_NOT_FOUND';
   END IF;
 
-  IF v_status NOT IN ('PENDING', 'COLLECTED') THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ONLY_PENDING_OR_COLLECTED_PAYMENT_CAN_BE_CONFIRMED';
+  IF v_status = 'COLLECTED' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'COLLECTED_PAYMENT_REQUIRES_CASH_SETTLEMENT';
+  END IF;
+
+  IF v_status <> 'PENDING' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ONLY_PENDING_PAYMENT_CAN_BE_CONFIRMED';
   END IF;
 
   SELECT status
