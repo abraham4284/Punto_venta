@@ -25,6 +25,8 @@ import type {
 } from "../types";
 
 type ApiValidationError = {
+  status?: boolean;
+  code?: string;
   message?: string;
   errors?: BusinessUserFieldError[];
 };
@@ -69,9 +71,28 @@ const getFieldErrors = (error: unknown): BusinessUserFieldError[] => {
   return axiosError.response?.data?.errors ?? [];
 };
 
+const logBusinessUserError = (action: string, error: unknown): void => {
+  const axiosError = error as AxiosError<ApiValidationError>;
+
+  if (axiosError.response) {
+    console.error(`[BusinessUsers] ${action}`, {
+      status: axiosError.response.status,
+      message: axiosError.response.data?.message,
+      code: axiosError.response.data?.code,
+      errors: axiosError.response.data?.errors,
+      data: axiosError.response.data,
+    });
+    return;
+  }
+
+  console.error(`[BusinessUsers] ${action}`, error);
+};
+
 export const useBusinessUsers = () => {
   const [users, setUsers] = useState<BusinessUser[]>([]);
-  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([]);
+  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(
+    [],
+  );
   const [filters, setFilters] = useState<BusinessUsersFilters>(defaultFilters);
   const [pagination, setPagination] =
     useState<BusinessUsersPagination>(defaultPagination);
@@ -87,14 +108,16 @@ export const useBusinessUsers = () => {
 
     try {
       const { data } = await getBusinessUsers(filters);
-      console.log(data,'data')
       const responseData = data.data as typeof data.data & {
         records?: BusinessUser[];
       };
       setUsers(normalizeUsers(responseData?.users ?? responseData?.records));
       setPagination(normalizePagination(data.data?.pagination));
     } catch (requestError: unknown) {
-      const message = getErrorMessage(requestError, "No se pudieron cargar los usuarios");
+      const message = getErrorMessage(
+        requestError,
+        "No se pudieron cargar los usuarios",
+      );
       setError(message);
       toast.error(message);
     } finally {
@@ -107,7 +130,9 @@ export const useBusinessUsers = () => {
       const { data } = await getPermissionGroups();
       setPermissionGroups(data.data);
     } catch (requestError: unknown) {
-      toast.error(getErrorMessage(requestError, "No se pudieron cargar los permisos"));
+      toast.error(
+        getErrorMessage(requestError, "No se pudieron cargar los permisos"),
+      );
     }
   }, []);
 
@@ -145,6 +170,7 @@ export const useBusinessUsers = () => {
       await fetchUsers();
       return true;
     } catch (requestError: unknown) {
+      logBusinessUserError("createUserAction", requestError);
       setFieldErrors(getFieldErrors(requestError));
       toast.error(getErrorMessage(requestError, "No se pudo crear el usuario"));
       return false;
@@ -166,8 +192,11 @@ export const useBusinessUsers = () => {
       await fetchUsers();
       return true;
     } catch (requestError: unknown) {
+      logBusinessUserError("updateUserAction", requestError);
       setFieldErrors(getFieldErrors(requestError));
-      toast.error(getErrorMessage(requestError, "No se pudo actualizar el usuario"));
+      toast.error(
+        getErrorMessage(requestError, "No se pudo actualizar el usuario"),
+      );
       return false;
     } finally {
       setSaving(false);
@@ -176,18 +205,18 @@ export const useBusinessUsers = () => {
 
   const changeRoleAction = async (
     idUser: number,
-    role: "ADMIN" | "SELLER",
+    role: "ADMIN" | "SELLER" | "DELIVERY",
   ): Promise<void> => {
     try {
       const { data } = await changeBusinessUserRole(idUser, role);
       setUsers((currentUsers) =>
-        currentUsers.map((user) =>
-          user.idUser === idUser ? data.data : user,
-        ),
+        currentUsers.map((user) => (user.idUser === idUser ? data.data : user)),
       );
       toast.success("Rol actualizado correctamente");
     } catch (requestError: unknown) {
-      toast.error(getErrorMessage(requestError, "No se pudo actualizar el rol"));
+      toast.error(
+        getErrorMessage(requestError, "No se pudo actualizar el rol"),
+      );
     }
   };
 
@@ -200,13 +229,13 @@ export const useBusinessUsers = () => {
     try {
       const { data } = await changeBusinessUserStatus(idUser, isActive);
       setUsers((currentUsers) =>
-        currentUsers.map((user) =>
-          user.idUser === idUser ? data.data : user,
-        ),
+        currentUsers.map((user) => (user.idUser === idUser ? data.data : user)),
       );
       toast.success("Estado actualizado correctamente");
     } catch (requestError: unknown) {
-      toast.error(getErrorMessage(requestError, "No se pudo actualizar el estado"));
+      toast.error(
+        getErrorMessage(requestError, "No se pudo actualizar el estado"),
+      );
     } finally {
       setStatusLoadingId(null);
     }
@@ -228,14 +257,18 @@ export const useBusinessUsers = () => {
       toast.success("Permisos actualizados correctamente");
       return true;
     } catch (requestError: unknown) {
-      toast.error(getErrorMessage(requestError, "No se pudieron actualizar los permisos"));
+      toast.error(
+        getErrorMessage(requestError, "No se pudieron actualizar los permisos"),
+      );
       return false;
     } finally {
       setSaving(false);
     }
   };
 
-  const resetUserPermissionsAction = async (idUser: number): Promise<boolean> => {
+  const resetUserPermissionsAction = async (
+    idUser: number,
+  ): Promise<boolean> => {
     setSaving(true);
 
     try {
@@ -243,7 +276,12 @@ export const useBusinessUsers = () => {
       toast.success("Permisos restablecidos correctamente");
       return true;
     } catch (requestError: unknown) {
-      toast.error(getErrorMessage(requestError, "No se pudieron restablecer los permisos"));
+      toast.error(
+        getErrorMessage(
+          requestError,
+          "No se pudieron restablecer los permisos",
+        ),
+      );
       return false;
     } finally {
       setSaving(false);
@@ -255,7 +293,11 @@ export const useBusinessUsers = () => {
       [
         { label: "Administrador", value: "ADMIN" },
         { label: "Vendedor", value: "SELLER" },
-      ] satisfies { label: string; value: Exclude<BusinessUserRole, "OWNER"> }[],
+        { label: "Cadete / Delivery", value: "DELIVERY" },
+      ] satisfies {
+        label: string;
+        value: Exclude<BusinessUserRole, "OWNER">;
+      }[],
     [],
   );
 

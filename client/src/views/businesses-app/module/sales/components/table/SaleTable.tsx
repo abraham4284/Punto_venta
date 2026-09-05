@@ -52,6 +52,15 @@ const formatDate = (value: Date | string): string => {
   }).format(new Date(value));
 };
 
+const deliveryStatusLabels = {
+  PENDING: "Pendiente",
+  ASSIGNED: "Asignada",
+  OUT_FOR_DELIVERY: "En camino",
+  DELIVERED: "Entregada",
+  FAILED: "Fallida",
+  CANCELLED: "Cancelada",
+};
+
 export const SaleTable = ({
   sales,
   loading,
@@ -103,6 +112,7 @@ export const SaleTable = ({
           <TableHead>Cliente</TableHead>
           <TableHead>Deposito</TableHead>
           <TableHead>Metodo de pago</TableHead>
+          <TableHead>Entrega</TableHead>
           <TableHead>Total neto</TableHead>
           <TableHead>Estado</TableHead>
           <TableHead className="text-right">Acciones</TableHead>
@@ -122,6 +132,15 @@ export const SaleTable = ({
             <TableCell>{sale.customerName ?? "Consumidor final"}</TableCell>
             <TableCell>{sale.depositName}</TableCell>
             <TableCell>{sale.paymentMethodName ?? "-"}</TableCell>
+            <TableCell>
+              {sale.deliveryStatus ? (
+                <Badge variant="outline">
+                  {deliveryStatusLabels[sale.deliveryStatus]}
+                </Badge>
+              ) : (
+                "-"
+              )}
+            </TableCell>
             <TableCell className="font-semibold">
               {formatMoney(sale.total)}
             </TableCell>

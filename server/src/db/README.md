@@ -34,12 +34,15 @@ Ejecutar desde `server/src/db`:
    - `procedures/cash_session_payment_summaries.sql`
    - `procedures/cash_sessions.sql`
    - `procedures/cash_movements.sql`
+   - `procedures/cash_settlements.sql`
    - `procedures/product-categories.sql`
    - `procedures/products.sql`
    - `procedures/customers.sql`
    - `procedures/suppliers.sql`
    - `procedures/stock.sql`
    - `procedures/stock_movements.sql`
+   - `procedures/sale_payments.sql`
+   - `procedures/deliveries.sql`
    - `procedures/sales.sql`
    - `procedures/purchases.sql`
    - `procedures/tickets.sql`
@@ -70,6 +73,14 @@ mezcla de collations.
 - `export_db/` queda como referencia del dump de estructura usado como fuente.
 - `procedures/` contiene stored procedures de negocio y plataforma. No se
   mezclan con la creacion de tablas.
+
+Si una base existente ya tiene tablas creadas, los archivos de `schema/` no
+deben usarse como reemplazo de las migraciones: muchas tablas se crean con
+`CREATE TABLE IF NOT EXISTS` y MySQL no modifica columnas existentes. Por
+ejemplo, versiones anteriores de `cash_session_payment_summaries` usaban
+`sales_count`; el esquema limpio ya usa `payments_count`. Para actualizar una
+base existente se debe correr la migracion correspondiente antes de aplicar
+constraints nuevos.
 
 ## Seeds
 
@@ -203,7 +214,11 @@ metodos de pago, la estructura final queda asi:
 - `payment_methods.name` identifica la cuenta o metodo visible para el usuario.
 - Un negocio puede tener varios `TRANSFER`, `CARD` u `OTHER`.
 - Un negocio no puede repetir el mismo `name` en `payment_methods`.
-- `sales.idPaymentMethod` es obligatorio y referencia el metodo concreto usado.
+- `sale_payments` registra los pagos concretos de cada venta y reemplaza el
+  uso legacy de `sales.idPaymentMethod`.
+- `sale_deliveries` registra entregas y permite estados independientes de la
+  venta.
+- `cash_settlements` registra la rendicion de efectivo cobrado por cadetes.
 - El metodo `CASH / Efectivo` se crea en el registro del negocio desde
   `procedures/auth.sql`.
 

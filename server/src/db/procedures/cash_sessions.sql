@@ -209,8 +209,8 @@ BEGIN
     cs.opened_at,
     cs.closed_at,
     cs.opening_amount AS openingAmount,
-    COALESCE(SUM(CASE WHEN pm.affects_cash = 1 AND s.status = 'COMPLETED' THEN s.total ELSE 0 END), 0) AS cashSales,
-    COALESCE(SUM(CASE WHEN (pm.affects_cash = 0 OR pm.idPaymentMethod IS NULL) AND s.status = 'COMPLETED' THEN s.total ELSE 0 END), 0) AS nonCashSales,
+    COALESCE(SUM(CASE WHEN pm.affects_cash = 1 AND sp.status = 'CONFIRMED' AND s.status = 'COMPLETED' THEN sp.amount ELSE 0 END), 0) AS cashSales,
+    COALESCE(SUM(CASE WHEN pm.affects_cash = 0 AND sp.status = 'CONFIRMED' AND s.status = 'COMPLETED' THEN sp.amount ELSE 0 END), 0) AS nonCashSales,
     (
       SELECT COALESCE(SUM(cm.amount), 0)
       FROM cash_movements cm
@@ -227,7 +227,7 @@ BEGIN
     ) AS manualExpense,
     (
       cs.opening_amount
-      + COALESCE(SUM(CASE WHEN pm.affects_cash = 1 AND s.status = 'COMPLETED' THEN s.total ELSE 0 END), 0)
+      + COALESCE(SUM(CASE WHEN pm.affects_cash = 1 AND sp.status = 'CONFIRMED' AND s.status = 'COMPLETED' THEN sp.amount ELSE 0 END), 0)
       + (
         SELECT COALESCE(SUM(cm.amount), 0)
         FROM cash_movements cm
@@ -243,9 +243,9 @@ BEGIN
           AND cm.movement_type = 'EXPENSE'
       )
     ) AS expectedCash,
-    COALESCE(SUM(CASE WHEN s.status = 'COMPLETED' THEN s.total ELSE 0 END), 0) AS totalSales,
-    COUNT(CASE WHEN s.status = 'COMPLETED' THEN 1 END) AS salesCount,
-    COUNT(CASE WHEN s.status = 'CANCELLED' THEN 1 END) AS cancelledSalesCount
+    COALESCE(SUM(CASE WHEN sp.status = 'CONFIRMED' AND s.status = 'COMPLETED' THEN sp.amount ELSE 0 END), 0) AS totalSales,
+    COUNT(DISTINCT CASE WHEN s.status = 'COMPLETED' THEN s.idSale END) AS salesCount,
+    COUNT(DISTINCT CASE WHEN s.status = 'CANCELLED' THEN s.idSale END) AS cancelledSalesCount
   FROM cash_sessions cs
   INNER JOIN cash_registers cr
     ON cr.idCashRegister = cs.idCashRegister
@@ -253,9 +253,13 @@ BEGIN
   LEFT JOIN sales s
     ON s.idCashSession = cs.idCashSession
     AND s.idBusiness = cs.idBusiness
+  LEFT JOIN sale_payments sp
+    ON sp.idBusiness = s.idBusiness
+    AND sp.idSale = s.idSale
+    AND sp.idCashSession = cs.idCashSession
   LEFT JOIN payment_methods pm
-    ON pm.idPaymentMethod = s.idPaymentMethod
-    AND pm.idBusiness = s.idBusiness
+    ON pm.idPaymentMethod = sp.idPaymentMethod
+    AND pm.idBusiness = sp.idBusiness
   WHERE cs.idBusiness = p_idBusiness
     AND cs.idCashSession = p_idCashSession
   GROUP BY
@@ -273,14 +277,19 @@ BEGIN
     pm.code AS paymentMethodCode,
     pm.name AS paymentMethodName,
     pm.affects_cash AS affectsCash,
-    COUNT(s.idSale) AS salesCount,
-    COALESCE(SUM(s.total), 0) AS totalAmount
-  FROM sales s
+    COUNT(sp.idSalePayment) AS salesCount,
+    COUNT(sp.idSalePayment) AS paymentsCount,
+    COALESCE(SUM(sp.amount), 0) AS totalAmount
+  FROM sale_payments sp
+  INNER JOIN sales s
+    ON s.idSale = sp.idSale
+    AND s.idBusiness = sp.idBusiness
   INNER JOIN payment_methods pm
-    ON pm.idPaymentMethod = s.idPaymentMethod
-    AND pm.idBusiness = s.idBusiness
-  WHERE s.idBusiness = p_idBusiness
-    AND s.idCashSession = p_idCashSession
+    ON pm.idPaymentMethod = sp.idPaymentMethod
+    AND pm.idBusiness = sp.idBusiness
+  WHERE sp.idBusiness = p_idBusiness
+    AND sp.idCashSession = p_idCashSession
+    AND sp.status = 'CONFIRMED'
     AND s.status = 'COMPLETED'
   GROUP BY pm.idPaymentMethod, pm.code, pm.name, pm.affects_cash
   ORDER BY pm.affects_cash DESC, pm.name ASC;
@@ -348,14 +357,18 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Usuario no autorizado para cerrar caja';
   END IF;
 
-  SELECT COALESCE(SUM(s.total), 0)
+  SELECT COALESCE(SUM(sp.amount), 0)
   INTO v_cashSales
-  FROM sales s
+  FROM sale_payments sp
+  INNER JOIN sales s
+    ON s.idSale = sp.idSale
+    AND s.idBusiness = sp.idBusiness
   INNER JOIN payment_methods pm
-    ON pm.idPaymentMethod = s.idPaymentMethod
-    AND pm.idBusiness = s.idBusiness
-  WHERE s.idBusiness = p_idBusiness
-    AND s.idCashSession = p_idCashSession
+    ON pm.idPaymentMethod = sp.idPaymentMethod
+    AND pm.idBusiness = sp.idBusiness
+  WHERE sp.idBusiness = p_idBusiness
+    AND sp.idCashSession = p_idCashSession
+    AND sp.status = 'CONFIRMED'
     AND s.status = 'COMPLETED'
     AND pm.affects_cash = 1;
 
@@ -380,21 +393,24 @@ BEGIN
     idBusiness,
     idCashSession,
     idPaymentMethod,
-    sales_count,
+    payments_count,
     total_amount
   )
   SELECT
     p_idBusiness,
     p_idCashSession,
-    s.idPaymentMethod,
+    sp.idPaymentMethod,
     COUNT(*),
-    COALESCE(SUM(s.total), 0)
-  FROM sales s
-  WHERE s.idBusiness = p_idBusiness
-    AND s.idCashSession = p_idCashSession
+    COALESCE(SUM(sp.amount), 0)
+  FROM sale_payments sp
+  INNER JOIN sales s
+    ON s.idSale = sp.idSale
+    AND s.idBusiness = sp.idBusiness
+  WHERE sp.idBusiness = p_idBusiness
+    AND sp.idCashSession = p_idCashSession
+    AND sp.status = 'CONFIRMED'
     AND s.status = 'COMPLETED'
-    AND s.idPaymentMethod IS NOT NULL
-  GROUP BY s.idPaymentMethod;
+  GROUP BY sp.idPaymentMethod;
 
   UPDATE cash_sessions
   SET

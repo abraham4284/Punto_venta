@@ -1,6 +1,6 @@
 export type AuthContext = "BUSINESS" | "PLATFORM";
 
-export type BusinessRole = "OWNER" | "ADMIN" | "SELLER";
+export type BusinessRole = "OWNER" | "ADMIN" | "SELLER" | "DELIVERY";
 
 export type PlatformRole = "SUPER_ADMIN" | "SUPPORT" | "ANALYST";
 

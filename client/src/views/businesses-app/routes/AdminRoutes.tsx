@@ -5,10 +5,12 @@ import {
   BusinessSubscriptionRoutes,
   BusinessUsersRoutes,
   CashRoutes,
+  CashSettlementsRoutes,
   CategoriesRoutes,
   ClientsRoutes,
   DashboardRoutes,
   DepositsRoutes,
+  DeliveriesRoutes,
   LegalRoutes,
   NotificationsRoutes,
   PaymentMethodsRoutes,
@@ -100,10 +102,30 @@ export const AdminRoutes = () => {
           }
         />
         <Route
+          path="/cash-settlements/*"
+          element={
+            <PermissionRoute
+              permissions={["cash_settlements.view", "cash_settlements.create"]}
+            >
+              <CashSettlementsRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
           path="/sales/*"
           element={
             <PermissionRoute permissions={["sales.view", "sales.create"]}>
               <SalesRoutes />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="/deliveries/*"
+          element={
+            <PermissionRoute
+              permissions={["deliveries.view", "deliveries.update_status"]}
+            >
+              <DeliveriesRoutes />
             </PermissionRoute>
           }
         />

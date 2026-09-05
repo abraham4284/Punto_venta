@@ -3,6 +3,7 @@ import type { AxiosResponse } from "axios";
 import type {
   ApiResponse,
   CreateSalePayload,
+  DeliveryUserOption,
   PaginatedSalesResponse,
   ProductWithStockResponse,
   SaleFilters,
@@ -26,6 +27,12 @@ export const getProductsByDepositRequest = (
   idDeposit: number,
 ): Promise<AxiosResponse<ApiResponse<ProductWithStockResponse[]>>> => {
   return axios.get(`/sales/products-by-deposit/${idDeposit}`);
+};
+
+export const getDeliveryUsersForSaleRequest = (): Promise<
+  AxiosResponse<ApiResponse<DeliveryUserOption[]>>
+> => {
+  return axios.get("/sales/delivery-users");
 };
 
 export const getSalesRequest = (

@@ -59,6 +59,7 @@ export const BusinessUsersFilters = ({
           <SelectItem value="OWNER">Propietario</SelectItem>
           <SelectItem value="ADMIN">Administrador</SelectItem>
           <SelectItem value="SELLER">Vendedor</SelectItem>
+          <SelectItem value="DELIVERY">Cadete / Delivery</SelectItem>
         </SelectContent>
       </Select>
 
@@ -87,4 +88,3 @@ export const BusinessUsersFilters = ({
     </div>
   );
 };
-
