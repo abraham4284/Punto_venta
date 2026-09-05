@@ -48,7 +48,7 @@ export const updateBusinessUser = async (
 
 export const changeBusinessUserRole = async (
   idUser: number,
-  role: "ADMIN" | "SELLER",
+  role: "ADMIN" | "SELLER" | "DELIVERY",
 ): Promise<AxiosResponse<ApiResponse<BusinessUser>>> => {
   return axios.patch(`/business-users/${idUser}/role`, { role });
 };
@@ -84,4 +84,3 @@ export const resetBusinessUserPermissions = async (
 ): Promise<AxiosResponse<ApiResponse<BusinessUserPermissionsResponse>>> => {
   return axios.delete(`/business-users/${idUser}/permissions`);
 };
-

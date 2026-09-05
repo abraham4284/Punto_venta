@@ -1,6 +1,6 @@
 import type { RowDataPacket } from "mysql2";
 
-export type UserRole = "OWNER" | "ADMIN" | "SELLER";
+export type UserRole = "OWNER" | "ADMIN" | "SELLER" | "DELIVERY";
 export type BusinessStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
 
 export interface AuthUser {

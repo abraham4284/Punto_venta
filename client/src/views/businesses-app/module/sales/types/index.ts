@@ -34,8 +34,15 @@ export interface PaymentMethodOption {
   idPaymentMethod: number;
   code: "CASH" | "TRANSFER" | "CARD" | "OTHER";
   name: string;
+  affectsCash: boolean;
   isDefault: boolean;
   isActive: boolean;
+}
+
+export interface DeliveryUserOption {
+  idUser: number;
+  name: string;
+  username: string;
 }
 
 export interface ProductWithStockResponse {
@@ -68,6 +75,26 @@ export interface SaleHeaderInput {
   total: number;
   observation: string;
   status: "COMPLETED" | "CANCELLED";
+}
+
+export interface SaleDeliveryInput {
+  enabled: boolean;
+  assignedToUserId: number | null;
+  recipientName: string;
+  recipientPhone: string;
+  deliveryAddress: string;
+  deliveryReference: string;
+  scheduledAt: string;
+  observation: string;
+}
+
+export interface SalePaymentInput {
+  id: string;
+  idPaymentMethod: number | null;
+  amount: string;
+  status: "PENDING" | "CONFIRMED";
+  reference: string;
+  observation: string;
 }
 
 export interface SaleDetailInput {
@@ -104,11 +131,26 @@ export interface CreateSalePayload {
   idCustomer: number | null;
   idDeposit: number;
   idCashSession: number;
-  idPaymentMethod: number;
   subtotal: number;
   discountTotal: number;
   total: number;
   observation: string | null;
+  payments: {
+    idPaymentMethod: number;
+    amount: number;
+    status: "PENDING" | "CONFIRMED";
+    reference?: string | null;
+    observation?: string | null;
+  }[];
+  delivery?: {
+    assignedToUserId?: number | null;
+    recipientName: string;
+    recipientPhone?: string | null;
+    deliveryAddress: string;
+    deliveryReference?: string | null;
+    scheduledAt?: string | null;
+    observation?: string | null;
+  } | null;
   items: SaleDetailInput[];
 }
 
@@ -123,9 +165,14 @@ export interface SaleResponse {
   idDeposit: number;
   depositName: string;
   idCashSession: number;
-  idPaymentMethod: number;
+  idPaymentMethod: number | null;
   paymentMethodName: string | null;
   paymentMethodCode: string | null;
+  confirmedAmount: number;
+  collectedAmount: number;
+  pendingAmount: number;
+  deliveryStatus: SaleDeliveryStatus | null;
+  paymentStatus: "UNPAID" | "PARTIALLY_PAID" | "PAID";
   saleDate: Date;
   subtotal: number;
   discountTotal: number;
@@ -154,8 +201,62 @@ export interface SaleDetailResponse {
   createdAt: Date;
 }
 
+export type SalePaymentStatus = "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED";
+export type SaleDeliveryStatus =
+  | "PENDING"
+  | "ASSIGNED"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "FAILED"
+  | "CANCELLED";
+
+export interface SalePaymentResponse {
+  idSalePayment: number;
+  idBusiness: number;
+  idSale: number;
+  idPaymentMethod: number;
+  paymentMethodCode: string;
+  paymentMethodName: string;
+  affectsCash: boolean;
+  amount: number;
+  status: SalePaymentStatus;
+  idCashSession: number | null;
+  idCashSettlement: number | null;
+  reference: string | null;
+  observation: string | null;
+  createdAt: Date;
+  collectedAt: Date | null;
+  confirmedAt: Date | null;
+  cancelledAt: Date | null;
+}
+
+export interface SaleDeliveryResponse {
+  idSaleDelivery: number;
+  idBusiness: number;
+  idSale: number;
+  assignedToUserId: number | null;
+  assignedUserName: string | null;
+  status: SaleDeliveryStatus;
+  recipientName: string;
+  recipientPhone: string | null;
+  deliveryAddress: string;
+  deliveryReference: string | null;
+  scheduledAt: Date | null;
+  assignedAt: Date | null;
+  outForDeliveryAt: Date | null;
+  deliveredAt: Date | null;
+  failedAt: Date | null;
+  cancelledAt: Date | null;
+  failureReason: string | null;
+  observation: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface SaleWithDetailsResponse extends SaleResponse {
   items: SaleDetailResponse[];
+  payments: SalePaymentResponse[];
+  delivery: SaleDeliveryResponse | null;
 }
 
 export interface SaleTicketItem {

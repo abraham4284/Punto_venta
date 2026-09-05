@@ -4,6 +4,7 @@ import { requirePermission } from "@/middlewares/requirePermission.middleware.js
 import {
   cancelSaleController,
   createSaleController,
+  getDeliveryUsersForSaleController,
   getProductsWithStockByDepositController,
   getSaleByIdController,
   getSalesController,
@@ -23,6 +24,12 @@ router.get(
   requireAuth,
   requirePermission("sales.create"),
   getProductsWithStockByDepositController,
+);
+router.get(
+  "/sales/delivery-users",
+  requireAuth,
+  requirePermission("sales.create"),
+  getDeliveryUsersForSaleController,
 );
 router.get("/sales/:id", requireAuth, requirePermission("sales.view"), getSaleByIdController);
 router.patch(

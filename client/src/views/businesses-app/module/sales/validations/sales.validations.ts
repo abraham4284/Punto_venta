@@ -42,4 +42,42 @@ export const createSaleFormSchema = z.object({
   items: z
     .array(saleDetailSchema)
     .min(1, "Agrega al menos un producto al carrito"),
+  payments: z
+    .array(
+      z.object({
+        idPaymentMethod: z.number().int().positive("Selecciona un metodo de pago valido"),
+        amount: z.number().positive("El importe debe ser mayor a cero"),
+        status: z.enum(["PENDING", "CONFIRMED"], {
+          message: "El estado del pago no es valido",
+        }),
+      }),
+    )
+    .min(1, "Agrega al menos un pago"),
+  delivery: z
+    .object({
+      enabled: z.boolean(),
+      recipientName: z.string().trim(),
+      deliveryAddress: z.string().trim(),
+      deliveryReference: z.string().trim().optional(),
+    })
+    .superRefine((delivery, ctx) => {
+      if (!delivery.enabled) return;
+
+      if (delivery.recipientName.length < 2) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["recipientName"],
+          message: "Ingresa el nombre del destinatario",
+        });
+      }
+
+      if (delivery.deliveryAddress.length < 5) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["deliveryAddress"],
+          message: "Ingresa una direccion de entrega valida",
+        });
+      }
+    })
+    .optional(),
 });

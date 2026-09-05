@@ -5,7 +5,9 @@ import {
   Package,
   Printer,
   Receipt,
+  Truck,
   User,
+  Wallet,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -63,6 +65,54 @@ const getSaleStatusVariant = (status: SaleWithDetailsResponse["status"]) => {
   return status === "CANCELLED" ? "destructive" : "secondary";
 };
 
+const getPaymentStatusLabel = (status: SaleWithDetailsResponse["paymentStatus"]) => {
+  const labels = {
+    UNPAID: "Pendiente",
+    PARTIALLY_PAID: "Parcial",
+    PAID: "Pagada",
+  };
+
+  return labels[status];
+};
+
+const getPaymentBadgeClassName = (status: SaleWithDetailsResponse["paymentStatus"]) => {
+  const classNames = {
+    UNPAID: "border-amber-200 bg-amber-50 text-amber-700",
+    PARTIALLY_PAID: "border-blue-200 bg-blue-50 text-blue-700",
+    PAID: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  };
+
+  return classNames[status];
+};
+
+const getPaymentLineStatusLabel = (
+  status: SaleWithDetailsResponse["payments"][number]["status"],
+) => {
+  const labels = {
+    PENDING: "Pendiente",
+    COLLECTED: "Cobrado por cadete",
+    CONFIRMED: "Confirmado en caja",
+    CANCELLED: "Anulado",
+  };
+
+  return labels[status];
+};
+
+const getDeliveryStatusLabel = (
+  status: NonNullable<SaleWithDetailsResponse["delivery"]>["status"],
+) => {
+  const labels = {
+    PENDING: "Pendiente",
+    ASSIGNED: "Asignada",
+    OUT_FOR_DELIVERY: "En camino",
+    DELIVERED: "Entregada",
+    FAILED: "Fallida",
+    CANCELLED: "Cancelada",
+  };
+
+  return labels[status];
+};
+
 const formatQuantity = (value: number) => {
   return new Intl.NumberFormat("es-AR", {
     minimumFractionDigits: 0,
@@ -93,6 +143,8 @@ export const SaleDetailsView = ({
   const customerName =
     customer?.name || sale.customerName || "Consumidor final";
   const itemsCount = sale.items.length;
+  const paidAmount = sale.confirmedAmount + sale.collectedAmount;
+  const balanceDue = Math.max(sale.total - paidAmount, 0);
 
   return (
     <section className="mx-auto w-full max-w-7xl space-y-6">
@@ -191,10 +243,10 @@ export const SaleDetailsView = ({
           icon={Package}
         />
         <OperationMetricCard
-          title="Medio de pago"
-          value={sale.paymentMethodName ?? "Sin informar"}
-          subtitle={sale.paymentMethodCode ?? undefined}
-          icon={CreditCard}
+          title="Cobro"
+          value={getPaymentStatusLabel(sale.paymentStatus)}
+          subtitle={`Saldo ${formatCurrency(balanceDue)}`}
+          icon={Wallet}
         />
         <OperationMetricCard
           title="Cliente"
@@ -275,6 +327,92 @@ export const SaleDetailsView = ({
             discountTotal={sale.discountTotal}
             total={sale.total}
           />
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Pagos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Estado</span>
+                  <Badge variant="outline" className={getPaymentBadgeClassName(sale.paymentStatus)}>
+                    {getPaymentStatusLabel(sale.paymentStatus)}
+                  </Badge>
+                </div>
+                <InfoItem label="Confirmado en caja" value={formatCurrency(sale.confirmedAmount)} />
+                <InfoItem label="Cobrado por cadete" value={formatCurrency(sale.collectedAmount)} />
+                <InfoItem label="Pendiente planificado" value={formatCurrency(sale.pendingAmount)} />
+                <InfoItem label="Saldo pendiente" value={formatCurrency(balanceDue)} />
+              </div>
+
+              <div className="space-y-2">
+                {sale.payments.length === 0 ? (
+                  <p className="text-muted-foreground">Sin pagos registrados.</p>
+                ) : (
+                  sale.payments.map((payment) => (
+                    <div
+                      key={payment.idSalePayment}
+                      className="rounded-lg border bg-muted/20 p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{payment.paymentMethodName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {getPaymentLineStatusLabel(payment.status)}
+                          </p>
+                        </div>
+                        <p className="font-semibold">{formatCurrency(payment.amount)}</p>
+                      </div>
+                      {payment.reference ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Ref: {payment.reference}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {sale.delivery ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  Entrega
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Estado</span>
+                  <Badge variant="outline">{getDeliveryStatusLabel(sale.delivery.status)}</Badge>
+                </div>
+                <InfoItem label="Destinatario" value={sale.delivery.recipientName} />
+                <InfoItem label="Dirección" value={sale.delivery.deliveryAddress} />
+                <InfoItem
+                  label="Referencia"
+                  value={sale.delivery.deliveryReference ?? "Sin referencias"}
+                />
+                <InfoItem
+                  label="Teléfono"
+                  value={sale.delivery.recipientPhone ?? "Sin informar"}
+                />
+                <InfoItem
+                  label="Cadete"
+                  value={sale.delivery.assignedUserName ?? "Sin asignar"}
+                />
+                <InfoItem
+                  label="Programada"
+                  value={sale.delivery.scheduledAt ? formatDate(sale.delivery.scheduledAt) : "Sin fecha"}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader>

@@ -36,7 +36,7 @@ interface SaleStateRow extends RowDataPacket {
   idBusiness: number;
   idDeposit: number;
   idCashSession: number;
-  idPaymentMethod: number;
+  idPaymentMethod: number | null;
   idUser: number;
   status: "COMPLETED" | "CANCELLED";
   total: string;
@@ -69,6 +69,7 @@ export interface CashPaymentSummaryRow extends RowDataPacket {
   idCashSession: number;
   idPaymentMethod: number;
   sales_count: number;
+  payments_count: number;
   total_amount: string;
 }
 
@@ -136,7 +137,29 @@ export async function getStockMovementRows(input: {
 
 export async function getSaleState(idSale: number): Promise<SaleStateRow | null> {
   return querySingleRow<SaleStateRow>(
-    "SELECT idSale, idBusiness, idDeposit, idCashSession, idPaymentMethod, idUser, status, total FROM sales WHERE idSale = ?",
+    `SELECT
+       s.idSale,
+       s.idBusiness,
+       s.idDeposit,
+       s.idCashSession,
+       MIN(sp.idPaymentMethod) AS idPaymentMethod,
+       s.idUser,
+       s.status,
+       s.total
+     FROM sales s
+     LEFT JOIN sale_payments sp
+       ON sp.idBusiness = s.idBusiness
+       AND sp.idSale = s.idSale
+       AND sp.status <> 'CANCELLED'
+     WHERE s.idSale = ?
+     GROUP BY
+       s.idSale,
+       s.idBusiness,
+       s.idDeposit,
+       s.idCashSession,
+       s.idUser,
+       s.status,
+       s.total`,
     [idSale],
   );
 }
@@ -168,7 +191,12 @@ export async function getPaymentSummary(input: {
   idPaymentMethod: number;
 }): Promise<CashPaymentSummaryRow | null> {
   return querySingleRow<CashPaymentSummaryRow>(
-    `SELECT idCashSession, idPaymentMethod, sales_count, total_amount
+    `SELECT
+       idCashSession,
+       idPaymentMethod,
+       payments_count AS sales_count,
+       payments_count,
+       total_amount
      FROM cash_session_payment_summaries
      WHERE idCashSession = ? AND idPaymentMethod = ?`,
     [input.idCashSession, input.idPaymentMethod],

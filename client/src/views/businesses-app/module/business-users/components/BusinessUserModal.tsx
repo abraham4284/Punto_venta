@@ -30,7 +30,7 @@ type BusinessUserFormState = {
   username: string;
   email: string;
   password: string;
-  role: "ADMIN" | "SELLER";
+  role: "ADMIN" | "SELLER" | "DELIVERY";
 };
 
 type BusinessUserModalProps = {
@@ -82,7 +82,10 @@ export const BusinessUserModal = ({
         username: dataEdit.username,
         email: dataEdit.email ?? "",
         password: "",
-        role: dataEdit.role === "ADMIN" ? "ADMIN" : "SELLER",
+        role:
+          dataEdit.role === "ADMIN" || dataEdit.role === "DELIVERY"
+            ? dataEdit.role
+            : "SELLER",
       });
       return;
     }
@@ -102,7 +105,6 @@ export const BusinessUserModal = ({
       username: formSate.username.trim(),
       email: formSate.email.trim() || null,
     };
-
     const success =
       isEdit && dataEdit
         ? await onUpdate(dataEdit.idUser, basePayload)
@@ -205,7 +207,7 @@ export const BusinessUserModal = ({
                 <Select
                   value={formSate.role}
                   onValueChange={(value) => {
-                    if (value === "ADMIN" || value === "SELLER") {
+                    if (value === "ADMIN" || value === "SELLER" || value === "DELIVERY") {
                       setFormSate({ ...formSate, role: value });
                     }
                   }}
@@ -216,6 +218,7 @@ export const BusinessUserModal = ({
                   <SelectContent>
                     <SelectItem value="ADMIN">Administrador</SelectItem>
                     <SelectItem value="SELLER">Vendedor</SelectItem>
+                    <SelectItem value="DELIVERY">Cadete / Delivery</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -236,4 +239,3 @@ export const BusinessUserModal = ({
     </Dialog>
   );
 };
-
