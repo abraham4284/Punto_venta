@@ -65,6 +65,38 @@ interface CashSessionStateRow extends RowDataPacket {
   closed_at: Date | null;
 }
 
+export interface SalePaymentStateRow extends RowDataPacket {
+  idSalePayment: number;
+  idBusiness: number;
+  idSale: number;
+  idPaymentMethod: number;
+  amount: string;
+  status: "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED";
+  collected_by_user_id: number | null;
+  collected_at: Date | null;
+  confirmed_by_user_id: number | null;
+  confirmed_at: Date | null;
+  idCashSession: number | null;
+  idCashSettlement: number | null;
+}
+
+export interface SalePaymentEventRow extends RowDataPacket {
+  idSalePaymentEvent: number;
+  idBusiness: number;
+  idSalePayment: number;
+  event_type:
+    | "PAYMENT_CREATED"
+    | "PAYMENT_UPDATED"
+    | "PAYMENT_METHOD_CHANGED"
+    | "PAYMENT_COLLECTED"
+    | "PAYMENT_CONFIRMED"
+    | "PAYMENT_CANCELLED"
+    | "PAYMENT_SETTLED"
+    | "PAYMENT_MIGRATED";
+  previous_status: "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED" | null;
+  new_status: "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED" | null;
+}
+
 export interface CashPaymentSummaryRow extends RowDataPacket {
   idCashSession: number;
   idPaymentMethod: number;
@@ -184,6 +216,49 @@ export async function getCashSessionState(
      WHERE idCashSession = ?`,
     [idCashSession],
   );
+}
+
+export async function getSalePaymentState(
+  idSalePayment: number,
+): Promise<SalePaymentStateRow | null> {
+  return querySingleRow<SalePaymentStateRow>(
+    `SELECT
+       idSalePayment,
+       idBusiness,
+       idSale,
+       idPaymentMethod,
+       amount,
+       status,
+       collected_by_user_id,
+       collected_at,
+       confirmed_by_user_id,
+       confirmed_at,
+       idCashSession,
+       idCashSettlement
+     FROM sale_payments
+     WHERE idSalePayment = ?`,
+    [idSalePayment],
+  );
+}
+
+export async function getSalePaymentEvents(
+  idSalePayment: number,
+): Promise<SalePaymentEventRow[]> {
+  const [rows] = await pool.query<SalePaymentEventRow[]>(
+    `SELECT
+       idSalePaymentEvent,
+       idBusiness,
+       idSalePayment,
+       event_type,
+       previous_status,
+       new_status
+     FROM sale_payment_events
+     WHERE idSalePayment = ?
+     ORDER BY idSalePaymentEvent ASC`,
+    [idSalePayment],
+  );
+
+  return rows;
 }
 
 export async function getPaymentSummary(input: {

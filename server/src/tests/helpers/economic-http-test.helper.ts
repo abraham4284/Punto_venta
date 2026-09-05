@@ -20,6 +20,24 @@ export interface SaleItemRequest {
   total: number;
 }
 
+export interface SalePaymentRequest {
+  idPaymentMethod: number;
+  amount: number;
+  status: "PENDING" | "CONFIRMED";
+  reference?: string | null;
+  observation?: string | null;
+}
+
+export interface SaleDeliveryRequest {
+  assignedToUserId?: number | null;
+  recipientName: string;
+  recipientPhone?: string | null;
+  deliveryAddress: string;
+  deliveryReference?: string | null;
+  scheduledAt?: string | null;
+  observation?: string | null;
+}
+
 export function createPurchaseThroughApi(input: {
   cookies: string[];
   idSupplier: number | null;
@@ -127,14 +145,26 @@ export function createSaleThroughApi(input: {
   idCustomer: number | null;
   idDeposit: number;
   idCashSession: number;
-  idPaymentMethod: number;
+  idPaymentMethod?: number;
   subtotal: number;
   discountTotal: number;
   total: number;
   observation?: string | null;
   idempotencyKey?: string;
+  payments?: SalePaymentRequest[];
+  delivery?: SaleDeliveryRequest | null;
   items: SaleItemRequest[];
 }): Promise<Response> {
+  const payments =
+    input.payments ??
+    [
+      {
+        idPaymentMethod: Number(input.idPaymentMethod),
+        amount: input.total,
+        status: "CONFIRMED" as const,
+      },
+    ];
+
   return request(getTestApp())
     .post("/api/sales")
     .set("Cookie", input.cookies)
@@ -143,11 +173,12 @@ export function createSaleThroughApi(input: {
       idCustomer: input.idCustomer,
       idDeposit: input.idDeposit,
       idCashSession: input.idCashSession,
-      idPaymentMethod: input.idPaymentMethod,
       subtotal: input.subtotal,
       discountTotal: input.discountTotal,
       total: input.total,
       observation: input.observation ?? null,
+      payments,
+      delivery: input.delivery ?? null,
       items: input.items,
     });
 }
@@ -179,5 +210,51 @@ export function transferStockThroughApi(input: {
       idDepositTo: input.idDepositTo,
       quantity: input.quantity,
       observation: input.observation ?? null,
+    });
+}
+
+export function changeDeliveryStatusThroughApi(input: {
+  cookies: string[];
+  idSaleDelivery: number;
+  action: "start" | "fail" | "reschedule" | "deliver" | "cancel";
+  failureReason?: string | null;
+  scheduledAt?: string | null;
+  observation?: string | null;
+}): Promise<Response> {
+  return request(getTestApp())
+    .patch(`/api/deliveries/${input.idSaleDelivery}/${input.action}`)
+    .set("Cookie", input.cookies)
+    .send({
+      failureReason: input.failureReason ?? null,
+      scheduledAt: input.scheduledAt ?? null,
+      observation: input.observation ?? null,
+    });
+}
+
+export function collectSalePaymentThroughApi(input: {
+  cookies: string[];
+  idSalePayment: number;
+  idPaymentMethod?: number | null;
+  observation?: string | null;
+}): Promise<Response> {
+  return request(getTestApp())
+    .patch(`/api/sale-payments/${input.idSalePayment}/collect`)
+    .set("Cookie", input.cookies)
+    .send({
+      idPaymentMethod: input.idPaymentMethod ?? null,
+      observation: input.observation ?? null,
+    });
+}
+
+export function confirmSalePaymentThroughApi(input: {
+  cookies: string[];
+  idSalePayment: number;
+  idCashSession: number;
+}): Promise<Response> {
+  return request(getTestApp())
+    .patch(`/api/sale-payments/${input.idSalePayment}/confirm`)
+    .set("Cookie", input.cookies)
+    .send({
+      idCashSession: input.idCashSession,
     });
 }

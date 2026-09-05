@@ -191,6 +191,15 @@ CREATE PROCEDURE sp_cash_session_get_live_summary(
   IN p_idCashSession BIGINT
 )
 BEGIN
+  DECLARE v_openingAmount DECIMAL(18,2);
+  DECLARE v_cashSales DECIMAL(18,2) DEFAULT 0;
+  DECLARE v_nonCashSales DECIMAL(18,2) DEFAULT 0;
+  DECLARE v_manualIncome DECIMAL(18,2) DEFAULT 0;
+  DECLARE v_manualExpense DECIMAL(18,2) DEFAULT 0;
+  DECLARE v_totalSales DECIMAL(18,2) DEFAULT 0;
+  DECLARE v_salesCount INT DEFAULT 0;
+  DECLARE v_cancelledSalesCount INT DEFAULT 0;
+
   IF NOT EXISTS (
     SELECT 1
     FROM cash_sessions
@@ -199,6 +208,52 @@ BEGIN
   ) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CASH_SESSION_NOT_FOUND';
   END IF;
+
+  SELECT opening_amount
+  INTO v_openingAmount
+  FROM cash_sessions
+  WHERE idBusiness = p_idBusiness
+    AND idCashSession = p_idCashSession
+  LIMIT 1;
+
+  SELECT
+    COALESCE(SUM(CASE WHEN pm.affects_cash = 1 THEN sp.amount ELSE 0 END), 0),
+    COALESCE(SUM(CASE WHEN pm.affects_cash = 0 THEN sp.amount ELSE 0 END), 0)
+  INTO v_cashSales, v_nonCashSales
+  FROM sale_payments sp
+  INNER JOIN sales s
+    ON s.idSale = sp.idSale
+    AND s.idBusiness = sp.idBusiness
+  INNER JOIN payment_methods pm
+    ON pm.idPaymentMethod = sp.idPaymentMethod
+    AND pm.idBusiness = sp.idBusiness
+  WHERE sp.idBusiness = p_idBusiness
+    AND sp.idCashSession = p_idCashSession
+    AND sp.status = 'CONFIRMED'
+    AND s.status = 'COMPLETED';
+
+  SELECT COALESCE(SUM(amount), 0)
+  INTO v_manualIncome
+  FROM cash_movements
+  WHERE idBusiness = p_idBusiness
+    AND idCashSession = p_idCashSession
+    AND movement_type = 'INCOME';
+
+  SELECT COALESCE(SUM(amount), 0)
+  INTO v_manualExpense
+  FROM cash_movements
+  WHERE idBusiness = p_idBusiness
+    AND idCashSession = p_idCashSession
+    AND movement_type = 'EXPENSE';
+
+  SELECT
+    COALESCE(SUM(CASE WHEN status = 'COMPLETED' THEN total ELSE 0 END), 0),
+    COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END),
+    COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END)
+  INTO v_totalSales, v_salesCount, v_cancelledSalesCount
+  FROM sales
+  WHERE idBusiness = p_idBusiness
+    AND idCashSession = p_idCashSession;
 
   SELECT
     cs.idCashSession,
@@ -209,68 +264,20 @@ BEGIN
     cs.opened_at,
     cs.closed_at,
     cs.opening_amount AS openingAmount,
-    COALESCE(SUM(CASE WHEN pm.affects_cash = 1 AND sp.status = 'CONFIRMED' AND s.status = 'COMPLETED' THEN sp.amount ELSE 0 END), 0) AS cashSales,
-    COALESCE(SUM(CASE WHEN pm.affects_cash = 0 AND sp.status = 'CONFIRMED' AND s.status = 'COMPLETED' THEN sp.amount ELSE 0 END), 0) AS nonCashSales,
-    (
-      SELECT COALESCE(SUM(cm.amount), 0)
-      FROM cash_movements cm
-      WHERE cm.idBusiness = cs.idBusiness
-        AND cm.idCashSession = cs.idCashSession
-        AND cm.movement_type = 'INCOME'
-    ) AS manualIncome,
-    (
-      SELECT COALESCE(SUM(cm.amount), 0)
-      FROM cash_movements cm
-      WHERE cm.idBusiness = cs.idBusiness
-        AND cm.idCashSession = cs.idCashSession
-        AND cm.movement_type = 'EXPENSE'
-    ) AS manualExpense,
-    (
-      cs.opening_amount
-      + COALESCE(SUM(CASE WHEN pm.affects_cash = 1 AND sp.status = 'CONFIRMED' AND s.status = 'COMPLETED' THEN sp.amount ELSE 0 END), 0)
-      + (
-        SELECT COALESCE(SUM(cm.amount), 0)
-        FROM cash_movements cm
-        WHERE cm.idBusiness = cs.idBusiness
-          AND cm.idCashSession = cs.idCashSession
-          AND cm.movement_type = 'INCOME'
-      )
-      - (
-        SELECT COALESCE(SUM(cm.amount), 0)
-        FROM cash_movements cm
-        WHERE cm.idBusiness = cs.idBusiness
-          AND cm.idCashSession = cs.idCashSession
-          AND cm.movement_type = 'EXPENSE'
-      )
-    ) AS expectedCash,
-    COALESCE(SUM(CASE WHEN sp.status = 'CONFIRMED' AND s.status = 'COMPLETED' THEN sp.amount ELSE 0 END), 0) AS totalSales,
-    COUNT(DISTINCT CASE WHEN s.status = 'COMPLETED' THEN s.idSale END) AS salesCount,
-    COUNT(DISTINCT CASE WHEN s.status = 'CANCELLED' THEN s.idSale END) AS cancelledSalesCount
+    v_cashSales AS cashSales,
+    v_nonCashSales AS nonCashSales,
+    v_manualIncome AS manualIncome,
+    v_manualExpense AS manualExpense,
+    (v_openingAmount + v_cashSales + v_manualIncome - v_manualExpense) AS expectedCash,
+    v_totalSales AS totalSales,
+    v_salesCount AS salesCount,
+    v_cancelledSalesCount AS cancelledSalesCount
   FROM cash_sessions cs
   INNER JOIN cash_registers cr
     ON cr.idCashRegister = cs.idCashRegister
     AND cr.idBusiness = cs.idBusiness
-  LEFT JOIN sales s
-    ON s.idCashSession = cs.idCashSession
-    AND s.idBusiness = cs.idBusiness
-  LEFT JOIN sale_payments sp
-    ON sp.idBusiness = s.idBusiness
-    AND sp.idSale = s.idSale
-    AND sp.idCashSession = cs.idCashSession
-  LEFT JOIN payment_methods pm
-    ON pm.idPaymentMethod = sp.idPaymentMethod
-    AND pm.idBusiness = sp.idBusiness
   WHERE cs.idBusiness = p_idBusiness
-    AND cs.idCashSession = p_idCashSession
-  GROUP BY
-    cs.idCashSession,
-    cs.idBusiness,
-    cs.idCashRegister,
-    cr.name,
-    cs.status,
-    cs.opened_at,
-    cs.closed_at,
-    cs.opening_amount;
+    AND cs.idCashSession = p_idCashSession;
 
   SELECT
     pm.idPaymentMethod,

@@ -8,12 +8,12 @@ export interface BusinessUserFixture {
   username: string;
   email: string;
   plainPasswordForTest: string;
-  role: "OWNER" | "ADMIN" | "SELLER";
+  role: "OWNER" | "ADMIN" | "SELLER" | "DELIVERY";
 }
 
 export async function createBusinessUserFixture(input: {
   idBusiness: number;
-  role?: "ADMIN" | "SELLER";
+  role?: "ADMIN" | "SELLER" | "DELIVERY";
   isActive?: boolean;
   businessUserIsActive?: boolean;
   mustChangePassword?: boolean;
