@@ -1,3 +1,4 @@
+
 DROP PROCEDURE IF EXISTS sp_sale_payment_create;
 DELIMITER $$
 
