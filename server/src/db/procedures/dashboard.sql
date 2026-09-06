@@ -45,7 +45,7 @@ BEGIN
       FROM purchases p
       WHERE p.idBusiness = p_idBusiness
         AND p.status = 'COMPLETED'
-        AND DATE(p.purchase_date) = CURDATE()
+        AND DATE(p.purchase_date) = UTC_DATE()
     ), 0) AS todayPurchasesTotal,
 
     COALESCE((
@@ -53,8 +53,8 @@ BEGIN
       FROM purchases p
       WHERE p.idBusiness = p_idBusiness
         AND p.status = 'COMPLETED'
-        AND YEAR(p.purchase_date) = YEAR(CURDATE())
-        AND MONTH(p.purchase_date) = MONTH(CURDATE())
+        AND YEAR(p.purchase_date) = YEAR(UTC_DATE())
+        AND MONTH(p.purchase_date) = MONTH(UTC_DATE())
     ), 0) AS monthPurchasesTotal,
 
     COALESCE((
@@ -62,7 +62,7 @@ BEGIN
       FROM purchases p
       WHERE p.idBusiness = p_idBusiness
         AND p.status = 'COMPLETED'
-        AND DATE(p.purchase_date) = CURDATE()
+        AND DATE(p.purchase_date) = UTC_DATE()
     ), 0) AS todayPurchasesCount,
 
     COALESCE((
@@ -70,8 +70,8 @@ BEGIN
       FROM purchases p
       WHERE p.idBusiness = p_idBusiness
         AND p.status = 'COMPLETED'
-        AND YEAR(p.purchase_date) = YEAR(CURDATE())
-        AND MONTH(p.purchase_date) = MONTH(CURDATE())
+        AND YEAR(p.purchase_date) = YEAR(UTC_DATE())
+        AND MONTH(p.purchase_date) = MONTH(UTC_DATE())
     ), 0) AS monthAveragePurchase,
 
     COALESCE((

@@ -464,6 +464,8 @@ BEGIN
     AND idSale = p_idSale
     AND status IN ('PENDING', 'ASSIGNED', 'FAILED');
 
+  SET v_done = 0;
+
   OPEN sale_detail_cursor;
 
   read_loop: LOOP

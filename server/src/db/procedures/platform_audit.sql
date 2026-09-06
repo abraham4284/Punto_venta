@@ -1,4 +1,4 @@
-USE `punto_venta_dev_clean_2`;
+
 
 DROP PROCEDURE IF EXISTS sp_platform_audit_create;
 DROP PROCEDURE IF EXISTS sp_platform_audit_list;
