@@ -21,6 +21,24 @@ function toNumber(value: string | number | null | undefined): number {
   return Number(value ?? 0);
 }
 
+function getCurrentDateParts(): {
+  todayDate: string;
+  currentYear: number;
+  currentMonth: number;
+} {
+  const now = new Date();
+  const currentYear = now.getUTCFullYear();
+  const currentMonth = now.getUTCMonth() + 1;
+  const month = String(currentMonth).padStart(2, "0");
+  const day = String(now.getUTCDate()).padStart(2, "0");
+
+  return {
+    todayDate: `${currentYear}-${month}-${day}`,
+    currentYear,
+    currentMonth,
+  };
+}
+
 async function getPurchaseMetricsFallback(
   idBusiness: number,
 ): Promise<Pick<
@@ -30,30 +48,32 @@ async function getPurchaseMetricsFallback(
   | "todayPurchasesCount"
   | "monthAveragePurchase"
 >> {
+  const currentDate = getCurrentDateParts();
+
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
       COALESCE(SUM(CASE
-        WHEN DATE(p.purchase_date) = CURDATE() THEN p.total
+        WHEN DATE(p.purchase_date) = ? THEN p.total
         ELSE 0
       END), 0) AS todayPurchasesTotal,
       COALESCE(SUM(CASE
-        WHEN YEAR(p.purchase_date) = YEAR(CURDATE())
-         AND MONTH(p.purchase_date) = MONTH(CURDATE()) THEN p.total
+        WHEN YEAR(p.purchase_date) = ?
+         AND MONTH(p.purchase_date) = ? THEN p.total
         ELSE 0
       END), 0) AS monthPurchasesTotal,
       COALESCE(SUM(CASE
-        WHEN DATE(p.purchase_date) = CURDATE() THEN 1
+        WHEN DATE(p.purchase_date) = ? THEN 1
         ELSE 0
       END), 0) AS todayPurchasesCount,
       COALESCE(
         SUM(CASE
-          WHEN YEAR(p.purchase_date) = YEAR(CURDATE())
-           AND MONTH(p.purchase_date) = MONTH(CURDATE()) THEN p.total
+          WHEN YEAR(p.purchase_date) = ?
+           AND MONTH(p.purchase_date) = ? THEN p.total
           ELSE 0
         END)
         / NULLIF(SUM(CASE
-          WHEN YEAR(p.purchase_date) = YEAR(CURDATE())
-           AND MONTH(p.purchase_date) = MONTH(CURDATE()) THEN 1
+          WHEN YEAR(p.purchase_date) = ?
+           AND MONTH(p.purchase_date) = ? THEN 1
           ELSE 0
         END), 0),
         0
@@ -61,7 +81,17 @@ async function getPurchaseMetricsFallback(
      FROM purchases p
      WHERE p.idBusiness = ?
        AND p.status = 'COMPLETED'`,
-    [idBusiness],
+    [
+      currentDate.todayDate,
+      currentDate.currentYear,
+      currentDate.currentMonth,
+      currentDate.todayDate,
+      currentDate.currentYear,
+      currentDate.currentMonth,
+      currentDate.currentYear,
+      currentDate.currentMonth,
+      idBusiness,
+    ],
   );
   const row = rows[0] as DashboardMetricsRow | undefined;
 
@@ -88,22 +118,10 @@ function mapMetrics(
     monthSalesTotal: toNumber(row?.monthSalesTotal),
     todaySalesCount: toNumber(row?.todaySalesCount),
     monthAverageTicket: toNumber(row?.monthAverageTicket),
-    todayPurchasesTotal:
-      row?.todayPurchasesTotal === undefined
-        ? purchaseFallback.todayPurchasesTotal
-        : toNumber(row.todayPurchasesTotal),
-    monthPurchasesTotal:
-      row?.monthPurchasesTotal === undefined
-        ? purchaseFallback.monthPurchasesTotal
-        : toNumber(row.monthPurchasesTotal),
-    todayPurchasesCount:
-      row?.todayPurchasesCount === undefined
-        ? purchaseFallback.todayPurchasesCount
-        : toNumber(row.todayPurchasesCount),
-    monthAveragePurchase:
-      row?.monthAveragePurchase === undefined
-        ? purchaseFallback.monthAveragePurchase
-        : toNumber(row.monthAveragePurchase),
+    todayPurchasesTotal: purchaseFallback.todayPurchasesTotal,
+    monthPurchasesTotal: purchaseFallback.monthPurchasesTotal,
+    todayPurchasesCount: purchaseFallback.todayPurchasesCount,
+    monthAveragePurchase: purchaseFallback.monthAveragePurchase,
     lowStockProducts: toNumber(row?.lowStockProducts),
     outOfStockProducts: toNumber(row?.outOfStockProducts),
     activeProducts: toNumber(row?.activeProducts),

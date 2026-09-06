@@ -1,3 +1,4 @@
+
 DROP PROCEDURE IF EXISTS sp_sale_payment_create;
 DELIMITER $$
 
@@ -448,6 +449,14 @@ BEGIN
   DECLARE v_deliveryAssignedUser INT;
   DECLARE v_deliveryStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  START TRANSACTION;
+
   SELECT sp.status, sp.idPaymentMethod, sd.assigned_to_user_id, sd.status
   INTO v_status, v_currentMethod, v_deliveryAssignedUser, v_deliveryStatus
   FROM sale_payments sp
@@ -550,6 +559,8 @@ BEGIN
     p_actorUserId
   );
 
+  COMMIT;
+
   CALL sp_sale_payment_get_by_id(p_idBusiness, p_idSalePayment);
 END$$
 
@@ -568,6 +579,14 @@ CREATE PROCEDURE sp_sale_payment_confirm(
 BEGIN
   DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  START TRANSACTION;
 
   SELECT status
   INTO v_status
@@ -631,6 +650,8 @@ BEGIN
     JSON_OBJECT('idCashSession', p_idCashSession),
     p_actorUserId
   );
+
+  COMMIT;
 
   CALL sp_sale_payment_get_by_id(p_idBusiness, p_idSalePayment);
 END$$

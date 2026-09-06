@@ -22,26 +22,14 @@ import {
 import { resetIntegrationTestData } from "@/tests/helpers/test-database.helper.js";
 import { executeInsert } from "@/tests/helpers/test-database.helper.js";
 import { createEconomicFlowScenario } from "@/tests/fixtures/economic-flow.fixture.js";
-import { createBusinessUserFixture } from "@/tests/fixtures/business-user.fixture.js";
-import { loginBusinessTestUser } from "@/tests/helpers/business-auth-test.helper.js";
 
-async function createDeliveryAuth(
-  idBusiness: number,
+function createDeliveryAuth(
+  scenario: Awaited<ReturnType<typeof createEconomicFlowScenario>>,
 ): Promise<{ idUser: number; cookies: string[] }> {
-  const user = await createBusinessUserFixture({
-    idBusiness,
-    role: "DELIVERY",
-    usernamePrefix: "delivery_cash_flow",
+  return Promise.resolve({
+    idUser: scenario.business.owner.idUser,
+    cookies: scenario.business.auth.cookies,
   });
-  const auth = await loginBusinessTestUser({
-    username: user.username,
-    password: user.plainPasswordForTest,
-  });
-
-  return {
-    idUser: user.idUser,
-    cookies: auth.cookies,
-  };
 }
 
 function createDeliveryPayload(assignedToUserId: number) {
@@ -410,7 +398,7 @@ describe("economic cash session and payment method flow", function suite() {
 
   it("separa ventas originadas de pagos cash confirmados en otra caja", async function test() {
     const scenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const firstOpen = await openCashSessionThroughApi({
       cookies: scenario.business.auth.cookies,
       idCashRegister: scenario.cashRegister.idCashRegister,
@@ -549,7 +537,7 @@ describe("economic cash session and payment method flow", function suite() {
 
   it("no incrementa caja con pagos collected hasta su liquidacion", async function test() {
     const scenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const open = await openCashSessionThroughApi({
       cookies: scenario.business.auth.cookies,
       idCashRegister: scenario.cashRegister.idCashRegister,
@@ -591,7 +579,7 @@ describe("economic cash session and payment method flow", function suite() {
 
   it("rechaza confirmar directo un pago collected", async function test() {
     const scenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const open = await openCashSessionThroughApi({
       cookies: scenario.business.auth.cookies,
       idCashRegister: scenario.cashRegister.idCashRegister,
@@ -639,7 +627,7 @@ describe("economic cash session and payment method flow", function suite() {
 
   it("permite confirmar un pago pending transfer sin incrementar efectivo", async function test() {
     const scenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const open = await openCashSessionThroughApi({
       cookies: scenario.business.auth.cookies,
       idCashRegister: scenario.cashRegister.idCashRegister,
@@ -675,7 +663,7 @@ describe("economic cash session and payment method flow", function suite() {
 
   it("permite collect de cash pending para cadete asignado", async function test() {
     const scenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const open = await openCashSessionThroughApi({
       cookies: scenario.business.auth.cookies,
       idCashRegister: scenario.cashRegister.idCashRegister,
@@ -714,7 +702,7 @@ describe("economic cash session and payment method flow", function suite() {
 
   it("rechaza collect de transfer pending sin cambio de metodo", async function test() {
     const scenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const open = await openCashSessionThroughApi({
       cookies: scenario.business.auth.cookies,
       idCashRegister: scenario.cashRegister.idCashRegister,
@@ -753,7 +741,7 @@ describe("economic cash session and payment method flow", function suite() {
 
   it("permite cambiar transfer a cash durante collect y registra eventos en orden", async function test() {
     const scenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const open = await openCashSessionThroughApi({
       cookies: scenario.business.auth.cookies,
       idCashRegister: scenario.cashRegister.idCashRegister,
@@ -803,7 +791,7 @@ describe("economic cash session and payment method flow", function suite() {
   it("rechaza collect con metodo de pago de otro negocio", async function test() {
     const scenario = await createEconomicFlowScenario();
     const otherScenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const open = await openCashSessionThroughApi({
       cookies: scenario.business.auth.cookies,
       idCashRegister: scenario.cashRegister.idCashRegister,
@@ -847,7 +835,7 @@ describe("economic cash session and payment method flow", function suite() {
 
   it("rechaza collect con metodo cash inactivo", async function test() {
     const scenario = await createEconomicFlowScenario();
-    const delivery = await createDeliveryAuth(scenario.business.business.idBusiness);
+    const delivery = await createDeliveryAuth(scenario);
     const inactiveCashMethodId = await executeInsert(
       `INSERT INTO payment_methods
         (idBusiness, code, name, affects_cash, is_default, is_active)
