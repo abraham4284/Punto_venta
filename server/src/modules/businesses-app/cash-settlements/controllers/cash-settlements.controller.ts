@@ -3,12 +3,14 @@ import { z } from "zod";
 import {
   createCashSettlementService,
   getCashSettlementByIdService,
+  getPendingCashSettlementsService,
   listCashSettlementsService,
 } from "../services/cash-settlements.service.js";
 import {
   cashSettlementIdParamSchema,
   cashSettlementListQuerySchema,
   createCashSettlementSchema,
+  pendingCashSettlementsQuerySchema,
 } from "../validations/cash-settlements.validations.js";
 
 interface ControllerError {
@@ -90,6 +92,38 @@ export async function getCashSettlementByIdController(
     return res.status(200).json({
       status: true,
       message: "Liquidacion obtenida correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        status: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
+    return res.status(400).json({
+      status: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function getPendingCashSettlementsController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const data = pendingCashSettlementsQuerySchema.parse({
+      idBusiness: req.user!.idBusiness,
+      collectorUserId: req.query.collectorUserId || null,
+    });
+    const result = await getPendingCashSettlementsService(data);
+
+    return res.status(200).json({
+      status: true,
+      message: "Pagos pendientes de rendicion obtenidos correctamente",
       data: result,
     });
   } catch (error: unknown) {

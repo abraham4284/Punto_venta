@@ -258,3 +258,36 @@ export function confirmSalePaymentThroughApi(input: {
       idCashSession: input.idCashSession,
     });
 }
+
+export function createCashSettlementThroughApi(input: {
+  cookies: string[];
+  collectorUserId: number;
+  idCashSession: number;
+  salePaymentIds: number[];
+  observation?: string | null;
+}): Promise<Response> {
+  return request(getTestApp())
+    .post("/api/cash-settlements")
+    .set("Cookie", input.cookies)
+    .send({
+      collectorUserId: input.collectorUserId,
+      idCashSession: input.idCashSession,
+      salePaymentIds: input.salePaymentIds,
+      observation: input.observation ?? null,
+    });
+}
+
+export function getPendingCashSettlementsThroughApi(input: {
+  cookies: string[];
+  collectorUserId?: number | null;
+}): Promise<Response> {
+  const requestBuilder = request(getTestApp())
+    .get("/api/cash-settlements/pending")
+    .set("Cookie", input.cookies);
+
+  if (input.collectorUserId !== undefined && input.collectorUserId !== null) {
+    return requestBuilder.query({ collectorUserId: input.collectorUserId });
+  }
+
+  return requestBuilder;
+}
