@@ -3,6 +3,8 @@ import type {
   CashSettlementPaymentDbRow,
   CashSettlementPaymentResponse,
   CashSettlementResponse,
+  PendingCashSettlementPaymentDbRow,
+  PendingCashSettlementPaymentResponse,
 } from "../types/index.js";
 
 export function mapCashSettlement(row: CashSettlementDbRow): CashSettlementResponse {
@@ -36,5 +38,18 @@ export function mapCashSettlementPayment(
     confirmedAt: row.confirmed_at,
     reference: row.reference,
     observation: row.observation,
+  };
+}
+
+export function mapPendingCashSettlementPayment(
+  row: PendingCashSettlementPaymentDbRow,
+): PendingCashSettlementPaymentResponse {
+  return {
+    idSalePayment: row.idSalePayment,
+    idSale: row.idSale,
+    saleNumber: row.sale_number,
+    amount: Number(row.amount),
+    collectedAt: row.collected_at,
+    customerName: row.customer_name,
   };
 }
