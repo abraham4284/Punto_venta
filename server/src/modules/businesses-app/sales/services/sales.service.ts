@@ -334,8 +334,8 @@ export async function cancelSaleService(
   data: CancelSalePayload,
 ): Promise<SaleWithDetailsResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_cancel_sale_and_revert_stock(?, ?)",
-    [data.idSale, data.idBusiness],
+    "CALL sp_cancel_sale_and_revert_stock(?, ?, ?)",
+    [data.idSale, data.idBusiness, data.idUser],
   );
 
   const result = rows as unknown as [

@@ -243,7 +243,10 @@ export async function cancelSaleController(
       idSale: Number(req.params.id),
     };
     const data = saleIdParamSchema.parse(params);
-    const result = await cancelSaleService(data);
+    const result = await cancelSaleService({
+      ...data,
+      idUser: req.user!.idUser,
+    });
 
     return res.status(200).json({
       status: true,

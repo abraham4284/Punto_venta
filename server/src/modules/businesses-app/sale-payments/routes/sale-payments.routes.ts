@@ -6,6 +6,7 @@ import {
   collectSalePaymentController,
   confirmSalePaymentController,
   createSalePaymentController,
+  getSalePaymentEventsController,
   listSalePaymentsController,
   updateSalePaymentController,
 } from "../controllers/sale-payments.controller.js";
@@ -31,6 +32,13 @@ router.patch(
   requireAuth,
   requirePermission("sale_payments.update"),
   updateSalePaymentController,
+);
+
+router.get(
+  "/sale-payments/:idSalePayment/events",
+  requireAuth,
+  requirePermission("sale_payments.view"),
+  getSalePaymentEventsController,
 );
 
 router.patch(

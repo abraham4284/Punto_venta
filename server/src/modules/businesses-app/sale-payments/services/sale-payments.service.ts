@@ -1,13 +1,23 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/db/db.js";
-import { mapSalePayment } from "../helpers/sale-payment.mapper.js";
+import {
+  mapSalePayment,
+  mapSalePaymentEvent,
+} from "../helpers/sale-payment.mapper.js";
 import type {
   CreateSalePaymentPayload,
+  SalePaymentAccessFilters,
   SalePaymentActionPayload,
   SalePaymentDbRow,
+  SalePaymentEventDbRow,
+  SalePaymentEventResponse,
   SalePaymentResponse,
   UpdateSalePaymentPayload,
 } from "../types/index.js";
+
+interface CountRow extends RowDataPacket {
+  total: number;
+}
 
 function getFirstPayment(rows: RowDataPacket[], errorMessage: string): SalePaymentResponse {
   const result = rows as unknown as SalePaymentDbRow[][];
@@ -31,6 +41,78 @@ export async function listSalePaymentsService(
   const result = rows as unknown as SalePaymentDbRow[][];
 
   return (result[0] ?? []).map(mapSalePayment);
+}
+
+export async function canAccessSalePaymentsBySaleService(
+  idSale: number,
+  filters: SalePaymentAccessFilters,
+): Promise<boolean> {
+  if (filters.actorCanViewAll) {
+    const [rows] = await pool.query<CountRow[]>(
+      "SELECT COUNT(*) AS total FROM sales WHERE idBusiness = ? AND idSale = ?",
+      [filters.idBusiness, idSale],
+    );
+
+    return Number(rows[0]?.total ?? 0) > 0;
+  }
+
+  const [rows] = await pool.query<CountRow[]>(
+    `SELECT COUNT(*) AS total
+     FROM sale_deliveries sd
+     INNER JOIN sales s
+       ON s.idBusiness = sd.idBusiness
+       AND s.idSale = sd.idSale
+     WHERE s.idBusiness = ?
+       AND s.idSale = ?
+       AND sd.assigned_to_user_id = ?`,
+    [filters.idBusiness, idSale, filters.idUser],
+  );
+
+  return Number(rows[0]?.total ?? 0) > 0;
+}
+
+export async function canAccessSalePaymentService(
+  idSalePayment: number,
+  filters: SalePaymentAccessFilters,
+): Promise<boolean> {
+  if (filters.actorCanViewAll) {
+    const [rows] = await pool.query<CountRow[]>(
+      `SELECT COUNT(*) AS total
+       FROM sale_payments
+       WHERE idBusiness = ?
+         AND idSalePayment = ?`,
+      [filters.idBusiness, idSalePayment],
+    );
+
+    return Number(rows[0]?.total ?? 0) > 0;
+  }
+
+  const [rows] = await pool.query<CountRow[]>(
+    `SELECT COUNT(*) AS total
+     FROM sale_payments sp
+     INNER JOIN sale_deliveries sd
+       ON sd.idBusiness = sp.idBusiness
+       AND sd.idSale = sp.idSale
+     WHERE sp.idBusiness = ?
+       AND sp.idSalePayment = ?
+       AND sd.assigned_to_user_id = ?`,
+    [filters.idBusiness, idSalePayment, filters.idUser],
+  );
+
+  return Number(rows[0]?.total ?? 0) > 0;
+}
+
+export async function getSalePaymentEventsService(
+  idBusiness: number,
+  idSalePayment: number,
+): Promise<SalePaymentEventResponse[]> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_sale_payment_events_list(?, ?)",
+    [idBusiness, idSalePayment],
+  );
+  const result = rows as unknown as SalePaymentEventDbRow[][];
+
+  return (result[0] ?? []).map(mapSalePaymentEvent);
 }
 
 export async function createSalePaymentService(

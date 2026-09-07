@@ -6,6 +6,7 @@ import {
   assignDeliveryController,
   changeDeliveryStatusController,
   getDeliveryByIdController,
+  getDeliveryEventsController,
   listDeliveriesController,
 } from "../controllers/deliveries.controller.js";
 import type { DeliveryStatus } from "../types/index.js";
@@ -28,6 +29,12 @@ router.get(
   requireAuth,
   requirePermission("deliveries.view"),
   listDeliveriesController,
+);
+router.get(
+  "/deliveries/:id/events",
+  requireAuth,
+  requirePermission("deliveries.view"),
+  getDeliveryEventsController,
 );
 router.get(
   "/deliveries/:id",

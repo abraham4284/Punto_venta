@@ -193,6 +193,15 @@ export function cancelSaleThroughApi(input: {
     .send({});
 }
 
+export function listSalePaymentsThroughApi(input: {
+  cookies: string[];
+  idSale: number;
+}): Promise<Response> {
+  return request(getTestApp())
+    .get(`/api/sales/${input.idSale}/payments`)
+    .set("Cookie", input.cookies);
+}
+
 export function transferStockThroughApi(input: {
   cookies: string[];
   idProduct: number;
@@ -231,6 +240,15 @@ export function changeDeliveryStatusThroughApi(input: {
     });
 }
 
+export function getDeliveryEventsThroughApi(input: {
+  cookies: string[];
+  idSaleDelivery: number;
+}): Promise<Response> {
+  return request(getTestApp())
+    .get(`/api/deliveries/${input.idSaleDelivery}/events`)
+    .set("Cookie", input.cookies);
+}
+
 export function collectSalePaymentThroughApi(input: {
   cookies: string[];
   idSalePayment: number;
@@ -257,6 +275,15 @@ export function confirmSalePaymentThroughApi(input: {
     .send({
       idCashSession: input.idCashSession,
     });
+}
+
+export function getSalePaymentEventsThroughApi(input: {
+  cookies: string[];
+  idSalePayment: number;
+}): Promise<Response> {
+  return request(getTestApp())
+    .get(`/api/sale-payments/${input.idSalePayment}/events`)
+    .set("Cookie", input.cookies);
 }
 
 export function createCashSettlementThroughApi(input: {
