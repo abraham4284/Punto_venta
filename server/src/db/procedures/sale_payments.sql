@@ -146,6 +146,38 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS sp_sale_payment_events_list;
+DELIMITER $$
+
+CREATE PROCEDURE sp_sale_payment_events_list(
+  IN p_idBusiness INT,
+  IN p_idSalePayment BIGINT
+)
+BEGIN
+  SELECT
+    spe.idSalePaymentEvent,
+    spe.idBusiness,
+    spe.idSalePayment,
+    spe.event_type,
+    spe.previous_status,
+    spe.new_status,
+    spe.metadata,
+    spe.created_by_user_id,
+    u.name AS created_by_user_name,
+    spe.created_at
+  FROM sale_payment_events spe
+  INNER JOIN sale_payments sp
+    ON sp.idBusiness = spe.idBusiness
+    AND sp.idSalePayment = spe.idSalePayment
+  LEFT JOIN users u ON u.idUser = spe.created_by_user_id
+  WHERE spe.idBusiness = p_idBusiness
+    AND spe.idSalePayment = p_idSalePayment
+  ORDER BY spe.created_at ASC, spe.idSalePaymentEvent ASC;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS sp_sale_payment_get_by_id;
 DELIMITER $$
 

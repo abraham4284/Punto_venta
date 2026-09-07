@@ -46,7 +46,7 @@ BEGIN
     INNER JOIN users u ON u.idUser = bu.idUser
     WHERE bu.idBusiness = p_idBusiness
       AND bu.idUser = p_assignedToUserId
-      AND bu.role IN ('DELIVERY', 'ADMIN', 'OWNER')
+      AND bu.role = 'DELIVERY'
       AND bu.is_active = 1
       AND u.is_active = 1
   ) THEN
@@ -108,6 +108,38 @@ BEGIN
   );
 
   CALL sp_delivery_get_by_id(p_idBusiness, v_idSaleDelivery);
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_delivery_events_list;
+DELIMITER $$
+
+CREATE PROCEDURE sp_delivery_events_list(
+  IN p_idBusiness INT,
+  IN p_idSaleDelivery BIGINT
+)
+BEGIN
+  SELECT
+    de.idDeliveryEvent,
+    de.idBusiness,
+    de.idSaleDelivery,
+    de.event_type,
+    de.previous_status,
+    de.new_status,
+    de.metadata,
+    de.created_by_user_id,
+    u.name AS created_by_user_name,
+    de.created_at
+  FROM delivery_events de
+  INNER JOIN sale_deliveries sd
+    ON sd.idBusiness = de.idBusiness
+    AND sd.idSaleDelivery = de.idSaleDelivery
+  LEFT JOIN users u ON u.idUser = de.created_by_user_id
+  WHERE de.idBusiness = p_idBusiness
+    AND de.idSaleDelivery = p_idSaleDelivery
+  ORDER BY de.created_at ASC, de.idDeliveryEvent ASC;
 END$$
 
 DELIMITER ;
@@ -248,7 +280,13 @@ CREATE PROCEDURE sp_delivery_assign(
 BEGIN
   DECLARE v_previousStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_assignedToUserId INT;
-  DECLARE v_actorRole VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  START TRANSACTION;
 
   SELECT status, assigned_to_user_id
   INTO v_previousStatus, v_assignedToUserId
@@ -272,7 +310,7 @@ BEGIN
     INNER JOIN users u ON u.idUser = bu.idUser
     WHERE bu.idBusiness = p_idBusiness
       AND bu.idUser = p_assignedToUserId
-      AND bu.role IN ('DELIVERY', 'ADMIN', 'OWNER')
+      AND bu.role = 'DELIVERY'
       AND bu.is_active = 1
       AND u.is_active = 1
   ) THEN
@@ -293,6 +331,8 @@ BEGIN
   VALUES
     (p_idBusiness, p_idSaleDelivery, 'DELIVERY_ASSIGNED', v_previousStatus, 'ASSIGNED', JSON_OBJECT('assignedToUserId', p_assignedToUserId), p_actorUserId);
 
+  COMMIT;
+
   CALL sp_delivery_get_by_id(p_idBusiness, p_idSaleDelivery);
 END$$
 
@@ -307,6 +347,7 @@ CREATE PROCEDURE sp_delivery_change_status(
   IN p_idSaleDelivery BIGINT,
   IN p_newStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_actorUserId INT,
+  IN p_actorCanViewAll TINYINT,
   IN p_failureReason VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_scheduledAt DATETIME,
   IN p_observation VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
@@ -315,7 +356,15 @@ BEGIN
   DECLARE v_previousStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_eventType VARCHAR(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_assignedToUserId INT;
-  DECLARE v_actorRole VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_actorExists INT DEFAULT 0;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  START TRANSACTION;
 
   SELECT status, assigned_to_user_id
   INTO v_previousStatus, v_assignedToUserId
@@ -329,19 +378,18 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_NOT_FOUND';
   END IF;
 
-  SELECT role
-  INTO v_actorRole
+  SELECT COUNT(*)
+  INTO v_actorExists
   FROM business_users
   WHERE idBusiness = p_idBusiness
     AND idUser = p_actorUserId
-    AND is_active = 1
-  LIMIT 1;
+    AND is_active = 1;
 
-  IF v_actorRole IS NULL THEN
+  IF v_actorExists = 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_ACTOR_NOT_FOUND';
   END IF;
 
-  IF v_actorRole = 'DELIVERY'
+  IF COALESCE(p_actorCanViewAll, 0) = 0
     AND (v_assignedToUserId IS NULL OR v_assignedToUserId <> p_actorUserId)
   THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_FORBIDDEN';
@@ -359,7 +407,7 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_MUST_BE_OUT_FOR_DELIVERY';
   END IF;
 
-  IF p_newStatus = 'FAILED' AND v_previousStatus NOT IN ('ASSIGNED', 'OUT_FOR_DELIVERY') THEN
+  IF p_newStatus = 'FAILED' AND v_previousStatus <> 'OUT_FOR_DELIVERY' THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_CANNOT_FAIL';
   END IF;
 
@@ -404,6 +452,8 @@ BEGIN
     (idBusiness, idSaleDelivery, event_type, previous_status, new_status, metadata, created_by_user_id)
   VALUES
     (p_idBusiness, p_idSaleDelivery, v_eventType, v_previousStatus, p_newStatus, JSON_OBJECT('failureReason', p_failureReason, 'scheduledAt', p_scheduledAt, 'observation', p_observation), p_actorUserId);
+
+  COMMIT;
 
   CALL sp_delivery_get_by_id(p_idBusiness, p_idSaleDelivery);
 END$$

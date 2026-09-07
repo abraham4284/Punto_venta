@@ -144,6 +144,7 @@ export interface CreateSaleServiceResponse {
 export interface CancelSalePayload {
   idBusiness: number;
   idSale: number;
+  idUser: number;
 }
 
 export interface GetSalesFilters {

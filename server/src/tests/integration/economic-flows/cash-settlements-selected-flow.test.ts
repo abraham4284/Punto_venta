@@ -22,6 +22,7 @@ import {
 } from "@/tests/helpers/test-database.helper.js";
 import { createBusinessUserFixture } from "@/tests/fixtures/business-user.fixture.js";
 import { createEconomicFlowScenario } from "@/tests/fixtures/economic-flow.fixture.js";
+import { loginBusinessTestUser } from "@/tests/helpers/business-auth-test.helper.js";
 
 interface SettlementResponseBody {
   data?: {
@@ -49,6 +50,11 @@ interface PendingSettlementResponseBody {
   };
 }
 
+interface DeliveryAuth {
+  idUser: number;
+  cookies: string[];
+}
+
 function createDeliveryPayload(assignedToUserId: number) {
   return {
     assignedToUserId,
@@ -57,6 +63,26 @@ function createDeliveryPayload(assignedToUserId: number) {
     deliveryAddress: "Calle cash settlement 123",
     deliveryReference: "Mostrador",
     observation: "Entrega para rendicion",
+  };
+}
+
+async function createDeliveryAuth(
+  idBusiness: number,
+  usernamePrefix: string,
+): Promise<DeliveryAuth> {
+  const deliveryUser = await createBusinessUserFixture({
+    idBusiness,
+    role: "DELIVERY",
+    usernamePrefix,
+  });
+  const auth = await loginBusinessTestUser({
+    username: deliveryUser.username,
+    password: deliveryUser.plainPasswordForTest,
+  });
+
+  return {
+    idUser: deliveryUser.idUser,
+    cookies: auth.cookies,
   };
 }
 
@@ -142,10 +168,15 @@ async function prepareCollectedPayments(input: {
   amounts: number[];
 }): Promise<{
   scenario: Awaited<ReturnType<typeof createEconomicFlowScenario>>;
+  delivery: DeliveryAuth;
   idCashSession: number;
   salePaymentIds: number[];
 }> {
   const scenario = await createEconomicFlowScenario();
+  const delivery = await createDeliveryAuth(
+    scenario.business.business.idBusiness,
+    "settlement_delivery",
+  );
   const open = await openCashSessionThroughApi({
     cookies: scenario.business.auth.cookies,
     idCashRegister: scenario.cashRegister.idCashRegister,
@@ -158,8 +189,8 @@ async function prepareCollectedPayments(input: {
     salePaymentIds.push(
       await createCollectedPayment({
         cookies: scenario.business.auth.cookies,
-        collectorCookies: scenario.business.auth.cookies,
-        collectorUserId: scenario.business.owner.idUser,
+        collectorCookies: delivery.cookies,
+        collectorUserId: delivery.idUser,
         idCashSession,
         idDeposit: scenario.sourceDeposit.idDeposit,
         idPaymentMethod: scenario.cashPaymentMethod.idPaymentMethod,
@@ -171,6 +202,7 @@ async function prepareCollectedPayments(input: {
 
   return {
     scenario,
+    delivery,
     idCashSession,
     salePaymentIds,
   };
@@ -195,12 +227,12 @@ describe("economic selected cash settlements flow", function suite() {
     const setup = await prepareCollectedPayments({ amounts: [20, 15, 10] });
     const pendingBefore = await getPendingCashSettlementsThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
     });
 
     const response = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: [setup.salePaymentIds[0], setup.salePaymentIds[1]],
       observation: "Rendicion parcial",
@@ -214,7 +246,7 @@ describe("economic selected cash settlements flow", function suite() {
     const thirdEvents = await getSalePaymentEvents(setup.salePaymentIds[2]);
     const pendingAfter = await getPendingCashSettlementsThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
     });
     const summary = await getCashSessionSummaryThroughApi({
       cookies: setup.scenario.business.auth.cookies,
@@ -252,13 +284,13 @@ describe("economic selected cash settlements flow", function suite() {
     const setup = await prepareCollectedPayments({ amounts: [20] });
     const emptyResponse = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: [],
     });
     const duplicateResponse = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: [setup.salePaymentIds[0], setup.salePaymentIds[0]],
     });
@@ -277,7 +309,7 @@ describe("economic selected cash settlements flow", function suite() {
     const setup = await prepareCollectedPayments({ amounts: [20, 15] });
     const otherCollector = await createBusinessUserFixture({
       idBusiness: setup.scenario.business.business.idBusiness,
-      role: "ADMIN",
+      role: "DELIVERY",
       usernamePrefix: "settlement_other_collector",
     });
 
@@ -292,14 +324,14 @@ describe("economic selected cash settlements flow", function suite() {
 
     const mixedResponse = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: setup.salePaymentIds,
     });
     const tenantB = await prepareCollectedPayments({ amounts: [99] });
     const crossTenantResponse = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: [setup.salePaymentIds[0], tenantB.salePaymentIds[0]],
     });
@@ -322,25 +354,25 @@ describe("economic selected cash settlements flow", function suite() {
       idCashSession: setup.idCashSession,
       idPaymentMethod: setup.scenario.cashPaymentMethod.idPaymentMethod,
       idProduct: setup.scenario.product.idProduct,
-      assignedToUserId: setup.scenario.business.owner.idUser,
+      assignedToUserId: setup.delivery.idUser,
       total: 10,
     });
     const pendingPaymentId = Number(pendingSale.body.data.payments[0].idSalePayment);
     const invalidStatusResponse = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: [setup.salePaymentIds[0], pendingPaymentId],
     });
     const settledResponse = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: [setup.salePaymentIds[0]],
     });
     const alreadySettledResponse = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: [setup.salePaymentIds[0]],
     });
@@ -352,7 +384,7 @@ describe("economic selected cash settlements flow", function suite() {
     });
     const closedSessionResponse = await createCashSettlementThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
       idCashSession: setup.idCashSession,
       salePaymentIds: [setup.salePaymentIds[1]],
     });
@@ -378,13 +410,13 @@ describe("economic selected cash settlements flow", function suite() {
     const tenantB = await prepareCollectedPayments({ amounts: [99] });
     const response = await getPendingCashSettlementsThroughApi({
       cookies: setup.scenario.business.auth.cookies,
-      collectorUserId: setup.scenario.business.owner.idUser,
+      collectorUserId: setup.delivery.idUser,
     });
     const collectors = getPendingCollectors(response.body);
 
     expect(response.status).toBe(200);
     expect(collectors).toHaveLength(1);
-    expect(collectors[0]?.collectorUserId).toBe(setup.scenario.business.owner.idUser);
+    expect(collectors[0]?.collectorUserId).toBe(setup.delivery.idUser);
     expect(collectors[0]?.payments.map(function mapPayment(payment) {
       return payment.idSalePayment;
     })).toEqual([setup.salePaymentIds[0]]);
@@ -398,13 +430,13 @@ describe("economic selected cash settlements flow", function suite() {
     const responses = await Promise.all([
       createCashSettlementThroughApi({
         cookies: setup.scenario.business.auth.cookies,
-        collectorUserId: setup.scenario.business.owner.idUser,
+        collectorUserId: setup.delivery.idUser,
         idCashSession: setup.idCashSession,
         salePaymentIds: [setup.salePaymentIds[0]],
       }),
       createCashSettlementThroughApi({
         cookies: setup.scenario.business.auth.cookies,
-        collectorUserId: setup.scenario.business.owner.idUser,
+        collectorUserId: setup.delivery.idUser,
         idCashSession: setup.idCashSession,
         salePaymentIds: [setup.salePaymentIds[0]],
       }),

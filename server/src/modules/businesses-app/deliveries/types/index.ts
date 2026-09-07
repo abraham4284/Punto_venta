@@ -9,6 +9,23 @@ export type DeliveryStatus =
   | "FAILED"
   | "CANCELLED";
 
+export type DeliveryEventType =
+  | "DELIVERY_CREATED"
+  | "DELIVERY_ASSIGNED"
+  | "DELIVERY_OUT_FOR_DELIVERY"
+  | "DELIVERY_DELIVERED"
+  | "DELIVERY_FAILED"
+  | "DELIVERY_CANCELLED"
+  | "DELIVERY_RESCHEDULED";
+
+export type JsonValue =
+  | null
+  | string
+  | number
+  | boolean
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 export interface DeliveryDbRow {
   idSaleDelivery: number;
   idBusiness: number;
@@ -89,11 +106,38 @@ export interface DeliveryActionPayload {
   idBusiness: number;
   idSaleDelivery: number;
   idUser: number;
+  actorCanViewAll?: boolean;
   assignedToUserId?: number | null;
   status?: DeliveryStatus;
   scheduledAt?: Date | null;
   failureReason?: string | null;
   observation?: string | null;
+}
+
+export interface DeliveryEventDbRow {
+  idDeliveryEvent: number;
+  idBusiness: number;
+  idSaleDelivery: number;
+  event_type: DeliveryEventType;
+  previous_status: DeliveryStatus | null;
+  new_status: DeliveryStatus | null;
+  metadata: string | Buffer | JsonValue | null;
+  created_by_user_id: number | null;
+  created_by_user_name: string | null;
+  created_at: Date;
+}
+
+export interface DeliveryEventResponse {
+  idDeliveryEvent: number;
+  idBusiness: number;
+  idSaleDelivery: number;
+  eventType: DeliveryEventType;
+  previousStatus: DeliveryStatus | null;
+  newStatus: DeliveryStatus | null;
+  metadata: JsonValue | null;
+  createdByUserId: number | null;
+  createdByUserName: string | null;
+  createdAt: Date;
 }
 
 export interface TotalRecordsDbRow {
