@@ -1,9 +1,11 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/db/db.js";
-import { mapDelivery } from "../helpers/delivery.mapper.js";
+import { mapDelivery, mapDeliveryEvent } from "../helpers/delivery.mapper.js";
 import type {
   DeliveryActionPayload,
   DeliveryDbRow,
+  DeliveryEventDbRow,
+  DeliveryEventResponse,
   DeliveryListFilters,
   DeliveryResponse,
   PaginatedDeliveriesResponse,
@@ -81,12 +83,13 @@ export async function changeDeliveryStatusService(
   data: DeliveryActionPayload,
 ): Promise<DeliveryResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_delivery_change_status(?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_delivery_change_status(?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idSaleDelivery,
       data.status,
       data.idUser,
+      data.actorCanViewAll ? 1 : 0,
       data.failureReason ?? null,
       data.scheduledAt ?? null,
       data.observation ?? null,
@@ -94,4 +97,17 @@ export async function changeDeliveryStatusService(
   );
 
   return getFirstDelivery(rows, "No se pudo actualizar la entrega");
+}
+
+export async function getDeliveryEventsService(
+  idBusiness: number,
+  idSaleDelivery: number,
+): Promise<DeliveryEventResponse[]> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_delivery_events_list(?, ?)",
+    [idBusiness, idSaleDelivery],
+  );
+  const result = rows as unknown as DeliveryEventDbRow[][];
+
+  return (result[0] ?? []).map(mapDeliveryEvent);
 }

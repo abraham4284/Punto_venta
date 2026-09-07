@@ -76,6 +76,8 @@ export interface SalePaymentStateRow extends RowDataPacket {
   collected_at: Date | null;
   confirmed_by_user_id: number | null;
   confirmed_at: Date | null;
+  cancelled_by_user_id: number | null;
+  cancelled_at: Date | null;
   idCashSession: number | null;
   idCashSettlement: number | null;
 }
@@ -95,6 +97,52 @@ export interface SalePaymentEventRow extends RowDataPacket {
     | "PAYMENT_MIGRATED";
   previous_status: "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED" | null;
   new_status: "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED" | null;
+  created_by_user_id: number | null;
+}
+
+export interface DeliveryStateRow extends RowDataPacket {
+  idSaleDelivery: number;
+  idBusiness: number;
+  idSale: number;
+  assigned_to_user_id: number | null;
+  status:
+    | "PENDING"
+    | "ASSIGNED"
+    | "OUT_FOR_DELIVERY"
+    | "DELIVERED"
+    | "FAILED"
+    | "CANCELLED";
+}
+
+export interface DeliveryEventRow extends RowDataPacket {
+  idDeliveryEvent: number;
+  idBusiness: number;
+  idSaleDelivery: number;
+  event_type:
+    | "DELIVERY_CREATED"
+    | "DELIVERY_ASSIGNED"
+    | "DELIVERY_OUT_FOR_DELIVERY"
+    | "DELIVERY_DELIVERED"
+    | "DELIVERY_FAILED"
+    | "DELIVERY_CANCELLED"
+    | "DELIVERY_RESCHEDULED";
+  previous_status:
+    | "PENDING"
+    | "ASSIGNED"
+    | "OUT_FOR_DELIVERY"
+    | "DELIVERED"
+    | "FAILED"
+    | "CANCELLED"
+    | null;
+  new_status:
+    | "PENDING"
+    | "ASSIGNED"
+    | "OUT_FOR_DELIVERY"
+    | "DELIVERED"
+    | "FAILED"
+    | "CANCELLED"
+    | null;
+  created_by_user_id: number | null;
 }
 
 export interface CashPaymentSummaryRow extends RowDataPacket {
@@ -233,6 +281,8 @@ export async function getSalePaymentState(
        collected_at,
        confirmed_by_user_id,
        confirmed_at,
+       cancelled_by_user_id,
+       cancelled_at,
        idCashSession,
        idCashSettlement
      FROM sale_payments
@@ -251,11 +301,44 @@ export async function getSalePaymentEvents(
        idSalePayment,
        event_type,
        previous_status,
-       new_status
+       new_status,
+       created_by_user_id
      FROM sale_payment_events
      WHERE idSalePayment = ?
      ORDER BY idSalePaymentEvent ASC`,
     [idSalePayment],
+  );
+
+  return rows;
+}
+
+export async function getDeliveryState(
+  idSaleDelivery: number,
+): Promise<DeliveryStateRow | null> {
+  return querySingleRow<DeliveryStateRow>(
+    `SELECT idSaleDelivery, idBusiness, idSale, assigned_to_user_id, status
+     FROM sale_deliveries
+     WHERE idSaleDelivery = ?`,
+    [idSaleDelivery],
+  );
+}
+
+export async function getDeliveryEvents(
+  idSaleDelivery: number,
+): Promise<DeliveryEventRow[]> {
+  const [rows] = await pool.query<DeliveryEventRow[]>(
+    `SELECT
+       idDeliveryEvent,
+       idBusiness,
+       idSaleDelivery,
+       event_type,
+       previous_status,
+       new_status,
+       created_by_user_id
+     FROM delivery_events
+     WHERE idSaleDelivery = ?
+     ORDER BY idDeliveryEvent ASC`,
+    [idSaleDelivery],
   );
 
   return rows;

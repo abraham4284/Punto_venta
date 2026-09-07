@@ -310,7 +310,8 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_cancel_sale_and_revert_stock(
   IN p_idSale INT,
-  IN p_idBusiness INT
+  IN p_idBusiness INT,
+  IN p_actorUserId INT
 )
 BEGIN
   DECLARE v_done INT DEFAULT 0;
@@ -320,6 +321,7 @@ BEGIN
   DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_deliveryStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_hasDelivery INT DEFAULT 0;
   DECLARE v_collectedOrConfirmedPayments INT DEFAULT 0;
 
   DECLARE sale_detail_cursor CURSOR FOR
@@ -367,11 +369,6 @@ BEGIN
       SET MESSAGE_TEXT = 'Solo se pueden anular ventas completadas';
   END IF;
 
-  IF v_cashSessionStatus = 'CLOSED' THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'CLOSED_CASH_SESSION_SALE_CANNOT_BE_CANCELLED';
-  END IF;
-
   SELECT status
   INTO v_deliveryStatus
   FROM sale_deliveries
@@ -379,6 +376,15 @@ BEGIN
     AND idSale = p_idSale
   LIMIT 1
   FOR UPDATE;
+
+  IF v_deliveryStatus IS NOT NULL THEN
+    SET v_hasDelivery = 1;
+  END IF;
+
+  IF v_hasDelivery = 0 AND v_cashSessionStatus = 'CLOSED' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'CLOSED_CASH_SESSION_SALE_CANNOT_BE_CANCELLED';
+  END IF;
 
   IF v_deliveryStatus IN ('OUT_FOR_DELIVERY', 'DELIVERED') THEN
     SIGNAL SQLSTATE '45000'
@@ -392,7 +398,7 @@ BEGIN
     AND idSale = p_idSale
     AND status IN ('COLLECTED', 'CONFIRMED');
 
-  IF v_deliveryStatus IS NOT NULL AND v_collectedOrConfirmedPayments > 0 THEN
+  IF v_hasDelivery = 1 AND v_collectedOrConfirmedPayments > 0 THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'DELIVERY_SALE_WITH_PAYMENTS_CANNOT_BE_CANCELLED';
   END IF;
@@ -418,20 +424,27 @@ BEGIN
     sp.status,
     'CANCELLED',
     JSON_OBJECT('reason', 'Venta anulada'),
-    NULL
+    p_actorUserId
   FROM sale_payments sp
   WHERE sp.idBusiness = p_idBusiness
     AND sp.idSale = p_idSale
-    AND sp.status IN ('PENDING', 'COLLECTED', 'CONFIRMED');
+    AND (
+      (v_hasDelivery = 1 AND sp.status = 'PENDING')
+      OR (v_hasDelivery = 0 AND sp.status IN ('PENDING', 'COLLECTED', 'CONFIRMED'))
+    );
 
   UPDATE sale_payments
   SET
     status = 'CANCELLED',
+    cancelled_by_user_id = p_actorUserId,
     cancelled_at = NOW(),
     cancellation_reason = 'Venta anulada'
   WHERE idBusiness = p_idBusiness
     AND idSale = p_idSale
-    AND status IN ('PENDING', 'COLLECTED', 'CONFIRMED');
+    AND (
+      (v_hasDelivery = 1 AND status = 'PENDING')
+      OR (v_hasDelivery = 0 AND status IN ('PENDING', 'COLLECTED', 'CONFIRMED'))
+    );
 
   INSERT INTO delivery_events (
     idBusiness,
@@ -449,7 +462,7 @@ BEGIN
     v_deliveryStatus,
     'CANCELLED',
     JSON_OBJECT('reason', 'Venta anulada'),
-    NULL
+    p_actorUserId
   FROM sale_deliveries sdv
   WHERE sdv.idBusiness = p_idBusiness
     AND sdv.idSale = p_idSale

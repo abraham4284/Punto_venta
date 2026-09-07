@@ -4,6 +4,7 @@ import {
   assignDeliveryService,
   changeDeliveryStatusService,
   getDeliveryByIdService,
+  getDeliveryEventsService,
   listDeliveriesService,
 } from "../services/deliveries.service.js";
 import {
@@ -180,14 +181,63 @@ export async function changeDeliveryStatusController(
       idUser: req.user!.idUser,
       idSaleDelivery: Number(req.params.id),
     });
+    const hasViewAll = await canViewAllDeliveries(req);
     const result = await changeDeliveryStatusService({
       ...data,
       status: res.locals.deliveryStatus,
+      actorCanViewAll: hasViewAll,
     });
 
     return res.status(200).json({
       status: true,
       message: "Entrega actualizada correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        status: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
+    return res.status(400).json({
+      status: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function getDeliveryEventsController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const data = deliveryIdParamSchema.parse({
+      idBusiness: req.user!.idBusiness,
+      idSaleDelivery: Number(req.params.id),
+    });
+    const delivery = await getDeliveryByIdService(
+      data.idBusiness,
+      data.idSaleDelivery,
+    );
+
+    if (!(await canViewAllDeliveries(req)) && delivery.assignedToUserId !== req.user!.idUser) {
+      return res.status(403).json({
+        status: false,
+        message: "No tenes permisos para ver esta entrega",
+      });
+    }
+
+    const result = await getDeliveryEventsService(
+      data.idBusiness,
+      data.idSaleDelivery,
+    );
+
+    return res.status(200).json({
+      status: true,
+      message: "Eventos de entrega obtenidos correctamente",
       data: result,
     });
   } catch (error: unknown) {

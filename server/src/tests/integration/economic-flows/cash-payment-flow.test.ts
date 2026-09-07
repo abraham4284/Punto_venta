@@ -22,14 +22,26 @@ import {
 import { resetIntegrationTestData } from "@/tests/helpers/test-database.helper.js";
 import { executeInsert } from "@/tests/helpers/test-database.helper.js";
 import { createEconomicFlowScenario } from "@/tests/fixtures/economic-flow.fixture.js";
+import { createBusinessUserFixture } from "@/tests/fixtures/business-user.fixture.js";
+import { loginBusinessTestUser } from "@/tests/helpers/business-auth-test.helper.js";
 
-function createDeliveryAuth(
+async function createDeliveryAuth(
   scenario: Awaited<ReturnType<typeof createEconomicFlowScenario>>,
 ): Promise<{ idUser: number; cookies: string[] }> {
-  return Promise.resolve({
-    idUser: scenario.business.owner.idUser,
-    cookies: scenario.business.auth.cookies,
+  const deliveryUser = await createBusinessUserFixture({
+    idBusiness: scenario.business.business.idBusiness,
+    role: "DELIVERY",
+    usernamePrefix: "delivery_cash_flow",
   });
+  const auth = await loginBusinessTestUser({
+    username: deliveryUser.username,
+    password: deliveryUser.plainPasswordForTest,
+  });
+
+  return {
+    idUser: deliveryUser.idUser,
+    cookies: auth.cookies,
+  };
 }
 
 function createDeliveryPayload(assignedToUserId: number) {
