@@ -24,6 +24,21 @@ export const createCashSettlementSchema = z
     receivedByUserId: positiveIntSchema("El usuario receptor"),
     collectorUserId: positiveIntSchema("El cadete"),
     idCashSession: positiveIntSchema("La caja"),
+    salePaymentIds: z
+      .array(positiveIntSchema("El pago"), {
+        error: "Debe seleccionar al menos un pago para rendir",
+      })
+      .min(1, "Debe seleccionar al menos un pago para rendir")
+      .superRefine(function validateDuplicatePaymentIds(ids, ctx) {
+        const uniqueIds = new Set(ids);
+
+        if (uniqueIds.size !== ids.length) {
+          ctx.addIssue({
+            code: "custom",
+            message: "No se pueden repetir pagos en una misma liquidacion",
+          });
+        }
+      }),
     observation: z
       .string()
       .trim()
@@ -31,6 +46,13 @@ export const createCashSettlementSchema = z
       .optional()
       .nullable()
       .or(emptyStringToNull),
+  })
+  .strict();
+
+export const pendingCashSettlementsQuerySchema = z
+  .object({
+    idBusiness: positiveIntSchema("El negocio"),
+    collectorUserId: z.coerce.number().int().positive().optional().nullable(),
   })
   .strict();
 

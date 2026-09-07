@@ -29,6 +29,17 @@ export interface CashSettlementPaymentDbRow {
   observation: string | null;
 }
 
+export interface PendingCashSettlementPaymentDbRow {
+  collector_user_id: number;
+  collector_user_name: string;
+  idSalePayment: number;
+  idSale: number;
+  sale_number: string;
+  amount: string | number;
+  collected_at: Date | null;
+  customer_name: string | null;
+}
+
 export interface CashSettlementPaymentResponse {
   idSalePayment: number;
   idSale: number;
@@ -41,6 +52,27 @@ export interface CashSettlementPaymentResponse {
   confirmedAt: Date | null;
   reference: string | null;
   observation: string | null;
+}
+
+export interface PendingCashSettlementPaymentResponse {
+  idSalePayment: number;
+  idSale: number;
+  saleNumber: string;
+  amount: number;
+  collectedAt: Date | null;
+  customerName: string | null;
+}
+
+export interface PendingCashSettlementCollectorResponse {
+  collectorUserId: number;
+  collectorUserName: string;
+  paymentsCount: number;
+  totalAmount: number;
+  payments: PendingCashSettlementPaymentResponse[];
+}
+
+export interface PendingCashSettlementsResponse {
+  collectors: PendingCashSettlementCollectorResponse[];
 }
 
 export interface CashSettlementResponse {
@@ -66,6 +98,7 @@ export interface CreateCashSettlementPayload {
   collectorUserId: number;
   receivedByUserId: number;
   idCashSession: number;
+  salePaymentIds: number[];
   observation?: string | null;
 }
 
@@ -77,6 +110,11 @@ export interface CashSettlementListFilters {
   collectorUserId?: number | null;
   startDate?: Date | null;
   endDate?: Date | null;
+}
+
+export interface PendingCashSettlementFilters {
+  idBusiness: number;
+  collectorUserId?: number | null;
 }
 
 export interface PaginatedCashSettlementsResponse {
