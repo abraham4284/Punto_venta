@@ -5,6 +5,7 @@ import type {
   CreateSalePaymentBody,
   CollectPaymentMethodResponse,
   SalePaymentActionBody,
+  SalePaymentEventResponse,
   SalePaymentResponse,
   UpdateSalePaymentBody,
 } from "../types";
@@ -13,6 +14,12 @@ export const getSalePaymentsRequest = (
   idSale: number,
 ): Promise<AxiosResponse<ApiResponse<SalePaymentResponse[]>>> => {
   return axios.get(`/sales/${idSale}/payments`);
+};
+
+export const getSalePaymentEventsRequest = (
+  idSalePayment: number,
+): Promise<AxiosResponse<ApiResponse<SalePaymentEventResponse[]>>> => {
+  return axios.get(`/sale-payments/${idSalePayment}/events`);
 };
 
 export const getCollectPaymentMethodsRequest = (): Promise<
