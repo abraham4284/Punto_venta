@@ -55,6 +55,7 @@ export const useSalePayments = ({
   const [loading, setLoading] = useState(false);
   const [methodsLoading, setMethodsLoading] = useState(false);
   const [collectMethodsLoading, setCollectMethodsLoading] = useState(false);
+  const [collectMethodsLoaded, setCollectMethodsLoaded] = useState(false);
   const [cashSessionLoading, setCashSessionLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -118,12 +119,14 @@ export const useSalePayments = ({
       setCollectMethodsLoading(true);
       const { data } = await getCollectPaymentMethodsRequest();
       setCollectPaymentMethods(data.data ?? []);
+      setCollectMethodsLoaded(true);
       return data.data ?? [];
     } catch (error) {
       toast.error(
         getErrorMessage(error, "No se pudieron cargar los métodos de cobro"),
       );
       setCollectPaymentMethods([]);
+      setCollectMethodsLoaded(true);
       return [];
     } finally {
       setCollectMethodsLoading(false);
@@ -283,6 +286,7 @@ export const useSalePayments = ({
     payments,
     paymentMethods,
     collectPaymentMethods,
+    collectMethodsLoaded,
     currentCashSession,
     loading,
     methodsLoading,

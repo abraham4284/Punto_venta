@@ -1,205 +1,257 @@
-import { useMemo, useState } from "react";
-import { Banknote, Loader2, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { Meta } from "@/components/Meta";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useBusinessUsers } from "../../business-users/hooks/useBusinessUsers";
-import { useCash } from "../../cash/hooks/useCash";
+import { useCan } from "@/views/businesses-app/hooks/useCan";
+import { useAuthStore } from "../../auth/store/auth.store";
+import { calculateSelectedSettlementTotal } from "../helpers/cash-settlement.helpers";
 import { useCashSettlements } from "../hooks/useCashSettlements";
-
-const formatMoney = (value: number): string => {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-  }).format(value);
-};
-
-const formatDate = (value: string): string => {
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
-};
+import { CreateSettlementDialog } from "../components/CreateSettlementDialog";
+import { PendingSettlementsPanel } from "../components/PendingSettlementsPanel";
+import { SettlementHistory } from "../components/SettlementHistory";
 
 export const CashSettlementsPage = () => {
-  const { users } = useBusinessUsers();
-  const { currentSession } = useCash();
+  const canCreate = useCan("cash_settlements.create");
+  const canViewCashSession = useCan("cash_sessions.view");
+  const userRole = useAuthStore((state) => state.user?.role ?? "");
+  const receiverCanCreate = userRole === "OWNER" || userRole === "ADMIN";
   const {
     settlements,
+    pendingCollectors,
+    filters,
     pagination,
-    loading,
+    currentCashSession,
+    historyLoading,
+    pendingLoading,
+    cashSessionLoading,
     saving,
+    historyError,
+    pendingError,
+    cashSessionError,
+    fetchSettlements,
+    fetchPendingSettlements,
+    fetchCurrentCashSession,
     createSettlement,
+    applyFilters,
+    clearFilters,
     changePage,
-  } = useCashSettlements();
-  const [collectorUserId, setCollectorUserId] = useState<number | null>(null);
+  } = useCashSettlements({
+    canLoadCashSession: canCreate && receiverCanCreate && canViewCashSession,
+  });
+  const [selectedCollectorId, setSelectedCollectorId] = useState<number | null>(
+    null,
+  );
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<Set<number>>(
+    () => new Set(),
+  );
   const [observation, setObservation] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const selectedCollector = useMemo(() => {
+    return (
+      pendingCollectors.find((collector) => {
+        return collector.collectorUserId === selectedCollectorId;
+      }) ?? null
+    );
+  }, [pendingCollectors, selectedCollectorId]);
+  const selectedTotal = useMemo(() => {
+    return calculateSelectedSettlementTotal(
+      selectedCollector?.payments ?? [],
+      selectedPaymentIds,
+    );
+  }, [selectedCollector, selectedPaymentIds]);
 
-  const collectorOptions = useMemo(() => {
-    return users.filter((user) => user.isActive && user.role !== "OWNER");
-  }, [users]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (pendingCollectors.length === 0) {
+        setSelectedCollectorId(null);
+        setSelectedPaymentIds(new Set());
+        return;
+      }
 
-  const selectedCollectorName = useMemo(() => {
-    return collectorOptions.find((user) => user.idUser === collectorUserId)?.name ?? "";
-  }, [collectorOptions, collectorUserId]);
+      if (
+        selectedCollectorId &&
+        !pendingCollectors.some((collector) => {
+          return collector.collectorUserId === selectedCollectorId;
+        })
+      ) {
+        setSelectedCollectorId(null);
+        setSelectedPaymentIds(new Set());
+        return;
+      }
 
-  const handleCreateSettlement = async () => {
-    if (!collectorUserId || !currentSession?.idCashSession) return;
+      setSelectedPaymentIds((current) => {
+        const availableIds = new Set(
+          (selectedCollector?.payments ?? []).map(
+            (payment) => payment.idSalePayment,
+          ),
+        );
+        const next = new Set<number>();
+
+        for (const idSalePayment of current) {
+          if (availableIds.has(idSalePayment)) {
+            next.add(idSalePayment);
+          }
+        }
+
+        return next;
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pendingCollectors, selectedCollector, selectedCollectorId]);
+
+  const handleSelectCollector = (collectorUserId: number | null) => {
+    setSelectedCollectorId(collectorUserId);
+    setSelectedPaymentIds(new Set());
+  };
+
+  const handleTogglePayment = (idSalePayment: number) => {
+    setSelectedPaymentIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(idSalePayment)) {
+        next.delete(idSalePayment);
+      } else {
+        next.add(idSalePayment);
+      }
+
+      return next;
+    });
+  };
+
+  const handleToggleAll = () => {
+    if (!selectedCollector) return;
+
+    const everySelected = selectedCollector.payments.every((payment) => {
+      return selectedPaymentIds.has(payment.idSalePayment);
+    });
+
+    if (everySelected) {
+      setSelectedPaymentIds(new Set());
+      return;
+    }
+
+    setSelectedPaymentIds(
+      new Set(selectedCollector.payments.map((payment) => payment.idSalePayment)),
+    );
+  };
+
+  const handleOpenConfirm = () => {
+    if (!selectedCollector || selectedPaymentIds.size === 0) {
+      toast.error("Seleccioná al menos un pago para rendir");
+      return;
+    }
+
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmSettlement = async () => {
+    if (!selectedCollector) return;
+
+    const refreshedSession = await fetchCurrentCashSession();
+
+    if (!refreshedSession || refreshedSession.status !== "OPEN") {
+      toast.error("No hay una caja abierta para recibir la rendición");
+      return;
+    }
+
+    const salePaymentIds = Array.from(selectedPaymentIds);
+
+    if (salePaymentIds.length === 0) {
+      toast.error("Seleccioná al menos un pago para rendir");
+      return;
+    }
 
     const result = await createSettlement({
-      collectorUserId,
-      idCashSession: currentSession.idCashSession,
+      collectorUserId: selectedCollector.collectorUserId,
+      idCashSession: refreshedSession.idCashSession,
+      salePaymentIds: Array.from(new Set(salePaymentIds)),
       observation: observation.trim() || null,
     });
 
-    if (result) {
-      setCollectorUserId(null);
-      setObservation("");
-    }
+    if (!result) return;
+
+    setConfirmOpen(false);
+    setSelectedPaymentIds(new Set());
+    setObservation("");
+  };
+
+  const handleRefreshPending = () => {
+    void fetchPendingSettlements();
+  };
+
+  const handleRefreshCashSession = () => {
+    void fetchCurrentCashSession();
   };
 
   return (
     <>
-      <Meta title="Liquidaciones de efectivo" />
+      <Meta title="Rendiciones de efectivo" />
       <section className="space-y-5">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">Caja y delivery</p>
-          <h1 className="text-2xl font-bold tracking-tight">Liquidaciones de efectivo</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Registrá el efectivo cobrado por cadetes y confirmalo dentro de la caja abierta.
+          <p className="text-sm font-medium text-muted-foreground">
+            Caja y delivery
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Rendiciones de efectivo
+          </h1>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Controlá el dinero cobrado por cadetes, rendí pagos seleccionados y
+            auditá el historial sin mezclar ventas, pagos, entregas y caja.
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Banknote className="size-4" />
-              Nueva liquidación
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-[260px_1fr_auto]">
-            <Select
-              value={collectorUserId ? String(collectorUserId) : ""}
-              onValueChange={(value) =>
-                setCollectorUserId(value ? Number(value) : null)
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar cadete">
-                  {selectedCollectorName}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {collectorOptions.map((user) => (
-                  <SelectItem key={user.idUser} value={String(user.idUser)}>
-                    {user.name} · {user.role}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Textarea
-              value={observation}
-              onChange={(event) => setObservation(event.target.value)}
-              placeholder="Observación interna"
-              className="min-h-10"
-            />
-            <Button
-              type="button"
-              disabled={!collectorUserId || !currentSession?.idCashSession || saving}
-              onClick={() => void handleCreateSettlement()}
-            >
-              {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
-              Liquidar
-            </Button>
-          </CardContent>
-        </Card>
+        <PendingSettlementsPanel
+          collectors={pendingCollectors}
+          selectedCollectorId={selectedCollectorId}
+          selectedPaymentIds={selectedPaymentIds}
+          observation={observation}
+          canCreate={canCreate}
+          receiverCanCreate={receiverCanCreate}
+          canViewCashSession={canViewCashSession}
+          cashSession={currentCashSession}
+          pendingLoading={pendingLoading}
+          cashSessionLoading={cashSessionLoading}
+          pendingError={pendingError}
+          cashSessionError={cashSessionError}
+          saving={saving}
+          onSelectCollector={handleSelectCollector}
+          onTogglePayment={handleTogglePayment}
+          onToggleAll={handleToggleAll}
+          onObservationChange={setObservation}
+          onRefreshPending={handleRefreshPending}
+          onRefreshCashSession={handleRefreshCashSession}
+          onOpenConfirm={handleOpenConfirm}
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Search className="size-4" />
-              Historial de liquidaciones
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-3 pr-3">N°</th>
-                  <th className="py-3 pr-3">Cadete</th>
-                  <th className="py-3 pr-3">Recibió</th>
-                  <th className="py-3 pr-3">Caja</th>
-                  <th className="py-3 pr-3">Fecha</th>
-                  <th className="py-3 pr-3 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="py-10 text-center text-muted-foreground">
-                      Cargando liquidaciones...
-                    </td>
-                  </tr>
-                ) : settlements.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-10 text-center text-muted-foreground">
-                      No hay liquidaciones registradas.
-                    </td>
-                  </tr>
-                ) : (
-                  settlements.map((settlement) => (
-                    <tr key={settlement.idCashSettlement} className="border-b last:border-0">
-                      <td className="py-3 pr-3 font-medium">#{settlement.idCashSettlement}</td>
-                      <td className="py-3 pr-3">{settlement.collectorUserName}</td>
-                      <td className="py-3 pr-3">{settlement.receivedByUserName}</td>
-                      <td className="py-3 pr-3">Caja #{settlement.idCashSession}</td>
-                      <td className="py-3 pr-3">{formatDate(settlement.settledAt)}</td>
-                      <td className="py-3 pr-3 text-right font-semibold">
-                        {formatMoney(settlement.totalAmount)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                {pagination.totalRecords} liquidaciones
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.currentPage <= 1}
-                  onClick={() => changePage(pagination.currentPage - 1)}
-                >
-                  Anterior
-                </Button>
-                <span className="text-sm font-medium">
-                  {pagination.currentPage} / {pagination.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagination.currentPage >= pagination.totalPages}
-                  onClick={() => changePage(pagination.currentPage + 1)}
-                >
-                  Siguiente
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <SettlementHistory
+          settlements={settlements}
+          pendingCollectors={pendingCollectors}
+          filters={filters}
+          pagination={pagination}
+          loading={historyLoading}
+          error={historyError}
+          onApplyFilters={applyFilters}
+          onClearFilters={clearFilters}
+          onChangePage={changePage}
+          onRetry={() => {
+            void fetchSettlements();
+          }}
+        />
       </section>
+
+      <CreateSettlementDialog
+        isOpen={confirmOpen}
+        collector={selectedCollector}
+        selectedCount={selectedPaymentIds.size}
+        selectedTotal={selectedTotal}
+        observation={observation}
+        cashSession={currentCashSession}
+        saving={saving || cashSessionLoading}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          void handleConfirmSettlement();
+        }}
+      />
     </>
   );
 };
