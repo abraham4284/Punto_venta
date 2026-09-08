@@ -1,6 +1,10 @@
 import { Decimal } from "decimal.js";
 import type { PaymentMethodResponse } from "../../payment-methods/types";
-import type { SalePaymentResponse, SalePaymentStatus } from "../types";
+import type {
+  CollectPaymentMethodResponse,
+  SalePaymentResponse,
+  SalePaymentStatus,
+} from "../types";
 
 export type SalePaymentContext = "sale-detail" | "delivery-detail";
 
@@ -86,15 +90,21 @@ export const isOverPayment = (
 };
 
 export const getCashPaymentMethods = (
-  paymentMethods: PaymentMethodResponse[],
-): PaymentMethodResponse[] => {
+  paymentMethods: Array<PaymentMethodResponse | CollectPaymentMethodResponse>,
+): Array<PaymentMethodResponse | CollectPaymentMethodResponse> => {
   return paymentMethods.filter((paymentMethod) => {
-    return paymentMethod.isActive && (paymentMethod.affectsCash || paymentMethod.code === "CASH");
+    const isActive =
+      "isActive" in paymentMethod ? paymentMethod.isActive : true;
+
+    return isActive && (paymentMethod.affectsCash || paymentMethod.code === "CASH");
   });
 };
 
 export const getPaymentMethodLabel = (
-  paymentMethod: PaymentMethodResponse | undefined,
+  paymentMethod:
+    | PaymentMethodResponse
+    | CollectPaymentMethodResponse
+    | undefined,
 ): string => {
   if (!paymentMethod) return "Seleccioná un método";
 

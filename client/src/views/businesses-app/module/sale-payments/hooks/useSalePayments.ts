@@ -10,10 +10,12 @@ import {
   collectSalePaymentRequest,
   confirmSalePaymentRequest,
   createSalePaymentRequest,
+  getCollectPaymentMethodsRequest,
   getSalePaymentsRequest,
   updateSalePaymentRequest,
 } from "../api/sale-payments.api";
 import type {
+  CollectPaymentMethodResponse,
   CreateSalePaymentBody,
   SalePaymentActionBody,
   SalePaymentResponse,
@@ -27,6 +29,7 @@ type ApiError = {
 type UseSalePaymentsOptions = {
   idSale: number;
   enabled: boolean;
+  loadAdminPaymentMethods?: boolean;
   onPaymentChanged?: () => Promise<void> | void;
 };
 
@@ -39,14 +42,19 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 export const useSalePayments = ({
   idSale,
   enabled,
+  loadAdminPaymentMethods = false,
   onPaymentChanged,
 }: UseSalePaymentsOptions) => {
   const [payments, setPayments] = useState<SalePaymentResponse[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodResponse[]>([]);
+  const [collectPaymentMethods, setCollectPaymentMethods] = useState<
+    CollectPaymentMethodResponse[]
+  >([]);
   const [currentCashSession, setCurrentCashSession] =
     useState<CashSessionResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [methodsLoading, setMethodsLoading] = useState(false);
+  const [collectMethodsLoading, setCollectMethodsLoading] = useState(false);
   const [cashSessionLoading, setCashSessionLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -102,6 +110,23 @@ export const useSalePayments = ({
       setPaymentMethods([]);
     } finally {
       setMethodsLoading(false);
+    }
+  }, []);
+
+  const fetchCollectPaymentMethods = useCallback(async () => {
+    try {
+      setCollectMethodsLoading(true);
+      const { data } = await getCollectPaymentMethodsRequest();
+      setCollectPaymentMethods(data.data ?? []);
+      return data.data ?? [];
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error, "No se pudieron cargar los métodos de cobro"),
+      );
+      setCollectPaymentMethods([]);
+      return [];
+    } finally {
+      setCollectMethodsLoading(false);
     }
   }, []);
 
@@ -245,27 +270,30 @@ export const useSalePayments = ({
   }, [fetchPayments]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !loadAdminPaymentMethods) return;
 
     const timeoutId = window.setTimeout(() => {
       void fetchPaymentMethods();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [enabled, fetchPaymentMethods]);
+  }, [enabled, fetchPaymentMethods, loadAdminPaymentMethods]);
 
   return {
     payments,
     paymentMethods,
+    collectPaymentMethods,
     currentCashSession,
     loading,
     methodsLoading,
+    collectMethodsLoading,
     cashSessionLoading,
     actionLoadingId,
     saving,
     error,
     fetchPayments,
     fetchPaymentMethods,
+    fetchCollectPaymentMethods,
     fetchCurrentCashSession,
     createPayment,
     updatePayment,

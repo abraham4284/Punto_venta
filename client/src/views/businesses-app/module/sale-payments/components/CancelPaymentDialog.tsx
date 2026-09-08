@@ -33,8 +33,16 @@ export const CancelPaymentDialog = ({
 
   const handleOpenChange = (open: boolean) => {
     if (!open && !loading) {
+      setReason("");
       onClose();
     }
+  };
+
+  const handleCancel = () => {
+    if (loading) return;
+
+    setReason("");
+    onClose();
   };
 
   const handleConfirm = async () => {
@@ -79,7 +87,7 @@ export const CancelPaymentDialog = ({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" disabled={loading} onClick={onClose}>
+          <Button type="button" variant="outline" disabled={loading} onClick={handleCancel}>
             Cancelar
           </Button>
           <Button

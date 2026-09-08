@@ -42,3 +42,10 @@ export type SalePaymentActionBody = {
   reason?: string | null;
   observation?: string | null;
 };
+
+export type CollectPaymentMethodResponse = {
+  idPaymentMethod: number;
+  code: "CASH" | "TRANSFER" | "CARD" | "OTHER" | string;
+  name: string;
+  affectsCash: boolean;
+};
