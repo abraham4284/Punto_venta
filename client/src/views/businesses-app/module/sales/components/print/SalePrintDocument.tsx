@@ -44,6 +44,18 @@ const formatQuantity = (value: number): string => {
   }).format(value);
 };
 
+const getPaymentSummary = (sale: SaleWithDetailsResponse): string => {
+  if (sale.paymentDetail?.trim()) return sale.paymentDetail;
+  if (sale.payments.length > 0) {
+    return sale.payments
+      .map((payment) => {
+        return `${payment.paymentMethodName} ${formatCurrency(payment.amount)}`;
+      })
+      .join(" · ");
+  }
+  return sale.paymentMethodName ?? "Sin método informado";
+};
+
 export const SalePrintDocument = ({
   sale,
   business,
@@ -152,7 +164,7 @@ export const SalePrintDocument = ({
               Fecha: {formatDate(sale.saleDate)}
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              Forma de pago: {sale.paymentMethodName ?? "Sin método informado"}
+              Pagos: {getPaymentSummary(sale)}
             </p>
           </div>
           <div className="rounded-md bg-blue-50 px-4 py-2 text-right">
@@ -219,6 +231,20 @@ export const SalePrintDocument = ({
               <strong>Observación:</strong>{" "}
               {sale.observation || "Sin observaciones asociadas."}
             </p>
+            <div>
+              <strong>Detalle de pagos:</strong>
+              {sale.payments.length > 0 ? (
+                <ul className="mt-1 space-y-1">
+                  {sale.payments.map((payment) => (
+                    <li key={payment.idSalePayment}>
+                      {payment.paymentMethodName}: {formatCurrency(payment.amount)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span> Sin pagos registrados.</span>
+              )}
+            </div>
             <p>
               <strong>Estado:</strong>{" "}
               {sale.status === "CANCELLED" ? "Venta anulada" : "Completada"}

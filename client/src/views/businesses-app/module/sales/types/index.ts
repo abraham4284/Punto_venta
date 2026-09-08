@@ -173,15 +173,15 @@ export interface SaleResponse {
   pendingAmount: number;
   deliveryStatus: SaleDeliveryStatus | null;
   paymentStatus: "UNPAID" | "PARTIALLY_PAID" | "PAID";
-  saleDate: Date;
+  saleDate: string;
   subtotal: number;
   discountTotal: number;
   total: number;
   paymentDetail: string | null;
   status: "COMPLETED" | "CANCELLED";
   observation: string | null;
-  createdAt: Date;
-  updatedAt: Date | null;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 export interface SaleDetailResponse {
@@ -198,7 +198,7 @@ export interface SaleDetailResponse {
   unitPrice: number;
   discount: number;
   total: number;
-  createdAt: Date;
+  createdAt: string;
 }
 
 export type SalePaymentStatus = "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED";
@@ -224,10 +224,10 @@ export interface SalePaymentResponse {
   idCashSettlement: number | null;
   reference: string | null;
   observation: string | null;
-  createdAt: Date;
-  collectedAt: Date | null;
-  confirmedAt: Date | null;
-  cancelledAt: Date | null;
+  createdAt: string;
+  collectedAt: string | null;
+  confirmedAt: string | null;
+  cancelledAt: string | null;
 }
 
 export interface SaleDeliveryResponse {
@@ -241,16 +241,16 @@ export interface SaleDeliveryResponse {
   recipientPhone: string | null;
   deliveryAddress: string;
   deliveryReference: string | null;
-  scheduledAt: Date | null;
-  assignedAt: Date | null;
-  outForDeliveryAt: Date | null;
-  deliveredAt: Date | null;
-  failedAt: Date | null;
-  cancelledAt: Date | null;
+  scheduledAt: string | null;
+  assignedAt: string | null;
+  outForDeliveryAt: string | null;
+  deliveredAt: string | null;
+  failedAt: string | null;
+  cancelledAt: string | null;
   failureReason: string | null;
   observation: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SaleWithDetailsResponse extends SaleResponse {
@@ -275,7 +275,7 @@ export interface SaleTicketHeader {
   businessName: string;
   businessType: string | null;
   logoUrl: string | null;
-  saleDate: Date;
+  saleDate: string;
   subtotal: number;
   discountTotal: number;
   total: number;

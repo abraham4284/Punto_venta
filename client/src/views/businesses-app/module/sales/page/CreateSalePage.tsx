@@ -182,7 +182,7 @@ export const CreateSalePage = () => {
 
   const getPaymentStatusLabel = useCallback(
     (status: "PENDING" | "CONFIRMED") => {
-      return status === "CONFIRMED" ? "Pagado ahora" : "Cobra cadete al entregar";
+      return status === "CONFIRMED" ? "Confirmado" : "Pendiente";
     },
     [],
   );
@@ -328,6 +328,20 @@ export const CreateSalePage = () => {
     [changeDeposit],
   );
 
+  const handleDeliveryToggle = useCallback(
+    (enabled: boolean) => {
+      if (!enabled && payments.some((payment) => payment.status === "PENDING")) {
+        toast(
+          "Al desactivar la entrega, los pagos pendientes pasan a confirmado para cumplir la regla de venta presencial.",
+          { id: "delivery-payment-status" },
+        );
+      }
+
+      toggleDelivery(enabled);
+    },
+    [payments, toggleDelivery],
+  );
+
   useEffect(() => {
     if (
       defaultDepositWasSelected.current ||
@@ -467,7 +481,7 @@ export const CreateSalePage = () => {
           .map((payment) => ({
             idPaymentMethod: Number(payment.idPaymentMethod),
             amount: payment.amount.trim() ? Number(payment.amount) : totals.total,
-            status: delivery.enabled ? payment.status : "CONFIRMED",
+            status: payment.status,
           })),
         delivery: {
           enabled: delivery.enabled,
@@ -509,6 +523,7 @@ export const CreateSalePage = () => {
     refreshCashDashboard,
     setValidationErrors,
     submitSale,
+    totals.total,
   ]);
 
   const handleOpenProductSearch = useCallback(() => {
@@ -631,7 +646,7 @@ export const CreateSalePage = () => {
                   Pagos <span className="text-destructive">*</span>
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Usa un medio de pago o repartí el total entre varios métodos.
+                  Usa un medio de pago o repartí el total entre varios métodos. Los pagos pendientes solo se admiten en ventas con entrega.
                 </p>
               </div>
               <Button
@@ -650,9 +665,9 @@ export const CreateSalePage = () => {
               {payments.map((payment, index) => {
                 const paymentMethodLabel = getPaymentMethodLabel(payment.idPaymentMethod);
                 const selectedPaymentMethod = getPaymentMethodById(payment.idPaymentMethod);
-                const canBePendingForDelivery = Boolean(
-                  delivery.enabled && selectedPaymentMethod?.affectsCash,
-                );
+                const selectedPaymentMethodHint = selectedPaymentMethod?.affectsCash
+                  ? "Impacta caja al confirmarse o rendirse."
+                  : "No impacta caja directamente.";
 
                 return (
                   <div
@@ -664,19 +679,11 @@ export const CreateSalePage = () => {
                       <Select
                         value={payment.idPaymentMethod ? String(payment.idPaymentMethod) : ""}
                         onValueChange={(value: string | null) => {
-                          const nextPaymentMethod = activePaymentMethods.find((paymentMethod) => {
-                            return paymentMethod.idPaymentMethod === Number(value);
-                          });
-
                           updatePaymentField(
                             payment.id,
                             "idPaymentMethod",
                             value ? Number(value) : null,
                           );
-
-                          if (!nextPaymentMethod?.affectsCash && payment.status === "PENDING") {
-                            updatePaymentField(payment.id, "status", "CONFIRMED");
-                          }
                         }}
                         disabled={paymentMethodsLoading || activePaymentMethods.length === 0}
                       >
@@ -738,24 +745,19 @@ export const CreateSalePage = () => {
                           <span className="flex flex-1 text-left">
                             {delivery.enabled
                               ? getPaymentStatusLabel(payment.status)
-                              : "Pagado ahora"}
+                              : "Confirmado"}
                           </span>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="CONFIRMED">Pagado ahora</SelectItem>
-                          <SelectItem
-                            value="PENDING"
-                            disabled={!canBePendingForDelivery}
-                          >
-                            Cobra cadete al entregar
-                          </SelectItem>
+                          <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                          <SelectItem value="PENDING">Pendiente</SelectItem>
                         </SelectContent>
                       </Select>
-                      {delivery.enabled && !canBePendingForDelivery && payment.status === "PENDING" ? (
-                        <p className="text-xs text-muted-foreground">
-                          El cobro en entrega se reserva para medios que afectan caja.
-                        </p>
-                      ) : null}
+                      <p className="text-xs text-muted-foreground">
+                        {delivery.enabled
+                          ? selectedPaymentMethodHint
+                          : "Las ventas sin entrega se registran con pagos confirmados."}
+                      </p>
                     </div>
 
                     <div className="flex items-end">
@@ -806,12 +808,12 @@ export const CreateSalePage = () => {
               <div>
                 <Label className="text-base font-semibold">Entrega a domicilio</Label>
                 <p className="text-sm text-muted-foreground">
-                  Si activas esta opcion, el pago queda pendiente hasta que el cadete cobre y rinda el efectivo.
+                  Si activas esta opcion, podés dejar pagos confirmados y otros pendientes de cobro o confirmación.
                 </p>
               </div>
               <Switch
                 checked={delivery.enabled}
-                onCheckedChange={toggleDelivery}
+                onCheckedChange={handleDeliveryToggle}
                 disabled={isSaleCompleted}
               />
             </div>
