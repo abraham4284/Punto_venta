@@ -25,6 +25,7 @@ import {
 import { getSaleTicketRequest } from "../../api/sales.api";
 import { printTicketHtml } from "../../helpers/ticketPrint.helper";
 import type { SaleResponse } from "../../types";
+import { useCan } from "@/views/businesses-app/hooks/useCan";
 
 type Props = {
   sales: SaleResponse[];
@@ -42,7 +43,7 @@ const formatMoney = (value: number): string => {
   }).format(value);
 };
 
-const formatDate = (value: Date | string): string => {
+const formatDate = (value: string): string => {
   return new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
     month: "2-digit",
@@ -61,6 +62,24 @@ const deliveryStatusLabels = {
   CANCELLED: "Cancelada",
 };
 
+const paymentStatusLabels: Record<SaleResponse["paymentStatus"], string> = {
+  UNPAID: "Pendiente",
+  PARTIALLY_PAID: "Pago parcial",
+  PAID: "Pagado",
+};
+
+const paymentStatusClassNames: Record<SaleResponse["paymentStatus"], string> = {
+  UNPAID: "border-amber-200 bg-amber-50 text-amber-700",
+  PARTIALLY_PAID: "border-sky-200 bg-sky-50 text-sky-700",
+  PAID: "border-emerald-200 bg-emerald-50 text-emerald-700",
+};
+
+const getPaymentSummary = (sale: SaleResponse): string => {
+  if (sale.paymentDetail?.trim()) return sale.paymentDetail;
+  if (sale.paymentMethodName?.trim()) return sale.paymentMethodName;
+  return "Sin detalle de pagos";
+};
+
 export const SaleTable = ({
   sales,
   loading,
@@ -69,6 +88,7 @@ export const SaleTable = ({
   onCancel,
 }: Props) => {
   const [printingId, setPrintingId] = useState<number | null>(null);
+  const canCancelSales = useCan("sales.cancel");
 
   const handlePrintTicket = async (idSale: number) => {
     try {
@@ -111,7 +131,8 @@ export const SaleTable = ({
           <TableHead>Fecha</TableHead>
           <TableHead>Cliente</TableHead>
           <TableHead>Deposito</TableHead>
-          <TableHead>Metodo de pago</TableHead>
+          <TableHead>Pagos</TableHead>
+          <TableHead>Cobro</TableHead>
           <TableHead>Entrega</TableHead>
           <TableHead>Total neto</TableHead>
           <TableHead>Estado</TableHead>
@@ -131,7 +152,32 @@ export const SaleTable = ({
             <TableCell>{formatDate(sale.saleDate)}</TableCell>
             <TableCell>{sale.customerName ?? "Consumidor final"}</TableCell>
             <TableCell>{sale.depositName}</TableCell>
-            <TableCell>{sale.paymentMethodName ?? "-"}</TableCell>
+            <TableCell>
+              <div className="max-w-56 space-y-1">
+                <p className="truncate text-sm font-medium">
+                  {getPaymentSummary(sale)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Confirmado {formatMoney(sale.confirmedAmount)} · Cobrado{" "}
+                  {formatMoney(sale.collectedAmount)}
+                </p>
+              </div>
+            </TableCell>
+            <TableCell>
+              <div className="space-y-1">
+                <Badge
+                  variant="outline"
+                  className={paymentStatusClassNames[sale.paymentStatus]}
+                >
+                  {paymentStatusLabels[sale.paymentStatus]}
+                </Badge>
+                {sale.pendingAmount > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Pendiente {formatMoney(sale.pendingAmount)}
+                  </p>
+                ) : null}
+              </div>
+            </TableCell>
             <TableCell>
               {sale.deliveryStatus ? (
                 <Badge variant="outline">
@@ -175,7 +221,7 @@ export const SaleTable = ({
                   <Printer className="h-4 w-4" />
                   )}
                 </Button>
-                {!isCancelled && (
+                {!isCancelled && canCancelSales && (
                   <AlertDialog>
                     <AlertDialogTrigger
                       render={
