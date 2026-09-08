@@ -57,3 +57,9 @@ export type DeliveryActionBody = {
   failureReason?: string | null;
   observation?: string | null;
 };
+
+export type DeliveryUserOption = {
+  idUser: number;
+  name: string;
+  username: string;
+};
