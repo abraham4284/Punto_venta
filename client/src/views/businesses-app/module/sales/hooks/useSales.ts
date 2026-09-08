@@ -264,15 +264,6 @@ export const useSales = () => {
       ...current,
       enabled,
     }));
-
-    if (!enabled) {
-      setPayments((currentPayments) =>
-        currentPayments.map((payment) => ({
-          ...payment,
-          status: "CONFIRMED",
-        })),
-      );
-    }
   }, []);
 
   const updatePaymentField = useCallback(

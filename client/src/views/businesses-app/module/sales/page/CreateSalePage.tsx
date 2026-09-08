@@ -331,10 +331,11 @@ export const CreateSalePage = () => {
   const handleDeliveryToggle = useCallback(
     (enabled: boolean) => {
       if (!enabled && payments.some((payment) => payment.status === "PENDING")) {
-        toast(
-          "Al desactivar la entrega, los pagos pendientes pasan a confirmado para cumplir la regla de venta presencial.",
+        toast.error(
+          "No podés quitar la entrega mientras existan pagos pendientes. Cambialos a Confirmado o mantené la entrega.",
           { id: "delivery-payment-status" },
         );
+        return;
       }
 
       toggleDelivery(enabled);
