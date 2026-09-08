@@ -104,9 +104,7 @@ export const AdminRoutes = () => {
         <Route
           path="/cash-settlements/*"
           element={
-            <PermissionRoute
-              permissions={["cash_settlements.view", "cash_settlements.create"]}
-            >
+            <PermissionRoute permissions={["cash_settlements.view"]}>
               <CashSettlementsRoutes />
             </PermissionRoute>
           }

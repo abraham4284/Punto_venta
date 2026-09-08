@@ -6,6 +6,7 @@ import type {
   CashSettlementWithPaymentsResponse,
   CreateCashSettlementBody,
   PaginatedCashSettlementsResponse,
+  PendingCashSettlementsResponse,
 } from "../types";
 
 export const getCashSettlementsRequest = (
@@ -28,6 +29,16 @@ export const getCashSettlementByIdRequest = (
   idCashSettlement: number,
 ): Promise<AxiosResponse<ApiResponse<CashSettlementWithPaymentsResponse>>> => {
   return axios.get(`/cash-settlements/${idCashSettlement}`);
+};
+
+export const getPendingCashSettlementsRequest = (
+  collectorUserId?: number | null,
+): Promise<AxiosResponse<ApiResponse<PendingCashSettlementsResponse>>> => {
+  return axios.get("/cash-settlements/pending", {
+    params: {
+      collectorUserId: collectorUserId ?? undefined,
+    },
+  });
 };
 
 export const createCashSettlementRequest = (
