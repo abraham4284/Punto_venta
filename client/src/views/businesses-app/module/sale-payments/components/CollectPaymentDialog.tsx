@@ -17,8 +17,10 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { PaymentMethodResponse } from "../../payment-methods/types";
-import type { SalePaymentResponse } from "../types";
+import type {
+  CollectPaymentMethodResponse,
+  SalePaymentResponse,
+} from "../types";
 import {
   formatPaymentMoney,
   getCashPaymentMethods,
@@ -29,8 +31,10 @@ type CollectPaymentDialogProps = {
   payment: SalePaymentResponse | null;
   isOpen: boolean;
   loading: boolean;
-  paymentMethods: PaymentMethodResponse[];
+  methodsLoading: boolean;
+  collectPaymentMethods: CollectPaymentMethodResponse[];
   onClose: () => void;
+  onLoadCollectMethods: () => Promise<CollectPaymentMethodResponse[]>;
   onConfirm: (
     idSalePayment: number,
     body: { idPaymentMethod?: number | null; observation?: string | null },
@@ -41,22 +45,30 @@ export const CollectPaymentDialog = ({
   payment,
   isOpen,
   loading,
-  paymentMethods,
+  methodsLoading,
+  collectPaymentMethods,
   onClose,
+  onLoadCollectMethods,
   onConfirm,
 }: CollectPaymentDialogProps) => {
   const [selectedCashMethodId, setSelectedCashMethodId] = useState("");
   const [observation, setObservation] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
   const cashPaymentMethods = useMemo(() => {
-    return getCashPaymentMethods(paymentMethods);
-  }, [paymentMethods]);
+    return getCashPaymentMethods(collectPaymentMethods);
+  }, [collectPaymentMethods]);
   const selectedCashMethod = useMemo(() => {
     return cashPaymentMethods.find((method) => {
       return method.idPaymentMethod === Number(selectedCashMethodId);
     });
   }, [cashPaymentMethods, selectedCashMethodId]);
   const currentMethodIsCash = Boolean(payment?.affectsCash);
+
+  const resetDialogState = () => {
+    setSelectedCashMethodId("");
+    setObservation("");
+    setFieldError(null);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -79,26 +91,50 @@ export const CollectPaymentDialog = ({
 
   const handleOpenChange = (open: boolean) => {
     if (!open && !loading) {
+      resetDialogState();
       onClose();
     }
+  };
+
+  const handleCancel = () => {
+    if (loading) return;
+
+    resetDialogState();
+    onClose();
   };
 
   const handleConfirm = async () => {
     if (!payment) return;
 
-    if (!currentMethodIsCash && !selectedCashMethodId) {
-      setFieldError("Seleccioná un método efectivo para registrar el cobro");
-      return;
+    let availableCashMethods = cashPaymentMethods;
+
+    if (!currentMethodIsCash && availableCashMethods.length === 0) {
+      availableCashMethods = getCashPaymentMethods(await onLoadCollectMethods());
     }
 
-    if (!currentMethodIsCash && cashPaymentMethods.length === 0) {
+    if (!currentMethodIsCash && availableCashMethods.length === 0) {
       setFieldError("No hay un método efectivo activo para registrar el cobro");
       return;
     }
 
+    const selectedOrOnlyMethodId =
+      selectedCashMethodId ||
+      (availableCashMethods.length === 1
+        ? String(availableCashMethods[0].idPaymentMethod)
+        : "");
+
+    if (!currentMethodIsCash && !selectedOrOnlyMethodId) {
+      setFieldError("Seleccioná un método efectivo para registrar el cobro");
+      return;
+    }
+
+    if (!currentMethodIsCash && !selectedCashMethodId && selectedOrOnlyMethodId) {
+      setSelectedCashMethodId(selectedOrOnlyMethodId);
+    }
+
     const finalMethodId = currentMethodIsCash
       ? null
-      : Number(selectedCashMethodId);
+      : Number(selectedOrOnlyMethodId);
     const success = await onConfirm(payment.idSalePayment, {
       idPaymentMethod: finalMethodId,
       observation: observation.trim() || null,
@@ -106,9 +142,7 @@ export const CollectPaymentDialog = ({
 
     if (!success) return;
 
-    setSelectedCashMethodId("");
-    setObservation("");
-    setFieldError(null);
+    resetDialogState();
     onClose();
   };
 
@@ -146,7 +180,7 @@ export const CollectPaymentDialog = ({
                   setSelectedCashMethodId(value ?? "");
                   setFieldError(null);
                 }}
-                disabled={loading || cashPaymentMethods.length === 0}
+                disabled={loading || methodsLoading}
               >
                 <SelectTrigger className="w-full">
                   <span
@@ -156,7 +190,9 @@ export const CollectPaymentDialog = ({
                         : "flex flex-1 text-left text-muted-foreground"
                     }
                   >
-                    {getPaymentMethodLabel(selectedCashMethod)}
+                    {methodsLoading
+                      ? "Cargando métodos efectivos..."
+                      : getPaymentMethodLabel(selectedCashMethod)}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
@@ -195,17 +231,17 @@ export const CollectPaymentDialog = ({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" disabled={loading} onClick={onClose}>
+          <Button type="button" variant="outline" disabled={loading} onClick={handleCancel}>
             Cancelar
           </Button>
           <Button
             type="button"
-            disabled={loading || (!currentMethodIsCash && cashPaymentMethods.length === 0)}
+            disabled={loading || methodsLoading}
             onClick={() => {
               void handleConfirm();
             }}
           >
-            {loading ? (
+            {loading || methodsLoading ? (
               <Loader2 className="mr-2 size-4 animate-spin" />
             ) : (
               <HandCoins className="mr-2 size-4" />

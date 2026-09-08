@@ -7,11 +7,19 @@ import {
   confirmSalePaymentController,
   createSalePaymentController,
   getSalePaymentEventsController,
+  listCollectPaymentMethodsController,
   listSalePaymentsController,
   updateSalePaymentController,
 } from "../controllers/sale-payments.controller.js";
 
 const router = Router();
+
+router.get(
+  "/sale-payments/collect-methods",
+  requireAuth,
+  requirePermission("sale_payments.collect"),
+  listCollectPaymentMethodsController,
+);
 
 router.get(
   "/sales/:idSale/payments",

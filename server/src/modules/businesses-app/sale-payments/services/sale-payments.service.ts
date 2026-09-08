@@ -4,7 +4,9 @@ import {
   mapSalePayment,
   mapSalePaymentEvent,
 } from "../helpers/sale-payment.mapper.js";
+import { listPaymentMethodsService } from "../../payment-methods/services/payment-methods.service.js";
 import type {
+  CollectPaymentMethodResponse,
   CreateSalePaymentPayload,
   SalePaymentAccessFilters,
   SalePaymentActionPayload,
@@ -113,6 +115,28 @@ export async function getSalePaymentEventsService(
   const result = rows as unknown as SalePaymentEventDbRow[][];
 
   return (result[0] ?? []).map(mapSalePaymentEvent);
+}
+
+export async function listCollectPaymentMethodsService(
+  idBusiness: number,
+): Promise<CollectPaymentMethodResponse[]> {
+  const paymentMethods = await listPaymentMethodsService({
+    idBusiness,
+    onlyActive: true,
+  });
+
+  return paymentMethods
+    .filter(function filterCashMethod(paymentMethod) {
+      return paymentMethod.isActive && paymentMethod.affectsCash;
+    })
+    .map(function mapCollectMethod(paymentMethod) {
+      return {
+        idPaymentMethod: paymentMethod.idPaymentMethod,
+        code: paymentMethod.code,
+        name: paymentMethod.name,
+        affectsCash: paymentMethod.affectsCash,
+      };
+    });
 }
 
 export async function createSalePaymentService(

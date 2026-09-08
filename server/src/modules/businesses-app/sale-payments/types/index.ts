@@ -70,6 +70,13 @@ export interface SalePaymentResponse {
   cancelledAt: Date | null;
 }
 
+export interface CollectPaymentMethodResponse {
+  idPaymentMethod: number;
+  code: string;
+  name: string;
+  affectsCash: boolean;
+}
+
 export interface CreateSalePaymentPayload {
   idBusiness: number;
   idSale: number;

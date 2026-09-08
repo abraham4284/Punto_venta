@@ -8,6 +8,7 @@ import {
   confirmSalePaymentService,
   createSalePaymentService,
   getSalePaymentEventsService,
+  listCollectPaymentMethodsService,
   listSalePaymentsService,
   updateSalePaymentService,
 } from "../services/sale-payments.service.js";
@@ -139,6 +140,26 @@ export async function getSalePaymentEventsController(
       });
     }
 
+    return res.status(400).json({
+      status: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function listCollectPaymentMethodsController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const result = await listCollectPaymentMethodsService(req.user!.idBusiness);
+
+    return res.status(200).json({
+      status: true,
+      message: "Metodos de cobro obtenidos correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
     return res.status(400).json({
       status: false,
       message: getErrorMessage(error),

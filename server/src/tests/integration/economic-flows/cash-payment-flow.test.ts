@@ -7,6 +7,7 @@ import {
   confirmSalePaymentThroughApi,
   createCashMovementThroughApi,
   createSaleThroughApi,
+  getCollectPaymentMethodsThroughApi,
   getCashSessionSummaryThroughApi,
   openCashSessionThroughApi,
 } from "@/tests/helpers/economic-http-test.helper.js";
@@ -710,6 +711,55 @@ describe("economic cash session and payment method flow", function suite() {
     expect(payment?.status).toBe("COLLECTED");
     expect(payment?.collected_by_user_id).toBe(delivery.idUser);
     expect(payment?.collected_at).not.toBeNull();
+  });
+
+  it("permite al cadete obtener metodos cash de cobro sin payment_methods.view", async function test() {
+    const scenario = await createEconomicFlowScenario();
+    const delivery = await createDeliveryAuth(scenario);
+    await executeInsert(
+      `INSERT INTO payment_methods (idBusiness, code, name, affects_cash, is_default, is_active)
+       VALUES (?, 'CASH', 'Efectivo inactivo collect', 1, 0, 0)`,
+      [scenario.business.business.idBusiness],
+    );
+
+    const response = await getCollectPaymentMethodsThroughApi({
+      cookies: delivery.cookies,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          idPaymentMethod: scenario.cashPaymentMethod.idPaymentMethod,
+          affectsCash: true,
+        }),
+      ]),
+    );
+    expect(response.body.data.some(function hasNonCash(method: { affectsCash: boolean }) {
+      return !method.affectsCash;
+    })).toBe(false);
+    expect(response.body.data.some(function hasInactive(method: { name: string }) {
+      return method.name === "Efectivo inactivo collect";
+    })).toBe(false);
+  });
+
+  it("rechaza obtener metodos de cobro sin permiso sale_payments.collect", async function test() {
+    const scenario = await createEconomicFlowScenario();
+    const sellerUser = await createBusinessUserFixture({
+      idBusiness: scenario.business.business.idBusiness,
+      role: "SELLER",
+      usernamePrefix: "seller_collect_methods",
+    });
+    const sellerAuth = await loginBusinessTestUser({
+      username: sellerUser.username,
+      password: sellerUser.plainPasswordForTest,
+    });
+
+    const response = await getCollectPaymentMethodsThroughApi({
+      cookies: sellerAuth.cookies,
+    });
+
+    expect(response.status).toBe(403);
   });
 
   it("rechaza collect de transfer pending sin cambio de metodo", async function test() {
