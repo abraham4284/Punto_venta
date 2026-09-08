@@ -74,6 +74,7 @@ export const SalePaymentsPanel = ({
     payments,
     paymentMethods,
     collectPaymentMethods,
+    collectMethodsLoaded,
     currentCashSession,
     loading,
     collectMethodsLoading,
@@ -379,6 +380,7 @@ export const SalePaymentsPanel = ({
         isOpen={Boolean(collectDialogPayment)}
         loading={actionLoadingId === collectDialogPayment?.idSalePayment}
         methodsLoading={collectMethodsLoading}
+        methodsLoaded={collectMethodsLoaded}
         collectPaymentMethods={collectPaymentMethods}
         onClose={() => setCollectDialogPayment(null)}
         onLoadCollectMethods={fetchCollectPaymentMethods}

@@ -1,3 +1,9 @@
+export type SalePaymentSettlementStatus =
+  | "PENDING"
+  | "COLLECTED"
+  | "CONFIRMED"
+  | "CANCELLED";
+
 export type CashSettlementResponse = {
   idCashSettlement: number;
   idBusiness: number;
@@ -19,11 +25,32 @@ export type CashSettlementPaymentResponse = {
   idPaymentMethod: number;
   paymentMethodName: string;
   amount: number;
-  status: string;
+  status: SalePaymentSettlementStatus;
   collectedAt: string | null;
   confirmedAt: string | null;
   reference: string | null;
   observation: string | null;
+};
+
+export type PendingCashSettlementPaymentResponse = {
+  idSalePayment: number;
+  idSale: number;
+  saleNumber: string;
+  amount: number;
+  collectedAt: string | null;
+  customerName: string | null;
+};
+
+export type PendingCashSettlementCollectorResponse = {
+  collectorUserId: number;
+  collectorUserName: string;
+  paymentsCount: number;
+  totalAmount: number;
+  payments: PendingCashSettlementPaymentResponse[];
+};
+
+export type PendingCashSettlementsResponse = {
+  collectors: PendingCashSettlementCollectorResponse[];
 };
 
 export type CashSettlementWithPaymentsResponse = CashSettlementResponse & {
@@ -51,5 +78,6 @@ export type PaginatedCashSettlementsResponse = {
 export type CreateCashSettlementBody = {
   collectorUserId: number;
   idCashSession: number;
+  salePaymentIds: number[];
   observation?: string | null;
 };

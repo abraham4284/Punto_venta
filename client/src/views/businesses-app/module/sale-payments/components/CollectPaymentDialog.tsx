@@ -32,6 +32,7 @@ type CollectPaymentDialogProps = {
   isOpen: boolean;
   loading: boolean;
   methodsLoading: boolean;
+  methodsLoaded: boolean;
   collectPaymentMethods: CollectPaymentMethodResponse[];
   onClose: () => void;
   onLoadCollectMethods: () => Promise<CollectPaymentMethodResponse[]>;
@@ -46,6 +47,7 @@ export const CollectPaymentDialog = ({
   isOpen,
   loading,
   methodsLoading,
+  methodsLoaded,
   collectPaymentMethods,
   onClose,
   onLoadCollectMethods,
@@ -63,6 +65,12 @@ export const CollectPaymentDialog = ({
     });
   }, [cashPaymentMethods, selectedCashMethodId]);
   const currentMethodIsCash = Boolean(payment?.affectsCash);
+  const noCashMethodsAvailable =
+    !currentMethodIsCash &&
+    methodsLoaded &&
+    !methodsLoading &&
+    cashPaymentMethods.length === 0;
+  const collectDisabled = loading || methodsLoading || noCashMethodsAvailable;
 
   const resetDialogState = () => {
     setSelectedCashMethodId("");
@@ -108,7 +116,7 @@ export const CollectPaymentDialog = ({
 
     let availableCashMethods = cashPaymentMethods;
 
-    if (!currentMethodIsCash && availableCashMethods.length === 0) {
+    if (!currentMethodIsCash && !methodsLoaded && availableCashMethods.length === 0) {
       availableCashMethods = getCashPaymentMethods(await onLoadCollectMethods());
     }
 
@@ -209,6 +217,11 @@ export const CollectPaymentDialog = ({
               <p className="text-xs text-muted-foreground">
                 El cambio de método se enviará junto con el cobro, en una sola operación.
               </p>
+              {noCashMethodsAvailable ? (
+                <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                  No hay un método efectivo activo para registrar el cobro
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -236,7 +249,7 @@ export const CollectPaymentDialog = ({
           </Button>
           <Button
             type="button"
-            disabled={loading || methodsLoading}
+            disabled={collectDisabled}
             onClick={() => {
               void handleConfirm();
             }}
