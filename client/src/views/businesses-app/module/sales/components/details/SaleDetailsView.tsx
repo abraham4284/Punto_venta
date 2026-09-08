@@ -92,7 +92,7 @@ const getPaymentLineStatusLabel = (
   const labels = {
     PENDING: "Pendiente",
     COLLECTED: "Cobrado por cadete",
-    CONFIRMED: "Confirmado en caja",
+    CONFIRMED: "Confirmado",
     CANCELLED: "Anulado",
   };
 
@@ -345,7 +345,7 @@ export const SaleDetailsView = ({
                     {getPaymentStatusLabel(sale.paymentStatus)}
                   </Badge>
                 </div>
-                <InfoItem label="Confirmado en caja" value={formatCurrency(sale.confirmedAmount)} />
+                <InfoItem label="Confirmado" value={formatCurrency(sale.confirmedAmount)} />
                 <InfoItem label="Cobrado por cadete" value={formatCurrency(sale.collectedAmount)} />
                 <InfoItem label="Pendiente planificado" value={formatCurrency(sale.pendingAmount)} />
                 <InfoItem label="Saldo pendiente" value={formatCurrency(balanceDue)} />
