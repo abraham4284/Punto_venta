@@ -35,6 +35,20 @@ export const useSaleDetails = () => {
     }
   }, []);
 
+  const refreshSale = useCallback(async (idSale: number) => {
+    try {
+      setError(null);
+
+      const response = await getSaleByIdRequest(idSale);
+      setSale(response.data.data);
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiErrorResponse>;
+      setError(
+        axiosError.response?.data?.message || "No se pudo actualizar la venta",
+      );
+    }
+  }, []);
+
   const grossSubtotal = useMemo(() => {
     if (!sale) return 0;
 
@@ -86,6 +100,7 @@ export const useSaleDetails = () => {
     canceling,
     error,
     getSale,
+    refreshSale,
     cancelSaleAction,
     grossSubtotal,
     resetSaleDetails,

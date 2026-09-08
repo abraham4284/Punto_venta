@@ -1,7 +1,6 @@
 import {
   ArrowLeft,
   Ban,
-  CreditCard,
   Package,
   Printer,
   Receipt,
@@ -44,6 +43,7 @@ import {
   ProductThumbnail,
 } from "@/views/businesses-app/components/operation-details";
 import { useCan } from "@/views/businesses-app/hooks/useCan";
+import { SalePaymentsPanel } from "../../../sale-payments/components/SalePaymentsPanel";
 import type { Customer } from "../../../customers/types/customers.types";
 import type { SaleWithDetailsResponse } from "../../types";
 
@@ -56,6 +56,7 @@ type SaleDetailsViewProps = {
   onBack: () => void;
   onPrint: () => void;
   onCancel: () => void;
+  onPaymentChanged: () => Promise<void> | void;
 };
 
 const getSaleStatusLabel = (status: SaleWithDetailsResponse["status"]) => {
@@ -71,29 +72,6 @@ const getPaymentStatusLabel = (status: SaleWithDetailsResponse["paymentStatus"])
     UNPAID: "Pendiente",
     PARTIALLY_PAID: "Parcial",
     PAID: "Pagada",
-  };
-
-  return labels[status];
-};
-
-const getPaymentBadgeClassName = (status: SaleWithDetailsResponse["paymentStatus"]) => {
-  const classNames = {
-    UNPAID: "border-amber-200 bg-amber-50 text-amber-700",
-    PARTIALLY_PAID: "border-blue-200 bg-blue-50 text-blue-700",
-    PAID: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  };
-
-  return classNames[status];
-};
-
-const getPaymentLineStatusLabel = (
-  status: SaleWithDetailsResponse["payments"][number]["status"],
-) => {
-  const labels = {
-    PENDING: "Pendiente",
-    COLLECTED: "Cobrado por cadete",
-    CONFIRMED: "Confirmado",
-    CANCELLED: "Anulado",
   };
 
   return labels[status];
@@ -139,6 +117,7 @@ export const SaleDetailsView = ({
   onBack,
   onPrint,
   onCancel,
+  onPaymentChanged,
 }: SaleDetailsViewProps) => {
   const canCancelSales = useCan("sales.cancel");
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;
@@ -330,61 +309,17 @@ export const SaleDetailsView = ({
             total={sale.total}
           />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                Pagos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Estado</span>
-                  <Badge variant="outline" className={getPaymentBadgeClassName(sale.paymentStatus)}>
-                    {getPaymentStatusLabel(sale.paymentStatus)}
-                  </Badge>
-                </div>
-                <InfoItem label="Confirmado" value={formatCurrency(sale.confirmedAmount)} />
-                <InfoItem label="Cobrado por cadete" value={formatCurrency(sale.collectedAmount)} />
-                <InfoItem label="Pendiente planificado" value={formatCurrency(sale.pendingAmount)} />
-                <InfoItem label="Saldo pendiente" value={formatCurrency(balanceDue)} />
-              </div>
-
-              <div className="space-y-2">
-                {sale.payments.length === 0 ? (
-                  <p className="text-muted-foreground">Sin pagos registrados.</p>
-                ) : (
-                  sale.payments.map((payment) => (
-                    <div
-                      key={payment.idSalePayment}
-                      className="rounded-lg border bg-muted/20 p-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-medium">{payment.paymentMethodName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {getPaymentLineStatusLabel(payment.status)}
-                          </p>
-                        </div>
-                        <p className="font-semibold">{formatCurrency(payment.amount)}</p>
-                      </div>
-                      {payment.reference ? (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Ref: {payment.reference}
-                        </p>
-                      ) : null}
-                      {payment.observation ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Obs: {payment.observation}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <SalePaymentsPanel
+            idSale={sale.idSale}
+            saleNumber={saleNumber}
+            saleTotal={sale.total}
+            saleStatus={sale.status}
+            hasDelivery={Boolean(sale.delivery)}
+            deliveryStatus={sale.delivery?.status ?? null}
+            assignedToUserId={sale.delivery?.assignedToUserId ?? null}
+            context="sale-detail"
+            onPaymentChanged={onPaymentChanged}
+          />
 
           {sale.delivery ? (
             <Card>
