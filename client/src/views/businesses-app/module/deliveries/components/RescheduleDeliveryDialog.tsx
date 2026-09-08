@@ -22,7 +22,7 @@ type RescheduleDeliveryDialogProps = {
   onConfirm: (
     idSaleDelivery: number,
     data: { scheduledAt?: string | null; observation?: string | null },
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 };
 
 export const RescheduleDeliveryDialog = ({
@@ -46,10 +46,15 @@ export const RescheduleDeliveryDialog = ({
   const handleConfirm = async () => {
     if (!delivery) return;
 
-    await onConfirm(delivery.idSaleDelivery, {
+    const success = await onConfirm(delivery.idSaleDelivery, {
       scheduledAt: scheduledAt || null,
       observation: observation.trim() || null,
     });
+
+    if (!success) {
+      return;
+    }
+
     setScheduledAt("");
     setObservation("");
     onClose();

@@ -39,6 +39,8 @@ const defaultPagination: DeliveryPagination = {
 
 type UseDeliveriesOptions = {
   autoFetch?: boolean;
+  canViewAll?: boolean;
+  removeDetachedOnReschedule?: boolean;
 };
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -46,7 +48,11 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return axiosError.response?.data?.message ?? axiosError.message ?? fallback;
 };
 
-export const useDeliveries = ({ autoFetch = true }: UseDeliveriesOptions = {}) => {
+export const useDeliveries = ({
+  autoFetch = true,
+  canViewAll = false,
+  removeDetachedOnReschedule = true,
+}: UseDeliveriesOptions = {}) => {
   const [deliveries, setDeliveries] = useState<DeliveryResponse[]>([]);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryResponse | null>(null);
   const [deliveryUsers, setDeliveryUsers] = useState<DeliveryUserOption[]>([]);
@@ -143,18 +149,33 @@ export const useDeliveries = ({ autoFetch = true }: UseDeliveriesOptions = {}) =
     });
   };
 
+  const removeDelivery = (idSaleDelivery: number) => {
+    setDeliveries((current) =>
+      current.filter((delivery) => delivery.idSaleDelivery !== idSaleDelivery),
+    );
+    setSelectedDelivery((current) => {
+      if (!current || current.idSaleDelivery !== idSaleDelivery) {
+        return current;
+      }
+
+      return null;
+    });
+  };
+
   const runAction = async (
     idSaleDelivery: number,
     action: () => Promise<{ data: { data: DeliveryResponse; message: string } }>,
-  ) => {
+  ): Promise<DeliveryResponse | null> => {
     setActionLoadingId(idSaleDelivery);
 
     try {
       const response = await action();
       replaceDelivery(response.data.data);
       toast.success(response.data.message);
+      return response.data.data;
     } catch (error) {
       toast.error(getErrorMessage(error, "No se pudo actualizar la entrega"));
+      return null;
     } finally {
       setActionLoadingId(null);
     }
@@ -166,15 +187,19 @@ export const useDeliveries = ({ autoFetch = true }: UseDeliveriesOptions = {}) =
   ) => {
     return runAction(idSaleDelivery, () =>
       assignDeliveryRequest(idSaleDelivery, { assignedToUserId }),
-    );
+    ).then(Boolean);
   };
 
   const startDelivery = (idSaleDelivery: number) => {
-    return runAction(idSaleDelivery, () => startDeliveryRequest(idSaleDelivery));
+    return runAction(idSaleDelivery, () =>
+      startDeliveryRequest(idSaleDelivery),
+    ).then(Boolean);
   };
 
   const deliverDelivery = (idSaleDelivery: number) => {
-    return runAction(idSaleDelivery, () => deliverDeliveryRequest(idSaleDelivery));
+    return runAction(idSaleDelivery, () =>
+      deliverDeliveryRequest(idSaleDelivery),
+    ).then(Boolean);
   };
 
   const failDelivery = (
@@ -183,23 +208,37 @@ export const useDeliveries = ({ autoFetch = true }: UseDeliveriesOptions = {}) =
   ) => {
     return runAction(idSaleDelivery, () =>
       failDeliveryRequest(idSaleDelivery, body),
-    );
+    ).then(Boolean);
   };
 
-  const rescheduleDelivery = (
+  const rescheduleDelivery = async (
     idSaleDelivery: number,
     body: Pick<DeliveryActionBody, "scheduledAt" | "observation">,
   ) => {
-    return runAction(idSaleDelivery, () =>
+    const updatedDelivery = await runAction(idSaleDelivery, () =>
       rescheduleDeliveryRequest(idSaleDelivery, body),
     );
+
+    if (
+      updatedDelivery &&
+      removeDetachedOnReschedule &&
+      !canViewAll &&
+      updatedDelivery.status === "PENDING" &&
+      updatedDelivery.assignedToUserId === null
+    ) {
+      removeDelivery(idSaleDelivery);
+    }
+
+    return Boolean(updatedDelivery);
   };
 
   const cancelDelivery = (
     idSaleDelivery: number,
     body: Pick<DeliveryActionBody, "observation"> = {},
   ) => {
-    return runAction(idSaleDelivery, () => cancelDeliveryRequest(idSaleDelivery, body));
+    return runAction(idSaleDelivery, () =>
+      cancelDeliveryRequest(idSaleDelivery, body),
+    ).then(Boolean);
   };
 
   const resetSelectedDelivery = useCallback(() => {
