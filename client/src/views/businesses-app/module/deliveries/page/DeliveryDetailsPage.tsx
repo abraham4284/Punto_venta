@@ -57,7 +57,11 @@ export const DeliveryDetailsPage = () => {
     failDelivery,
     rescheduleDelivery,
     cancelDelivery,
-  } = useDeliveries({ autoFetch: false });
+  } = useDeliveries({
+    autoFetch: false,
+    canViewAll,
+    removeDetachedOnReschedule: false,
+  });
   const [assignDialogDelivery, setAssignDialogDelivery] =
     useState<DeliveryResponse | null>(null);
   const [failDialogDelivery, setFailDialogDelivery] =
@@ -113,6 +117,19 @@ export const DeliveryDetailsPage = () => {
   }
 
   const isActionLoading = actionLoadingId === selectedDelivery.idSaleDelivery;
+
+  const handleRescheduleDelivery = async (
+    idSaleDelivery: number,
+    data: { scheduledAt?: string | null; observation?: string | null },
+  ) => {
+    const success = await rescheduleDelivery(idSaleDelivery, data);
+
+    if (success && !canViewAll) {
+      navigate("/admin/deliveries");
+    }
+
+    return success;
+  };
 
   return (
     <>
@@ -296,7 +313,7 @@ export const DeliveryDetailsPage = () => {
           actionLoading={isActionLoading}
           isOpen={Boolean(rescheduleDialogDelivery)}
           onClose={() => setRescheduleDialogDelivery(null)}
-          onConfirm={rescheduleDelivery}
+          onConfirm={handleRescheduleDelivery}
         />
       </main>
     </>
