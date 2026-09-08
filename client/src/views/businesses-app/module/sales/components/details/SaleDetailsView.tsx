@@ -43,6 +43,7 @@ import {
   OperationTotals,
   ProductThumbnail,
 } from "@/views/businesses-app/components/operation-details";
+import { useCan } from "@/views/businesses-app/hooks/useCan";
 import type { Customer } from "../../../customers/types/customers.types";
 import type { SaleWithDetailsResponse } from "../../types";
 
@@ -139,6 +140,7 @@ export const SaleDetailsView = ({
   onPrint,
   onCancel,
 }: SaleDetailsViewProps) => {
+  const canCancelSales = useCan("sales.cancel");
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;
   const customerName =
     customer?.name || sale.customerName || "Consumidor final";
@@ -180,7 +182,7 @@ export const SaleDetailsView = ({
               <Ban className="mr-2 h-4 w-4" />
               Venta anulada
             </Button>
-          ) : (
+          ) : canCancelSales ? (
             <AlertDialog>
               <AlertDialogTrigger
                 render={
@@ -217,7 +219,7 @@ export const SaleDetailsView = ({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -372,6 +374,11 @@ export const SaleDetailsView = ({
                           Ref: {payment.reference}
                         </p>
                       ) : null}
+                      {payment.observation ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Obs: {payment.observation}
+                        </p>
+                      ) : null}
                     </div>
                   ))
                 )}
@@ -451,8 +458,8 @@ export const SaleDetailsView = ({
               <InfoItem label="Depósito" value={sale.depositName} />
               <InfoItem label="Vendedor" value={sale.userName} />
               <InfoItem
-                label="Método de pago"
-                value={sale.paymentMethodName ?? "Sin informar"}
+                label="Resumen de pagos"
+                value={sale.paymentDetail ?? "Ver detalle de pagos"}
               />
             </CardContent>
           </Card>

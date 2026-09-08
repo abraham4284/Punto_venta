@@ -21,63 +21,78 @@ export const saleDetailSchema = z
     message: "Los productos por unidad solo permiten cantidades enteras",
   });
 
-export const createSaleFormSchema = z.object({
-  idCustomer: z
-    .number()
-    .int("Selecciona un cliente valido")
-    .optional()
-    .nullable(),
-  idDeposit: z
-    .number({ error: "Selecciona un deposito" })
-    .int("Selecciona un deposito valido")
-    .positive("Selecciona un deposito"),
-  idCashSession: z
-    .number({ error: "Debes abrir una caja antes de registrar una venta" })
-    .int("La sesion de caja no es valida")
-    .positive("Debes abrir una caja antes de registrar una venta"),
-  idPaymentMethod: z
-    .number({ error: "Selecciona un metodo de pago" })
-    .int("Selecciona un metodo de pago valido")
-    .positive("Selecciona un metodo de pago."),
-  items: z
-    .array(saleDetailSchema)
-    .min(1, "Agrega al menos un producto al carrito"),
-  payments: z
-    .array(
-      z.object({
-        idPaymentMethod: z.number().int().positive("Selecciona un metodo de pago valido"),
-        amount: z.number().positive("El importe debe ser mayor a cero"),
-        status: z.enum(["PENDING", "CONFIRMED"], {
-          message: "El estado del pago no es valido",
+export const createSaleFormSchema = z
+  .object({
+    idCustomer: z
+      .number()
+      .int("Selecciona un cliente valido")
+      .optional()
+      .nullable(),
+    idDeposit: z
+      .number({ error: "Selecciona un deposito" })
+      .int("Selecciona un deposito valido")
+      .positive("Selecciona un deposito"),
+    idCashSession: z
+      .number({ error: "Debes abrir una caja antes de registrar una venta" })
+      .int("La sesion de caja no es valida")
+      .positive("Debes abrir una caja antes de registrar una venta"),
+    idPaymentMethod: z
+      .number({ error: "Selecciona un metodo de pago" })
+      .int("Selecciona un metodo de pago valido")
+      .positive("Selecciona un metodo de pago."),
+    items: z
+      .array(saleDetailSchema)
+      .min(1, "Agrega al menos un producto al carrito"),
+    payments: z
+      .array(
+        z.object({
+          idPaymentMethod: z.number().int().positive("Selecciona un metodo de pago valido"),
+          amount: z.number().positive("El importe debe ser mayor a cero"),
+          status: z.enum(["PENDING", "CONFIRMED"], {
+            message: "El estado del pago no es valido",
+          }),
         }),
-      }),
-    )
-    .min(1, "Agrega al menos un pago"),
-  delivery: z
-    .object({
-      enabled: z.boolean(),
-      recipientName: z.string().trim(),
-      deliveryAddress: z.string().trim(),
-      deliveryReference: z.string().trim().optional(),
-    })
-    .superRefine((delivery, ctx) => {
-      if (!delivery.enabled) return;
+      )
+      .min(1, "Agrega al menos un pago"),
+    delivery: z
+      .object({
+        enabled: z.boolean(),
+        recipientName: z.string().trim(),
+        deliveryAddress: z.string().trim(),
+        deliveryReference: z.string().trim().optional(),
+      })
+      .superRefine((delivery, ctx) => {
+        if (!delivery.enabled) return;
 
-      if (delivery.recipientName.length < 2) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["recipientName"],
-          message: "Ingresa el nombre del destinatario",
-        });
-      }
+        if (delivery.recipientName.length < 2) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["recipientName"],
+            message: "Ingresa el nombre del destinatario",
+          });
+        }
 
-      if (delivery.deliveryAddress.length < 5) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["deliveryAddress"],
-          message: "Ingresa una direccion de entrega valida",
-        });
-      }
-    })
-    .optional(),
-});
+        if (delivery.deliveryAddress.length < 5) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["deliveryAddress"],
+            message: "Ingresa una direccion de entrega valida",
+          });
+        }
+      })
+      .optional(),
+  })
+  .superRefine((sale, ctx) => {
+    const hasDelivery = sale.delivery?.enabled ?? false;
+    const hasPendingPayment = sale.payments.some((payment) => {
+      return payment.status === "PENDING";
+    });
+
+    if (!hasDelivery && hasPendingPayment) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["payments"],
+        message: "Una venta sin entrega no puede tener pagos pendientes",
+      });
+    }
+  });
