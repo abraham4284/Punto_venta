@@ -1,0 +1,304 @@
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CalendarClock, MapPin, ReceiptText, Truck, UserRound } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Meta } from "@/components/Meta";
+import { ViewLoadingState } from "@/components/loading/ViewLoadingState";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCan } from "@/views/businesses-app/hooks/useCan";
+import { AssignDeliveryDialog } from "../components/AssignDeliveryDialog";
+import { DeliveryActions } from "../components/DeliveryActions";
+import { DeliveryStatusBadge } from "../components/DeliveryStatusBadge";
+import { FailDeliveryDialog } from "../components/FailDeliveryDialog";
+import { RescheduleDeliveryDialog } from "../components/RescheduleDeliveryDialog";
+import {
+  formatDeliveryDate,
+  formatDeliveryMoney,
+  type DeliveryPermissions,
+} from "../helpers/delivery.helpers";
+import { useDeliveries } from "../hooks/useDeliveries";
+import type { DeliveryResponse } from "../types";
+
+const InfoItem = ({ label, value }: { label: string; value: string }) => {
+  return (
+    <div className="rounded-lg border bg-muted/20 p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-medium">{value}</p>
+    </div>
+  );
+};
+
+export const DeliveryDetailsPage = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const canViewAll = useCan("deliveries.view_all");
+  const canAssign = useCan("deliveries.assign");
+  const canUpdateStatus = useCan("deliveries.update_status");
+  const permissions = useMemo<DeliveryPermissions>(() => {
+    return {
+      canAssign,
+      canUpdateStatus,
+      canViewAll,
+    };
+  }, [canAssign, canUpdateStatus, canViewAll]);
+  const {
+    selectedDelivery,
+    deliveryUsers,
+    detailLoading,
+    usersLoading,
+    actionLoadingId,
+    error,
+    fetchDeliveryById,
+    fetchDeliveryUsers,
+    resetSelectedDelivery,
+    assignDelivery,
+    startDelivery,
+    deliverDelivery,
+    failDelivery,
+    rescheduleDelivery,
+    cancelDelivery,
+  } = useDeliveries({ autoFetch: false });
+  const [assignDialogDelivery, setAssignDialogDelivery] =
+    useState<DeliveryResponse | null>(null);
+  const [failDialogDelivery, setFailDialogDelivery] =
+    useState<DeliveryResponse | null>(null);
+  const [rescheduleDialogDelivery, setRescheduleDialogDelivery] =
+    useState<DeliveryResponse | null>(null);
+
+  useEffect(() => {
+    const deliveryId = Number(id);
+
+    if (Number.isInteger(deliveryId) && deliveryId > 0) {
+      void fetchDeliveryById(deliveryId);
+    }
+
+    return () => {
+      resetSelectedDelivery();
+    };
+  }, [fetchDeliveryById, id, resetSelectedDelivery]);
+
+  useEffect(() => {
+    if (canAssign) {
+      void fetchDeliveryUsers();
+    }
+  }, [canAssign, fetchDeliveryUsers]);
+
+  if (detailLoading) {
+    return (
+      <>
+        <Meta title="Detalle de Entrega" />
+        <ViewLoadingState
+          message="Cargando entrega..."
+          description="Preparando información operativa del pedido."
+        />
+      </>
+    );
+  }
+
+  if (error || !selectedDelivery) {
+    return (
+      <>
+        <Meta title="Detalle de Entrega" />
+        <main className="space-y-4 bg-white p-3 md:p-6">
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+            <ArrowLeft className="mr-2 size-4" />
+            Volver
+          </Button>
+          <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            {error || "Entrega no encontrada"}
+          </p>
+        </main>
+      </>
+    );
+  }
+
+  const isActionLoading = actionLoadingId === selectedDelivery.idSaleDelivery;
+
+  return (
+    <>
+      <Meta title="Detalle de Entrega" />
+      <main className="space-y-6 bg-white p-3 md:p-6">
+        <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+          <div className="space-y-3">
+            <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+              <ArrowLeft className="mr-2 size-4" />
+              Volver
+            </Button>
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight">
+                  Entrega {selectedDelivery.saleNumber}
+                </h1>
+                <DeliveryStatusBadge status={selectedDelivery.status} />
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Seguimiento operativo de la entrega y sus datos de contacto.
+              </p>
+            </div>
+          </div>
+
+          <DeliveryActions
+            delivery={selectedDelivery}
+            permissions={permissions}
+            loading={isActionLoading}
+            onAssign={setAssignDialogDelivery}
+            onStart={(delivery) => {
+              void startDelivery(delivery.idSaleDelivery);
+            }}
+            onDeliver={(delivery) => {
+              void deliverDelivery(delivery.idSaleDelivery);
+            }}
+            onFail={setFailDialogDelivery}
+            onReschedule={setRescheduleDialogDelivery}
+            onCancel={(delivery) => {
+              void cancelDelivery(delivery.idSaleDelivery);
+            }}
+          />
+        </header>
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <ReceiptText className="size-8 text-primary" />
+              <div>
+                <p className="text-xs text-muted-foreground">Venta</p>
+                <p className="font-semibold">{selectedDelivery.saleNumber}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <Truck className="size-8 text-primary" />
+              <div>
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="font-semibold">
+                  {formatDeliveryMoney(selectedDelivery.total)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <UserRound className="size-8 text-primary" />
+              <div>
+                <p className="text-xs text-muted-foreground">Cadete</p>
+                <p className="font-semibold">
+                  {selectedDelivery.assignedUserName ?? "Sin asignar"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 p-4">
+              <CalendarClock className="size-8 text-primary" />
+              <div>
+                <p className="text-xs text-muted-foreground">Programada</p>
+                <p className="font-semibold">
+                  {formatDeliveryDate(selectedDelivery.scheduledAt)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="size-4" />
+                Destino
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <InfoItem label="Destinatario" value={selectedDelivery.recipientName} />
+              <InfoItem
+                label="Teléfono"
+                value={selectedDelivery.recipientPhone ?? "Sin informar"}
+              />
+              <div className="md:col-span-2">
+                <InfoItem label="Dirección" value={selectedDelivery.deliveryAddress} />
+              </div>
+              <div className="md:col-span-2">
+                <InfoItem
+                  label="Referencia"
+                  value={selectedDelivery.deliveryReference ?? "Sin referencias"}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <InfoItem
+                  label="Observación"
+                  value={selectedDelivery.observation ?? "Sin observaciones"}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <aside className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Auditoría operativa</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                <InfoItem
+                  label="Creada por"
+                  value={selectedDelivery.createdByUserName ?? "Sin informar"}
+                />
+                <InfoItem
+                  label="Creada"
+                  value={formatDeliveryDate(selectedDelivery.createdAt)}
+                />
+                <InfoItem
+                  label="Asignada"
+                  value={formatDeliveryDate(selectedDelivery.assignedAt)}
+                />
+                <InfoItem
+                  label="En camino"
+                  value={formatDeliveryDate(selectedDelivery.outForDeliveryAt)}
+                />
+                <InfoItem
+                  label="Entregada"
+                  value={formatDeliveryDate(selectedDelivery.deliveredAt)}
+                />
+                <InfoItem
+                  label="Fallida"
+                  value={formatDeliveryDate(selectedDelivery.failedAt)}
+                />
+                <InfoItem
+                  label="Cancelada"
+                  value={formatDeliveryDate(selectedDelivery.cancelledAt)}
+                />
+                {selectedDelivery.failureReason ? (
+                  <InfoItem label="Motivo de falla" value={selectedDelivery.failureReason} />
+                ) : null}
+              </CardContent>
+            </Card>
+          </aside>
+        </section>
+
+        <AssignDeliveryDialog
+          delivery={assignDialogDelivery}
+          users={deliveryUsers}
+          loadingUsers={usersLoading}
+          actionLoading={isActionLoading}
+          isOpen={Boolean(assignDialogDelivery)}
+          onClose={() => setAssignDialogDelivery(null)}
+          onConfirm={assignDelivery}
+        />
+        <FailDeliveryDialog
+          delivery={failDialogDelivery}
+          actionLoading={isActionLoading}
+          isOpen={Boolean(failDialogDelivery)}
+          onClose={() => setFailDialogDelivery(null)}
+          onConfirm={failDelivery}
+        />
+        <RescheduleDeliveryDialog
+          delivery={rescheduleDialogDelivery}
+          actionLoading={isActionLoading}
+          isOpen={Boolean(rescheduleDialogDelivery)}
+          onClose={() => setRescheduleDialogDelivery(null)}
+          onConfirm={rescheduleDelivery}
+        />
+      </main>
+    </>
+  );
+};
