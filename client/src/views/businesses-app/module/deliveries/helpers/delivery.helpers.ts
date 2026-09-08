@@ -1,4 +1,4 @@
-import type { DeliveryResponse, DeliveryStatus } from "../types";
+import type { DeliveryEventType, DeliveryResponse, DeliveryStatus, JsonValue } from "../types";
 
 export type DeliveryAction =
   | "VIEW"
@@ -22,6 +22,17 @@ export const deliveryStatusLabels: Record<DeliveryStatus, string> = {
   DELIVERED: "Entregada",
   FAILED: "Fallida",
   CANCELLED: "Cancelada",
+};
+
+export const deliveryEventLabels: Record<DeliveryEventType, string> = {
+  DELIVERY_CREATED: "Entrega creada",
+  DELIVERY_ASSIGNED: "Cadete asignado",
+  DELIVERY_UNASSIGNED: "Asignación removida",
+  DELIVERY_OUT_FOR_DELIVERY: "Entrega iniciada",
+  DELIVERY_FAILED: "Entrega fallida",
+  DELIVERY_RESCHEDULED: "Entrega reagendada",
+  DELIVERY_DELIVERED: "Entrega entregada",
+  DELIVERY_CANCELLED: "Entrega cancelada",
 };
 
 export const deliveryStatusClassNames: Record<DeliveryStatus, string> = {
@@ -54,6 +65,45 @@ export const formatDeliveryDate = (value: string | null): string => {
 
 export const isFinalDeliveryStatus = (status: DeliveryStatus): boolean => {
   return finalDeliveryStatuses.includes(status);
+};
+
+export const getDeliveryStatusLabel = (
+  status: DeliveryStatus | null,
+): string => {
+  if (!status) return "Sin estado";
+  return deliveryStatusLabels[status] ?? status;
+};
+
+export const getDeliveryEventLabel = (
+  eventType: DeliveryEventType | string,
+): string => {
+  return deliveryEventLabels[eventType as DeliveryEventType] ?? "Evento de entrega";
+};
+
+export const getDeliveryMetadataLines = (metadata: JsonValue | null): string[] => {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return [];
+  }
+
+  const lines: string[] = [];
+
+  if ("assignedToUserId" in metadata) {
+    lines.push(`Cadete asignado #${String(metadata.assignedToUserId)}`);
+  }
+
+  if ("scheduledAt" in metadata && metadata.scheduledAt) {
+    lines.push(`Programada: ${formatDeliveryDate(String(metadata.scheduledAt))}`);
+  }
+
+  if ("failureReason" in metadata && metadata.failureReason) {
+    lines.push(`Motivo: ${String(metadata.failureReason)}`);
+  }
+
+  if ("observation" in metadata && metadata.observation) {
+    lines.push(`Obs: ${String(metadata.observation)}`);
+  }
+
+  return lines;
 };
 
 export const getAllowedDeliveryActions = (

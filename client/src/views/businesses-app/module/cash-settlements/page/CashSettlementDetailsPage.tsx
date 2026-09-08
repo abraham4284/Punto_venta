@@ -19,6 +19,7 @@ import {
   formatSettlementDate,
   formatSettlementMoney,
 } from "../helpers/cash-settlement.helpers";
+import { getSalePaymentStatusLabel } from "../../sale-payments/helpers/sale-payment.helpers";
 import { useCashSettlementDetail } from "../hooks/useCashSettlementDetail";
 
 export const CashSettlementDetailsPage = () => {
@@ -190,7 +191,9 @@ export const CashSettlementDetailsPage = () => {
                       </TableCell>
                       <TableCell>{payment.paymentMethodName}</TableCell>
                       <TableCell>
-                        <Badge className="bg-emerald-600">{payment.status}</Badge>
+                        <Badge className="bg-emerald-600">
+                          {getSalePaymentStatusLabel(payment.status)}
+                        </Badge>
                       </TableCell>
                       <TableCell>{formatSettlementDate(payment.collectedAt)}</TableCell>
                       <TableCell>{formatSettlementDate(payment.confirmedAt)}</TableCell>
@@ -222,7 +225,9 @@ export const CashSettlementDetailsPage = () => {
                         {payment.paymentMethodName}
                       </p>
                     </div>
-                    <Badge className="bg-emerald-600">{payment.status}</Badge>
+                    <Badge className="bg-emerald-600">
+                      {getSalePaymentStatusLabel(payment.status)}
+                    </Badge>
                   </div>
                   <div className="mt-3 grid gap-1 text-sm text-muted-foreground">
                     <p>Cobrado: {formatSettlementDate(payment.collectedAt)}</p>

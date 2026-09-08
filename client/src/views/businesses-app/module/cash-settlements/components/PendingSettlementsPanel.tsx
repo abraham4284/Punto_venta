@@ -29,6 +29,7 @@ type PendingSettlementsPanelProps = {
   canCreate: boolean;
   receiverCanCreate: boolean;
   canViewCashSession: boolean;
+  canAccessCashPage: boolean;
   cashSession: CashSessionResponse | null;
   pendingLoading: boolean;
   cashSessionLoading: boolean;
@@ -52,6 +53,7 @@ export const PendingSettlementsPanel = ({
   canCreate,
   receiverCanCreate,
   canViewCashSession,
+  canAccessCashPage,
   cashSession,
   pendingLoading,
   cashSessionLoading,
@@ -169,12 +171,14 @@ export const PendingSettlementsPanel = ({
                   Actualizar caja
                 </Button>
               ) : null}
-              <Link
-                to="/admin/cash"
-                className="inline-flex h-7 items-center justify-center rounded-lg border border-border bg-background px-2.5 text-[0.8rem] font-medium transition hover:bg-muted"
-              >
-                Ir a Caja
-              </Link>
+              {canAccessCashPage ? (
+                <Link
+                  to="/admin/cash"
+                  className="inline-flex h-7 items-center justify-center rounded-lg border border-border bg-background px-2.5 text-[0.8rem] font-medium transition hover:bg-muted"
+                >
+                  Ir a Caja
+                </Link>
+              ) : null}
             </div>
           </div>
 

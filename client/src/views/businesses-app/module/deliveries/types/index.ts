@@ -6,6 +6,24 @@ export type DeliveryStatus =
   | "FAILED"
   | "CANCELLED";
 
+export type JsonValue =
+  | null
+  | string
+  | number
+  | boolean
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export type DeliveryEventType =
+  | "DELIVERY_CREATED"
+  | "DELIVERY_ASSIGNED"
+  | "DELIVERY_UNASSIGNED"
+  | "DELIVERY_OUT_FOR_DELIVERY"
+  | "DELIVERY_FAILED"
+  | "DELIVERY_RESCHEDULED"
+  | "DELIVERY_DELIVERED"
+  | "DELIVERY_CANCELLED";
+
 export type DeliveryResponse = {
   idSaleDelivery: number;
   idBusiness: number;
@@ -62,4 +80,17 @@ export type DeliveryUserOption = {
   idUser: number;
   name: string;
   username: string;
+};
+
+export type DeliveryEventResponse = {
+  idDeliveryEvent: number;
+  idBusiness: number;
+  idSaleDelivery: number;
+  eventType: DeliveryEventType;
+  previousStatus: DeliveryStatus | null;
+  newStatus: DeliveryStatus | null;
+  metadata: JsonValue | null;
+  createdByUserId: number | null;
+  createdByUserName: string | null;
+  createdAt: string;
 };
