@@ -21,7 +21,7 @@ type FailDeliveryDialogProps = {
   onConfirm: (
     idSaleDelivery: number,
     data: { failureReason: string; observation?: string | null },
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 };
 
 export const FailDeliveryDialog = ({
@@ -54,10 +54,15 @@ export const FailDeliveryDialog = ({
       return;
     }
 
-    await onConfirm(delivery.idSaleDelivery, {
+    const success = await onConfirm(delivery.idSaleDelivery, {
       failureReason: reason,
       observation: observation.trim() || null,
     });
+
+    if (!success) {
+      return;
+    }
+
     setFailureReason("");
     setObservation("");
     setFieldError(null);

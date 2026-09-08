@@ -45,7 +45,7 @@ export const DeliveriesPage = () => {
     failDelivery,
     rescheduleDelivery,
     cancelDelivery,
-  } = useDeliveries();
+  } = useDeliveries({ canViewAll });
   const [assignDialogDelivery, setAssignDialogDelivery] =
     useState<DeliveryResponse | null>(null);
   const [failDialogDelivery, setFailDialogDelivery] =

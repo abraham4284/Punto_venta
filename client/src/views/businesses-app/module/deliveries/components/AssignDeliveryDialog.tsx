@@ -25,7 +25,7 @@ type AssignDeliveryDialogProps = {
   actionLoading: boolean;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (idSaleDelivery: number, assignedToUserId: number) => Promise<void>;
+  onConfirm: (idSaleDelivery: number, assignedToUserId: number) => Promise<boolean>;
 };
 
 export const AssignDeliveryDialog = ({
@@ -57,7 +57,12 @@ export const AssignDeliveryDialog = ({
   const handleConfirm = async () => {
     if (!delivery || !selectedUserId) return;
 
-    await onConfirm(delivery.idSaleDelivery, Number(selectedUserId));
+    const success = await onConfirm(delivery.idSaleDelivery, Number(selectedUserId));
+
+    if (!success) {
+      return;
+    }
+
     setSelectedUserId("");
     onClose();
   };
