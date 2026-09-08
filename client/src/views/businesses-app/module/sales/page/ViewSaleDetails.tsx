@@ -18,6 +18,7 @@ export const ViewSaleDetails = () => {
     cancelSaleAction,
     error,
     getSale,
+    refreshSale,
     loading,
     sale,
     grossSubtotal,
@@ -105,6 +106,7 @@ export const ViewSaleDetails = () => {
             onCancel={() => {
               void cancelSaleAction(sale.idSale);
             }}
+            onPaymentChanged={() => refreshSale(sale.idSale)}
           />
         </div>
 

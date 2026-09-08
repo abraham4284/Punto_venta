@@ -6,6 +6,7 @@ import { ViewLoadingState } from "@/components/loading/ViewLoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCan } from "@/views/businesses-app/hooks/useCan";
+import { SalePaymentsPanel } from "../../sale-payments/components/SalePaymentsPanel";
 import { AssignDeliveryDialog } from "../components/AssignDeliveryDialog";
 import { DeliveryActions } from "../components/DeliveryActions";
 import { DeliveryStatusBadge } from "../components/DeliveryStatusBadge";
@@ -219,36 +220,49 @@ export const DeliveryDetailsPage = () => {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="size-4" />
-                Destino
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <InfoItem label="Destinatario" value={selectedDelivery.recipientName} />
-              <InfoItem
-                label="Teléfono"
-                value={selectedDelivery.recipientPhone ?? "Sin informar"}
-              />
-              <div className="md:col-span-2">
-                <InfoItem label="Dirección" value={selectedDelivery.deliveryAddress} />
-              </div>
-              <div className="md:col-span-2">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="size-4" />
+                  Destino
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <InfoItem label="Destinatario" value={selectedDelivery.recipientName} />
                 <InfoItem
-                  label="Referencia"
-                  value={selectedDelivery.deliveryReference ?? "Sin referencias"}
+                  label="Teléfono"
+                  value={selectedDelivery.recipientPhone ?? "Sin informar"}
                 />
-              </div>
-              <div className="md:col-span-2">
-                <InfoItem
-                  label="Observación"
-                  value={selectedDelivery.observation ?? "Sin observaciones"}
-                />
-              </div>
-            </CardContent>
-          </Card>
+                <div className="md:col-span-2">
+                  <InfoItem label="Dirección" value={selectedDelivery.deliveryAddress} />
+                </div>
+                <div className="md:col-span-2">
+                  <InfoItem
+                    label="Referencia"
+                    value={selectedDelivery.deliveryReference ?? "Sin referencias"}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <InfoItem
+                    label="Observación"
+                    value={selectedDelivery.observation ?? "Sin observaciones"}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <SalePaymentsPanel
+              idSale={selectedDelivery.idSale}
+              saleNumber={selectedDelivery.saleNumber}
+              saleTotal={selectedDelivery.total}
+              saleStatus="COMPLETED"
+              hasDelivery={true}
+              deliveryStatus={selectedDelivery.status}
+              assignedToUserId={selectedDelivery.assignedToUserId}
+              context="delivery-detail"
+            />
+          </div>
 
           <aside className="space-y-6">
             <Card>
