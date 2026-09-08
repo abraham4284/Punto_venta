@@ -259,7 +259,7 @@ export const PaymentFormDialog = ({
                 <SelectTrigger className="w-full">
                   <span className="flex flex-1 text-left">
                     {formState.status === "CONFIRMED"
-                      ? "Confirmado en caja"
+                      ? "Confirmado"
                       : "Pendiente de cobro"}
                   </span>
                 </SelectTrigger>
@@ -267,12 +267,12 @@ export const PaymentFormDialog = ({
                   {hasDelivery ? (
                     <SelectItem value="PENDING">Pendiente de cobro</SelectItem>
                   ) : null}
-                  <SelectItem value="CONFIRMED">Confirmado en caja</SelectItem>
+                  <SelectItem value="CONFIRMED">Confirmado</SelectItem>
                 </SelectContent>
               </Select>
               {formState.status === "CONFIRMED" && !currentCashSession ? (
                 <p className="text-xs text-muted-foreground">
-                  Se validará la caja abierta antes de confirmar.
+                  Se validará la sesión de caja abierta antes de confirmar.
                 </p>
               ) : null}
             </div>

@@ -43,6 +43,13 @@ export const ConfirmPaymentDialog = ({
     }
   };
 
+  const handleCancel = () => {
+    if (loading) return;
+
+    setFieldError(null);
+    onClose();
+  };
+
   const handleConfirm = async () => {
     if (!payment) return;
 
@@ -65,9 +72,9 @@ export const ConfirmPaymentDialog = ({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Confirmar pago en caja</DialogTitle>
+          <DialogTitle>Confirmar pago</DialogTitle>
           <DialogDescription>
-            Este pago quedará reconocido por el negocio en la caja abierta actual.
+            El pago quedará reconocido por el negocio y asociado a la sesión de caja abierta actual.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,7 +101,7 @@ export const ConfirmPaymentDialog = ({
             type="button"
             variant="outline"
             disabled={loading || cashSessionLoading}
-            onClick={onClose}
+            onClick={handleCancel}
           >
             Cancelar
           </Button>

@@ -264,6 +264,14 @@ export function collectSalePaymentThroughApi(input: {
     });
 }
 
+export function getCollectPaymentMethodsThroughApi(input: {
+  cookies: string[];
+}): Promise<Response> {
+  return request(getTestApp())
+    .get("/api/sale-payments/collect-methods")
+    .set("Cookie", input.cookies);
+}
+
 export function confirmSalePaymentThroughApi(input: {
   cookies: string[];
   idSalePayment: number;

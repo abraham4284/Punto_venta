@@ -73,14 +73,16 @@ export const SalePaymentsPanel = ({
   const {
     payments,
     paymentMethods,
+    collectPaymentMethods,
     currentCashSession,
     loading,
-    methodsLoading,
+    collectMethodsLoading,
     cashSessionLoading,
     actionLoadingId,
     saving,
     error,
     fetchCurrentCashSession,
+    fetchCollectPaymentMethods,
     createPayment,
     updatePayment,
     cancelPayment,
@@ -89,6 +91,7 @@ export const SalePaymentsPanel = ({
   } = useSalePayments({
     idSale,
     enabled: canView,
+    loadAdminPaymentMethods: context === "sale-detail",
     onPaymentChanged,
   });
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -130,6 +133,14 @@ export const SalePaymentsPanel = ({
     setFormMode("edit");
     setFormPayment(payment);
     setFormOpen(true);
+  };
+
+  const handleOpenCollect = (payment: SalePaymentResponse) => {
+    setCollectDialogPayment(payment);
+
+    if (!payment.affectsCash) {
+      void fetchCollectPaymentMethods();
+    }
   };
 
   return (
@@ -297,8 +308,8 @@ export const SalePaymentsPanel = ({
                       <Button
                         type="button"
                         size="sm"
-                        disabled={paymentLoading || methodsLoading}
-                        onClick={() => setCollectDialogPayment(payment)}
+                        disabled={paymentLoading || collectMethodsLoading}
+                        onClick={() => handleOpenCollect(payment)}
                       >
                         {paymentLoading ? (
                           <Spinner className="mr-2 size-4" />
@@ -367,8 +378,10 @@ export const SalePaymentsPanel = ({
         payment={collectDialogPayment}
         isOpen={Boolean(collectDialogPayment)}
         loading={actionLoadingId === collectDialogPayment?.idSalePayment}
-        paymentMethods={paymentMethods}
+        methodsLoading={collectMethodsLoading}
+        collectPaymentMethods={collectPaymentMethods}
         onClose={() => setCollectDialogPayment(null)}
+        onLoadCollectMethods={fetchCollectPaymentMethods}
         onConfirm={collectPayment}
       />
     </Card>
