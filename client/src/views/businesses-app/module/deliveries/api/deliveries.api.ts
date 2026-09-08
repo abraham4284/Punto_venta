@@ -5,6 +5,7 @@ import type {
   DeliveryActionBody,
   DeliveryFilters,
   DeliveryResponse,
+  DeliveryUserOption,
   PaginatedDeliveriesResponse,
 } from "../types";
 
@@ -68,4 +69,10 @@ export const cancelDeliveryRequest = (
   body: DeliveryActionBody = {},
 ): Promise<AxiosResponse<ApiResponse<DeliveryResponse>>> => {
   return axios.patch(`/deliveries/${idSaleDelivery}/cancel`, body);
+};
+
+export const getDeliveryUsersRequest = (): Promise<
+  AxiosResponse<ApiResponse<DeliveryUserOption[]>>
+> => {
+  return axios.get("/sales/delivery-users");
 };

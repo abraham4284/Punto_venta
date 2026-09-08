@@ -2,16 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import type { AxiosError } from "axios";
 import {
+  assignDeliveryRequest,
   cancelDeliveryRequest,
   deliverDeliveryRequest,
   failDeliveryRequest,
   getDeliveriesRequest,
+  getDeliveryByIdRequest,
+  getDeliveryUsersRequest,
+  rescheduleDeliveryRequest,
   startDeliveryRequest,
 } from "../api/deliveries.api";
 import type {
+  DeliveryActionBody,
   DeliveryFilters,
   DeliveryPagination,
   DeliveryResponse,
+  DeliveryUserOption,
 } from "../types";
 
 type ApiError = {
@@ -31,21 +37,31 @@ const defaultPagination: DeliveryPagination = {
   limit: 15,
 };
 
+type UseDeliveriesOptions = {
+  autoFetch?: boolean;
+};
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<ApiError>;
   return axiosError.response?.data?.message ?? axiosError.message ?? fallback;
 };
 
-export const useDeliveries = () => {
+export const useDeliveries = ({ autoFetch = true }: UseDeliveriesOptions = {}) => {
   const [deliveries, setDeliveries] = useState<DeliveryResponse[]>([]);
+  const [selectedDelivery, setSelectedDelivery] = useState<DeliveryResponse | null>(null);
+  const [deliveryUsers, setDeliveryUsers] = useState<DeliveryUserOption[]>([]);
   const [filters, setFilters] = useState<DeliveryFilters>(defaultFilters);
   const [pagination, setPagination] =
     useState<DeliveryPagination>(defaultPagination);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchDeliveries = useCallback(async () => {
     setLoading(true);
+    setError(null);
 
     try {
       const { data } = await getDeliveriesRequest(
@@ -56,11 +72,46 @@ export const useDeliveries = () => {
       setDeliveries(data.data.deliveries);
       setPagination(data.data.pagination);
     } catch (error) {
-      toast.error(getErrorMessage(error, "No se pudieron cargar las entregas"));
+      const message = getErrorMessage(error, "No se pudieron cargar las entregas");
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   }, [filters, pagination.currentPage, pagination.limit]);
+
+  const fetchDeliveryById = useCallback(async (idSaleDelivery: number) => {
+    setDetailLoading(true);
+    setError(null);
+
+    try {
+      const { data } = await getDeliveryByIdRequest(idSaleDelivery);
+      setSelectedDelivery(data.data);
+      return data.data;
+    } catch (error) {
+      const message = getErrorMessage(error, "No se pudo cargar la entrega");
+      setError(message);
+      toast.error(message);
+      setSelectedDelivery(null);
+      return null;
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  const fetchDeliveryUsers = useCallback(async () => {
+    setUsersLoading(true);
+
+    try {
+      const { data } = await getDeliveryUsersRequest();
+      setDeliveryUsers(data.data ?? []);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "No se pudieron cargar los cadetes"));
+      setDeliveryUsers([]);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
 
   const changePage = (page: number) => {
     setPagination((current) => ({
@@ -83,6 +134,13 @@ export const useDeliveries = () => {
         item.idSaleDelivery === delivery.idSaleDelivery ? delivery : item,
       ),
     );
+    setSelectedDelivery((current) => {
+      if (!current || current.idSaleDelivery !== delivery.idSaleDelivery) {
+        return current;
+      }
+
+      return delivery;
+    });
   };
 
   const runAction = async (
@@ -102,6 +160,15 @@ export const useDeliveries = () => {
     }
   };
 
+  const assignDelivery = (
+    idSaleDelivery: number,
+    assignedToUserId: number,
+  ) => {
+    return runAction(idSaleDelivery, () =>
+      assignDeliveryRequest(idSaleDelivery, { assignedToUserId }),
+    );
+  };
+
   const startDelivery = (idSaleDelivery: number) => {
     return runAction(idSaleDelivery, () => startDeliveryRequest(idSaleDelivery));
   };
@@ -110,31 +177,71 @@ export const useDeliveries = () => {
     return runAction(idSaleDelivery, () => deliverDeliveryRequest(idSaleDelivery));
   };
 
-  const failDelivery = (idSaleDelivery: number, failureReason: string) => {
+  const failDelivery = (
+    idSaleDelivery: number,
+    body: Pick<DeliveryActionBody, "failureReason" | "observation">,
+  ) => {
     return runAction(idSaleDelivery, () =>
-      failDeliveryRequest(idSaleDelivery, { failureReason }),
+      failDeliveryRequest(idSaleDelivery, body),
     );
   };
 
-  const cancelDelivery = (idSaleDelivery: number) => {
-    return runAction(idSaleDelivery, () => cancelDeliveryRequest(idSaleDelivery));
+  const rescheduleDelivery = (
+    idSaleDelivery: number,
+    body: Pick<DeliveryActionBody, "scheduledAt" | "observation">,
+  ) => {
+    return runAction(idSaleDelivery, () =>
+      rescheduleDeliveryRequest(idSaleDelivery, body),
+    );
   };
 
+  const cancelDelivery = (
+    idSaleDelivery: number,
+    body: Pick<DeliveryActionBody, "observation"> = {},
+  ) => {
+    return runAction(idSaleDelivery, () => cancelDeliveryRequest(idSaleDelivery, body));
+  };
+
+  const resetSelectedDelivery = useCallback(() => {
+    setSelectedDelivery(null);
+    setDetailLoading(false);
+    setError(null);
+  }, []);
+
   useEffect(() => {
-    void fetchDeliveries();
-  }, [fetchDeliveries]);
+    if (!autoFetch) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void fetchDeliveries();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [autoFetch, fetchDeliveries]);
 
   return {
     deliveries,
+    selectedDelivery,
+    deliveryUsers,
     filters,
     pagination,
     loading,
+    detailLoading,
+    usersLoading,
     actionLoadingId,
+    error,
     applyFilters,
     changePage,
+    fetchDeliveries,
+    fetchDeliveryById,
+    fetchDeliveryUsers,
+    resetSelectedDelivery,
+    assignDelivery,
     startDelivery,
     deliverDelivery,
     failDelivery,
+    rescheduleDelivery,
     cancelDelivery,
   };
 };
