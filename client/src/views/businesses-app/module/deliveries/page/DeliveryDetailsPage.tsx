@@ -10,6 +10,7 @@ import { SalePaymentsPanel } from "../../sale-payments/components/SalePaymentsPa
 import { AssignDeliveryDialog } from "../components/AssignDeliveryDialog";
 import { DeliveryActions } from "../components/DeliveryActions";
 import { DeliveryStatusBadge } from "../components/DeliveryStatusBadge";
+import { DeliveryTimeline } from "../components/DeliveryTimeline";
 import { FailDeliveryDialog } from "../components/FailDeliveryDialog";
 import { RescheduleDeliveryDialog } from "../components/RescheduleDeliveryDialog";
 import {
@@ -18,6 +19,7 @@ import {
   type DeliveryPermissions,
 } from "../helpers/delivery.helpers";
 import { useDeliveries } from "../hooks/useDeliveries";
+import { useDeliveryEvents } from "../hooks/useDeliveryEvents";
 import type { DeliveryResponse } from "../types";
 
 const InfoItem = ({ label, value }: { label: string; value: string }) => {
@@ -63,6 +65,14 @@ export const DeliveryDetailsPage = () => {
     canViewAll,
     removeDetachedOnReschedule: false,
   });
+  const {
+    events,
+    loading: eventsLoading,
+    error: eventsError,
+    loadEvents,
+    refreshEvents,
+    reset: resetEvents,
+  } = useDeliveryEvents();
   const [assignDialogDelivery, setAssignDialogDelivery] =
     useState<DeliveryResponse | null>(null);
   const [failDialogDelivery, setFailDialogDelivery] =
@@ -75,12 +85,14 @@ export const DeliveryDetailsPage = () => {
 
     if (Number.isInteger(deliveryId) && deliveryId > 0) {
       void fetchDeliveryById(deliveryId);
+      void loadEvents(deliveryId);
     }
 
     return () => {
       resetSelectedDelivery();
+      resetEvents();
     };
-  }, [fetchDeliveryById, id, resetSelectedDelivery]);
+  }, [fetchDeliveryById, id, loadEvents, resetEvents, resetSelectedDelivery]);
 
   useEffect(() => {
     if (canAssign) {
@@ -119,6 +131,52 @@ export const DeliveryDetailsPage = () => {
 
   const isActionLoading = actionLoadingId === selectedDelivery.idSaleDelivery;
 
+  const refreshDeliveryEvents = async () => {
+    await refreshEvents(selectedDelivery.idSaleDelivery);
+  };
+
+  const handleAssignDelivery = async (
+    idSaleDelivery: number,
+    assignedToUserId: number,
+  ) => {
+    const success = await assignDelivery(idSaleDelivery, assignedToUserId);
+
+    if (success) {
+      await refreshEvents(idSaleDelivery);
+    }
+
+    return success;
+  };
+
+  const handleStartDelivery = async (delivery: DeliveryResponse) => {
+    const success = await startDelivery(delivery.idSaleDelivery);
+
+    if (success) {
+      await refreshEvents(delivery.idSaleDelivery);
+    }
+  };
+
+  const handleDeliverDelivery = async (delivery: DeliveryResponse) => {
+    const success = await deliverDelivery(delivery.idSaleDelivery);
+
+    if (success) {
+      await refreshEvents(delivery.idSaleDelivery);
+    }
+  };
+
+  const handleFailDelivery = async (
+    idSaleDelivery: number,
+    data: { failureReason?: string | null; observation?: string | null },
+  ) => {
+    const success = await failDelivery(idSaleDelivery, data);
+
+    if (success) {
+      await refreshEvents(idSaleDelivery);
+    }
+
+    return success;
+  };
+
   const handleRescheduleDelivery = async (
     idSaleDelivery: number,
     data: { scheduledAt?: string | null; observation?: string | null },
@@ -127,9 +185,22 @@ export const DeliveryDetailsPage = () => {
 
     if (success && !canViewAll) {
       navigate("/admin/deliveries");
+      return success;
+    }
+
+    if (success) {
+      await refreshEvents(idSaleDelivery);
     }
 
     return success;
+  };
+
+  const handleCancelDelivery = async (delivery: DeliveryResponse) => {
+    const success = await cancelDelivery(delivery.idSaleDelivery);
+
+    if (success) {
+      await refreshEvents(delivery.idSaleDelivery);
+    }
   };
 
   return (
@@ -161,15 +232,15 @@ export const DeliveryDetailsPage = () => {
             loading={isActionLoading}
             onAssign={setAssignDialogDelivery}
             onStart={(delivery) => {
-              void startDelivery(delivery.idSaleDelivery);
+              void handleStartDelivery(delivery);
             }}
             onDeliver={(delivery) => {
-              void deliverDelivery(delivery.idSaleDelivery);
+              void handleDeliverDelivery(delivery);
             }}
             onFail={setFailDialogDelivery}
             onReschedule={setRescheduleDialogDelivery}
             onCancel={(delivery) => {
-              void cancelDelivery(delivery.idSaleDelivery);
+              void handleCancelDelivery(delivery);
             }}
           />
         </header>
@@ -265,6 +336,15 @@ export const DeliveryDetailsPage = () => {
           </div>
 
           <aside className="space-y-6">
+            <DeliveryTimeline
+              events={events}
+              loading={eventsLoading}
+              error={eventsError}
+              onRetry={() => {
+                void refreshDeliveryEvents();
+              }}
+            />
+
             <Card>
               <CardHeader>
                 <CardTitle>Auditoría operativa</CardTitle>
@@ -313,14 +393,14 @@ export const DeliveryDetailsPage = () => {
           actionLoading={isActionLoading}
           isOpen={Boolean(assignDialogDelivery)}
           onClose={() => setAssignDialogDelivery(null)}
-          onConfirm={assignDelivery}
+          onConfirm={handleAssignDelivery}
         />
         <FailDeliveryDialog
           delivery={failDialogDelivery}
           actionLoading={isActionLoading}
           isOpen={Boolean(failDialogDelivery)}
           onClose={() => setFailDialogDelivery(null)}
-          onConfirm={failDelivery}
+          onConfirm={handleFailDelivery}
         />
         <RescheduleDeliveryDialog
           delivery={rescheduleDialogDelivery}

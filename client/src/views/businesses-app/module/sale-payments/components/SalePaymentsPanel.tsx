@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   Ban,
   CheckCircle2,
+  Clock3,
   CreditCard,
   Edit3,
   HandCoins,
@@ -19,6 +20,7 @@ import { CancelPaymentDialog } from "./CancelPaymentDialog";
 import { CollectPaymentDialog } from "./CollectPaymentDialog";
 import { ConfirmPaymentDialog } from "./ConfirmPaymentDialog";
 import { PaymentFormDialog } from "./PaymentFormDialog";
+import { PaymentEventsDialog } from "./PaymentEventsDialog";
 import { PaymentStatusBadge } from "./PaymentStatusBadge";
 import {
   formatPaymentDate,
@@ -29,6 +31,7 @@ import {
   type SalePaymentPermissions,
 } from "../helpers/sale-payment.helpers";
 import { useSalePayments } from "../hooks/useSalePayments";
+import { useSalePaymentEvents } from "../hooks/useSalePaymentEvents";
 import type { SalePaymentResponse } from "../types";
 
 type SalePaymentsPanelProps = {
@@ -104,6 +107,15 @@ export const SalePaymentsPanel = ({
     useState<SalePaymentResponse | null>(null);
   const [collectDialogPayment, setCollectDialogPayment] =
     useState<SalePaymentResponse | null>(null);
+  const [eventsDialogPayment, setEventsDialogPayment] =
+    useState<SalePaymentResponse | null>(null);
+  const {
+    events: paymentEvents,
+    loading: paymentEventsLoading,
+    error: paymentEventsError,
+    loadEvents: loadPaymentEvents,
+    reset: resetPaymentEvents,
+  } = useSalePaymentEvents();
   const saleCancelled = saleStatus === "CANCELLED";
   const remaining = useMemo(() => {
     return getRemainingBalance(saleTotal, payments);
@@ -142,6 +154,16 @@ export const SalePaymentsPanel = ({
     if (!payment.affectsCash) {
       void fetchCollectPaymentMethods();
     }
+  };
+
+  const handleOpenPaymentEvents = (payment: SalePaymentResponse) => {
+    setEventsDialogPayment(payment);
+    void loadPaymentEvents(payment.idSalePayment);
+  };
+
+  const handleClosePaymentEvents = () => {
+    setEventsDialogPayment(null);
+    resetPaymentEvents();
   };
 
   return (
@@ -322,6 +344,20 @@ export const SalePaymentsPanel = ({
                     ) : null}
                   </div>
                 ) : null}
+
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    title="Ver historial del pago"
+                    aria-label={`Ver historial del pago ${payment.idSalePayment}`}
+                    onClick={() => handleOpenPaymentEvents(payment)}
+                  >
+                    <Clock3 className="mr-2 size-4" />
+                    Historial
+                  </Button>
+                </div>
               </article>
             );
           })
@@ -385,6 +421,17 @@ export const SalePaymentsPanel = ({
         onClose={() => setCollectDialogPayment(null)}
         onLoadCollectMethods={fetchCollectPaymentMethods}
         onConfirm={collectPayment}
+      />
+      <PaymentEventsDialog
+        payment={eventsDialogPayment}
+        isOpen={Boolean(eventsDialogPayment)}
+        events={paymentEvents}
+        loading={paymentEventsLoading}
+        error={paymentEventsError}
+        onClose={handleClosePaymentEvents}
+        onRetry={(idSalePayment) => {
+          void loadPaymentEvents(idSalePayment);
+        }}
       />
     </Card>
   );

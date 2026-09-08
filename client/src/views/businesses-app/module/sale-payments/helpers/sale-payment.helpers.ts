@@ -2,6 +2,8 @@ import { Decimal } from "decimal.js";
 import type { PaymentMethodResponse } from "../../payment-methods/types";
 import type {
   CollectPaymentMethodResponse,
+  JsonValue,
+  SalePaymentEventType,
   SalePaymentResponse,
   SalePaymentStatus,
 } from "../types";
@@ -37,6 +39,17 @@ export const salePaymentStatusClassNames: Record<SalePaymentStatus, string> = {
   CANCELLED: "border-slate-200 bg-slate-100 text-slate-600",
 };
 
+export const salePaymentEventLabels: Record<SalePaymentEventType, string> = {
+  PAYMENT_CREATED: "Pago creado",
+  PAYMENT_UPDATED: "Pago actualizado",
+  PAYMENT_METHOD_CHANGED: "Método de pago cambiado",
+  PAYMENT_COLLECTED: "Cobrado por cadete",
+  PAYMENT_CONFIRMED: "Pago confirmado",
+  PAYMENT_CANCELLED: "Pago anulado",
+  PAYMENT_SETTLED: "Pago rendido",
+  PAYMENT_MIGRATED: "Pago migrado",
+};
+
 export const formatPaymentMoney = (value: number): string => {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -52,6 +65,57 @@ export const formatPaymentDate = (value: string | null): string => {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
+};
+
+export const getSalePaymentStatusLabel = (
+  status: SalePaymentStatus | null,
+): string => {
+  if (!status) return "Sin estado";
+  return salePaymentStatusLabels[status] ?? status;
+};
+
+export const getSalePaymentEventLabel = (
+  eventType: SalePaymentEventType | string,
+): string => {
+  return salePaymentEventLabels[eventType as SalePaymentEventType] ?? "Evento de pago";
+};
+
+export const getSalePaymentMetadataLines = (metadata: JsonValue | null): string[] => {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return [];
+  }
+
+  const lines: string[] = [];
+
+  if ("idCashSettlement" in metadata && metadata.idCashSettlement) {
+    lines.push(`Rendición #${String(metadata.idCashSettlement)}`);
+  }
+
+  if ("idCashSession" in metadata && metadata.idCashSession) {
+    lines.push(`Sesión de caja #${String(metadata.idCashSession)}`);
+  }
+
+  if ("idPaymentMethod" in metadata && metadata.idPaymentMethod) {
+    lines.push(`Método #${String(metadata.idPaymentMethod)}`);
+  }
+
+  if ("previousPaymentMethodName" in metadata && metadata.previousPaymentMethodName) {
+    lines.push(`Método anterior: ${String(metadata.previousPaymentMethodName)}`);
+  }
+
+  if ("newPaymentMethodName" in metadata && metadata.newPaymentMethodName) {
+    lines.push(`Método nuevo: ${String(metadata.newPaymentMethodName)}`);
+  }
+
+  if ("reason" in metadata && metadata.reason) {
+    lines.push(`Motivo: ${String(metadata.reason)}`);
+  }
+
+  if ("observation" in metadata && metadata.observation) {
+    lines.push(`Obs: ${String(metadata.observation)}`);
+  }
+
+  return lines;
 };
 
 export const getActivePaymentsTotal = (

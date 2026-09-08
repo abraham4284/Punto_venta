@@ -12,6 +12,10 @@ import { SettlementHistory } from "../components/SettlementHistory";
 export const CashSettlementsPage = () => {
   const canCreate = useCan("cash_settlements.create");
   const canViewCashSession = useCan("cash_sessions.view");
+  const canViewCashHistory = useCan("cash_sessions.view_history");
+  const canViewCashRegisters = useCan("cash_registers.view");
+  const canAccessCashPage =
+    canViewCashSession || canViewCashHistory || canViewCashRegisters;
   const userRole = useAuthStore((state) => state.user?.role ?? "");
   const receiverCanCreate = userRole === "OWNER" || userRole === "ADMIN";
   const {
@@ -208,6 +212,7 @@ export const CashSettlementsPage = () => {
           canCreate={canCreate}
           receiverCanCreate={receiverCanCreate}
           canViewCashSession={canViewCashSession}
+          canAccessCashPage={canAccessCashPage}
           cashSession={currentCashSession}
           pendingLoading={pendingLoading}
           cashSessionLoading={cashSessionLoading}

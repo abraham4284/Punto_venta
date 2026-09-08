@@ -3,6 +3,7 @@ import type { AxiosResponse } from "axios";
 import type { ApiResponse } from "../../sales/types";
 import type {
   DeliveryActionBody,
+  DeliveryEventResponse,
   DeliveryFilters,
   DeliveryResponse,
   DeliveryUserOption,
@@ -29,6 +30,12 @@ export const getDeliveryByIdRequest = (
   idSaleDelivery: number,
 ): Promise<AxiosResponse<ApiResponse<DeliveryResponse>>> => {
   return axios.get(`/deliveries/${idSaleDelivery}`);
+};
+
+export const getDeliveryEventsRequest = (
+  idSaleDelivery: number,
+): Promise<AxiosResponse<ApiResponse<DeliveryEventResponse[]>>> => {
+  return axios.get(`/deliveries/${idSaleDelivery}/events`);
 };
 
 export const assignDeliveryRequest = (
