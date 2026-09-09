@@ -259,7 +259,7 @@ export async function getSalesService(
   filters: GetSalesFilters,
 ): Promise<PaginatedSalesResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       filters.idBusiness,
       filters.limit,
@@ -270,6 +270,9 @@ export async function getSalesService(
       filters.saleNumberSearch ?? null,
       filters.startDate ?? null,
       filters.endDate ?? null,
+      filters.paymentStatus ?? null,
+      filters.deliveryStatus ?? null,
+      filters.settlementStatus ?? null,
     ],
   );
 

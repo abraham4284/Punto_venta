@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AxiosError } from "axios";
 import { cancelSale, getSalesRequest } from "../api/sales.api";
 import type {
@@ -14,6 +14,9 @@ const initialFilters: SaleFilters = {
   idDeposit: null,
   idPaymentMethod: null,
   status: null,
+  paymentStatus: null,
+  deliveryStatus: null,
+  settlementStatus: null,
   startDate: "",
   endDate: "",
 };
@@ -65,6 +68,7 @@ export const useSaleManagement = () => {
   const [loading, setLoading] = useState(false);
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const saleNumberDebounceRef = useRef<number | null>(null);
 
   const getSales = useCallback(
     async (nextPage = 1, nextFilters = initialFilters) => {
@@ -96,13 +100,32 @@ export const useSaleManagement = () => {
       ...filters,
       ...nextFilters,
     };
+    const shouldDebounce =
+      Object.keys(nextFilters).length === 1 &&
+      Object.prototype.hasOwnProperty.call(nextFilters, "saleNumber");
 
     setFilters(mergedFilters);
     setPage(1);
+
+    if (saleNumberDebounceRef.current !== null) {
+      window.clearTimeout(saleNumberDebounceRef.current);
+    }
+
+    if (shouldDebounce) {
+      saleNumberDebounceRef.current = window.setTimeout(() => {
+        void getSales(1, mergedFilters);
+      }, 350);
+      return;
+    }
+
     void getSales(1, mergedFilters);
   };
 
   const resetFilters = () => {
+    if (saleNumberDebounceRef.current !== null) {
+      window.clearTimeout(saleNumberDebounceRef.current);
+    }
+
     setFilters(initialFilters);
     setPage(1);
     void getSales(1, initialFilters);
@@ -148,6 +171,14 @@ export const useSaleManagement = () => {
       setCancelingId(null);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (saleNumberDebounceRef.current !== null) {
+        window.clearTimeout(saleNumberDebounceRef.current);
+      }
+    };
+  }, []);
 
   return {
     sales,

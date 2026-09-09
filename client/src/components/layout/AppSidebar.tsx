@@ -38,6 +38,7 @@ type NavigationChild = {
   title: string;
   url: string;
   permission?: string;
+  roles?: string[];
 };
 
 type NavigationParent = {
@@ -115,6 +116,7 @@ const navigationSections: NavigationSection[] = [
             title: "Mi rendición",
             url: "/admin/deliveries/my-settlement",
             permission: "sale_payments.collect",
+            roles: ["DELIVERY"],
           },
         ],
       },
@@ -274,7 +276,12 @@ const hasPermission = (
   permission: string | undefined,
   userRole: string | undefined,
   permissions: string[] | undefined,
+  roles?: string[],
 ) => {
+  if (roles && (!userRole || !roles.includes(userRole))) {
+    return false;
+  }
+
   if (!permission || userRole === "OWNER") return true;
   return permissions?.includes(permission) ?? false;
 };
@@ -449,6 +456,7 @@ export const AppSidebar = () => {
     startItem.permission,
     user?.role,
     user?.permissions,
+    startItem.roles,
   )
     ? startItem
     : null;
@@ -461,7 +469,12 @@ export const AppSidebar = () => {
           .map((item) => ({
             ...item,
             children: item.children.filter((child) =>
-              hasPermission(child.permission, user?.role, user?.permissions),
+              hasPermission(
+                child.permission,
+                user?.role,
+                user?.permissions,
+                child.roles,
+              ),
             ),
           }))
           .filter((item) => item.children.length > 0),
