@@ -100,6 +100,7 @@ export const DeliveryTable = ({
                       delivery={delivery}
                       permissions={permissions}
                       loading={actionLoadingId === delivery.idSaleDelivery}
+                      allowDeliver={false}
                       onView={onView}
                       onAssign={onAssign}
                       onStart={onStart}

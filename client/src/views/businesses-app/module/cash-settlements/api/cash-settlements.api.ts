@@ -5,6 +5,7 @@ import type {
   CashSettlementFilters,
   CashSettlementWithPaymentsResponse,
   CreateCashSettlementBody,
+  MyPendingCashSettlementResponse,
   PaginatedCashSettlementsResponse,
   PendingCashSettlementsResponse,
 } from "../types";
@@ -39,6 +40,12 @@ export const getPendingCashSettlementsRequest = (
       collectorUserId: collectorUserId ?? undefined,
     },
   });
+};
+
+export const getMyPendingCashSettlementRequest = (): Promise<
+  AxiosResponse<ApiResponse<MyPendingCashSettlementResponse>>
+> => {
+  return axios.get("/cash-settlements/my-pending");
 };
 
 export const createCashSettlementRequest = (

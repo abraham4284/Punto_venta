@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   createCashSettlementService,
   getCashSettlementByIdService,
+  getMyPendingCashSettlementService,
   getPendingCashSettlementsService,
   listCashSettlementsService,
 } from "../services/cash-settlements.service.js";
@@ -124,6 +125,37 @@ export async function getPendingCashSettlementsController(
     return res.status(200).json({
       status: true,
       message: "Pagos pendientes de rendicion obtenidos correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        status: false,
+        message: "Error de validacion",
+        errors: getZodErrors(error),
+      });
+    }
+
+    return res.status(400).json({
+      status: false,
+      message: getErrorMessage(error),
+    });
+  }
+}
+
+export async function getMyPendingCashSettlementController(
+  req: Request,
+  res: Response,
+): Promise<Response> {
+  try {
+    const result = await getMyPendingCashSettlementService(
+      req.user!.idBusiness,
+      req.user!.idUser,
+    );
+
+    return res.status(200).json({
+      status: true,
+      message: "Rendicion pendiente del cadete obtenida correctamente",
       data: result,
     });
   } catch (error: unknown) {

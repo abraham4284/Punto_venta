@@ -176,3 +176,27 @@ export const getPaymentMethodLabel = (
     ? `${paymentMethod.name} · Efectivo`
     : paymentMethod.name;
 };
+
+export const getSalePaymentErrorMessage = (
+  message: string | undefined,
+  fallback: string,
+): string => {
+  const messages: Record<string, string> = {
+    DELIVERY_CASH_PAYMENT_REQUIRES_COLLECTION:
+      "Este efectivo debe registrarlo el cadete y luego rendirse en caja.",
+    DELIVERY_COLLECTION_REQUIRES_CASH_METHOD:
+      "El cobro del cadete debe registrarse con un método que afecte efectivo.",
+    DELIVERY_PAYMENT_FORBIDDEN:
+      "Solo el cadete asignado puede registrar este cobro.",
+    DELIVERY_MUST_BE_OUT_FOR_DELIVERY:
+      "La entrega debe estar en camino o ya entregada para recuperar el cobro.",
+    ONLY_PENDING_PAYMENT_CAN_BE_COLLECTED:
+      "Solo se pueden cobrar pagos pendientes.",
+    COLLECTED_PAYMENT_REQUIRES_CASH_SETTLEMENT:
+      "Este pago ya fue cobrado por el cadete y debe rendirse en caja.",
+  };
+
+  if (!message) return fallback;
+
+  return messages[message] ?? message;
+};

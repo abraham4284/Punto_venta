@@ -84,6 +84,7 @@ export const DeliveryCard = ({
           permissions={permissions}
           loading={loading}
           compact
+          allowDeliver={false}
           onView={onView}
           onAssign={onAssign}
           onStart={onStart}

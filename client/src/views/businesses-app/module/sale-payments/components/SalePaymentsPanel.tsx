@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Decimal } from "decimal.js";
 import {
   Ban,
   CheckCircle2,
@@ -44,6 +45,14 @@ type SalePaymentsPanelProps = {
   assignedToUserId?: number | null;
   context: SalePaymentContext;
   onPaymentChanged?: () => Promise<void> | void;
+  onPendingCashPaymentsChange?: (summary: PendingCashPaymentSummary) => void;
+};
+
+export type PendingCashPaymentSummary = {
+  count: number;
+  total: number;
+  hasPending: boolean;
+  isRecovery: boolean;
 };
 
 export const SalePaymentsPanel = ({
@@ -56,6 +65,7 @@ export const SalePaymentsPanel = ({
   assignedToUserId = null,
   context,
   onPaymentChanged,
+  onPendingCashPaymentsChange,
 }: SalePaymentsPanelProps) => {
   const canView = useCan("sale_payments.view");
   const canCreate = useCan("sale_payments.create");
@@ -128,9 +138,31 @@ export const SalePaymentsPanel = ({
   const canCollectFromDelivery =
     context === "delivery-detail" &&
     permissions.canCollect &&
-    deliveryStatus === "OUT_FOR_DELIVERY" &&
     assignedToUserId !== null &&
     assignedToUserId === currentUserId;
+  const pendingCashSummary = useMemo<PendingCashPaymentSummary>(() => {
+    const total = payments.reduce((accumulator, payment) => {
+      if (payment.status !== "PENDING" || !payment.affectsCash) {
+        return accumulator;
+      }
+
+      return accumulator.plus(payment.amount);
+    }, new Decimal(0));
+    const count = payments.filter((payment) => {
+      return payment.status === "PENDING" && payment.affectsCash;
+    }).length;
+
+    return {
+      count,
+      total: Number(total.toFixed(2)),
+      hasPending: count > 0,
+      isRecovery: deliveryStatus === "DELIVERED" && count > 0,
+    };
+  }, [deliveryStatus, payments]);
+
+  useEffect(() => {
+    onPendingCashPaymentsChange?.(pendingCashSummary);
+  }, [onPendingCashPaymentsChange, pendingCashSummary]);
 
   if (!canView) {
     return null;
@@ -207,6 +239,40 @@ export const SalePaymentsPanel = ({
       </CardHeader>
 
       <CardContent className="space-y-3">
+        {!loading &&
+        context === "delivery-detail" &&
+        pendingCashSummary.hasPending &&
+        (deliveryStatus === "OUT_FOR_DELIVERY" || deliveryStatus === "DELIVERED") ? (
+          <div
+            className={`rounded-xl border p-4 ${
+              pendingCashSummary.isRecovery
+                ? "border-destructive/25 bg-destructive/10 text-destructive"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+            }`}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold">
+                  {pendingCashSummary.isRecovery
+                    ? "Cobro del cadete sin registrar"
+                    : "Cobro pendiente"}
+                </p>
+                <p className="mt-1 text-sm">
+                  {pendingCashSummary.isRecovery
+                    ? "Esta entrega fue finalizada pero el cobro en efectivo no fue registrado."
+                    : "Registrá primero el efectivo recibido antes de confirmar la entrega."}
+                </p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-xs">Monto a cobrar</p>
+                <p className="text-xl font-bold">
+                  {formatPaymentMoney(pendingCashSummary.total)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="flex min-h-28 items-center justify-center">
             <Spinner />
@@ -223,13 +289,24 @@ export const SalePaymentsPanel = ({
           payments.map((payment) => {
             const paymentLoading = actionLoadingId === payment.idSalePayment;
             const isPending = payment.status === "PENDING";
+            const deliveryRequiresCadeteCollection =
+              context === "sale-detail" &&
+              hasDelivery &&
+              isPending &&
+              payment.affectsCash &&
+              assignedToUserId !== null &&
+              deliveryStatus !== null &&
+              ["ASSIGNED", "OUT_FOR_DELIVERY", "FAILED", "DELIVERED"].includes(
+                deliveryStatus,
+              );
             const showSaleActions =
               context === "sale-detail" && isPending && !saleCancelled;
             const showCollect =
               canCollectFromDelivery &&
               isPending &&
               !saleCancelled &&
-              deliveryStatus === "OUT_FOR_DELIVERY";
+              (deliveryStatus === "OUT_FOR_DELIVERY" ||
+                (deliveryStatus === "DELIVERED" && payment.affectsCash));
 
             return (
               <article
@@ -288,7 +365,23 @@ export const SalePaymentsPanel = ({
                       Pendiente de rendición
                     </Badge>
                   ) : null}
+                  {deliveryRequiresCadeteCollection ? (
+                    <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                      {deliveryStatus === "DELIVERED"
+                        ? "Cobro del cadete sin registrar"
+                        : "Cobro a cargo del cadete"}
+                    </Badge>
+                  ) : null}
                 </div>
+
+                {deliveryRequiresCadeteCollection ? (
+                  <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+                    {deliveryStatus === "DELIVERED"
+                      ? "Cobro del cadete sin registrar."
+                      : "Cobro a cargo del cadete."}{" "}
+                    Este efectivo debe registrarlo el cadete y luego rendirse en caja.
+                  </p>
+                ) : null}
 
                 {showSaleActions || showCollect ? (
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -316,7 +409,9 @@ export const SalePaymentsPanel = ({
                         Anular
                       </Button>
                     ) : null}
-                    {showSaleActions && permissions.canConfirm ? (
+                    {showSaleActions &&
+                    permissions.canConfirm &&
+                    !deliveryRequiresCadeteCollection ? (
                       <Button
                         type="button"
                         size="sm"
@@ -339,7 +434,9 @@ export const SalePaymentsPanel = ({
                         ) : (
                           <HandCoins className="mr-2 size-4" />
                         )}
-                        Cobrar
+                        {deliveryStatus === "DELIVERED"
+                          ? "Registrar cobro"
+                          : "Cobrar"}
                       </Button>
                     ) : null}
                   </div>
@@ -366,7 +463,7 @@ export const SalePaymentsPanel = ({
         {!loading && context === "delivery-detail" && !canCollectFromDelivery ? (
           <div className="rounded-lg border bg-muted/20 p-3 text-sm text-muted-foreground">
             <Wallet className="mr-2 inline size-4" />
-            El cobro operativo aparece solo para el cadete asignado cuando la entrega está en camino.
+            El cobro operativo aparece solo para el cadete asignado cuando la entrega está en camino o requiere recuperar un cobro pendiente.
           </div>
         ) : null}
       </CardContent>
