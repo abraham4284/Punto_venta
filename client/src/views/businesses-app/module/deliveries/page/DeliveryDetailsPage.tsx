@@ -1,12 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CalendarClock, MapPin, ReceiptText, Truck, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Banknote,
+  CalendarClock,
+  MapPin,
+  ReceiptText,
+  Truck,
+  UserRound,
+} from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Meta } from "@/components/Meta";
 import { ViewLoadingState } from "@/components/loading/ViewLoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCan } from "@/views/businesses-app/hooks/useCan";
+import { formatSettlementMoney } from "../../cash-settlements/helpers/cash-settlement.helpers";
+import { useMyPendingSettlement } from "../../cash-settlements/hooks/useMyPendingSettlement";
 import { SalePaymentsPanel } from "../../sale-payments/components/SalePaymentsPanel";
+import type { PendingCashPaymentSummary } from "../../sale-payments/components/SalePaymentsPanel";
 import { AssignDeliveryDialog } from "../components/AssignDeliveryDialog";
 import { DeliveryActions } from "../components/DeliveryActions";
 import { DeliveryStatusBadge } from "../components/DeliveryStatusBadge";
@@ -37,6 +48,7 @@ export const DeliveryDetailsPage = () => {
   const canViewAll = useCan("deliveries.view_all");
   const canAssign = useCan("deliveries.assign");
   const canUpdateStatus = useCan("deliveries.update_status");
+  const canCollectPayments = useCan("sale_payments.collect");
   const permissions = useMemo<DeliveryPermissions>(() => {
     return {
       canAssign,
@@ -79,6 +91,18 @@ export const DeliveryDetailsPage = () => {
     useState<DeliveryResponse | null>(null);
   const [rescheduleDialogDelivery, setRescheduleDialogDelivery] =
     useState<DeliveryResponse | null>(null);
+  const [pendingCashSummary, setPendingCashSummary] =
+    useState<PendingCashPaymentSummary>({
+      count: 0,
+      total: 0,
+      hasPending: false,
+      isRecovery: false,
+    });
+  const {
+    collector: myPendingSettlement,
+    loading: myPendingSettlementLoading,
+    fetchMyPendingSettlement,
+  } = useMyPendingSettlement({ enabled: canCollectPayments });
 
   useEffect(() => {
     const deliveryId = Number(id);
@@ -230,6 +254,7 @@ export const DeliveryDetailsPage = () => {
             delivery={selectedDelivery}
             permissions={permissions}
             loading={isActionLoading}
+            hasPendingCashPayment={pendingCashSummary.hasPending}
             onAssign={setAssignDialogDelivery}
             onStart={(delivery) => {
               void handleStartDelivery(delivery);
@@ -332,10 +357,59 @@ export const DeliveryDetailsPage = () => {
               deliveryStatus={selectedDelivery.status}
               assignedToUserId={selectedDelivery.assignedToUserId}
               context="delivery-detail"
+              onPaymentChanged={async () => {
+                await fetchMyPendingSettlement();
+              }}
+              onPendingCashPaymentsChange={setPendingCashSummary}
             />
           </div>
 
           <aside className="space-y-6">
+            {canCollectPayments ? (
+              <Card className="border-primary/15 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Banknote className="size-4" />
+                    Efectivo por rendir
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {myPendingSettlementLoading ? (
+                    <p className="text-sm text-muted-foreground">
+                      Consultando cobros pendientes...
+                    </p>
+                  ) : myPendingSettlement ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <InfoItem
+                          label="Cobros"
+                          value={String(myPendingSettlement.paymentsCount)}
+                        />
+                        <InfoItem
+                          label="Total"
+                          value={formatSettlementMoney(
+                            myPendingSettlement.totalAmount,
+                          )}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => navigate("/admin/deliveries/my-settlement")}
+                      >
+                        Ver mi rendición
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No tenés efectivo pendiente de rendir.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
+
             <DeliveryTimeline
               events={events}
               loading={eventsLoading}

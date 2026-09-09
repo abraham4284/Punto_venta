@@ -14,6 +14,7 @@ import {
   getSalePaymentsRequest,
   updateSalePaymentRequest,
 } from "../api/sale-payments.api";
+import { getSalePaymentErrorMessage } from "../helpers/sale-payment.helpers";
 import type {
   CollectPaymentMethodResponse,
   CreateSalePaymentBody,
@@ -36,7 +37,10 @@ type UseSalePaymentsOptions = {
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<ApiError>;
 
-  return axiosError.response?.data?.message ?? axiosError.message ?? fallback;
+  return getSalePaymentErrorMessage(
+    axiosError.response?.data?.message ?? axiosError.message,
+    fallback,
+  );
 };
 
 export const useSalePayments = ({

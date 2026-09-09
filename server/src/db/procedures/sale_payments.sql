@@ -508,7 +508,7 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ONLY_PENDING_PAYMENT_CAN_BE_COLLECTED';
   END IF;
 
-  IF v_deliveryStatus <> 'OUT_FOR_DELIVERY' THEN
+  IF v_deliveryStatus NOT IN ('OUT_FOR_DELIVERY', 'DELIVERED') THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_MUST_BE_OUT_FOR_DELIVERY';
   END IF;
 
@@ -611,6 +611,9 @@ CREATE PROCEDURE sp_sale_payment_confirm(
 BEGIN
   DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_methodAffectsCash TINYINT DEFAULT 0;
+  DECLARE v_deliveryAssignedUser INT;
+  DECLARE v_deliveryStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -620,11 +623,17 @@ BEGIN
 
   START TRANSACTION;
 
-  SELECT status
-  INTO v_status
-  FROM sale_payments
-  WHERE idBusiness = p_idBusiness
-    AND idSalePayment = p_idSalePayment
+  SELECT sp.status, COALESCE(pm.affects_cash, 0), sd.assigned_to_user_id, sd.status
+  INTO v_status, v_methodAffectsCash, v_deliveryAssignedUser, v_deliveryStatus
+  FROM sale_payments sp
+  INNER JOIN payment_methods pm
+    ON pm.idBusiness = sp.idBusiness
+    AND pm.idPaymentMethod = sp.idPaymentMethod
+  LEFT JOIN sale_deliveries sd
+    ON sd.idBusiness = sp.idBusiness
+    AND sd.idSale = sp.idSale
+  WHERE sp.idBusiness = p_idBusiness
+    AND sp.idSalePayment = p_idSalePayment
   LIMIT 1
   FOR UPDATE;
 
@@ -638,6 +647,13 @@ BEGIN
 
   IF v_status <> 'PENDING' THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ONLY_PENDING_PAYMENT_CAN_BE_CONFIRMED';
+  END IF;
+
+  IF v_methodAffectsCash = 1
+    AND v_deliveryAssignedUser IS NOT NULL
+    AND v_deliveryStatus IN ('ASSIGNED', 'OUT_FOR_DELIVERY', 'FAILED', 'DELIVERED')
+  THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_CASH_PAYMENT_REQUIRES_COLLECTION';
   END IF;
 
   SELECT status

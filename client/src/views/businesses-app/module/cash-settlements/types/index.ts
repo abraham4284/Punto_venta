@@ -53,6 +53,10 @@ export type PendingCashSettlementsResponse = {
   collectors: PendingCashSettlementCollectorResponse[];
 };
 
+export type MyPendingCashSettlementResponse = {
+  collector: PendingCashSettlementCollectorResponse | null;
+};
+
 export type CashSettlementWithPaymentsResponse = CashSettlementResponse & {
   payments: CashSettlementPaymentResponse[];
 };

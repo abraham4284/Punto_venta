@@ -13,6 +13,7 @@ import type {
   CashSettlementResponse,
   CashSettlementWithPaymentsResponse,
   CreateCashSettlementPayload,
+  MyPendingCashSettlementResponse,
   PaginatedCashSettlementsResponse,
   PendingCashSettlementCollectorResponse,
   PendingCashSettlementFilters,
@@ -443,5 +444,19 @@ export async function getPendingCashSettlementsService(
 
   return {
     collectors: groupPendingPaymentsByCollector(result[0] ?? []),
+  };
+}
+
+export async function getMyPendingCashSettlementService(
+  idBusiness: number,
+  collectorUserId: number,
+): Promise<MyPendingCashSettlementResponse> {
+  const result = await getPendingCashSettlementsService({
+    idBusiness,
+    collectorUserId,
+  });
+
+  return {
+    collector: result.collectors[0] ?? null,
   };
 }

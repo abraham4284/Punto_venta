@@ -136,3 +136,19 @@ export const getAllowedDeliveryActions = (
 
   return actions;
 };
+
+export const getDeliveryErrorMessage = (
+  message: string | undefined,
+  fallback: string,
+): string => {
+  const messages: Record<string, string> = {
+    DELIVERY_PENDING_CASH_PAYMENT_MUST_BE_COLLECTED:
+      "Registrá primero el efectivo recibido antes de confirmar la entrega.",
+    DELIVERY_CASH_PAYMENT_REQUIRES_COLLECTION:
+      "Este efectivo debe registrarlo el cadete y luego rendirse en caja.",
+  };
+
+  if (!message) return fallback;
+
+  return messages[message] ?? message;
+};

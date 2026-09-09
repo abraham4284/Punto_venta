@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Meta } from "@/components/Meta";
+import { Card, CardContent } from "@/components/ui/card";
 import { useCan } from "@/views/businesses-app/hooks/useCan";
 import { useAuthStore } from "../../auth/store/auth.store";
-import { calculateSelectedSettlementTotal } from "../helpers/cash-settlement.helpers";
+import {
+  calculatePendingCollectorsPaymentsCount,
+  calculatePendingCollectorsTotal,
+  calculateSelectedSettlementTotal,
+  formatSettlementMoney,
+} from "../helpers/cash-settlement.helpers";
 import { useCashSettlements } from "../hooks/useCashSettlements";
 import { CreateSettlementDialog } from "../components/CreateSettlementDialog";
 import { PendingSettlementsPanel } from "../components/PendingSettlementsPanel";
@@ -62,6 +68,13 @@ export const CashSettlementsPage = () => {
       selectedPaymentIds,
     );
   }, [selectedCollector, selectedPaymentIds]);
+  const pendingMetrics = useMemo(() => {
+    return {
+      collectorsCount: pendingCollectors.length,
+      paymentsCount: calculatePendingCollectorsPaymentsCount(pendingCollectors),
+      totalAmount: calculatePendingCollectorsTotal(pendingCollectors),
+    };
+  }, [pendingCollectors]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -71,13 +84,18 @@ export const CashSettlementsPage = () => {
         return;
       }
 
+      if (!selectedCollectorId) {
+        setSelectedCollectorId(pendingCollectors[0].collectorUserId);
+        setSelectedPaymentIds(new Set());
+        return;
+      }
+
       if (
-        selectedCollectorId &&
         !pendingCollectors.some((collector) => {
           return collector.collectorUserId === selectedCollectorId;
         })
       ) {
-        setSelectedCollectorId(null);
+        setSelectedCollectorId(pendingCollectors[0].collectorUserId);
         setSelectedPaymentIds(new Set());
         return;
       }
@@ -203,6 +221,35 @@ export const CashSettlementsPage = () => {
             auditá el historial sin mezclar ventas, pagos, entregas y caja.
           </p>
         </div>
+
+        <section className="grid gap-3 md:grid-cols-3">
+          <Card className="border-primary/10 bg-primary/5">
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">
+                Cadetes con efectivo
+              </p>
+              <p className="mt-1 text-2xl font-bold">
+                {pendingMetrics.collectorsCount}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Cobros pendientes</p>
+              <p className="mt-1 text-2xl font-bold">
+                {pendingMetrics.paymentsCount}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">Total a rendir</p>
+              <p className="mt-1 text-2xl font-bold">
+                {formatSettlementMoney(pendingMetrics.totalAmount)}
+              </p>
+            </CardContent>
+          </Card>
+        </section>
 
         <PendingSettlementsPanel
           collectors={pendingCollectors}

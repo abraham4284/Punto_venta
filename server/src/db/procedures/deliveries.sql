@@ -407,6 +407,24 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_MUST_BE_OUT_FOR_DELIVERY';
   END IF;
 
+  IF p_newStatus = 'DELIVERED' AND EXISTS (
+    SELECT 1
+    FROM sale_deliveries sd
+    INNER JOIN sale_payments sp
+      ON sp.idBusiness = sd.idBusiness
+      AND sp.idSale = sd.idSale
+    INNER JOIN payment_methods pm
+      ON pm.idBusiness = sp.idBusiness
+      AND pm.idPaymentMethod = sp.idPaymentMethod
+    WHERE sd.idBusiness = p_idBusiness
+      AND sd.idSaleDelivery = p_idSaleDelivery
+      AND sp.status = 'PENDING'
+      AND pm.affects_cash = 1
+    LIMIT 1
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_PENDING_CASH_PAYMENT_MUST_BE_COLLECTED';
+  END IF;
+
   IF p_newStatus = 'FAILED' AND v_previousStatus <> 'OUT_FOR_DELIVERY' THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_CANNOT_FAIL';
   END IF;

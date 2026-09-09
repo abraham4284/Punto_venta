@@ -12,6 +12,7 @@ import {
   rescheduleDeliveryRequest,
   startDeliveryRequest,
 } from "../api/deliveries.api";
+import { getDeliveryErrorMessage } from "../helpers/delivery.helpers";
 import type {
   DeliveryActionBody,
   DeliveryFilters,
@@ -45,7 +46,10 @@ type UseDeliveriesOptions = {
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const axiosError = error as AxiosError<ApiError>;
-  return axiosError.response?.data?.message ?? axiosError.message ?? fallback;
+  return getDeliveryErrorMessage(
+    axiosError.response?.data?.message ?? axiosError.message,
+    fallback,
+  );
 };
 
 export const useDeliveries = ({

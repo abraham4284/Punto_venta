@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Truck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Banknote, Truck } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Meta } from "@/components/Meta";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCan } from "@/views/businesses-app/hooks/useCan";
+import { formatSettlementMoney } from "../../cash-settlements/helpers/cash-settlement.helpers";
+import { useMyPendingSettlement } from "../../cash-settlements/hooks/useMyPendingSettlement";
 import { AssignDeliveryDialog } from "../components/AssignDeliveryDialog";
 import { DeliveryFilters } from "../components/DeliveryFilters";
 import { DeliveryList } from "../components/DeliveryList";
@@ -20,6 +23,7 @@ export const DeliveriesPage = () => {
   const canViewAll = useCan("deliveries.view_all");
   const canAssign = useCan("deliveries.assign");
   const canUpdateStatus = useCan("deliveries.update_status");
+  const canCollectPayments = useCan("sale_payments.collect");
   const permissions = useMemo<DeliveryPermissions>(() => {
     return {
       canAssign,
@@ -46,6 +50,11 @@ export const DeliveriesPage = () => {
     rescheduleDelivery,
     cancelDelivery,
   } = useDeliveries({ canViewAll });
+  const {
+    collector: myPendingSettlement,
+    loading: myPendingSettlementLoading,
+    fetchMyPendingSettlement,
+  } = useMyPendingSettlement({ enabled: canCollectPayments });
   const [assignDialogDelivery, setAssignDialogDelivery] =
     useState<DeliveryResponse | null>(null);
   const [failDialogDelivery, setFailDialogDelivery] =
@@ -90,6 +99,48 @@ export const DeliveriesPage = () => {
           canViewAll={canViewAll}
           onApply={applyFilters}
         />
+
+        {canCollectPayments ? (
+          <Card className="border-primary/15 bg-primary/5">
+            <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                  <Banknote className="size-5" />
+                </div>
+                <div>
+                  <p className="font-semibold">Efectivo por rendir</p>
+                  <p className="text-sm text-muted-foreground">
+                    {myPendingSettlementLoading
+                      ? "Consultando cobros pendientes..."
+                      : myPendingSettlement
+                        ? `${myPendingSettlement.paymentsCount} cobros por ${formatSettlementMoney(
+                            myPendingSettlement.totalAmount,
+                          )}`
+                        : "No tenés cobros pendientes de rendición."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={myPendingSettlementLoading}
+                  onClick={() => {
+                    void fetchMyPendingSettlement();
+                  }}
+                >
+                  Actualizar
+                </Button>
+                <Link
+                  to="/admin/deliveries/my-settlement"
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+                >
+                  Ver mi rendición
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {error ? (
           <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
