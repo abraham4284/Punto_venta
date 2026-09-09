@@ -4,6 +4,7 @@ import type { BusinessRequestUser } from "@/types/auth.types.js";
 export type SaleStatus = "COMPLETED" | "CANCELLED";
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 export type SalePaymentStatus = "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED";
+export type SalePaymentAggregateStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
 export type SaleDeliveryStatus =
   | "PENDING"
   | "ASSIGNED"
@@ -11,6 +12,10 @@ export type SaleDeliveryStatus =
   | "DELIVERED"
   | "FAILED"
   | "CANCELLED";
+export type SaleDeliveryFilter = SaleDeliveryStatus | "NO_DELIVERY";
+export type SaleSettlementFilter =
+  | "PENDING_SETTLEMENT"
+  | "NO_PENDING_SETTLEMENT";
 
 export interface SaleDbRow {
   idSale: number;
@@ -30,7 +35,7 @@ export interface SaleDbRow {
   collected_amount: string | number;
   pending_amount: string | number;
   delivery_status: SaleDeliveryStatus | null;
-  payment_status: "UNPAID" | "PARTIALLY_PAID" | "PAID";
+  payment_status: SalePaymentAggregateStatus;
   sale_date: Date;
   subtotal: string | number;
   discount_total: string | number;
@@ -158,6 +163,9 @@ export interface GetSalesFilters {
   saleNumberSearch?: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
+  paymentStatus?: SalePaymentAggregateStatus | null;
+  deliveryStatus?: SaleDeliveryFilter | null;
+  settlementStatus?: SaleSettlementFilter | null;
 }
 
 export interface SalesPagination {
@@ -207,7 +215,7 @@ export interface SaleResponse {
   collectedAmount: number;
   pendingAmount: number;
   deliveryStatus: SaleDeliveryStatus | null;
-  paymentStatus: "UNPAID" | "PARTIALLY_PAID" | "PAID";
+  paymentStatus: SalePaymentAggregateStatus;
   saleDate: Date;
   subtotal: number;
   discountTotal: number;

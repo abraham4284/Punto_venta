@@ -540,7 +540,10 @@ CREATE PROCEDURE sp_get_sales(
   IN p_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_saleNumberSearch VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_startDate DATETIME,
-  IN p_endDate DATETIME
+  IN p_endDate DATETIME,
+  IN p_paymentStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_deliveryStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_settlementStatus VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   SELECT
@@ -608,6 +611,63 @@ BEGIN
     )
     AND (p_status IS NULL OR s.status = p_status)
     AND (
+      p_deliveryStatus IS NULL
+      OR p_deliveryStatus = ''
+      OR (
+        p_deliveryStatus = 'NO_DELIVERY'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM sale_deliveries sdf
+          WHERE sdf.idBusiness = s.idBusiness
+            AND sdf.idSale = s.idSale
+        )
+      )
+      OR (
+        p_deliveryStatus <> 'NO_DELIVERY'
+        AND EXISTS (
+          SELECT 1
+          FROM sale_deliveries sdf
+          WHERE sdf.idBusiness = s.idBusiness
+            AND sdf.idSale = s.idSale
+            AND sdf.status = p_deliveryStatus
+        )
+      )
+    )
+    AND (
+      p_settlementStatus IS NULL
+      OR p_settlementStatus = ''
+      OR (
+        p_settlementStatus = 'PENDING_SETTLEMENT'
+        AND EXISTS (
+          SELECT 1
+          FROM sale_payments sps
+          INNER JOIN payment_methods pms
+            ON pms.idBusiness = sps.idBusiness
+            AND pms.idPaymentMethod = sps.idPaymentMethod
+          WHERE sps.idBusiness = s.idBusiness
+            AND sps.idSale = s.idSale
+            AND sps.status = 'COLLECTED'
+            AND sps.idCashSettlement IS NULL
+            AND pms.affects_cash = 1
+        )
+      )
+      OR (
+        p_settlementStatus = 'NO_PENDING_SETTLEMENT'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM sale_payments sps
+          INNER JOIN payment_methods pms
+            ON pms.idBusiness = sps.idBusiness
+            AND pms.idPaymentMethod = sps.idPaymentMethod
+          WHERE sps.idBusiness = s.idBusiness
+            AND sps.idSale = s.idSale
+            AND sps.status = 'COLLECTED'
+            AND sps.idCashSettlement IS NULL
+            AND pms.affects_cash = 1
+        )
+      )
+    )
+    AND (
       p_saleNumberSearch IS NULL
       OR p_saleNumberSearch = ''
       OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
@@ -632,36 +692,126 @@ BEGIN
     s.status,
     s.observation,
     s.created_at
+  HAVING (
+    p_paymentStatus IS NULL
+    OR p_paymentStatus = ''
+    OR CASE
+      WHEN COALESCE(SUM(CASE WHEN sp.status IN ('COLLECTED','CONFIRMED') THEN sp.amount ELSE 0 END), 0) = 0 THEN 'UNPAID'
+      WHEN COALESCE(SUM(CASE WHEN sp.status IN ('COLLECTED','CONFIRMED') THEN sp.amount ELSE 0 END), 0) < s.total THEN 'PARTIALLY_PAID'
+      ELSE 'PAID'
+    END = p_paymentStatus
+  )
   ORDER BY s.created_at DESC, s.idSale DESC
   LIMIT p_limit OFFSET p_offset;
 
   SELECT
     COUNT(*) AS totalRecords,
-    SUM(CASE WHEN s.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedRecords,
-    SUM(CASE WHEN s.status = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelledRecords,
-    COALESCE(SUM(CASE WHEN s.status = 'COMPLETED' THEN s.total ELSE 0 END), 0) AS completedTotal
-  FROM sales s
-  WHERE s.idBusiness = p_idBusiness
-    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
-    AND (
-      p_idPaymentMethod IS NULL
-      OR EXISTS (
-        SELECT 1
-        FROM sale_payments spf
-        WHERE spf.idBusiness = s.idBusiness
-          AND spf.idSale = s.idSale
-          AND spf.idPaymentMethod = p_idPaymentMethod
-          AND spf.status <> 'CANCELLED'
+    SUM(CASE WHEN filtered_sales.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completedRecords,
+    SUM(CASE WHEN filtered_sales.status = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelledRecords,
+    COALESCE(SUM(CASE WHEN filtered_sales.status = 'COMPLETED' THEN filtered_sales.total ELSE 0 END), 0) AS completedTotal
+  FROM (
+    SELECT
+      s.idSale,
+      s.status,
+      s.total,
+      CASE
+        WHEN COALESCE(SUM(CASE WHEN sp.status IN ('COLLECTED','CONFIRMED') THEN sp.amount ELSE 0 END), 0) = 0 THEN 'UNPAID'
+        WHEN COALESCE(SUM(CASE WHEN sp.status IN ('COLLECTED','CONFIRMED') THEN sp.amount ELSE 0 END), 0) < s.total THEN 'PARTIALLY_PAID'
+        ELSE 'PAID'
+      END AS payment_status
+    FROM sales s
+    LEFT JOIN sale_payments sp
+      ON sp.idSale = s.idSale
+      AND sp.idBusiness = s.idBusiness
+      AND sp.status <> 'CANCELLED'
+    WHERE s.idBusiness = p_idBusiness
+      AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+      AND (
+        p_idPaymentMethod IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM sale_payments spf
+          WHERE spf.idBusiness = s.idBusiness
+            AND spf.idSale = s.idSale
+            AND spf.idPaymentMethod = p_idPaymentMethod
+            AND spf.status <> 'CANCELLED'
+        )
       )
+      AND (p_status IS NULL OR s.status = p_status)
+      AND (
+        p_deliveryStatus IS NULL
+        OR p_deliveryStatus = ''
+        OR (
+          p_deliveryStatus = 'NO_DELIVERY'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM sale_deliveries sdf
+            WHERE sdf.idBusiness = s.idBusiness
+              AND sdf.idSale = s.idSale
+          )
+        )
+        OR (
+          p_deliveryStatus <> 'NO_DELIVERY'
+          AND EXISTS (
+            SELECT 1
+            FROM sale_deliveries sdf
+            WHERE sdf.idBusiness = s.idBusiness
+              AND sdf.idSale = s.idSale
+              AND sdf.status = p_deliveryStatus
+          )
+        )
+      )
+      AND (
+        p_settlementStatus IS NULL
+        OR p_settlementStatus = ''
+        OR (
+          p_settlementStatus = 'PENDING_SETTLEMENT'
+          AND EXISTS (
+            SELECT 1
+            FROM sale_payments sps
+            INNER JOIN payment_methods pms
+              ON pms.idBusiness = sps.idBusiness
+              AND pms.idPaymentMethod = sps.idPaymentMethod
+            WHERE sps.idBusiness = s.idBusiness
+              AND sps.idSale = s.idSale
+              AND sps.status = 'COLLECTED'
+              AND sps.idCashSettlement IS NULL
+              AND pms.affects_cash = 1
+          )
+        )
+        OR (
+          p_settlementStatus = 'NO_PENDING_SETTLEMENT'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM sale_payments sps
+            INNER JOIN payment_methods pms
+              ON pms.idBusiness = sps.idBusiness
+              AND pms.idPaymentMethod = sps.idPaymentMethod
+            WHERE sps.idBusiness = s.idBusiness
+              AND sps.idSale = s.idSale
+              AND sps.status = 'COLLECTED'
+              AND sps.idCashSettlement IS NULL
+              AND pms.affects_cash = 1
+          )
+        )
+      )
+      AND (
+        p_saleNumberSearch IS NULL
+        OR p_saleNumberSearch = ''
+        OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
+      )
+      AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
+      AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
+    GROUP BY
+      s.idSale,
+      s.status,
+      s.total
+    HAVING (
+      p_paymentStatus IS NULL
+      OR p_paymentStatus = ''
+      OR payment_status = p_paymentStatus
     )
-    AND (p_status IS NULL OR s.status = p_status)
-    AND (
-      p_saleNumberSearch IS NULL
-      OR p_saleNumberSearch = ''
-      OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
-    )
-    AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
-    AND (p_endDate IS NULL OR s.sale_date <= p_endDate);
+  ) filtered_sales;
 END$$
 
 DELIMITER ;

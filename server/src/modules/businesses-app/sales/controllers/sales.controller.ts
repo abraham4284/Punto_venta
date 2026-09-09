@@ -20,6 +20,9 @@ import {
 import {
   parseNullableDate,
   parseNullablePositiveInteger,
+  parseSaleDeliveryStatusFilter,
+  parseSalePaymentStatus,
+  parseSaleSettlementStatus,
   parsePositiveInteger,
   parseSaleStatus,
 } from "../helpers/index.js";
@@ -159,6 +162,9 @@ export async function getSalesController(
       saleNumberSearch: parseNullableText(req.query.saleNumber),
       startDate: parseNullableDate(req.query.startDate, false),
       endDate: parseNullableDate(req.query.endDate, true),
+      paymentStatus: parseSalePaymentStatus(req.query.paymentStatus),
+      deliveryStatus: parseSaleDeliveryStatusFilter(req.query.deliveryStatus),
+      settlementStatus: parseSaleSettlementStatus(req.query.settlementStatus),
     });
 
     return res.status(200).json({
