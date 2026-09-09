@@ -172,7 +172,7 @@ export interface SaleResponse {
   collectedAmount: number;
   pendingAmount: number;
   deliveryStatus: SaleDeliveryStatus | null;
-  paymentStatus: "UNPAID" | "PARTIALLY_PAID" | "PAID";
+  paymentStatus: SalePaymentAggregateStatus;
   saleDate: string;
   subtotal: number;
   discountTotal: number;
@@ -202,6 +202,7 @@ export interface SaleDetailResponse {
 }
 
 export type SalePaymentStatus = "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED";
+export type SalePaymentAggregateStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
 export type SaleDeliveryStatus =
   | "PENDING"
   | "ASSIGNED"
@@ -209,6 +210,10 @@ export type SaleDeliveryStatus =
   | "DELIVERED"
   | "FAILED"
   | "CANCELLED";
+export type SaleDeliveryFilter = SaleDeliveryStatus | "NO_DELIVERY";
+export type SaleSettlementFilter =
+  | "PENDING_SETTLEMENT"
+  | "NO_PENDING_SETTLEMENT";
 
 export interface SalePaymentResponse {
   idSalePayment: number;
@@ -314,6 +319,9 @@ export interface SaleFilters {
   idDeposit: number | null;
   idPaymentMethod: number | null;
   status: "COMPLETED" | "CANCELLED" | null;
+  paymentStatus: SalePaymentAggregateStatus | null;
+  deliveryStatus: SaleDeliveryFilter | null;
+  settlementStatus: SaleSettlementFilter | null;
   startDate: string;
   endDate: string;
 }
