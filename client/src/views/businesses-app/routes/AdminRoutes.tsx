@@ -120,7 +120,7 @@ export const AdminRoutes = () => {
         <Route
           path="/deliveries/*"
           element={
-            <PermissionRoute permissions={["deliveries.view"]}>
+            <PermissionRoute permissions={["deliveries.view", "sale_payments.collect"]}>
               <DeliveriesRoutes />
             </PermissionRoute>
           }

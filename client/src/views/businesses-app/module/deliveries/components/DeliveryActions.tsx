@@ -31,6 +31,8 @@ type DeliveryActionsProps = {
   permissions: DeliveryPermissions;
   loading: boolean;
   compact?: boolean;
+  allowDeliver?: boolean;
+  hasPendingCashPayment?: boolean;
   onView?: (delivery: DeliveryResponse) => void;
   onAssign: (delivery: DeliveryResponse) => void;
   onStart: (delivery: DeliveryResponse) => void;
@@ -49,6 +51,8 @@ export const DeliveryActions = ({
   permissions,
   loading,
   compact = false,
+  allowDeliver = true,
+  hasPendingCashPayment = false,
   onView,
   onAssign,
   onStart,
@@ -105,7 +109,14 @@ export const DeliveryActions = ({
         </Button>
       ) : null}
 
-      {hasAction(actions, "DELIVER") ? (
+      {hasAction(actions, "DELIVER") && allowDeliver && hasPendingCashPayment ? (
+        <Button type="button" size="sm" variant="outline" disabled>
+          <CheckCircle2 className="mr-1 size-4" />
+          Registrá primero el cobro
+        </Button>
+      ) : null}
+
+      {hasAction(actions, "DELIVER") && allowDeliver && !hasPendingCashPayment ? (
         <AlertDialog>
           <AlertDialogTrigger
             render={<Button type="button" size="sm" />}

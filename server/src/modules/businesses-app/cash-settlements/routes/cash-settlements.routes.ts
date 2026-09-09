@@ -4,6 +4,7 @@ import { requirePermission } from "@/middlewares/requirePermission.middleware.js
 import {
   createCashSettlementController,
   getCashSettlementByIdController,
+  getMyPendingCashSettlementController,
   getPendingCashSettlementsController,
   listCashSettlementsController,
 } from "../controllers/cash-settlements.controller.js";
@@ -22,6 +23,13 @@ router.get(
   requireAuth,
   requirePermission("cash_settlements.view"),
   getPendingCashSettlementsController,
+);
+
+router.get(
+  "/cash-settlements/my-pending",
+  requireAuth,
+  requirePermission("sale_payments.collect"),
+  getMyPendingCashSettlementController,
 );
 
 router.get(

@@ -99,10 +99,22 @@ const navigationSections: NavigationSection[] = [
             url: "/admin/sales/history",
             permission: "sales.view",
           },
+        ],
+      },
+      {
+        title: "Delivery",
+        icon: Truck,
+        activePatterns: [/^\/admin\/deliveries(\/.*)?$/],
+        children: [
           {
             title: "Entregas",
             url: "/admin/deliveries",
             permission: "deliveries.view",
+          },
+          {
+            title: "Mi rendición",
+            url: "/admin/deliveries/my-settlement",
+            permission: "sale_payments.collect",
           },
         ],
       },
@@ -211,23 +223,6 @@ const navigationSections: NavigationSection[] = [
             title: "Configuración",
             url: "/admin/cash/registers",
             permission: "cash_registers.view",
-          },
-        ],
-      },
-      {
-        title: "Delivery",
-        icon: Truck,
-        activePatterns: [/^\/admin\/deliveries(\/.*)?$/],
-        children: [
-          {
-            title: "Entregas",
-            url: "/admin/deliveries",
-            permission: "deliveries.view",
-          },
-          {
-            title: "Liquidaciones",
-            url: "/admin/cash-settlements",
-            permission: "cash_settlements.view",
           },
         ],
       },

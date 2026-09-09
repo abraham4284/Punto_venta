@@ -1,6 +1,7 @@
 import { Decimal } from "decimal.js";
 import type {
   CashSettlementPaymentResponse,
+  PendingCashSettlementCollectorResponse,
   PendingCashSettlementPaymentResponse,
 } from "../types";
 
@@ -40,6 +41,24 @@ export const calculateSettlementPaymentsTotal = (
   }, new Decimal(0));
 
   return Number(total.toFixed(2));
+};
+
+export const calculatePendingCollectorsTotal = (
+  collectors: PendingCashSettlementCollectorResponse[],
+): number => {
+  const total = collectors.reduce((accumulator, collector) => {
+    return accumulator.plus(collector.totalAmount);
+  }, new Decimal(0));
+
+  return Number(total.toFixed(2));
+};
+
+export const calculatePendingCollectorsPaymentsCount = (
+  collectors: PendingCashSettlementCollectorResponse[],
+): number => {
+  return collectors.reduce((accumulator, collector) => {
+    return accumulator + collector.paymentsCount;
+  }, 0);
 };
 
 export const getCashSettlementErrorMessage = (

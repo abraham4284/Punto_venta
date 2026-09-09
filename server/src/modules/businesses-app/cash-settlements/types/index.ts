@@ -75,6 +75,10 @@ export interface PendingCashSettlementsResponse {
   collectors: PendingCashSettlementCollectorResponse[];
 }
 
+export interface MyPendingCashSettlementResponse {
+  collector: PendingCashSettlementCollectorResponse | null;
+}
+
 export interface CashSettlementResponse {
   idCashSettlement: number;
   idBusiness: number;
