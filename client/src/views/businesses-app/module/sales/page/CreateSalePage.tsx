@@ -1,72 +1,40 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, ScanLine, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
+import { toast, Toaster } from "react-hot-toast";
 import { Meta } from "@/components/Meta";
 import { ViewLoadingState } from "@/components/loading/ViewLoadingState";
 import { ViewProcessingOverlay } from "@/components/loading/ViewProcessingOverlay";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { toast, Toaster } from "react-hot-toast";
+import { useCan } from "@/views/businesses-app/hooks/useCan";
 import type { Customer } from "../../customers/types/customers.types";
 import { useCustomers } from "../../customers/hooks/useCustomers";
 import type { DepositResponse } from "../../deposits/types/deposits.types";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
-import { useCash } from "../../cash/hooks/useCash";
 import { usePaymentMethods } from "../../payment-methods/hooks/usePaymentMethods";
-import { paymentMethodTypeLabels } from "../../payment-methods/helpers/payment-method.helpers";
 import { getDeliveryUsersForSaleRequest } from "../api/sales.api";
 import {
-  CartTable,
   POSHotkeysLegend,
+  ProductEntrySection,
+  SaleCartSection,
+  SaleCheckoutPanel,
+  SaleContextSection,
+  SaleDeliverySection,
+  SalePaymentsSection,
   SearchProductModal,
   SaleSuccessModal,
-  SearchBox,
 } from "../components";
-import { useSalesHotkeys } from "../hooks/useSalesHotkeys";
-import { useSales } from "../hooks/useSales";
+import { getFieldError, mapZodErrors } from "../helpers/createSale.helpers";
+import { useSaleCashSession, useSales, useSalesHotkeys } from "../hooks";
 import type { DeliveryUserOption } from "../types";
 import { createSaleFormSchema } from "../validations/sales.validations";
 
-const today = new Date().toISOString().slice(0, 10);
-
-const formatMoney = (value: number): string => {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    minimumFractionDigits: 2,
-  }).format(value);
-};
-
-const mapZodErrors = (error: z.ZodError): Record<string, string> => {
-  return error.issues.reduce<Record<string, string>>((acc, issue) => {
-    acc[issue.path.join(".")] = issue.message;
-    return acc;
-  }, {});
-};
-
-const getFieldError = (
-  errors: Record<string, string>,
-  field: string,
-): string | undefined => {
-  return errors[field];
-};
-
 export const CreateSalePage = () => {
   const navigate = useNavigate();
+  const canViewCash = useCan("cash.view");
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [depositSearch, setDepositSearch] = useState("");
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [barcodeSearch, setBarcodeSearch] = useState("");
   const [deliveryUsers, setDeliveryUsers] = useState<DeliveryUserOption[]>([]);
   const [deliveryUsersLoading, setDeliveryUsersLoading] = useState(false);
@@ -74,6 +42,7 @@ export const CreateSalePage = () => {
   const [initialViewResolved, setInitialViewResolved] = useState(false);
   const defaultDepositWasSelected = useRef(false);
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
+
   const {
     customers,
     getCustomers,
@@ -94,8 +63,9 @@ export const CreateSalePage = () => {
   const {
     currentSession,
     loading: cashLoading,
-    refreshDashboard: refreshCashDashboard,
-  } = useCash();
+    error: cashError,
+    refreshCurrentSession,
+  } = useSaleCashSession();
   const {
     header,
     delivery,
@@ -113,6 +83,7 @@ export const CreateSalePage = () => {
     isOpenSuccessModal,
     newSaleId,
     newSaleNumber,
+    setPriceType,
     updateHeaderField,
     updateDeliveryField,
     toggleDelivery,
@@ -130,74 +101,50 @@ export const CreateSalePage = () => {
     resetSaleState,
   } = useSales();
 
-  const filteredCustomers = useMemo(() => {
-    const value = customerSearch.trim().toLowerCase();
-    const activeCustomers = customers.filter((customer) => customer.isActive);
+  const activeDeposits = useMemo(() => {
+    return deposits.filter((deposit) => deposit.isActive);
+  }, [deposits]);
 
-    if (!value) return activeCustomers.slice(0, 8);
-
-    return activeCustomers
-      .filter((customer) => customer.name.toLowerCase().includes(value))
-      .slice(0, 8);
-  }, [customerSearch, customers]);
-
-  const filteredDeposits = useMemo(() => {
-    const value = depositSearch.trim().toLowerCase();
-    const activeDeposits = deposits.filter((deposit) => deposit.isActive);
-
-    if (!value) return activeDeposits.slice(0, 8);
-
-    return activeDeposits
-      .filter((deposit) => deposit.name.toLowerCase().includes(value))
-      .slice(0, 8);
-  }, [depositSearch, deposits]);
+  const activeCustomers = useMemo(() => {
+    return customers.filter((customer) => customer.isActive);
+  }, [customers]);
 
   const selectedCustomer = useMemo(() => {
     if (!header.idCustomer) return null;
 
-    return customers.find((customer) => customer.idCustomer === header.idCustomer) ?? null;
+    return (
+      customers.find((customer) => customer.idCustomer === header.idCustomer) ??
+      null
+    );
   }, [customers, header.idCustomer]);
 
-  const getPaymentMethodLabel = useCallback(
-    (idPaymentMethod: number | null) => {
-      const selectedPaymentMethod = activePaymentMethods.find((paymentMethod) => {
-        return paymentMethod.idPaymentMethod === idPaymentMethod;
-      });
+  const hasSelectedPaymentMethod = useMemo(() => {
+    return payments.some((payment) => Boolean(payment.idPaymentMethod));
+  }, [payments]);
 
-      if (!selectedPaymentMethod) return "";
+  const disabledReason = useMemo(() => {
+    if (isSaleCompleted) return "La venta ya fue registrada.";
+    if (!currentSession || currentSession.status !== "OPEN") {
+      return "Debes abrir una caja antes de registrar una venta.";
+    }
+    if (!header.idDeposit) return "Selecciona un depósito.";
+    if (cart.length === 0) return "Agrega al menos un producto.";
+    if (!hasSelectedPaymentMethod) return "Selecciona un método de pago.";
+    if (!paymentTotals.isBalanced) {
+      return "La suma de pagos debe coincidir con el total.";
+    }
 
-      return `${selectedPaymentMethod.name} · ${paymentMethodTypeLabels[selectedPaymentMethod.code]}`;
-    },
-    [activePaymentMethods],
-  );
+    return null;
+  }, [
+    cart.length,
+    currentSession,
+    hasSelectedPaymentMethod,
+    header.idDeposit,
+    isSaleCompleted,
+    paymentTotals.isBalanced,
+  ]);
 
-  const getPaymentMethodById = useCallback(
-    (idPaymentMethod: number | null) => {
-      return activePaymentMethods.find((paymentMethod) => {
-        return paymentMethod.idPaymentMethod === idPaymentMethod;
-      }) ?? null;
-    },
-    [activePaymentMethods],
-  );
-
-  const getPaymentStatusLabel = useCallback(
-    (status: "PENDING" | "CONFIRMED") => {
-      return status === "CONFIRMED" ? "Confirmado" : "Pendiente";
-    },
-    [],
-  );
-
-  const getDeliveryUserLabel = useCallback(
-    (idUser: number | null) => {
-      const selectedUser = deliveryUsers.find((user) => user.idUser === idUser);
-
-      if (!selectedUser) return "";
-
-      return `${selectedUser.name} (${selectedUser.username})`;
-    },
-    [deliveryUsers],
-  );
-
+  const submitDisabled = saving || Boolean(disabledReason);
   const isPreparingSaleView =
     !initialViewResolved &&
     (!initialDataLoaded ||
@@ -273,21 +220,21 @@ export const CreateSalePage = () => {
   }, [currentSession?.idCashSession, header.idCashSession, updateHeaderField]);
 
   useEffect(() => {
-    if (header.idPaymentMethod) return;
+    if (payments[0]?.idPaymentMethod || activePaymentMethods.length === 0) {
+      return;
+    }
 
     const defaultPaymentMethod = activePaymentMethods.find((paymentMethod) => {
       return paymentMethod.isDefault;
     });
-    const firstActivePaymentMethod = activePaymentMethods[0];
-    const selectedPaymentMethod = defaultPaymentMethod ?? firstActivePaymentMethod;
+    const selectedPaymentMethod = defaultPaymentMethod ?? activePaymentMethods[0];
 
-    if (selectedPaymentMethod) {
-      updateHeaderField(
-        "idPaymentMethod",
-        selectedPaymentMethod.idPaymentMethod,
-      );
-    }
-  }, [activePaymentMethods, header.idPaymentMethod, updateHeaderField]);
+    updatePaymentField(
+      payments[0].id,
+      "idPaymentMethod",
+      selectedPaymentMethod.idPaymentMethod,
+    );
+  }, [activePaymentMethods, payments, updatePaymentField]);
 
   useEffect(() => {
     if (!delivery.enabled || !selectedCustomer) return;
@@ -312,18 +259,47 @@ export const CreateSalePage = () => {
     updateDeliveryField,
   ]);
 
+  useEffect(() => {
+    if (
+      defaultDepositWasSelected.current ||
+      header.idDeposit
+    ) {
+      return;
+    }
+
+    const defaultDeposit = deposits.find((deposit) => {
+      return deposit.isActive && deposit.isDefault;
+    });
+
+    if (!defaultDeposit) return;
+
+    const timeoutId = window.setTimeout(() => {
+      defaultDepositWasSelected.current = true;
+      void changeDeposit(defaultDeposit.idDeposit);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [changeDeposit, deposits, header.idDeposit]);
+
+  useEffect(() => {
+    if (!header.idDeposit || !currentSession) return;
+
+    const timeoutId = window.setTimeout(() => {
+      barcodeInputRef.current?.focus();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentSession, header.idDeposit]);
+
   const handleCustomerSelect = (customer: Customer) => {
     updateHeaderField("idCustomer", customer.idCustomer);
-    setCustomerSearch(customer.name);
   };
 
   const handleDepositSelect = useCallback(
     async (deposit: DepositResponse) => {
       const changed = await changeDeposit(deposit.idDeposit);
 
-      if (changed) {
-        setDepositSearch(deposit.name);
-      }
+      if (!changed) return;
     },
     [changeDeposit],
   );
@@ -343,43 +319,8 @@ export const CreateSalePage = () => {
     [payments, toggleDelivery],
   );
 
-  useEffect(() => {
-    if (
-      defaultDepositWasSelected.current ||
-      header.idDeposit ||
-      depositSearch
-    ) {
-      return;
-    }
-
-    const defaultDeposit = deposits.find((deposit) => {
-      return deposit.isActive && deposit.isDefault;
-    });
-
-    if (!defaultDeposit) return;
-
-    const timeoutId = window.setTimeout(() => {
-      defaultDepositWasSelected.current = true;
-      setDepositSearch(defaultDeposit.name);
-      void changeDeposit(defaultDeposit.idDeposit);
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [changeDeposit, deposits, header.idDeposit, depositSearch]);
-
-  useEffect(() => {
-    if (!header.idDeposit) return;
-
-    const timeoutId = window.setTimeout(() => {
-      barcodeInputRef.current?.focus();
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [header.idDeposit]);
-
   const resetSale = () => {
-    setCustomerSearch("");
-    setDepositSearch("");
+    setIsCustomerModalOpen(false);
     setBarcodeSearch("");
     defaultDepositWasSelected.current = false;
     resetSaleState();
@@ -403,17 +344,17 @@ export const CreateSalePage = () => {
     if (!barcode) return;
 
     if (!header.idDeposit) {
-      toast.error("Selecciona un deposito para escanear productos");
+      toast.error("Selecciona un depósito para escanear productos");
       return;
     }
 
-    if (!header.idCashSession) {
+    if (!currentSession) {
       toast.error("Debes abrir una caja antes de registrar una venta");
       return;
     }
 
     if (loadingProducts) {
-      toast.error("Espera a que se carguen los productos del deposito");
+      toast.error("Espera a que se carguen los productos del depósito");
       return;
     }
 
@@ -423,7 +364,7 @@ export const CreateSalePage = () => {
 
     if (!product || product.stockQuantity <= 0) {
       toast.error(
-        "Este producto no existe o no esta disponible en este deposito",
+        "Este producto no existe o no está disponible en este depósito",
       );
       setBarcodeSearch("");
       return;
@@ -438,9 +379,9 @@ export const CreateSalePage = () => {
       return;
     }
 
-    const existingItem = cart.find(
-      (item) => item.idProduct === product.idProduct,
-    );
+    const existingItem = cart.find((item) => {
+      return item.idProduct === product.idProduct;
+    });
     const currentQuantity = existingItem?.quantity ?? 0;
 
     if (currentQuantity + 1 > product.stockQuantity) {
@@ -452,7 +393,38 @@ export const CreateSalePage = () => {
     addToCart([{ product, quantity: 1 }]);
     toast.success(`${product.name} agregado al carrito`);
     setBarcodeSearch("");
-  }, [addToCart, barcodeSearch, cart, header.idCashSession, header.idDeposit, isSaleCompleted, loadingProducts, priceType, products]);
+  }, [
+    addToCart,
+    barcodeSearch,
+    cart,
+    currentSession,
+    header.idDeposit,
+    isSaleCompleted,
+    loadingProducts,
+    priceType,
+    products,
+  ]);
+
+  const handleOpenProductSearch = useCallback(() => {
+    if (isSaleCompleted) {
+      toast("La venta ya fue registrada. Inicia una nueva venta para continuar.", {
+        id: "sale-completed-warning",
+      });
+      return;
+    }
+
+    if (!header.idDeposit) {
+      toast.error("Selecciona un depósito para buscar productos");
+      return;
+    }
+
+    if (!currentSession) {
+      toast.error("Debes abrir una caja antes de registrar una venta");
+      return;
+    }
+
+    setIsProductModalOpen(true);
+  }, [currentSession, header.idDeposit, isSaleCompleted]);
 
   const handleSubmit = useCallback(async () => {
     if (isSaleCompleted) {
@@ -462,12 +434,21 @@ export const CreateSalePage = () => {
       return;
     }
 
+    const latestSession = await refreshCurrentSession();
+
+    if (!latestSession || latestSession.status !== "OPEN") {
+      updateHeaderField("idCashSession", null);
+      toast.error("Debes abrir una caja antes de registrar una venta.");
+      return;
+    }
+
+    updateHeaderField("idCashSession", latestSession.idCashSession);
+
     try {
       createSaleFormSchema.parse({
         idCustomer: header.idCustomer ? header.idCustomer : null,
         idDeposit: header.idDeposit,
-        idCashSession: header.idCashSession,
-        idPaymentMethod: header.idPaymentMethod,
+        idCashSession: latestSession.idCashSession,
         items: cart.map((item) => ({
           idProduct: item.idProduct,
           quantity: item.quantity,
@@ -481,12 +462,14 @@ export const CreateSalePage = () => {
           .filter((payment) => payment.idPaymentMethod)
           .map((payment) => ({
             idPaymentMethod: Number(payment.idPaymentMethod),
-            amount: payment.amount.trim() ? Number(payment.amount) : totals.total,
+            amount:
+              payments.length === 1 && !payment.amount.trim()
+                ? totals.total
+                : Number(payment.amount),
             status: payment.status,
           })),
         delivery: {
           enabled: delivery.enabled,
-          assignedToUserId: delivery.assignedToUserId,
           recipientName: delivery.recipientName,
           deliveryAddress: delivery.deliveryAddress,
           deliveryReference: delivery.deliveryReference,
@@ -500,11 +483,10 @@ export const CreateSalePage = () => {
         return;
       }
 
-      const { status, message } = await submitSale();
+      const { status, message } = await submitSale(latestSession.idCashSession);
+
       if (!status) {
         toast.error(message);
-      } else {
-        await refreshCashDashboard();
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -513,40 +495,18 @@ export const CreateSalePage = () => {
     }
   }, [
     cart,
-    header.idCustomer,
-    header.idCashSession,
-    header.idDeposit,
-    header.idPaymentMethod,
     delivery,
-    payments,
-    paymentTotals.isBalanced,
+    header.idCustomer,
+    header.idDeposit,
     isSaleCompleted,
-    refreshCashDashboard,
+    paymentTotals.isBalanced,
+    payments,
+    refreshCurrentSession,
     setValidationErrors,
     submitSale,
     totals.total,
+    updateHeaderField,
   ]);
-
-  const handleOpenProductSearch = useCallback(() => {
-    if (isSaleCompleted) {
-      toast("La venta ya fue registrada. Inicia una nueva venta para continuar.", {
-        id: "sale-completed-warning",
-      });
-      return;
-    }
-
-    if (!header.idDeposit) {
-      toast.error("Selecciona un deposito para buscar productos");
-      return;
-    }
-
-    if (!header.idCashSession) {
-      toast.error("Debes abrir una caja antes de registrar una venta");
-      return;
-    }
-
-    setIsProductModalOpen(true);
-  }, [header.idCashSession, header.idDeposit, isSaleCompleted]);
 
   useSalesHotkeys({
     onOpenSearch: handleOpenProductSearch,
@@ -561,568 +521,179 @@ export const CreateSalePage = () => {
   return (
     <>
       <Meta title="Nueva Venta" />
-      <main className="relative space-y-6 bg-white p-2 md:p-6">
-      <section>
-        <h1 className="text-2xl font-bold tracking-tight">Nueva venta</h1>
-        <p className="text-muted-foreground">Carga rapida de venta</p>
-      </section>
-
-      {isPreparingSaleView ? (
-        <ViewLoadingState
-          message="Preparando punto de venta..."
-          description="Cargando caja, depositos y configuracion."
-        />
-      ) : (
-        <>
-          {saving && (
-            <ViewProcessingOverlay
-              message="Procesando venta..."
-              description="Registrando la operacion y actualizando el stock."
-            />
-          )}
-
-      <POSHotkeysLegend />
-
-      {!cashLoading && !currentSession && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="flex flex-col justify-between gap-3 p-4 md:flex-row md:items-center">
-            <div>
-              <p className="font-semibold text-amber-950">
-                Debes abrir una caja antes de registrar una venta.
-              </p>
-              <p className="text-sm text-amber-900/80">
-                El sistema exige que toda venta pertenezca a una sesion de caja abierta.
-              </p>
-            </div>
-            <Button type="button" variant="outline" onClick={() => navigate("/admin/cash")}>
-              Ir a caja
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <section className="grid gap-5">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="grid gap-2">
-            <Label>Fecha</Label>
-            <Input type="date" value={today} readOnly />
+      <main className="relative min-h-full space-y-6 bg-background p-2 md:p-6">
+        <section className="flex flex-col justify-between gap-3 lg:flex-row lg:items-start">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Nueva venta</h1>
+            <p className="text-muted-foreground">
+              Punto de venta rápido para escáner, carrito, pagos y entrega.
+            </p>
           </div>
+          <POSHotkeysLegend />
+        </section>
 
-          <SearchBox
-            label="Cliente"
-            value={customerSearch}
-            placeholder="Buscar cliente..."
-            options={filteredCustomers}
-            getKey={(customer) => customer.idCustomer}
-            getLabel={(customer) => customer.name}
-            onSearchChange={(value) => {
-              setCustomerSearch(value);
-              updateHeaderField("idCustomer", null);
-            }}
-            onSelect={handleCustomerSelect}
+        {isPreparingSaleView ? (
+          <ViewLoadingState
+            message="Preparando punto de venta..."
+            description="Cargando caja, depósitos y configuración."
           />
+        ) : (
+          <>
+            {saving && (
+              <ViewProcessingOverlay
+                message="Procesando venta..."
+                description="Registrando la operación y actualizando el stock."
+              />
+            )}
 
-          <SearchBox
-            label="Deposito"
-            required
-            value={depositSearch}
-            placeholder="Buscar deposito..."
-            options={filteredDeposits}
-            getKey={(deposit) => deposit.idDeposit}
-            getLabel={(deposit) => deposit.name}
-            onSearchChange={(value) => {
-              setDepositSearch(value);
-              updateHeaderField("idDeposit", null);
-            }}
-            onSelect={handleDepositSelect}
-            error={getFieldError(fieldErrors, "idDeposit")}
-          />
-        </div>
-
-        <Card>
-          <CardContent className="grid gap-4 p-4">
-            <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-              <div>
-                <Label className="text-base font-semibold">
-                  Pagos <span className="text-destructive">*</span>
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Usa un medio de pago o repartí el total entre varios métodos. Los pagos pendientes solo se admiten en ventas con entrega.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addPaymentRow}
-                disabled={isSaleCompleted || activePaymentMethods.length === 0}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Agregar otro medio
-              </Button>
-            </div>
-
-            <div className="grid gap-3">
-              {payments.map((payment, index) => {
-                const paymentMethodLabel = getPaymentMethodLabel(payment.idPaymentMethod);
-                const selectedPaymentMethod = getPaymentMethodById(payment.idPaymentMethod);
-                const selectedPaymentMethodHint = selectedPaymentMethod?.affectsCash
-                  ? "Impacta caja al confirmarse o rendirse."
-                  : "No impacta caja directamente.";
-
-                return (
-                  <div
-                    key={payment.id}
-                    className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-[minmax(0,1fr)_180px_190px_auto]"
-                  >
-                    <div className="grid gap-2">
-                      <Label>{index === 0 ? "Medio principal" : "Medio adicional"}</Label>
-                      <Select
-                        value={payment.idPaymentMethod ? String(payment.idPaymentMethod) : ""}
-                        onValueChange={(value: string | null) => {
-                          updatePaymentField(
-                            payment.id,
-                            "idPaymentMethod",
-                            value ? Number(value) : null,
-                          );
-                        }}
-                        disabled={paymentMethodsLoading || activePaymentMethods.length === 0}
-                      >
-                        <SelectTrigger className="w-full">
-                          <span
-                            className={
-                              paymentMethodLabel
-                                ? "flex flex-1 text-left"
-                                : "flex flex-1 text-left text-muted-foreground"
-                            }
-                          >
-                            {paymentMethodLabel || "Selecciona un metodo"}
-                          </span>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {activePaymentMethods.map((paymentMethod) => (
-                            <SelectItem
-                              key={paymentMethod.idPaymentMethod}
-                              value={String(paymentMethod.idPaymentMethod)}
-                            >
-                              {paymentMethod.name} · {paymentMethodTypeLabels[paymentMethod.code]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>Importe</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={payment.amount}
-                        onChange={(event) =>
-                          updatePaymentField(
-                            payment.id,
-                            "amount",
-                            event.target.value.replace(",", "."),
-                          )
-                        }
-                        placeholder={index === 0 ? formatMoney(totals.total) : "0.00"}
-                        disabled={isSaleCompleted}
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label>Estado del pago</Label>
-                      <Select
-                        value={delivery.enabled ? payment.status : "CONFIRMED"}
-                        onValueChange={(value: string | null) => {
-                          if (value === "PENDING" || value === "CONFIRMED") {
-                            updatePaymentField(payment.id, "status", value);
-                          }
-                        }}
-                        disabled={isSaleCompleted || !delivery.enabled}
-                      >
-                        <SelectTrigger className="w-full">
-                          <span className="flex flex-1 text-left">
-                            {delivery.enabled
-                              ? getPaymentStatusLabel(payment.status)
-                              : "Confirmado"}
-                          </span>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="CONFIRMED">Confirmado</SelectItem>
-                          <SelectItem value="PENDING">Pendiente</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        {delivery.enabled
-                          ? selectedPaymentMethodHint
-                          : "Las ventas sin entrega se registran con pagos confirmados."}
+            {!cashLoading && !currentSession && (
+              <Card className="border-amber-200 bg-amber-50">
+                <CardContent className="flex flex-col justify-between gap-3 p-4 md:flex-row md:items-center">
+                  <div>
+                    <p className="font-semibold text-amber-950">
+                      Debes abrir una caja antes de registrar una venta.
+                    </p>
+                    <p className="text-sm text-amber-900/80">
+                      El sistema exige que toda venta pertenezca a una sesión
+                      de caja abierta.
+                    </p>
+                    {cashError && (
+                      <p className="mt-1 text-sm text-amber-900">
+                        {cashError}
                       </p>
-                    </div>
-
-                    <div className="flex items-end">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        disabled={payments.length === 1 || isSaleCompleted}
-                        onClick={() => removePaymentRow(payment.id)}
-                        aria-label="Quitar medio de pago"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-
-            <div className="grid gap-2 rounded-lg bg-muted/30 p-3 text-sm md:grid-cols-3">
-              <div>
-                <p className="text-muted-foreground">Total</p>
-                <p className="font-semibold">{formatMoney(paymentTotals.total)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Asignado</p>
-                <p className="font-semibold">{formatMoney(paymentTotals.assigned)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Pendiente</p>
-                <p className="font-semibold">{formatMoney(paymentTotals.pending)}</p>
-              </div>
-            </div>
-
-            {(getFieldError(fieldErrors, "idPaymentMethod") ||
-              getFieldError(fieldErrors, "payments")) && (
-              <p className="text-sm text-destructive">
-                {getFieldError(fieldErrors, "idPaymentMethod") ||
-                  getFieldError(fieldErrors, "payments")}
-              </p>
+                  {canViewCash && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => navigate("/admin/cash")}
+                    >
+                      Ir a caja
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
 
-        <Card className="border-dashed">
-          <CardContent className="grid gap-4 p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <Label className="text-base font-semibold">Entrega a domicilio</Label>
-                <p className="text-sm text-muted-foreground">
-                  Si activas esta opcion, podés dejar pagos confirmados y otros pendientes de cobro o confirmación.
-                </p>
-              </div>
-              <Switch
-                checked={delivery.enabled}
-                onCheckedChange={handleDeliveryToggle}
-                disabled={isSaleCompleted}
-              />
-            </div>
-
-            {delivery.enabled && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="grid gap-2 md:col-span-2">
-                  <Label>Cadete asignado</Label>
-                  <Select
-                    value={delivery.assignedToUserId ? String(delivery.assignedToUserId) : "none"}
-                    onValueChange={(value: string | null) => {
-                      updateDeliveryField(
-                        "assignedToUserId",
-                        value && value !== "none" ? Number(value) : null,
-                      );
-                    }}
-                    disabled={isSaleCompleted || deliveryUsersLoading}
-                  >
-                    <SelectTrigger className="w-full">
-                      <span
-                        className={
-                          delivery.assignedToUserId
-                            ? "flex flex-1 text-left"
-                            : "flex flex-1 text-left text-muted-foreground"
-                        }
-                      >
-                        {delivery.assignedToUserId
-                          ? getDeliveryUserLabel(delivery.assignedToUserId)
-                          : deliveryUsersLoading
-                            ? "Cargando cadetes..."
-                            : "Sin asignar por ahora"}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin asignar por ahora</SelectItem>
-                      {deliveryUsers.map((user) => (
-                        <SelectItem key={user.idUser} value={String(user.idUser)}>
-                          {user.name} ({user.username})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {delivery.assignedToUserId ? (
-                    <p className="text-xs text-muted-foreground">
-                      La entrega aparecera en el panel del cadete seleccionado.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Si queda sin asignar, el administrador podra asignarla desde entregas.
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>
-                    Destinatario <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    value={delivery.recipientName}
-                    onChange={(event) =>
-                      updateDeliveryField("recipientName", event.target.value)
-                    }
-                    placeholder="Nombre de quien recibe"
-                    disabled={isSaleCompleted}
-                  />
-                  {getFieldError(fieldErrors, "delivery.recipientName") && (
-                    <p className="text-sm text-destructive">
-                      {getFieldError(fieldErrors, "delivery.recipientName")}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Telefono</Label>
-                  <Input
-                    value={delivery.recipientPhone}
-                    onChange={(event) =>
-                      updateDeliveryField("recipientPhone", event.target.value)
-                    }
-                    placeholder="Telefono de contacto"
-                    disabled={isSaleCompleted}
-                  />
-                </div>
-
-                <div className="grid gap-2 md:col-span-2">
-                  <Label>
-                    Direccion de entrega <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    value={delivery.deliveryAddress}
-                    onChange={(event) =>
-                      updateDeliveryField("deliveryAddress", event.target.value)
-                    }
-                    placeholder="Calle, numero, piso o referencias"
-                    disabled={isSaleCompleted}
-                  />
-                  {getFieldError(fieldErrors, "delivery.deliveryAddress") && (
-                    <p className="text-sm text-destructive">
-                      {getFieldError(fieldErrors, "delivery.deliveryAddress")}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid gap-2 md:col-span-2">
-                  <Label>Referencia</Label>
-                  <Input
-                    value={delivery.deliveryReference}
-                    onChange={(event) =>
-                      updateDeliveryField("deliveryReference", event.target.value)
-                    }
-                    placeholder="Entre calles, piso, timbre o referencias para llegar"
-                    disabled={isSaleCompleted}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Fecha programada</Label>
-                  <Input
-                    type="datetime-local"
-                    value={delivery.scheduledAt}
-                    onChange={(event) =>
-                      updateDeliveryField("scheduledAt", event.target.value)
-                    }
-                    disabled={isSaleCompleted}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Observacion de entrega</Label>
-                  <Input
-                    value={delivery.observation}
-                    onChange={(event) =>
-                      updateDeliveryField("observation", event.target.value)
-                    }
-                    placeholder="Detalle interno para el cadete"
-                    disabled={isSaleCompleted}
-                  />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-2">
-          <Label>Observacion</Label>
-          <Textarea
-            value={header.observation}
-            onChange={(event) =>
-              updateHeaderField("observation", event.target.value)
-            }
-            placeholder="Detalle opcional de la venta"
-          />
-        </div>
-      </section>
-
-      <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 md:grid-cols-[1fr_auto] md:items-end">
-        <div className="grid gap-2">
-          <Label htmlFor="barcode-sale">Escanear codigo de barras</Label>
-          <div className="relative">
-            <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="barcode-sale"
-              ref={barcodeInputRef}
-              value={barcodeSearch}
-              disabled={!header.idDeposit || !header.idCashSession || isSaleCompleted}
-              onChange={(event) => setBarcodeSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  handleBarcodeSubmit();
-                }
+            <SaleContextSection
+              cashSession={currentSession}
+              selectedCustomer={selectedCustomer}
+              selectedDepositId={header.idDeposit}
+              isCustomerModalOpen={isCustomerModalOpen}
+              customers={activeCustomers}
+              deposits={activeDeposits}
+              depositError={getFieldError(fieldErrors, "idDeposit")}
+              onOpenCustomerModal={() => setIsCustomerModalOpen(true)}
+              onCloseCustomerModal={() => setIsCustomerModalOpen(false)}
+              onCustomerClear={() => {
+                updateHeaderField("idCustomer", null);
               }}
-              placeholder={
-                header.idDeposit
-                  ? "Escanea o ingresa el codigo..."
-                  : "Abre caja y selecciona deposito para escanear"
-              }
-              className="pl-9"
-              autoFocus
+              onCustomerSelect={handleCustomerSelect}
+              onDepositSelect={(deposit) => {
+                void handleDepositSelect(deposit);
+              }}
             />
-          </div>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!header.idDeposit || !header.idCashSession || isSaleCompleted || !barcodeSearch.trim()}
-          onClick={handleBarcodeSubmit}
-        >
-          Agregar por codigo
-        </Button>
-      </div>
 
-      <section className="space-y-3">
-        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-          <h2 className="text-lg font-semibold">Carrito</h2>
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <section className="space-y-5">
+                <ProductEntrySection
+                  barcode={barcodeSearch}
+                  priceType={priceType}
+                  disabled={
+                    !header.idDeposit || !currentSession || isSaleCompleted
+                  }
+                  loadingProducts={loadingProducts}
+                  inputRef={barcodeInputRef}
+                  onBarcodeChange={setBarcodeSearch}
+                  onBarcodeSubmit={handleBarcodeSubmit}
+                  onOpenProductSearch={handleOpenProductSearch}
+                  onPriceTypeChange={setPriceType}
+                />
 
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <Button
-              type="button"
-              disabled={!header.idDeposit || !header.idCashSession || isSaleCompleted}
-              onClick={handleOpenProductSearch}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Agregar productos
-            </Button>
-          </div>
-        </div>
+                <SaleCartSection
+                  items={cart}
+                  errors={fieldErrors}
+                  subtotal={totals.subtotal}
+                  discountPercent={header.discountPercent}
+                  discountTotal={totals.discountTotal}
+                  onQuantityChange={updateItemQuantity}
+                  onDiscountPercentChange={updateItemDiscountPercent}
+                  onRemove={removeFromCart}
+                  onGlobalDiscountPercentChange={setGlobalDiscountPercent}
+                />
+              </section>
 
-        <Card>
-          <CardContent className="p-0">
-            <CartTable
-              items={cart}
-              errors={fieldErrors}
-              onQuantityChange={updateItemQuantity}
-              onDiscountPercentChange={updateItemDiscountPercent}
-              onRemove={removeFromCart}
-            />
-          </CardContent>
-        </Card>
+              <section className="space-y-4">
+                <SaleCheckoutPanel
+                  totals={totals}
+                  paymentTotals={paymentTotals}
+                  observation={header.observation}
+                  error={error}
+                  saving={saving}
+                  disabled={submitDisabled}
+                  disabledReason={disabledReason}
+                  isSaleCompleted={isSaleCompleted}
+                  onObservationChange={(value) =>
+                    updateHeaderField("observation", value)
+                  }
+                  onSubmit={() => {
+                    void handleSubmit();
+                  }}
+                  onReset={resetSale}
+                />
 
-        {getFieldError(fieldErrors, "items") && (
-          <p className="text-sm text-destructive">
-            {getFieldError(fieldErrors, "items")}
-          </p>
-        )}
+                <SalePaymentsSection
+                  payments={payments}
+                  paymentMethods={activePaymentMethods}
+                  paymentMethodsLoading={paymentMethodsLoading}
+                  totals={paymentTotals}
+                  hasDelivery={delivery.enabled}
+                  disabled={isSaleCompleted || saving}
+                  errors={fieldErrors}
+                  onAddPayment={addPaymentRow}
+                  onRemovePayment={removePaymentRow}
+                  onPaymentChange={updatePaymentField}
+                />
 
-        {error && (
-          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-
-        <div className="flex justify-end">
-          <div className="grid w-full max-w-sm gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Subtotal</Label>
-              <span className="font-semibold">
-                {formatMoney(totals.subtotal)}
-              </span>
+                <SaleDeliverySection
+                  delivery={delivery}
+                  deliveryUsers={deliveryUsers}
+                  loadingUsers={deliveryUsersLoading}
+                  disabled={isSaleCompleted || saving}
+                  errors={fieldErrors}
+                  onToggle={handleDeliveryToggle}
+                  onDeliveryChange={updateDeliveryField}
+                />
+              </section>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <Label>Descuento global (%)</Label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={header.discountPercent}
-                onChange={(event) =>
-                  setGlobalDiscountPercent(Number(event.target.value))
+
+            <SearchProductModal
+              isOpen={isProductModalOpen}
+              products={products}
+              priceType={priceType}
+              loading={loadingProducts}
+              onClose={() => setIsProductModalOpen(false)}
+              onConfirm={(items) => {
+                addToCart(items);
+                if (items.length === 1) {
+                  toast.success(`${items[0].product.name} agregado al carrito`);
+                } else if (items.length > 1) {
+                  toast.success(`${items.length} productos agregados al carrito`);
                 }
-                className="w-28 text-right"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <Label>Monto descuento</Label>
-              <span className="font-semibold">
-                {formatMoney(totals.discountTotal)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <Label>Total</Label>
-              <span className="text-xl font-bold">
-                {formatMoney(totals.total)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={resetSale}>
-          Cancelar
-        </Button>
-        <Button
-          type="button"
-          disabled={saving || isSaleCompleted || !header.idCashSession || !header.idPaymentMethod}
-          onClick={handleSubmit}
-        >
-          {saving ? "Procesando venta..." : "Registrar venta"}
-        </Button>
-      </div>
-
-      <SearchProductModal
-        isOpen={isProductModalOpen}
-        products={products}
-        priceType={priceType}
-        loading={loadingProducts}
-        onClose={() => setIsProductModalOpen(false)}
-        onConfirm={(items) => {
-          addToCart(items);
-          if (items.length === 1) {
-            toast.success(`${items[0].product.name} agregado al carrito`);
-          } else if (items.length > 1) {
-            toast.success(`${items.length} productos agregados al carrito`);
-          }
-          setIsProductModalOpen(false);
-        }}
-      />
-      <SaleSuccessModal
-        isOpen={isOpenSuccessModal}
-        idSale={newSaleId}
-        saleNumber={newSaleNumber}
-        onResetForm={resetSale}
-        onViewDetails={handleViewSaleDetails}
-      />
-        </>
-      )}
-      <Toaster position="top-right" reverseOrder={false} />
+                setIsProductModalOpen(false);
+              }}
+            />
+            <SaleSuccessModal
+              isOpen={isOpenSuccessModal}
+              idSale={newSaleId}
+              saleNumber={newSaleNumber}
+              onResetForm={resetSale}
+              onViewDetails={handleViewSaleDetails}
+            />
+          </>
+        )}
+        <Toaster position="top-right" reverseOrder={false} />
       </main>
     </>
   );

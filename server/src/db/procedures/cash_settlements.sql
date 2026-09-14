@@ -33,6 +33,7 @@ BEGIN
     cs.received_by_user_id,
     receiver.name AS received_by_user_name,
     cs.idCashSession,
+    cr.name AS cash_register_name,
     cs.total_amount,
     cs.observation,
     cs.settled_at,
@@ -40,6 +41,12 @@ BEGIN
   FROM cash_settlements cs
   INNER JOIN users collector ON collector.idUser = cs.collector_user_id
   INNER JOIN users receiver ON receiver.idUser = cs.received_by_user_id
+  INNER JOIN cash_sessions cse
+    ON cse.idBusiness = cs.idBusiness
+    AND cse.idCashSession = cs.idCashSession
+  INNER JOIN cash_registers cr
+    ON cr.idBusiness = cse.idBusiness
+    AND cr.idCashRegister = cse.idCashRegister
   WHERE cs.idBusiness = p_idBusiness
     AND cs.idCashSettlement = p_idCashSettlement
   LIMIT 1;
@@ -131,6 +138,7 @@ BEGIN
     cs.received_by_user_id,
     receiver.name AS received_by_user_name,
     cs.idCashSession,
+    cr.name AS cash_register_name,
     cs.total_amount,
     cs.observation,
     cs.settled_at,
@@ -138,6 +146,12 @@ BEGIN
   FROM cash_settlements cs
   INNER JOIN users collector ON collector.idUser = cs.collector_user_id
   INNER JOIN users receiver ON receiver.idUser = cs.received_by_user_id
+  INNER JOIN cash_sessions cse
+    ON cse.idBusiness = cs.idBusiness
+    AND cse.idCashSession = cs.idCashSession
+  INNER JOIN cash_registers cr
+    ON cr.idBusiness = cse.idBusiness
+    AND cr.idCashRegister = cse.idCashRegister
   WHERE cs.idBusiness = p_idBusiness
     AND (p_collectorUserId IS NULL OR cs.collector_user_id = p_collectorUserId)
     AND (p_startDate IS NULL OR cs.settled_at >= p_startDate)

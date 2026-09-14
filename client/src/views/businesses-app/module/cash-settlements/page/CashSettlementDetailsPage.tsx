@@ -108,7 +108,7 @@ export const CashSettlementDetailsPage = () => {
           <Card>
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Caja receptora</p>
-              <p className="mt-1 font-semibold">Sesión #{settlement.idCashSession}</p>
+              <p className="mt-1 font-semibold">{settlement.cashRegisterName}</p>
             </CardContent>
           </Card>
           <Card>

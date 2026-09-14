@@ -88,15 +88,15 @@ export const getSalePaymentMetadataLines = (metadata: JsonValue | null): string[
   const lines: string[] = [];
 
   if ("idCashSettlement" in metadata && metadata.idCashSettlement) {
-    lines.push(`Rendición #${String(metadata.idCashSettlement)}`);
+    lines.push("Rendición registrada");
   }
 
-  if ("idCashSession" in metadata && metadata.idCashSession) {
-    lines.push(`Sesión de caja #${String(metadata.idCashSession)}`);
+  if ("cashRegisterName" in metadata && metadata.cashRegisterName) {
+    lines.push(`Caja: ${String(metadata.cashRegisterName)}`);
   }
 
-  if ("idPaymentMethod" in metadata && metadata.idPaymentMethod) {
-    lines.push(`Método #${String(metadata.idPaymentMethod)}`);
+  if ("paymentMethodName" in metadata && metadata.paymentMethodName) {
+    lines.push(`Método: ${String(metadata.paymentMethodName)}`);
   }
 
   if ("previousPaymentMethodName" in metadata && metadata.previousPaymentMethodName) {
