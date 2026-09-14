@@ -3,7 +3,6 @@ import Decimal from "decimal.js";
 import type { AxiosError } from "axios";
 import { createIdempotencyKey } from "@/helpers/idempotency.helper";
 import {
-  cancelSale,
   createSaleRequest,
   getProductsByDepositRequest,
 } from "../api/sales.api";
@@ -27,14 +26,8 @@ const initialHeader: SaleHeaderInput = {
   idCustomer: null,
   idDeposit: null,
   idCashSession: null,
-  idPaymentMethod: null,
-  saleDate: new Date(),
-  subtotal: 0,
   discountPercent: 0,
-  discountTotal: 0,
-  total: 0,
   observation: "",
-  status: "COMPLETED",
 };
 
 const initialDelivery: SaleDeliveryInput = {
@@ -157,7 +150,6 @@ export const useSales = () => {
   const [newSaleId, setNewSaleId] = useState<number | null>(null);
   const [newSaleNumber, setNewSaleNumber] = useState<string | null>(null);
   const [saleLifecycle, setSaleLifecycle] = useState<SaleLifecycle>("DRAFT");
-  const [cancelingId, setCancelingId] = useState<number | null>(null);
   const submitLockRef = useRef(false);
   const currentSaleIdempotencyKeyRef = useRef<string | null>(null);
 
@@ -232,19 +224,6 @@ export const useSales = () => {
         [field]: value,
       }));
 
-      if (field === "idPaymentMethod") {
-        setPayments((currentPayments) => {
-          const firstPayment = currentPayments[0] ?? createPaymentInput();
-
-          return [
-            {
-              ...firstPayment,
-              idPaymentMethod: value as number | null,
-            },
-            ...currentPayments.slice(1),
-          ];
-        });
-      }
     },
     [],
   );
@@ -272,8 +251,6 @@ export const useSales = () => {
       field: K,
       value: SalePaymentInput[K],
     ) => {
-      const isFirstPayment = payments[0]?.id === id;
-
       setPayments((currentPayments) =>
         currentPayments.map((payment) => {
           if (payment.id !== id) return payment;
@@ -284,15 +261,8 @@ export const useSales = () => {
           };
         }),
       );
-
-      if (isFirstPayment && field === "idPaymentMethod") {
-        setHeader((current) => ({
-          ...current,
-          idPaymentMethod: value as number | null,
-        }));
-      }
     },
-    [payments],
+    [],
   );
 
   const addPaymentRow = useCallback(() => {
@@ -317,13 +287,6 @@ export const useSales = () => {
       if (currentPayments.length <= 1) return currentPayments;
 
       const nextPayments = currentPayments.filter((payment) => payment.id !== id);
-      const firstPayment = nextPayments[0] ?? createPaymentInput();
-
-      setHeader((current) => ({
-        ...current,
-        idPaymentMethod: firstPayment.idPaymentMethod,
-      }));
-
       return nextPayments.length > 0 ? nextPayments : [createPaymentInput()];
     });
   }, []);
@@ -521,7 +484,7 @@ export const useSales = () => {
     }));
   };
 
-  const buildPayload = (): CreateSalePayload => {
+  const buildPayload = (cashSessionId?: number): CreateSalePayload => {
     const payloadItems = cart.map((item) => {
       const globalDiscountAmount = new Decimal(item.subtotalBeforeDiscount)
         .mul(header.discountPercent)
@@ -564,7 +527,7 @@ export const useSales = () => {
         ? activePayments
         : [
             {
-              idPaymentMethod: Number(header.idPaymentMethod),
+              idPaymentMethod: Number(payments[0]?.idPaymentMethod),
               amount: toMoney(total),
               status: delivery.enabled ? payments[0]?.status ?? "CONFIRMED" : "CONFIRMED",
               reference: null,
@@ -575,7 +538,7 @@ export const useSales = () => {
     return {
       idCustomer: header.idCustomer,
       idDeposit: Number(header.idDeposit),
-      idCashSession: Number(header.idCashSession),
+      idCashSession: Number(cashSessionId ?? header.idCashSession),
       subtotal: toMoney(subtotal),
       discountTotal: toMoney(discountTotal),
       total: toMoney(total),
@@ -596,7 +559,7 @@ export const useSales = () => {
     };
   };
 
-  const submitSale = async () => {
+  const submitSale = async (cashSessionId?: number) => {
     if (saleLifecycle === "COMPLETED") {
       return {
         status: false,
@@ -622,7 +585,7 @@ export const useSales = () => {
       setSaving(true);
       clearErrors();
 
-      const payload = buildPayload();
+      const payload = buildPayload(cashSessionId);
       const response = await createSaleRequest(
         payload,
         currentSaleIdempotencyKeyRef.current,
@@ -662,30 +625,6 @@ export const useSales = () => {
     }
   };
 
-  const cancelSaleAction = async (idSale: number) => {
-    try {
-      setCancelingId(idSale);
-      clearErrors();
-
-      const response = await cancelSale(idSale);
-
-      return {
-        status: true,
-        message: response.data.message,
-        data: response.data.data,
-      };
-    } catch (error) {
-      handleApiError(error);
-
-      return {
-        status: false,
-        message: "No se pudo anular la venta",
-      };
-    } finally {
-      setCancelingId(null);
-    }
-  };
-
   return {
     header,
     delivery,
@@ -703,7 +642,6 @@ export const useSales = () => {
     isOpenSuccessModal,
     newSaleId,
     newSaleNumber,
-    cancelingId,
     isSaleCompleted: saleLifecycle === "COMPLETED",
     setPriceType,
     updateHeaderField,
@@ -720,7 +658,6 @@ export const useSales = () => {
     updateItemDiscountPercent,
     setGlobalDiscountPercent,
     submitSale,
-    cancelSaleAction,
     clearErrors,
     setValidationErrors,
     clearCart,

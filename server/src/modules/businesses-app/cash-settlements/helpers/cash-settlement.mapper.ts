@@ -16,6 +16,7 @@ export function mapCashSettlement(row: CashSettlementDbRow): CashSettlementRespo
     receivedByUserId: row.received_by_user_id,
     receivedByUserName: row.received_by_user_name,
     idCashSession: row.idCashSession,
+    cashRegisterName: row.cash_register_name,
     totalAmount: Number(row.total_amount),
     observation: row.observation,
     settledAt: row.settled_at,

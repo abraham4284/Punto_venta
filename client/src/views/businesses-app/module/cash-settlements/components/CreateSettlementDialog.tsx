@@ -65,9 +65,7 @@ export const CreateSettlementDialog = ({
           <div className="flex items-center justify-between gap-3">
             <span className="text-muted-foreground">Caja receptora</span>
             <span className="text-right font-medium">
-              {cashSession
-                ? `${cashSession.cashRegisterName} · sesión #${cashSession.idCashSession}`
-                : "-"}
+              {cashSession ? cashSession.cashRegisterName : "-"}
             </span>
           </div>
           {observation.trim() ? (

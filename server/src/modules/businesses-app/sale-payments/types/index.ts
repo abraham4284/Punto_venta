@@ -9,7 +9,9 @@ export type SalePaymentEventType =
   | "PAYMENT_METHOD_CHANGED"
   | "PAYMENT_COLLECTED"
   | "PAYMENT_CONFIRMED"
-  | "PAYMENT_CANCELLED";
+  | "PAYMENT_CANCELLED"
+  | "PAYMENT_SETTLED"
+  | "PAYMENT_MIGRATED";
 
 export type JsonValue =
   | null
@@ -123,6 +125,10 @@ export interface SalePaymentEventDbRow {
   previous_status: SalePaymentStatus | null;
   new_status: SalePaymentStatus | null;
   metadata: string | Buffer | JsonValue | null;
+  metadata_payment_method_name?: string | null;
+  previous_payment_method_name?: string | null;
+  new_payment_method_name?: string | null;
+  metadata_cash_register_name?: string | null;
   created_by_user_id: number | null;
   created_by_user_name: string | null;
   created_at: Date;

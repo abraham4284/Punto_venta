@@ -222,18 +222,39 @@ export const SalePaymentsPanel = ({
           ) : null}
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-3">
-          <div className="rounded-lg border bg-muted/20 p-3">
-            <p className="text-xs text-muted-foreground">Total venta</p>
-            <p className="text-lg font-semibold">{formatPaymentMoney(saleTotal)}</p>
+        <div className="grid gap-3 ">
+          <div className="min-w-0 rounded-xl border bg-muted/20 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Total venta
+            </p>
+            <p className="mt-2 break-words text-xl font-bold leading-tight tabular-nums text-foreground">
+              {formatPaymentMoney(saleTotal)}
+            </p>
           </div>
-          <div className="rounded-lg border bg-muted/20 p-3">
-            <p className="text-xs text-muted-foreground">Saldo activo</p>
-            <p className="text-lg font-semibold">{formatPaymentMoney(remaining)}</p>
+
+          <div className="min-w-0 rounded-xl border bg-muted/20 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Saldo activo
+            </p>
+            <p
+              className={`mt-2 break-words text-xl font-bold leading-tight tabular-nums ${
+                remaining > 0 ? "text-amber-700" : "text-emerald-700"
+              }`}
+            >
+              {formatPaymentMoney(remaining)}
+            </p>
           </div>
-          <div className="rounded-lg border bg-muted/20 p-3">
-            <p className="text-xs text-muted-foreground">Venta</p>
-            <p className="text-lg font-semibold">{saleNumber}</p>
+
+          <div className="min-w-0 rounded-xl border bg-muted/20 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Número de venta
+            </p>
+            <p
+              className="mt-2 break-all text-base font-semibold leading-tight text-foreground"
+              title={saleNumber}
+            >
+              {saleNumber}
+            </p>
           </div>
         </div>
       </CardHeader>

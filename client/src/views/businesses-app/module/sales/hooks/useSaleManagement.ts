@@ -37,26 +37,6 @@ const initialMetrics: SaleMetricsData = {
   completedTotal: 0,
 };
 
-const getMetricsAfterCancel = (
-  currentMetrics: SaleMetricsData,
-  sale: SaleResponse,
-): SaleMetricsData => {
-  if (sale.status === "CANCELLED") return currentMetrics;
-
-  const completed = Math.max(currentMetrics.completed - 1, 0);
-  const cancelled = currentMetrics.cancelled + 1;
-  const total = currentMetrics.total;
-
-  return {
-    ...currentMetrics,
-    completed,
-    cancelled,
-    completedPercentage: total > 0 ? Math.round((completed / total) * 100) : 0,
-    cancelledPercentage: total > 0 ? Math.round((cancelled / total) * 100) : 0,
-    completedTotal: Math.max(currentMetrics.completedTotal - sale.total, 0),
-  };
-};
-
 export const useSaleManagement = () => {
   const [sales, setSales] = useState<SaleResponse[]>([]);
   const [pagination, setPagination] =
@@ -77,17 +57,22 @@ export const useSaleManagement = () => {
         setError(null);
 
         const response = await getSalesRequest(nextPage, limit, nextFilters);
+        const responseData = response.data.data;
 
-        setSales(response.data.data.sales);
-        setPagination(response.data.data.pagination);
-        setMetrics(response.data.data.metrics);
-        setPage(response.data.data.pagination.currentPage);
+        setSales(responseData.sales);
+        setPagination(responseData.pagination);
+        setMetrics(responseData.metrics);
+        setPage(responseData.pagination.currentPage);
+
+        return responseData;
       } catch (error) {
         const axiosError = error as AxiosError<ApiErrorResponse>;
         setError(
           axiosError.response?.data?.message ||
             "No se pudieron cargar las ventas",
         );
+
+        return null;
       } finally {
         setLoading(false);
       }
@@ -149,19 +134,15 @@ export const useSaleManagement = () => {
 
       await cancelSale(idSale);
 
-      setSales((currentSales) =>
-        currentSales.map((sale) => {
-          if (sale.idSale !== idSale) return sale;
+      const refreshedData = await getSales(page, filters);
 
-          return {
-            ...sale,
-            status: "CANCELLED",
-          };
-        }),
-      );
-      setMetrics((currentMetrics) =>
-        getMetricsAfterCancel(currentMetrics, saleToCancel),
-      );
+      if (
+        refreshedData &&
+        refreshedData.sales.length === 0 &&
+        refreshedData.pagination.currentPage > 1
+      ) {
+        await getSales(refreshedData.pagination.currentPage - 1, filters);
+      }
     } catch (error) {
       const axiosError = error as AxiosError<ApiErrorResponse>;
       setError(

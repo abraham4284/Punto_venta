@@ -9,6 +9,7 @@ export interface CashSettlementDbRow {
   received_by_user_id: number;
   received_by_user_name: string;
   idCashSession: number;
+  cash_register_name: string;
   total_amount: string | number;
   observation: string | null;
   settled_at: Date;
@@ -87,6 +88,7 @@ export interface CashSettlementResponse {
   receivedByUserId: number;
   receivedByUserName: string;
   idCashSession: number;
+  cashRegisterName: string;
   totalAmount: number;
   observation: string | null;
   settledAt: Date;

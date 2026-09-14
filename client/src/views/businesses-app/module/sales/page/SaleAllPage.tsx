@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useCan } from "@/views/businesses-app/hooks/useCan";
 import { useDeposits } from "../../deposits/hooks/useDeposits";
 import { usePaymentMethods } from "../../payment-methods/hooks/usePaymentMethods";
 import {
@@ -15,6 +16,7 @@ import { useSaleManagement } from "../hooks/useSaleManagement";
 
 export const SaleAllPage = () => {
   const navigate = useNavigate();
+  const canCreateSales = useCan("sales.create");
   const { deposits, getDeposits, resetDeposits } = useDeposits();
   const { activePaymentMethods, getPaymentMethods } = usePaymentMethods();
   const {
@@ -56,9 +58,11 @@ export const SaleAllPage = () => {
           </p>
         </div>
 
-        <Button type="button" onClick={() => navigate("/admin/sales")}>
-          Nueva venta
-        </Button>
+        {canCreateSales && (
+          <Button type="button" onClick={() => navigate("/admin/sales")}>
+            Nueva venta
+          </Button>
+        )}
       </section>
 
       <SaleMetrics metrics={metrics} />

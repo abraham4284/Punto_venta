@@ -90,14 +90,14 @@ export const MyPendingSettlementPage = () => {
                     {collector.collectorUserName}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-3">
                   <div className="rounded-xl border bg-card p-3">
                     <p className="text-xs text-muted-foreground">Cobros</p>
                     <p className="text-2xl font-bold">{collector.paymentsCount}</p>
                   </div>
                   <div className="rounded-xl border bg-card p-3">
                     <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="text-2xl font-bold">
+                    <p className="break-words text-2xl font-bold leading-tight">
                       {formatSettlementMoney(collector.totalAmount)}
                     </p>
                   </div>

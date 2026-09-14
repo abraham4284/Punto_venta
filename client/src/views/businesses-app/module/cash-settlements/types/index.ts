@@ -12,6 +12,7 @@ export type CashSettlementResponse = {
   receivedByUserId: number;
   receivedByUserName: string;
   idCashSession: number;
+  cashRegisterName: string;
   totalAmount: number;
   observation: string | null;
   settledAt: string;

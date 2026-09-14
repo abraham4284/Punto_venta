@@ -48,6 +48,37 @@ function parseMetadata(metadata: SalePaymentEventDbRow["metadata"]): JsonValue |
   return isJsonValue(metadata) ? metadata : null;
 }
 
+function enrichMetadata(
+  metadata: JsonValue | null,
+  row: SalePaymentEventDbRow,
+): JsonValue | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return metadata;
+  }
+
+  const enrichedMetadata: Record<string, JsonValue> = {
+    ...(metadata as Record<string, JsonValue>),
+  };
+
+  if (row.metadata_payment_method_name) {
+    enrichedMetadata.paymentMethodName = row.metadata_payment_method_name;
+  }
+
+  if (row.previous_payment_method_name) {
+    enrichedMetadata.previousPaymentMethodName = row.previous_payment_method_name;
+  }
+
+  if (row.new_payment_method_name) {
+    enrichedMetadata.newPaymentMethodName = row.new_payment_method_name;
+  }
+
+  if (row.metadata_cash_register_name) {
+    enrichedMetadata.cashRegisterName = row.metadata_cash_register_name;
+  }
+
+  return enrichedMetadata;
+}
+
 export function mapSalePayment(row: SalePaymentDbRow): SalePaymentResponse {
   return {
     idSalePayment: row.idSalePayment,
@@ -73,6 +104,8 @@ export function mapSalePayment(row: SalePaymentDbRow): SalePaymentResponse {
 export function mapSalePaymentEvent(
   row: SalePaymentEventDbRow,
 ): SalePaymentEventResponse {
+  const metadata = parseMetadata(row.metadata);
+
   return {
     idSalePaymentEvent: row.idSalePaymentEvent,
     idBusiness: row.idBusiness,
@@ -80,7 +113,7 @@ export function mapSalePaymentEvent(
     eventType: row.event_type,
     previousStatus: row.previous_status,
     newStatus: row.new_status,
-    metadata: parseMetadata(row.metadata),
+    metadata: enrichMetadata(metadata, row),
     createdByUserId: row.created_by_user_id,
     createdByUserName: row.created_by_user_name,
     createdAt: row.created_at,

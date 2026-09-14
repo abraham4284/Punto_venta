@@ -192,10 +192,9 @@ export const SettlementHistory = ({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>N°</TableHead>
                 <TableHead>Cadete</TableHead>
                 <TableHead>Recibió</TableHead>
-                <TableHead>Caja</TableHead>
+                <TableHead>Caja receptora</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
@@ -204,7 +203,7 @@ export const SettlementHistory = ({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center">
+                  <TableCell colSpan={6} className="py-10 text-center">
                     <div className="flex items-center justify-center gap-2 text-muted-foreground">
                       <Spinner />
                       Cargando rendiciones...
@@ -214,7 +213,7 @@ export const SettlementHistory = ({
               ) : settlements.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={6}
                     className="py-10 text-center text-muted-foreground"
                   >
                     No hay rendiciones registradas.
@@ -223,12 +222,9 @@ export const SettlementHistory = ({
               ) : (
                 settlements.map((settlement) => (
                   <TableRow key={settlement.idCashSettlement}>
-                    <TableCell className="font-medium">
-                      #{settlement.idCashSettlement}
-                    </TableCell>
                     <TableCell>{settlement.collectorUserName}</TableCell>
                     <TableCell>{settlement.receivedByUserName}</TableCell>
-                    <TableCell>#{settlement.idCashSession}</TableCell>
+                    <TableCell>{settlement.cashRegisterName}</TableCell>
                     <TableCell>{formatSettlementDate(settlement.settledAt)}</TableCell>
                     <TableCell className="text-right font-semibold">
                       {formatSettlementMoney(settlement.totalAmount)}
@@ -273,9 +269,9 @@ export const SettlementHistory = ({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold">#{settlement.idCashSettlement}</p>
+                    <p className="font-semibold">{settlement.collectorUserName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {settlement.collectorUserName}
+                      Recibió: {settlement.receivedByUserName}
                     </p>
                   </div>
                   <p className="font-bold">
@@ -283,8 +279,7 @@ export const SettlementHistory = ({
                   </p>
                 </div>
                 <div className="mt-3 grid gap-1 text-sm text-muted-foreground">
-                  <p>Recibió: {settlement.receivedByUserName}</p>
-                  <p>Caja: #{settlement.idCashSession}</p>
+                  <p>Caja: {settlement.cashRegisterName}</p>
                   <p>Fecha: {formatSettlementDate(settlement.settledAt)}</p>
                 </div>
                 <Button
