@@ -279,19 +279,31 @@ CREATE PROCEDURE sp_business_user_change_role(
   IN p_role VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
-  IF p_role COLLATE utf8mb4_unicode_ci NOT IN ('ADMIN','SELLER') THEN
+  DECLARE v_currentRole VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+  IF p_role COLLATE utf8mb4_unicode_ci NOT IN ('ADMIN','SELLER','DELIVERY') THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'INVALID_BUSINESS_ROLE';
+  END IF;
+
+  SELECT role
+  INTO v_currentRole
+  FROM business_users
+  WHERE idBusiness = p_idBusiness
+    AND idUser = p_idUser
+  LIMIT 1;
+
+  IF v_currentRole IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'BUSINESS_USER_NOT_FOUND';
+  END IF;
+
+  IF v_currentRole COLLATE utf8mb4_unicode_ci = 'OWNER' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CANNOT_MODIFY_OWNER';
   END IF;
 
   UPDATE business_users
   SET role = p_role
   WHERE idBusiness = p_idBusiness
-    AND idUser = p_idUser
-    AND role COLLATE utf8mb4_unicode_ci <> 'OWNER';
-
-  IF ROW_COUNT() = 0 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CANNOT_MODIFY_OWNER';
-  END IF;
+    AND idUser = p_idUser;
 
   CALL sp_business_user_get_by_id(p_idBusiness, p_idUser);
 END$$
