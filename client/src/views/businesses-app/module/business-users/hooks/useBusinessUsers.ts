@@ -102,12 +102,14 @@ export const useBusinessUsers = () => {
   const [fieldErrors, setFieldErrors] = useState<BusinessUserFieldError[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsersForFilters = useCallback(async (
+    nextFilters: BusinessUsersFilters,
+  ) => {
     setLoading(true);
     setError(null);
 
     try {
-      const { data } = await getBusinessUsers(filters);
+      const { data } = await getBusinessUsers(nextFilters);
       const responseData = data.data as typeof data.data & {
         records?: BusinessUser[];
       };
@@ -123,7 +125,11 @@ export const useBusinessUsers = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    await fetchUsersForFilters(filters);
+  }, [fetchUsersForFilters, filters]);
 
   const fetchPermissionGroups = useCallback(async () => {
     try {
@@ -137,11 +143,19 @@ export const useBusinessUsers = () => {
   }, []);
 
   useEffect(() => {
-    void fetchUsers();
+    const timeoutId = window.setTimeout(() => {
+      void fetchUsers();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchUsers]);
 
   useEffect(() => {
-    void fetchPermissionGroups();
+    const timeoutId = window.setTimeout(() => {
+      void fetchPermissionGroups();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchPermissionGroups]);
 
   const applyFilters = (nextFilters: Partial<BusinessUsersFilters>) => {
@@ -167,7 +181,8 @@ export const useBusinessUsers = () => {
     try {
       await createBusinessUser(body);
       toast.success("Usuario creado correctamente");
-      await fetchUsers();
+      setFilters(defaultFilters);
+      await fetchUsersForFilters(defaultFilters);
       return true;
     } catch (requestError: unknown) {
       logBusinessUserError("createUserAction", requestError);
@@ -207,16 +222,23 @@ export const useBusinessUsers = () => {
     idUser: number,
     role: "ADMIN" | "SELLER" | "DELIVERY",
   ): Promise<void> => {
+    setStatusLoadingId(idUser);
+
     try {
       const { data } = await changeBusinessUserRole(idUser, role);
       setUsers((currentUsers) =>
         currentUsers.map((user) => (user.idUser === idUser ? data.data : user)),
       );
+      await fetchUsersForFilters(filters);
       toast.success("Rol actualizado correctamente");
     } catch (requestError: unknown) {
+      logBusinessUserError("changeRoleAction", requestError);
       toast.error(
         getErrorMessage(requestError, "No se pudo actualizar el rol"),
       );
+      await fetchUsersForFilters(filters);
+    } finally {
+      setStatusLoadingId(null);
     }
   };
 

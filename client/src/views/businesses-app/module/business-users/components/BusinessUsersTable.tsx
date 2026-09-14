@@ -98,6 +98,7 @@ export const BusinessUsersTable = ({
                     ) : canChangeRole ? (
                       <Select
                         value={user.role}
+                        disabled={statusLoadingId === user.idUser}
                         onValueChange={(value) => {
                           if (value === "ADMIN" || value === "SELLER" || value === "DELIVERY") {
                             onChangeRole(user.idUser, value);
