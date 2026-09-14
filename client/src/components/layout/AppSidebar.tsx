@@ -451,6 +451,16 @@ export const AppSidebar = () => {
     user?.username ||
     `Usuario ${user?.idUser ?? ""}`.trim();
   const displayRole = user?.role || "Administrador";
+  const canLoadBusinessDetails = hasPermission(
+    "business.view",
+    user?.role,
+    user?.permissions,
+  );
+  const displayBusinessName =
+    business?.name || user?.businessName || "Nombre de la empresa";
+  const displayBusinessType = getBusinessTypeLabel(
+    business?.businessType ?? user?.businessType,
+  );
 
   const visibleStartItem = hasPermission(
     startItem.permission,
@@ -506,11 +516,17 @@ export const AppSidebar = () => {
   };
 
   useEffect(() => {
-    getBusiness();
+    if (!canLoadBusinessDetails) {
+      resetBusiness();
+      return;
+    }
+
+    void getBusiness();
+
     return () => {
       resetBusiness();
     };
-  }, [getBusiness, resetBusiness]);
+  }, [canLoadBusinessDetails, getBusiness, resetBusiness]);
 
   useEffect(() => {
     const activeGroups = getActiveParentTitles(
@@ -546,10 +562,10 @@ export const AppSidebar = () => {
 
           <div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[state=collapsed]/sidebar-wrapper:lg:hidden">
             <p className="truncate text-sm font-semibold">
-              {business?.name || "Nombre de la empresa"}
+              {displayBusinessName}
             </p>
             <p className="truncate text-xs text-sidebar-foreground/55">
-              {getBusinessTypeLabel(business?.businessType)}
+              {displayBusinessType}
             </p>
           </div>
 

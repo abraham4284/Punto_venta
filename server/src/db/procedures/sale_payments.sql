@@ -162,6 +162,10 @@ BEGIN
     spe.previous_status,
     spe.new_status,
     spe.metadata,
+    metadataMethod.name AS metadata_payment_method_name,
+    previousMethod.name AS previous_payment_method_name,
+    newMethod.name AS new_payment_method_name,
+    metadataRegister.name AS metadata_cash_register_name,
     spe.created_by_user_id,
     u.name AS created_by_user_name,
     spe.created_at
@@ -169,6 +173,21 @@ BEGIN
   INNER JOIN sale_payments sp
     ON sp.idBusiness = spe.idBusiness
     AND sp.idSalePayment = spe.idSalePayment
+  LEFT JOIN payment_methods metadataMethod
+    ON metadataMethod.idBusiness = spe.idBusiness
+    AND metadataMethod.idPaymentMethod = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(spe.metadata, '$.idPaymentMethod')), 'null') AS UNSIGNED)
+  LEFT JOIN payment_methods previousMethod
+    ON previousMethod.idBusiness = spe.idBusiness
+    AND previousMethod.idPaymentMethod = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(spe.metadata, '$.previousIdPaymentMethod')), 'null') AS UNSIGNED)
+  LEFT JOIN payment_methods newMethod
+    ON newMethod.idBusiness = spe.idBusiness
+    AND newMethod.idPaymentMethod = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(spe.metadata, '$.newIdPaymentMethod')), 'null') AS UNSIGNED)
+  LEFT JOIN cash_sessions metadataSession
+    ON metadataSession.idBusiness = spe.idBusiness
+    AND metadataSession.idCashSession = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(spe.metadata, '$.idCashSession')), 'null') AS UNSIGNED)
+  LEFT JOIN cash_registers metadataRegister
+    ON metadataRegister.idBusiness = metadataSession.idBusiness
+    AND metadataRegister.idCashRegister = metadataSession.idCashRegister
   LEFT JOIN users u ON u.idUser = spe.created_by_user_id
   WHERE spe.idBusiness = p_idBusiness
     AND spe.idSalePayment = p_idSalePayment

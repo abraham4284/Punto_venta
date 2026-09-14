@@ -140,7 +140,6 @@ export const PendingSettlementsPanel = ({
                 ) : cashSession?.status === "OPEN" ? (
                   <div className="mt-1 text-sm text-muted-foreground">
                     <p>{cashSession.cashRegisterName}</p>
-                    <p>Sesión #{cashSession.idCashSession}</p>
                   </div>
                 ) : (
                   <p className="mt-1 text-sm text-muted-foreground">

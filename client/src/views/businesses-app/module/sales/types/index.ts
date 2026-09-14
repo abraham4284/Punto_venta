@@ -67,14 +67,8 @@ export interface SaleHeaderInput {
   idCustomer: number | null;
   idDeposit: number | null;
   idCashSession: number | null;
-  idPaymentMethod: number | null;
-  saleDate: Date;
-  subtotal: number;
   discountPercent: number;
-  discountTotal: number;
-  total: number;
   observation: string;
-  status: "COMPLETED" | "CANCELLED";
 }
 
 export interface SaleDeliveryInput {
