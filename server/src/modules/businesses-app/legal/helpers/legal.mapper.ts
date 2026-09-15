@@ -50,10 +50,15 @@ export function mapLegalAcceptanceStatus(
     contentHash: row.contentHash,
     requiresUserAction: Boolean(row.requiresUserAction),
     effectiveAt: row.effectiveAt,
+    acceptanceScope: row.acceptanceScope,
     idLegalAcceptance: row.idLegalAcceptance,
     actionType: row.actionType,
     acceptanceMethod: row.acceptanceMethod,
     acceptedAt: row.acceptedAt,
+    acceptedByUserId: row.acceptedByUserId,
+    acceptedByUserName: row.acceptedByUserName,
+    acceptedByCurrentUser: Boolean(row.acceptedByCurrentUser),
+    isSatisfied: Boolean(row.isSatisfied),
     actionRequired: Boolean(row.actionRequired),
   };
 }

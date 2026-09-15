@@ -1,6 +1,7 @@
 export type LegalDocumentCode = "TERMS" | "PRIVACY";
 export type LegalRequiredAction = "ACCEPT" | "ACKNOWLEDGE" | "NONE";
 export type LegalActionType = "ACCEPTED" | "ACKNOWLEDGED";
+export type LegalAcceptanceScope = "BUSINESS" | "USER";
 export type LegalAcceptanceMethod =
   | "REGISTRATION"
   | "LOGIN_REACCEPTANCE"
@@ -37,10 +38,15 @@ export type LegalAcceptanceStatusResponse = {
   contentHash: string | null;
   requiresUserAction: boolean;
   effectiveAt: string | null;
+  acceptanceScope: LegalAcceptanceScope;
   idLegalAcceptance: number | null;
   actionType: LegalActionType | null;
   acceptanceMethod: LegalAcceptanceMethod | null;
   acceptedAt: string | null;
+  acceptedByUserId: number | null;
+  acceptedByUserName: string | null;
+  acceptedByCurrentUser: boolean;
+  isSatisfied: boolean;
   actionRequired: boolean;
 };
 
