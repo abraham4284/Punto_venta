@@ -3,6 +3,7 @@ import type { RowDataPacket } from "mysql2";
 export type LegalDocumentCode = "TERMS" | "PRIVACY";
 export type LegalRequiredAction = "ACCEPT" | "ACKNOWLEDGE" | "NONE";
 export type LegalActionType = "ACCEPTED" | "ACKNOWLEDGED";
+export type LegalAcceptanceScope = "BUSINESS" | "USER";
 export type LegalAcceptanceMethod =
   | "REGISTRATION"
   | "LOGIN_REACCEPTANCE"
@@ -39,10 +40,15 @@ export interface LegalAcceptanceStatusResponse {
   contentHash: string | null;
   requiresUserAction: boolean;
   effectiveAt: Date | string | null;
+  acceptanceScope: LegalAcceptanceScope;
   idLegalAcceptance: number | null;
   actionType: LegalActionType | null;
   acceptanceMethod: LegalAcceptanceMethod | null;
   acceptedAt: Date | string | null;
+  acceptedByUserId: number | null;
+  acceptedByUserName: string | null;
+  acceptedByCurrentUser: boolean;
+  isSatisfied: boolean;
   actionRequired: boolean;
 }
 
@@ -97,10 +103,15 @@ export interface LegalAcceptanceStatusRow extends RowDataPacket {
   contentHash: string | null;
   requiresUserAction: number | null;
   effectiveAt: Date | string | null;
+  acceptanceScope: LegalAcceptanceScope;
   idLegalAcceptance: number | null;
   actionType: LegalActionType | null;
   acceptanceMethod: LegalAcceptanceMethod | null;
   acceptedAt: Date | string | null;
+  acceptedByUserId: number | null;
+  acceptedByUserName: string | null;
+  acceptedByCurrentUser: number;
+  isSatisfied: number;
   actionRequired: number;
 }
 
