@@ -112,6 +112,16 @@ CREATE PROCEDURE sp_get_business_user_legal_status(
   IN p_idUser INT
 )
 BEGIN
+  DECLARE v_role VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+
+  SELECT role
+  INTO v_role
+  FROM business_users
+  WHERE idBusiness = p_idBusiness
+    AND idUser = p_idUser
+    AND is_active = 1
+  LIMIT 1;
+
   SELECT
     d.idLegalDocument,
     d.code,
@@ -123,15 +133,30 @@ BEGIN
     cv.content_hash AS contentHash,
     cv.requires_user_action AS requiresUserAction,
     cv.effective_at AS effectiveAt,
+    CASE
+      WHEN d.code COLLATE utf8mb4_unicode_ci = 'TERMS' COLLATE utf8mb4_unicode_ci THEN 'BUSINESS'
+      ELSE 'USER'
+    END AS acceptanceScope,
     la.idLegalAcceptance,
     la.action_type AS actionType,
     la.acceptance_method AS acceptanceMethod,
     la.accepted_at AS acceptedAt,
+    la.idUser AS acceptedByUserId,
+    COALESCE(u.name, u.username) AS acceptedByUserName,
     CASE
-      WHEN cv.idLegalDocumentVersion IS NULL THEN 1
-      WHEN d.required_action <> 'NONE'
-        AND la.idLegalAcceptance IS NULL THEN 1
-      WHEN cv.requires_user_action = 1
+      WHEN la.idUser = p_idUser THEN 1
+      ELSE 0
+    END AS acceptedByCurrentUser,
+    CASE
+      WHEN la.idLegalAcceptance IS NOT NULL THEN 1
+      ELSE 0
+    END AS isSatisfied,
+    CASE
+      WHEN cv.idLegalDocumentVersion IS NULL THEN 0
+      WHEN d.code COLLATE utf8mb4_unicode_ci = 'TERMS' COLLATE utf8mb4_unicode_ci
+        AND la.idLegalAcceptance IS NULL
+        AND v_role = 'OWNER' THEN 1
+      WHEN d.code COLLATE utf8mb4_unicode_ci = 'PRIVACY' COLLATE utf8mb4_unicode_ci
         AND la.idLegalAcceptance IS NULL THEN 1
       ELSE 0
     END AS actionRequired
@@ -150,9 +175,27 @@ BEGIN
       LIMIT 1
     )
   LEFT JOIN legal_acceptances la
-    ON la.idLegalDocumentVersion = cv.idLegalDocumentVersion
-    AND la.idBusiness = p_idBusiness
-    AND la.idUser = p_idUser
+    ON la.idLegalAcceptance = (
+      SELECT la2.idLegalAcceptance
+      FROM legal_acceptances la2
+      WHERE la2.idLegalDocumentVersion = cv.idLegalDocumentVersion
+        AND la2.idBusiness = p_idBusiness
+        AND (
+          (
+            d.code COLLATE utf8mb4_unicode_ci = 'TERMS' COLLATE utf8mb4_unicode_ci
+            AND la2.action_type = 'ACCEPTED'
+          )
+          OR (
+            d.code COLLATE utf8mb4_unicode_ci = 'PRIVACY' COLLATE utf8mb4_unicode_ci
+            AND la2.idUser = p_idUser
+            AND la2.action_type = 'ACKNOWLEDGED'
+          )
+        )
+      ORDER BY la2.accepted_at ASC, la2.idLegalAcceptance ASC
+      LIMIT 1
+    )
+  LEFT JOIN users u
+    ON u.idUser = la.idUser
   WHERE d.is_active = 1
   ORDER BY d.code;
 END$$

@@ -18,7 +18,7 @@ import type { LegalAcceptanceStatusResponse } from "../types";
 
 const actionLabels: Record<string, string> = {
   ACCEPT: "Aceptación requerida",
-  ACKNOWLEDGE: "Acuse requerido",
+  ACKNOWLEDGE: "Reconocimiento requerido",
   NONE: "Sin acción requerida",
   ACCEPTED: "Aceptado",
   ACKNOWLEDGED: "Reconocido",
@@ -39,6 +39,54 @@ const formatDateTime = (value: string | null | undefined): string => {
   }).format(new Date(value));
 };
 
+const getStatusLabel = (
+  item: LegalAcceptanceStatusResponse,
+  canAcceptTerms: boolean,
+): string => {
+  if (item.code === "TERMS") {
+    if (item.isSatisfied) {
+      return canAcceptTerms ? "Aceptado" : "Aceptado por el negocio";
+    }
+
+    return canAcceptTerms ? "Pendiente" : "Pendiente del propietario";
+  }
+
+  return item.isSatisfied ? "Reconocido" : "Pendiente";
+};
+
+const getStatusVariant = (
+  item: LegalAcceptanceStatusResponse,
+): "secondary" | "destructive" => {
+  return item.isSatisfied ? "secondary" : "destructive";
+};
+
+const getEvidenceTitle = (item: LegalAcceptanceStatusResponse): string => {
+  if (item.code === "TERMS") {
+    return "Estado del negocio";
+  }
+
+  return "Tu registro";
+};
+
+const getEvidenceText = (
+  item: LegalAcceptanceStatusResponse,
+  canAcceptTerms: boolean,
+): string => {
+  if (item.code === "TERMS") {
+    if (item.isSatisfied) {
+      return "Los términos vigentes ya fueron aceptados para este negocio.";
+    }
+
+    return canAcceptTerms
+      ? "Los términos vigentes requieren aceptación del propietario."
+      : "Los términos vigentes están pendientes de aceptación por parte del propietario.";
+  }
+
+  return item.isSatisfied
+    ? "La política de privacidad vigente ya fue reconocida por tu usuario."
+    : "Reconocé la política de privacidad vigente para dejar constancia de lectura.";
+};
+
 const LegalStatusCard = ({
   item,
   canAcceptTerms,
@@ -50,11 +98,11 @@ const LegalStatusCard = ({
   saving: boolean;
   onAccept: (code: LegalAcceptanceStatusResponse["code"]) => void;
 }) => {
-  const accepted = Boolean(item.idLegalAcceptance);
   const canAct =
     item.actionRequired &&
     item.idLegalDocumentVersion !== null &&
     (item.code !== "TERMS" || canAcceptTerms);
+  const statusLabel = getStatusLabel(item, canAcceptTerms);
 
   return (
     <Card className="border-slate-200 shadow-sm">
@@ -73,8 +121,8 @@ const LegalStatusCard = ({
               Versión vigente: {item.currentVersion ?? "No disponible"}
             </p>
           </div>
-          <Badge variant={accepted ? "secondary" : "destructive"}>
-            {accepted ? "Registrado" : "Pendiente"}
+          <Badge variant={getStatusVariant(item)}>
+            {statusLabel}
           </Badge>
         </div>
       </CardHeader>
@@ -91,7 +139,7 @@ const LegalStatusCard = ({
             <p className="font-medium">{formatDateTime(item.effectiveAt)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Registro del usuario</p>
+            <p className="text-muted-foreground">{getEvidenceTitle(item)}</p>
             <p className="font-medium">
               {item.actionType ? actionLabels[item.actionType] : "Sin registro"}
             </p>
@@ -100,11 +148,34 @@ const LegalStatusCard = ({
             <p className="text-muted-foreground">Fecha de registro</p>
             <p className="font-medium">{formatDateTime(item.acceptedAt)}</p>
           </div>
+          {item.isSatisfied ? (
+            <div>
+              <p className="text-muted-foreground">
+                {item.acceptanceScope === "BUSINESS"
+                  ? "Aceptado por"
+                  : "Reconocido por"}
+              </p>
+              <p className="font-medium">
+                {item.acceptanceScope === "USER" && item.acceptedByCurrentUser
+                  ? "Tu usuario"
+                  : item.acceptedByUserName ?? "-"}
+              </p>
+            </div>
+          ) : null}
         </div>
 
-        {item.acceptanceMethod ? (
-          <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
-            Método: {actionLabels[item.acceptanceMethod] ?? item.acceptanceMethod}
+        <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
+          <p>{getEvidenceText(item, canAcceptTerms)}</p>
+          {item.acceptanceMethod ? (
+            <p className="mt-1">
+              Método: {actionLabels[item.acceptanceMethod] ?? item.acceptanceMethod}
+            </p>
+          ) : null}
+        </div>
+
+        {item.code === "TERMS" && !canAcceptTerms && !item.isSatisfied ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Esta acción solo puede realizarla el propietario del negocio.
           </p>
         ) : null}
 
@@ -147,7 +218,7 @@ const LegalStatusCard = ({
               ) : (
                 <CheckCircle2 className="mr-2 h-4 w-4" />
               )}
-              {item.requiredAction === "ACCEPT" ? "Aceptar" : "Reconocer"}
+              {item.code === "PRIVACY" ? "Reconocer" : "Aceptar"}
             </Button>
           ) : null}
         </div>
