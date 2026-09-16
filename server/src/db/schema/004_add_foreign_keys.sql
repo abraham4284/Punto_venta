@@ -4,8 +4,6 @@
   Target defaults: ENGINE=InnoDB, CHARACTER SET utf8mb4, COLLATE utf8mb4_unicode_ci.
 */
 
-USE `punto_venta_dev_clean_2`;
-
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_add_foreign_key_if_not_exists$$

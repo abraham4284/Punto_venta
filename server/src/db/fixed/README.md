@@ -1,41 +1,17 @@
-# Fixes de base de datos
+# Fixed
 
-## Collations
+LEGACY DUPLICATES.
+DO NOT USE FOR CLEAN INSTALL.
 
-Para normalizar una base limpia o migrada al estandar del proyecto:
+This directory contains older database fix scripts retained for project history during K.1.
 
-```sql
-USE punto_venta_dev_clean;
-SOURCE server/src/db/fixed/fix_collations.sql;
-```
+A clean Cajora v1.0 installation does not execute anything from `fixed/`.
 
-El fix convierte el schema activo y todas sus tablas base a:
+Use the canonical baseline instead:
 
-```txt
-utf8mb4 / utf8mb4_unicode_ci
-```
+1. `../schema/`
+2. `../seeds/`
+3. `../procedures/`
+4. `../publications/`
 
-Luego se recomienda recrear los stored procedures sobre la misma base, porque los
-parametros de los procedures toman la collation activa al momento de crearse.
-
-Orden recomendado despues de crear o importar una base limpia:
-
-```sql
-USE punto_venta_dev_clean;
-SOURCE server/src/db/fixed/fix_collations.sql;
-SOURCE server/src/db/procedures/auth.sql;
-SOURCE server/src/db/procedures/businesses.sql;
-SOURCE server/src/db/procedures/customers.sql;
-SOURCE server/src/db/procedures/deposits.sql;
-SOURCE server/src/db/procedures/product-categories.sql;
-SOURCE server/src/db/procedures/products.sql;
-SOURCE server/src/db/procedures/stock.sql;
-SOURCE server/src/db/procedures/stock_movements.sql;
-SOURCE server/src/db/procedures/sales.sql;
-SOURCE server/src/db/procedures/purchases.sql;
-SOURCE server/src/db/procedures/suppliers.sql;
-SOURCE server/src/db/procedures/tickets.sql;
-SOURCE server/src/db/procedures/dashboard.sql;
-SOURCE server/src/db/procedures/subscriptions.sql;
-SOURCE server/src/db/procedures/platform_auth.sql;
-```
+K.2 will evaluate whether this directory should be removed, archived or moved after the clean baseline is manually validated.
