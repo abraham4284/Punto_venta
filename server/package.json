@@ -18,6 +18,8 @@
     "test:notifications": "vitest run --config vitest.notifications.config.ts",
     "test:notifications:watch": "vitest --config vitest.notifications.config.ts",
     "dev": "tsx watch src/index.ts",
+    "db:build-baseline": "node src/db/tools/build-db-baseline.mjs",
+    "db:validate-baseline": "node src/db/tools/validate-db-baseline.mjs",
     "typecheck": "tsc --noEmit",
     "build": "tsc && tsc-alias",
     "start": "node dist/index.js"

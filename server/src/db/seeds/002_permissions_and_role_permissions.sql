@@ -1,5 +1,4 @@
 /* Required permissions and default role permissions seed. */
-USE `punto_venta_dev_clean_2`;
 
 INSERT INTO permissions (code, module, action, name, description, is_active)
 VALUES

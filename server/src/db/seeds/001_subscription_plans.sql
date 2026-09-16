@@ -1,6 +1,4 @@
 /* Required subscription plan seed. */
-USE `punto_venta_dev_clean_2`;
-
 
 INSERT INTO subscription_plans (
   code,

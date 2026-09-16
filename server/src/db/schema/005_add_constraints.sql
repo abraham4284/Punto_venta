@@ -4,8 +4,6 @@
   Target defaults: ENGINE=InnoDB, CHARACTER SET utf8mb4, COLLATE utf8mb4_unicode_ci.
 */
 
-USE `punto_venta_dev_clean_2`;
-
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists$$
@@ -83,7 +81,7 @@ END$$
 
 DELIMITER ;
 
-CALL sp_drop_check_if_exists('cash_session_payment_summaries', 'chk_cash_summary_sales_count_non_negative', 'ALTER TABLE `cash_session_payment_summaries` DROP CHECK `chk_cash_summary_sales_count_non_negative`');
+CALL sp_drop_check_if_exists('cash_session_payment_summaries', 'chk_cash_summary_sales_count_non_negative', 'ALTER TABLE `cash_session_payment_summaries` DROP CONSTRAINT `chk_cash_summary_sales_count_non_negative`');
 CALL sp_rename_column_if_exists('cash_session_payment_summaries', 'sales_count', 'payments_count', 'ALTER TABLE `cash_session_payment_summaries` CHANGE COLUMN `sales_count` `payments_count` int NOT NULL DEFAULT ''0''');
 
 CALL sp_add_check_if_not_exists('legal_documents', 'chk_legal_documents_active_boolean', 'ALTER TABLE `legal_documents` ADD CONSTRAINT `chk_legal_documents_active_boolean` CHECK (`is_active` IN (0, 1))');

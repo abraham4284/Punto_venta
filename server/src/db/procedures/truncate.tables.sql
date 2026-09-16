@@ -1,5 +1,11 @@
--- Seleccioná primero la base correcta.
-USE punto_venta_dev_clean_2;
+/*
+  DESTRUCTIVE LOCAL HELPER ONLY.
+  DO NOT USE FOR CLEAN INSTALL.
+  DO NOT USE IN PRODUCTION.
+
+  Select the target database manually before running this file.
+  This file is intentionally excluded from tools/db-baseline.manifest.mjs.
+*/
 
 -- Permite truncar tablas relacionadas mediante foreign keys.
 SET FOREIGN_KEY_CHECKS = 0;
