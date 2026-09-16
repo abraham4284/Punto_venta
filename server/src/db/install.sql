@@ -1,22 +1,26 @@
 /*
-  Clean database install script.
-  Run this file from MySQL client with SOURCE support, from server/src/db directory:
+  Cajora Database Baseline v1.0
 
-    SOURCE install.sql;
+  Run this file from a MySQL/MariaDB client with include-file support, from
+  server/src/db, after creating and selecting an EMPTY database.
 
-  This installer does not drop database or tables.
+  This installer:
+  - does not create or select a database;
+  - does not drop databases or tables;
+  - must not be used as a migration over an existing production database;
+  - does not execute historical upgrade, fix or reset helper scripts.
 */
 
-SOURCE schema/001_create_database.sql;
 SOURCE schema/002_create_tables.sql;
 SOURCE schema/003_add_indexes.sql;
 SOURCE schema/004_add_foreign_keys.sql;
 SOURCE schema/005_add_constraints.sql;
+
 SOURCE seeds/001_subscription_plans.sql;
 SOURCE seeds/002_permissions_and_role_permissions.sql;
 SOURCE seeds/003_legal_documents.sql;
 
-/* Procedures: execute after schema and seeds. Keep this order. */
+/* Procedures: execute after schema and seeds. Keep this order aligned with tools/db-baseline.manifest.mjs. */
 SOURCE procedures/auth.sql;
 SOURCE procedures/legal.sql;
 SOURCE procedures/platform_auth.sql;
@@ -48,8 +52,5 @@ SOURCE procedures/purchases.sql;
 SOURCE procedures/tickets.sql;
 SOURCE procedures/dashboard.sql;
 
-/*
-  Legal publication is intentionally manual and auditable.
-  After this install, run migrations/006_publish_cajora_legal_v1_0.sql only
-  when you intentionally want to publish Cajora TERMS/PRIVACY 1.0.
-*/
+/* Official Cajora legal publication v1.0. */
+SOURCE publications/001_cajora_legal_v1_0.sql;

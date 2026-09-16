@@ -1,76 +1,34 @@
 # Migrations
 
-Historical correction scripts belong here.
+HISTORICAL / EXISTING DATABASE UPGRADES ONLY.
 
-The clean schema in ../schema is for new installations from an empty database.
-Existing installations should be updated with migration/fix scripts, not by replaying the clean schema over production data.
+Do not execute these files for a clean Cajora v1.0 installation.
 
-Copied historical scripts:
+A clean install uses only:
 
-1. 001_fix_collations.sql
-2. 002_subscriptions_pk_fix.sql
-3. 003_payment_methods_unique_name_fix.sql
-4. 004_sales_purchases_idempotency.sql
-5. 005_legal_mvp.sql
-6. 006_publish_cajora_legal_v1_0.sql
+1. `../schema/`
+2. `../seeds/`
+3. `../procedures/`
+4. `../publications/`
 
-Para bases existentes que aun tengan `UNIQUE(idBusiness, code)` en
-`payment_methods`, ejecutar:
+## Important rules
 
-1. migrations/003_payment_methods_unique_name_fix.sql
+- `007_sale_payments_delivery_cash_settlements.sql` is not part of clean install.
+- `001` through `005` are absorbed by the canonical baseline for new databases.
+- `006_publish_cajora_legal_v1_0.sql` remains historical/audit material.
+- The canonical legal v1.0 publication is `../publications/001_cajora_legal_v1_0.sql`.
+- Existing installations must be backed up before any migration is executed.
 
-Este cambio elimina la restriccion vieja `uk_payment_method_business_code`,
-mantiene un indice normal para busquedas por `code` y asegura
-`UNIQUE(idBusiness, name)`. Asi un negocio puede cargar varios metodos del
-tipo `TRANSFER`, `CARD` u `OTHER`, por ejemplo Mercado Pago, Uala o Banco
-Nacion, sin duplicar nombres visibles dentro del mismo negocio.
+## Current historical files
 
-Para bases existentes creadas antes del modulo de cajas, ejecutar:
+1. `001_fix_collations.sql`
+2. `002_subscriptions_pk_fix.sql`
+3. `003_payment_methods_unique_name_fix.sql`
+4. `004_sales_purchases_idempotency.sql`
+5. `005_legal_mvp.sql`
+6. `006_publish_cajora_legal_v1_0.sql`
+7. `007_sale_payments_delivery_cash_settlements.sql`
 
-1. migrations/003_cash_module_existing_schema.sql
-2. schema/003_add_indexes.sql
-3. schema/004_add_foreign_keys.sql
-4. schema/005_add_constraints.sql
-5. procedures/auth.sql
-6. procedures/cash_registers.sql
-7. procedures/cash_session_payment_summaries.sql
-8. procedures/cash_sessions.sql
-9. procedures/cash_movements.sql
-10. procedures/sales.sql
+## K.1 status
 
-El schema/002_create_tables.sql esta pensado para instalaciones nuevas. En una
-base ya existente no modifica tablas creadas previamente porque usa
-CREATE TABLE IF NOT EXISTS.
-
-The original files in ../fixed were left untouched for compatibility with the
-current workspace history.
-
-Para bases existentes creadas antes de la proteccion contra doble ejecucion de
-ventas y compras, ejecutar:
-
-1. migrations/004_sales_purchases_idempotency.sql
-2. procedures/sales.sql
-3. procedures/purchases.sql
-
-La migracion agrega `idempotency_key` a `sales` y `purchases`, rellena registros
-historicos con claves `legacy-*` y crea los indices unicos multi-tenant:
-
-- `uq_sales_business_idempotency`
-- `uq_purchases_business_idempotency`
-
-## Publicacion legal Cajora v1.0
-
-`006_publish_cajora_legal_v1_0.sql` publica de forma atomica las versiones
-contractuales iniciales del MVP:
-
-- `TERMS 1.0`
-- `PRIVACY 1.0`
-
-Este script debe ejecutarse manualmente despues de instalar schema, seeds y
-procedures. No forma parte de `install.sql` porque publicar documentos legales
-versionados debe ser una accion explicita.
-
-La migracion resuelve los documentos por `legal_documents.code`, verifica el
-SHA-256 del contenido antes de insertar y no actualiza silenciosamente una
-version `1.0` existente. Si ya existe con un hash distinto, falla y revierte la
-operacion.
+These files are retained during K.1 for traceability and existing database upgrades only. K.2 will decide final cleanup after a clean baseline has been manually validated.

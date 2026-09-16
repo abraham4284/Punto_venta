@@ -3,8 +3,6 @@
   No crea versiones legales ni contenido contractual de producción.
 */
 
-USE `punto_venta_dev_clean_2`;
-
 INSERT INTO legal_documents (
   code,
   name,

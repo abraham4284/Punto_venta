@@ -4,8 +4,6 @@
   Target defaults: ENGINE=InnoDB, CHARACTER SET utf8mb4, COLLATE utf8mb4_unicode_ci.
 */
 
-USE `punto_venta_dev_clean_2`;
-
 CREATE TABLE IF NOT EXISTS `businesses` (
   `idBusiness` int NOT NULL AUTO_INCREMENT,
   `name` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
