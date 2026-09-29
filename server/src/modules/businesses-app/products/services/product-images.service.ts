@@ -44,6 +44,17 @@ function assertExactSameImageSet(
   }
 }
 
+async function lockProductForGallery(
+  connection: PoolConnection,
+  idBusiness: number,
+  idProduct: number,
+): Promise<void> {
+  await connection.query<RowDataPacket[]>(
+    "CALL sp_lock_product_for_gallery(?, ?)",
+    [idBusiness, idProduct],
+  );
+}
+
 export async function getProductImagesService(
   idBusiness: number,
   idProduct: number,
@@ -59,29 +70,48 @@ export async function getProductImagesService(
 export async function createProductImageService(
   data: CreateProductImagePayload,
 ): Promise<ProductImageResponse> {
-  const currentImages = await getProductImagesService(data.idBusiness, data.idProduct);
+  const connection = await pool.getConnection();
 
-  if (currentImages.length >= MAX_PRODUCT_GALLERY_IMAGES) {
-    throw new Error("La galeria del producto no puede superar las 10 imagenes");
+  try {
+    await connection.beginTransaction();
+
+    await lockProductForGallery(connection, data.idBusiness, data.idProduct);
+
+    const [currentRows] = await connection.query<RowDataPacket[]>(
+      "CALL sp_get_product_images(?, ?)",
+      [data.idBusiness, data.idProduct],
+    );
+    const currentImages = extractProductImages(currentRows);
+
+    if (currentImages.length >= MAX_PRODUCT_GALLERY_IMAGES) {
+      throw new Error("La galeria del producto no puede superar las 10 imagenes");
+    }
+
+    const [rows] = await connection.query<RowDataPacket[]>(
+      "CALL sp_create_product_image(?, ?, ?, ?)",
+      [
+        data.idBusiness,
+        data.idProduct,
+        data.imageUrl,
+        data.altText ?? null,
+      ],
+    );
+
+    const createdImage = extractProductImages(rows)[0];
+
+    if (!createdImage) {
+      throw new Error("No se pudo agregar la imagen al producto");
+    }
+
+    await connection.commit();
+
+    return createdImage;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
-
-  const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_create_product_image(?, ?, ?, ?)",
-    [
-      data.idBusiness,
-      data.idProduct,
-      data.imageUrl,
-      data.altText ?? null,
-    ],
-  );
-
-  const createdImage = extractProductImages(rows)[0];
-
-  if (!createdImage) {
-    throw new Error("No se pudo agregar la imagen al producto");
-  }
-
-  return createdImage;
 }
 
 export async function deleteProductImageService(
@@ -89,10 +119,25 @@ export async function deleteProductImageService(
   idProduct: number,
   idProductImage: number,
 ): Promise<void> {
-  await pool.query<RowDataPacket[]>(
-    "CALL sp_delete_product_image(?, ?, ?)",
-    [idBusiness, idProduct, idProductImage],
-  );
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    await lockProductForGallery(connection, idBusiness, idProduct);
+
+    await connection.query<RowDataPacket[]>(
+      "CALL sp_delete_product_image(?, ?, ?)",
+      [idBusiness, idProduct, idProductImage],
+    );
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 async function updateProductImageSortOrder(
@@ -117,6 +162,8 @@ export async function reorderProductImagesService(
 
   try {
     await connection.beginTransaction();
+
+    await lockProductForGallery(connection, data.idBusiness, data.idProduct);
 
     const [currentRows] = await connection.query<RowDataPacket[]>(
       "CALL sp_get_product_images(?, ?)",
