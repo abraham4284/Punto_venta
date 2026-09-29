@@ -1,24 +1,52 @@
 # Manual Baseline Test - Cajora DB v1.0
 
-This checklist is for the operator. Codex must not execute these steps.
+This checklist is for the operator. Codex must not execute DB-connected steps.
 
 ## Preparation
 
-1. Create an empty database manually.
-2. Select that empty database.
-3. Do not run this over an existing production database.
-4. Do not run historical migrations for a clean v1.0 install.
+1. Confirm your `.env` points to the intended local database.
+2. Confirm `DB_HOST` is `localhost`, `127.0.0.1` or `::1` for local tooling.
+3. Confirm `mysql` or `mariadb` client is available in `PATH`.
+4. Do not run clean install over an existing production database.
 
-## Option A - MySQL/MariaDB CLI
+## Option A - Local automated reset
+
+From `server`:
+
+```bash
+npm run db:build-baseline
+npm run db:validate-baseline
+npm run db:local:reset -- --yes
+```
+
+This is destructive and only works against localhost.
+
+## Option B - Local automated create
+
+From `server`:
+
+```bash
+npm run db:build-baseline
+npm run db:validate-baseline
+npm run db:local:create
+```
+
+This aborts if `DB_NAME` already exists.
+
+## Option C - MySQL/MariaDB CLI
 
 From `server/src/db`:
 
 ```sql
-USE your_empty_database;
+CREATE DATABASE cajora_local
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE cajora_local;
 SOURCE install.sql;
 ```
 
-## Option B - phpMyAdmin / Hostinger
+## Option D - phpMyAdmin / Hostinger
 
 1. Select the empty database in phpMyAdmin.
 2. Import:
@@ -121,4 +149,4 @@ A successful clean install should include:
 - PRIVACY 1.0 published;
 - current stored procedures.
 
-It should not require `migrations/007_sale_payments_delivery_cash_settlements.sql` or any other historical migration.
+It should not require historical migrations or fixed scripts.
