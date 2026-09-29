@@ -9,7 +9,7 @@ Status: Release Candidate
 - Server typecheck: required before release.
 - Server build: required before release.
 - Manual clean install: must be repeated after Product Gallery baseline changes.
-- Smoke test: operator checklist in `MANUAL_BASELINE_TEST.md`.
+- Smoke test: operator checklist in `MANUAL_BASELINE_TEST.md`, including Product Gallery hardening regression cases.
 
 ## Post-merge Operator Checklist
 
@@ -26,4 +26,5 @@ Status: Release Candidate
 - No Git tag has been created by Codex.
 - No release has been created by Codex.
 - No DB-connected tests were executed by Codex.
+- Product Gallery hardening is included in the baseline and must be smoke-tested manually before L.2/video.
 - Historical migration history remains available in Git.
