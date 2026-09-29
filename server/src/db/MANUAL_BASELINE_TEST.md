@@ -83,6 +83,7 @@ SHOW TABLES LIKE 'sale_payment_events';
 SHOW TABLES LIKE 'sale_deliveries';
 SHOW TABLES LIKE 'delivery_events';
 SHOW TABLES LIKE 'cash_settlements';
+SHOW TABLES LIKE 'product_images';
 ```
 
 Suggested catalog checks:
@@ -133,6 +134,18 @@ Expected legal hashes:
 14. Close cash session.
 15. Verify sales history, delivery history, cash settlement history and reports.
 
+## Smoke test Product Gallery
+
+1. Create a product with `products.image_url` as cover image.
+2. Verify `products.image_url` still behaves as the product cover.
+3. Add two additional images through `POST /products/:idProduct/images`.
+4. List gallery images through `GET /products/:idProduct/images`.
+5. Verify order is `sortOrder ASC, idProductImage ASC`.
+6. Reorder all current image IDs through `PATCH /products/:idProduct/images/order`.
+7. Delete one image through `DELETE /products/:idProduct/images/:idProductImage`.
+8. If the environment has multiple businesses/products, verify cross-tenant and cross-product access does not expose or mutate images.
+9. Verify the gallery rejects the eleventh image with a clear business error.
+
 ## Expected clean install state
 
 A successful clean install should include:
@@ -147,6 +160,7 @@ A successful clean install should include:
 - legal document catalog seed;
 - TERMS 1.0 published;
 - PRIVACY 1.0 published;
+- product gallery table, indexes, foreign key, constraint and procedures;
 - current stored procedures.
 
 It should not require historical migrations or fixed scripts.

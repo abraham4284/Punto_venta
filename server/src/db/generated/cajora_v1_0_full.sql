@@ -423,6 +423,18 @@ CREATE TABLE IF NOT EXISTS `products` (
   PRIMARY KEY (`idProduct`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `product_images` (
+  `idProductImage` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idProduct` int NOT NULL,
+  `image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `alt_text` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sort_order` int NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`idProductImage`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `stock` (
   `idStock` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
@@ -730,6 +742,8 @@ CALL sp_add_index_if_not_exists('products', 'uk_product_business_id', 'ALTER TAB
 CALL sp_add_index_if_not_exists('products', 'uk_product_business_barcode', 'ALTER TABLE `products` ADD UNIQUE KEY `uk_product_business_barcode` (`idBusiness`,`barcode`)');
 CALL sp_add_index_if_not_exists('products', 'idx_products_business_name', 'ALTER TABLE `products` ADD KEY `idx_products_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('products', 'fk_products_category', 'ALTER TABLE `products` ADD KEY `fk_products_category` (`idBusiness`,`idProductCategory`)');
+CALL sp_add_index_if_not_exists('product_images', 'uk_product_image_business_id', 'ALTER TABLE `product_images` ADD UNIQUE KEY `uk_product_image_business_id` (`idBusiness`,`idProductImage`)');
+CALL sp_add_index_if_not_exists('product_images', 'idx_product_images_business_product_order', 'ALTER TABLE `product_images` ADD KEY `idx_product_images_business_product_order` (`idBusiness`,`idProduct`,`sort_order`,`idProductImage`)');
 CALL sp_add_index_if_not_exists('stock', 'uk_stock_product_deposit', 'ALTER TABLE `stock` ADD UNIQUE KEY `uk_stock_product_deposit` (`idBusiness`,`idProduct`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('stock', 'fk_stock_deposit', 'ALTER TABLE `stock` ADD KEY `fk_stock_deposit` (`idBusiness`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('purchases', 'uk_purchase_business_id', 'ALTER TABLE `purchases` ADD UNIQUE KEY `uk_purchase_business_id` (`idBusiness`,`idPurchase`)');
@@ -858,6 +872,7 @@ CALL sp_add_foreign_key_if_not_exists('fk_cash_summaries_payment_method', 'ALTER
 CALL sp_add_foreign_key_if_not_exists('fk_product_categories_business', 'ALTER TABLE `product_categories` ADD CONSTRAINT `fk_product_categories_business` FOREIGN KEY (`idBusiness`) REFERENCES `businesses` (`idBusiness`)');
 CALL sp_add_foreign_key_if_not_exists('fk_products_business', 'ALTER TABLE `products` ADD CONSTRAINT `fk_products_business` FOREIGN KEY (`idBusiness`) REFERENCES `businesses` (`idBusiness`)');
 CALL sp_add_foreign_key_if_not_exists('fk_products_category', 'ALTER TABLE `products` ADD CONSTRAINT `fk_products_category` FOREIGN KEY (`idBusiness`, `idProductCategory`) REFERENCES `product_categories` (`idBusiness`, `idProductCategory`)');
+CALL sp_add_foreign_key_if_not_exists('fk_product_images_product', 'ALTER TABLE `product_images` ADD CONSTRAINT `fk_product_images_product` FOREIGN KEY (`idBusiness`, `idProduct`) REFERENCES `products` (`idBusiness`, `idProduct`) ON DELETE RESTRICT ON UPDATE RESTRICT');
 CALL sp_add_foreign_key_if_not_exists('fk_stock_business', 'ALTER TABLE `stock` ADD CONSTRAINT `fk_stock_business` FOREIGN KEY (`idBusiness`) REFERENCES `businesses` (`idBusiness`)');
 CALL sp_add_foreign_key_if_not_exists('fk_stock_deposit', 'ALTER TABLE `stock` ADD CONSTRAINT `fk_stock_deposit` FOREIGN KEY (`idBusiness`, `idDeposit`) REFERENCES `deposits` (`idBusiness`, `idDeposit`)');
 CALL sp_add_foreign_key_if_not_exists('fk_stock_product', 'ALTER TABLE `stock` ADD CONSTRAINT `fk_stock_product` FOREIGN KEY (`idBusiness`, `idProduct`) REFERENCES `products` (`idBusiness`, `idProduct`)');
@@ -1009,6 +1024,7 @@ CALL sp_add_check_if_not_exists('payment_methods', 'chk_payment_methods_affects_
 CALL sp_add_check_if_not_exists('payment_methods', 'chk_payment_methods_default_boolean', 'ALTER TABLE `payment_methods` ADD CONSTRAINT `chk_payment_methods_default_boolean` CHECK (`is_default` IN (0, 1))');
 CALL sp_add_check_if_not_exists('payment_methods', 'chk_payment_methods_active_boolean', 'ALTER TABLE `payment_methods` ADD CONSTRAINT `chk_payment_methods_active_boolean` CHECK (`is_active` IN (0, 1))');
 CALL sp_add_check_if_not_exists('payment_methods', 'chk_payment_methods_cash_affects_cash', 'ALTER TABLE `payment_methods` ADD CONSTRAINT `chk_payment_methods_cash_affects_cash` CHECK ((`code` = ''CASH'' AND `affects_cash` = 1) OR (`code` <> ''CASH'' AND `affects_cash` = 0))');
+CALL sp_add_check_if_not_exists('product_images', 'chk_product_images_sort_order_non_negative', 'ALTER TABLE `product_images` ADD CONSTRAINT `chk_product_images_sort_order_non_negative` CHECK (`sort_order` >= 0)');
 CALL sp_add_check_if_not_exists('notifications', 'chk_notifications_context_business', 'ALTER TABLE `notifications` ADD CONSTRAINT `chk_notifications_context_business` CHECK ((`context` = ''BUSINESS'' AND `idBusiness` IS NOT NULL) OR (`context` = ''PLATFORM'' AND `idBusiness` IS NULL))');
 CALL sp_add_check_if_not_exists('notifications', 'chk_notifications_resolved_fields', 'ALTER TABLE `notifications` ADD CONSTRAINT `chk_notifications_resolved_fields` CHECK ((`status` = ''ACTIVE'' AND `resolved_at` IS NULL) OR (`status` = ''RESOLVED'' AND `resolved_at` IS NOT NULL))');
 CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_recipient_target_xor', 'ALTER TABLE `notification_recipients` ADD CONSTRAINT `chk_notification_recipient_target_xor` CHECK ((`idUser` IS NOT NULL AND `idPlatformUser` IS NULL) OR (`idUser` IS NULL AND `idPlatformUser` IS NOT NULL))');
@@ -8153,6 +8169,167 @@ BEGIN
   COMMIT;
 
   CALL sp_get_product_by_id(p_idBusiness, p_idProduct);
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_get_product_images;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_product_images(
+  IN p_idBusiness INT,
+  IN p_idProduct INT
+)
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM products
+    WHERE idBusiness = p_idBusiness
+      AND idProduct = p_idProduct
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Producto no encontrado o no pertenece al negocio';
+  END IF;
+
+  SELECT
+    idProductImage,
+    idBusiness,
+    idProduct,
+    image_url,
+    alt_text,
+    sort_order,
+    created_at,
+    updated_at
+  FROM product_images
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+  ORDER BY sort_order ASC, idProductImage ASC;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_create_product_image;
+DELIMITER $$
+
+CREATE PROCEDURE sp_create_product_image(
+  IN p_idBusiness INT,
+  IN p_idProduct INT,
+  IN p_image_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_alt_text VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+)
+BEGIN
+  DECLARE v_gallery_count INT DEFAULT 0;
+  DECLARE v_next_sort_order INT DEFAULT 0;
+  DECLARE v_idProductImage INT;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM products
+    WHERE idBusiness = p_idBusiness
+      AND idProduct = p_idProduct
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Producto no encontrado o no pertenece al negocio';
+  END IF;
+
+  SELECT COUNT(*), COALESCE(MAX(sort_order), -1) + 1
+  INTO v_gallery_count, v_next_sort_order
+  FROM product_images
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct;
+
+  IF v_gallery_count >= 10 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La galeria del producto no puede superar las 10 imagenes';
+  END IF;
+
+  INSERT INTO product_images (
+    idBusiness,
+    idProduct,
+    image_url,
+    alt_text,
+    sort_order,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    p_idBusiness,
+    p_idProduct,
+    p_image_url,
+    p_alt_text,
+    v_next_sort_order,
+    NOW(),
+    NULL
+  );
+
+  SET v_idProductImage = LAST_INSERT_ID();
+
+  SELECT
+    idProductImage,
+    idBusiness,
+    idProduct,
+    image_url,
+    alt_text,
+    sort_order,
+    created_at,
+    updated_at
+  FROM product_images
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+    AND idProductImage = v_idProductImage
+  LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_delete_product_image;
+DELIMITER $$
+
+CREATE PROCEDURE sp_delete_product_image(
+  IN p_idBusiness INT,
+  IN p_idProduct INT,
+  IN p_idProductImage INT
+)
+BEGIN
+  DELETE FROM product_images
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+    AND idProductImage = p_idProductImage;
+
+  IF ROW_COUNT() = 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Imagen no encontrada o no pertenece al producto indicado';
+  END IF;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_update_product_image_sort_order;
+DELIMITER $$
+
+CREATE PROCEDURE sp_update_product_image_sort_order(
+  IN p_idBusiness INT,
+  IN p_idProduct INT,
+  IN p_idProductImage INT,
+  IN p_sort_order INT
+)
+BEGIN
+  UPDATE product_images
+  SET
+    sort_order = p_sort_order,
+    updated_at = NOW()
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+    AND idProductImage = p_idProductImage;
+
+  IF ROW_COUNT() = 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Imagen no encontrada o no pertenece al producto indicado';
+  END IF;
 END$$
 
 DELIMITER ;

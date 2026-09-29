@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requirePermission } from "@/middlewares/requirePermission.middleware.js";
+import productImageRoutes from "./product-images.routes.js";
 import productImportRoutes from "./product-import.routes.js";
 import {
   createProductController,
@@ -13,6 +14,7 @@ import {
 
 const router = Router();
 
+router.use(productImageRoutes);
 router.use(productImportRoutes);
 router.post(
   "/products",

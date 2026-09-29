@@ -403,6 +403,18 @@ CREATE TABLE IF NOT EXISTS `products` (
   PRIMARY KEY (`idProduct`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `product_images` (
+  `idProductImage` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idProduct` int NOT NULL,
+  `image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `alt_text` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `sort_order` int NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`idProductImage`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `stock` (
   `idStock` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
