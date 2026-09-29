@@ -1,4 +1,4 @@
-import { DollarSign } from "lucide-react";
+import { DollarSign, Images } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -21,6 +21,7 @@ type Props = {
   loading: boolean;
   addDataEdit: (product: ProductResponse | null) => void;
   toggleModal: () => void;
+  onOpenGallery: (product: ProductResponse) => void;
   onOpenPricesModal: (product: ProductResponse) => void;
   toggleProductStatus: (
     idProduct: number,
@@ -48,6 +49,7 @@ export const ProductTable = ({
   loading,
   addDataEdit,
   toggleModal,
+  onOpenGallery,
   onOpenPricesModal,
   toggleProductStatus,
 }: Props) => {
@@ -143,6 +145,17 @@ export const ProductTable = ({
             </TableCell>
 
             <TableCell className="space-x-2 text-right">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                title="Gestionar galería"
+                aria-label={`Gestionar galería de ${product.name}`}
+                onClick={() => onOpenGallery(product)}
+              >
+                <Images className="h-4 w-4" />
+              </Button>
+
               <Button
                 type="button"
                 variant="outline"
