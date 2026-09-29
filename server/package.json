@@ -20,6 +20,8 @@
     "dev": "tsx watch src/index.ts",
     "db:build-baseline": "node src/db/tools/build-db-baseline.mjs",
     "db:validate-baseline": "node src/db/tools/validate-db-baseline.mjs",
+    "db:local:create": "node src/db/tools/local-db.mjs create",
+    "db:local:reset": "node src/db/tools/local-db.mjs reset",
     "typecheck": "tsc --noEmit",
     "build": "tsc && tsc-alias",
     "start": "node dist/index.js"

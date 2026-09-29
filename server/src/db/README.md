@@ -1,10 +1,29 @@
-# Cajora Database
+# Cajora Database v1.0
 
 `server/src/db` contains the canonical database baseline for Cajora / Punto_Venta v1.0.
 
 The clean-install baseline is for an already selected EMPTY database. It is not a migration runner and must not be replayed over an existing production database.
 
-## Canonical baseline
+## Final Structure
+
+```text
+server/src/db/
+├── db.ts
+├── README.md
+├── install.sql
+├── BASELINE_AUDIT.md
+├── MANUAL_BASELINE_TEST.md
+├── RELEASE_CANDIDATE.md
+├── schema/
+├── seeds/
+├── publications/
+├── procedures/
+├── generated/
+├── tools/
+└── local/
+```
+
+## Canonical Baseline
 
 Clean v1.0 installs are built from these directories only:
 
@@ -20,12 +39,12 @@ Conceptual roles:
 - `procedures/`: current stored procedure logic.
 - `publications/`: official versioned publications such as legal documents.
 - `generated/`: generated importable full SQL. Do not edit manually.
-- `tools/`: file-only builder and validator for the baseline.
-- `local/`: local/dev examples only.
-- `migrations/`: historical upgrades for existing databases only.
-- `fixed/`: legacy duplicate/fix scripts only.
+- `tools/`: file-only builder, validator and localhost-only DB tooling.
+- `local/`: documentation for local development helpers.
 
-## Clean install - MySQL/MariaDB CLI
+Historical migrations were squashed into baseline v1.0 before first release; history remains available in Git.
+
+## Clean Install - MySQL/MariaDB CLI
 
 1. Create an empty database manually.
 2. Select it manually.
@@ -36,9 +55,9 @@ USE your_empty_database;
 SOURCE install.sql;
 ```
 
-`install.sql` does not create, drop or select a database. It does not execute `migrations/`, `fixed/`, `reset-development.sql` or `schema/001_create_database.sql`.
+`install.sql` does not create, drop or select a database.
 
-## Clean install - phpMyAdmin / Hostinger
+## Clean Install - phpMyAdmin / Hostinger
 
 1. Create an empty database from the hosting panel.
 2. Select that database in phpMyAdmin.
@@ -50,7 +69,39 @@ server/src/db/generated/cajora_v1_0_full.sql
 
 The generated file contains schema, seeds, procedures and the official legal publication v1.0 in a single SQL file without `SOURCE` statements.
 
-## Build
+## Local Development
+
+The local tooling uses the same environment variables as the backend database connection:
+
+```text
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=cajora_local
+```
+
+Only local hosts are allowed:
+
+- `localhost`
+- `127.0.0.1`
+- `::1`
+
+Create a local database and install the baseline:
+
+```bash
+npm run db:local:create
+```
+
+Reset the local database destructively:
+
+```bash
+npm run db:local:reset -- --yes
+```
+
+The reset command requires `--yes` and refuses remote hosts before attempting any connection.
+
+## Build Baseline
 
 From `server`:
 
@@ -66,7 +117,7 @@ src/db/generated/cajora_v1_0_full.sql
 
 Generated files are versioned but must not be edited manually.
 
-## Validate
+## Validate Baseline
 
 From `server`:
 
@@ -81,13 +132,13 @@ It verifies:
 - manifest files exist;
 - generated SQL matches the builder output;
 - install order matches the manifest;
-- active baseline has no `punto_venta_dev_clean_2` dependency;
-- active baseline does not reference `migrations/` or `fixed/`;
-- generated SQL has no `SOURCE`;
-- legal v1.0 hashes are present;
-- `schema/001_create_database.sql` is not part of the canonical install.
+- active baseline has no development database name dependency;
+- active baseline does not reference historical folders;
+- generated SQL has no `SOURCE` statements;
+- legal v1.0 hashes and publication metadata are present;
+- database creation/drop statements are absent from the canonical baseline.
 
-## Install order
+## Install Order
 
 `install.sql` runs:
 
@@ -113,43 +164,10 @@ Expected SHA-256 hashes:
 - TERMS 1.0: `5430d5d3870113f25f00d98f29ba85b14e78b6591f4f0809c3214b27ed021ab4`
 - PRIVACY 1.0: `9cd13785522dac3e837b54f1eb988e936f110ad6805dcf6063b88fcf7930f222`
 
-For v1.0 clean installs, the publication is part of `install.sql` and `generated/cajora_v1_0_full.sql` so a newly created database is ready to register businesses.
-
 Future legal versions should be published deliberately as new publication files, not by editing historical v1.0 content.
 
-## Historical migrations
-
-`migrations/` is retained during K.1 for history and existing database upgrades only.
-
-Do not run migrations for a clean v1.0 install.
-
-Important examples:
-
-- `migrations/006_publish_cajora_legal_v1_0.sql` is the historical source for the legal publication. The canonical clean-install copy is `publications/001_cajora_legal_v1_0.sql`.
-- `migrations/007_sale_payments_delivery_cash_settlements.sql` is not part of clean install. Its final schema/seed/procedure state is absorbed by the baseline.
-
-## Local helpers
-
-`local/create_database.example.sql` and `local/reset_database.example.sql` are local development examples only.
-
-They are not referenced by `install.sql`, the manifest or generated full SQL.
-
-`reset-development.sql` is retained during K.1 as a legacy/dev helper. It is not part of the canonical baseline.
-
-## K.1 transitional note
-
-K.1 does not delete historical folders.
-
-Temporarily retained until K.2:
-
-- `fixed/`
-- `migrations/`
-- `schema/001_create_database.sql`
-- `reset-development.sql`
-
-K.2 will decide final cleanup only after a manually validated clean database reconstruction.
-
-## Audit and manual test
+## Audit And Release Candidate
 
 - Static audit: `BASELINE_AUDIT.md`
 - Manual validation checklist: `MANUAL_BASELINE_TEST.md`
+- Release candidate notes: `RELEASE_CANDIDATE.md`
