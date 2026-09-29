@@ -123,6 +123,8 @@ CALL sp_add_index_if_not_exists('products', 'uk_product_business_id', 'ALTER TAB
 CALL sp_add_index_if_not_exists('products', 'uk_product_business_barcode', 'ALTER TABLE `products` ADD UNIQUE KEY `uk_product_business_barcode` (`idBusiness`,`barcode`)');
 CALL sp_add_index_if_not_exists('products', 'idx_products_business_name', 'ALTER TABLE `products` ADD KEY `idx_products_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('products', 'fk_products_category', 'ALTER TABLE `products` ADD KEY `fk_products_category` (`idBusiness`,`idProductCategory`)');
+CALL sp_add_index_if_not_exists('product_images', 'uk_product_image_business_id', 'ALTER TABLE `product_images` ADD UNIQUE KEY `uk_product_image_business_id` (`idBusiness`,`idProductImage`)');
+CALL sp_add_index_if_not_exists('product_images', 'idx_product_images_business_product_order', 'ALTER TABLE `product_images` ADD KEY `idx_product_images_business_product_order` (`idBusiness`,`idProduct`,`sort_order`,`idProductImage`)');
 CALL sp_add_index_if_not_exists('stock', 'uk_stock_product_deposit', 'ALTER TABLE `stock` ADD UNIQUE KEY `uk_stock_product_deposit` (`idBusiness`,`idProduct`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('stock', 'fk_stock_deposit', 'ALTER TABLE `stock` ADD KEY `fk_stock_deposit` (`idBusiness`,`idDeposit`)');
 CALL sp_add_index_if_not_exists('purchases', 'uk_purchase_business_id', 'ALTER TABLE `purchases` ADD UNIQUE KEY `uk_purchase_business_id` (`idBusiness`,`idPurchase`)');
