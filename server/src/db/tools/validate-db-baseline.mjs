@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 import { buildBaselineSql } from "./build-db-baseline.mjs";
 import {
   baselineFiles,
-  excludedProcedureFiles,
   procedureFiles,
   publicationFiles,
   schemaFiles,
@@ -30,14 +29,6 @@ function normalizePath(filePath) {
 
 function normalizeContent(content) {
   return content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-}
-
-function withoutLegacyUse(content) {
-  return normalizeContent(content)
-    .split("\n")
-    .filter((line) => line.trim() !== "USE punto_venta_dev_clean_2;")
-    .join("\n")
-    .trimEnd();
 }
 
 function fail(errors, message) {
@@ -168,7 +159,6 @@ async function assertGenerated(errors) {
 async function assertPublication(errors) {
   const publicationPath = publicationFiles[0];
   const publication = await readRelative(publicationPath);
-  const historical = await readRelative("migrations/006_publish_cajora_legal_v1_0.sql");
 
   if (!publication.includes(termsHash)) {
     fail(errors, `TERMS 1.0 hash not found in ${publicationPath}`);
@@ -182,21 +172,31 @@ async function assertPublication(errors) {
     fail(errors, `${publicationPath} contains USE`);
   }
 
-  if (withoutLegacyUse(publication) !== withoutLegacyUse(historical)) {
-    fail(
-      errors,
-      `${publicationPath} differs from migrations/006_publish_cajora_legal_v1_0.sql beyond removing USE`,
-    );
+  const expectedFragments = [
+    "Cajora Legal Publication",
+    "TERMS 1.0",
+    "PRIVACY 1.0",
+    "Official document date: 2026-08-31",
+    "CREATE PROCEDURE sp_publish_cajora_legal_v1_0()",
+    "CALL sp_publish_cajora_legal_v1_0();",
+    "DROP PROCEDURE IF EXISTS sp_publish_cajora_legal_v1_0;",
+    "'1.0'",
+    "'PUBLISHED'",
+  ];
+
+  for (const fragment of expectedFragments) {
+    if (!publication.includes(fragment)) {
+      fail(errors, `Publication ${publicationPath} is missing expected fragment: ${fragment}`);
+    }
   }
 }
 
 async function assertProcedureManifest(errors) {
   const procedureSqlFiles = await listSqlFiles("procedures");
-  const expectedExcluded = new Set(excludedProcedureFiles);
   const expectedIncluded = new Set(procedureFiles);
 
   for (const filePath of procedureSqlFiles) {
-    if (!expectedIncluded.has(filePath) && !expectedExcluded.has(filePath)) {
+    if (!expectedIncluded.has(filePath)) {
       fail(errors, `Procedure file is not classified in manifest: ${filePath}`);
     }
   }

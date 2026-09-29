@@ -48,10 +48,6 @@ export const publicationFiles = [
   "publications/001_cajora_legal_v1_0.sql",
 ];
 
-export const excludedProcedureFiles = [
-  "procedures/truncate.tables.sql",
-];
-
 export const baselineFiles = [
   ...schemaFiles,
   ...seedFiles,
