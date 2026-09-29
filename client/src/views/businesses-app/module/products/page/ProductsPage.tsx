@@ -8,6 +8,7 @@ import { useUtilsState } from "@/hooks/useUtilsState";
 
 import {
   ProductFilter,
+  ProductGalleryModal,
   ImportProductModal,
   ProductMetrics,
   ProductModalForm,
@@ -26,6 +27,10 @@ import { useBusinessSubscriptionStore } from "../../subscription/store/businessS
 
 export const ProductsPage = () => {
   const [isOpenImportModal, setIsOpenImportModal] = useState(false);
+  const [isOpenGalleryModal, setIsOpenGalleryModal] = useState(false);
+  const [galleryProduct, setGalleryProduct] = useState<ProductResponse | null>(
+    null,
+  );
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [idProductCategory, setIdProductCategory] = useState<number | null>(
@@ -140,6 +145,16 @@ export const ProductsPage = () => {
   const handleOpenPricesModal = (product: ProductResponse) => {
     addPriceProduct(product);
     setIsOpenPricesModal(true);
+  };
+
+  const handleOpenGalleryModal = (product: ProductResponse) => {
+    setGalleryProduct(product);
+    setIsOpenGalleryModal(true);
+  };
+
+  const handleCloseGalleryModal = () => {
+    setIsOpenGalleryModal(false);
+    setGalleryProduct(null);
   };
 
   const handleClosePricesModal = () => {
@@ -270,6 +285,7 @@ export const ProductsPage = () => {
             loading={loadingProducts || loading}
             addDataEdit={addDataEdit}
             toggleModal={toggleModal}
+            onOpenGallery={handleOpenGalleryModal}
             onOpenPricesModal={handleOpenPricesModal}
             toggleProductStatus={toggleProductStatus}
           />
@@ -297,6 +313,11 @@ export const ProductsPage = () => {
         product={priceProduct}
         onClose={handleClosePricesModal}
         onSubmit={updateProductPricesAction}
+      />
+      <ProductGalleryModal
+        isOpen={isOpenGalleryModal}
+        product={galleryProduct}
+        onClose={handleCloseGalleryModal}
       />
       <ImportProductModal
         isOpen={isOpenImportModal}
