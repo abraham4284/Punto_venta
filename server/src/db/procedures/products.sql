@@ -478,3 +478,164 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_get_product_images;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_product_images(
+  IN p_idBusiness INT,
+  IN p_idProduct INT
+)
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM products
+    WHERE idBusiness = p_idBusiness
+      AND idProduct = p_idProduct
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Producto no encontrado o no pertenece al negocio';
+  END IF;
+
+  SELECT
+    idProductImage,
+    idBusiness,
+    idProduct,
+    image_url,
+    alt_text,
+    sort_order,
+    created_at,
+    updated_at
+  FROM product_images
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+  ORDER BY sort_order ASC, idProductImage ASC;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_create_product_image;
+DELIMITER $$
+
+CREATE PROCEDURE sp_create_product_image(
+  IN p_idBusiness INT,
+  IN p_idProduct INT,
+  IN p_image_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_alt_text VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+)
+BEGIN
+  DECLARE v_gallery_count INT DEFAULT 0;
+  DECLARE v_next_sort_order INT DEFAULT 0;
+  DECLARE v_idProductImage INT;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM products
+    WHERE idBusiness = p_idBusiness
+      AND idProduct = p_idProduct
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Producto no encontrado o no pertenece al negocio';
+  END IF;
+
+  SELECT COUNT(*), COALESCE(MAX(sort_order), -1) + 1
+  INTO v_gallery_count, v_next_sort_order
+  FROM product_images
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct;
+
+  IF v_gallery_count >= 10 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La galeria del producto no puede superar las 10 imagenes';
+  END IF;
+
+  INSERT INTO product_images (
+    idBusiness,
+    idProduct,
+    image_url,
+    alt_text,
+    sort_order,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    p_idBusiness,
+    p_idProduct,
+    p_image_url,
+    p_alt_text,
+    v_next_sort_order,
+    NOW(),
+    NULL
+  );
+
+  SET v_idProductImage = LAST_INSERT_ID();
+
+  SELECT
+    idProductImage,
+    idBusiness,
+    idProduct,
+    image_url,
+    alt_text,
+    sort_order,
+    created_at,
+    updated_at
+  FROM product_images
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+    AND idProductImage = v_idProductImage
+  LIMIT 1;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_delete_product_image;
+DELIMITER $$
+
+CREATE PROCEDURE sp_delete_product_image(
+  IN p_idBusiness INT,
+  IN p_idProduct INT,
+  IN p_idProductImage INT
+)
+BEGIN
+  DELETE FROM product_images
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+    AND idProductImage = p_idProductImage;
+
+  IF ROW_COUNT() = 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Imagen no encontrada o no pertenece al producto indicado';
+  END IF;
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_update_product_image_sort_order;
+DELIMITER $$
+
+CREATE PROCEDURE sp_update_product_image_sort_order(
+  IN p_idBusiness INT,
+  IN p_idProduct INT,
+  IN p_idProductImage INT,
+  IN p_sort_order INT
+)
+BEGIN
+  UPDATE product_images
+  SET
+    sort_order = p_sort_order,
+    updated_at = NOW()
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+    AND idProductImage = p_idProductImage;
+
+  IF ROW_COUNT() = 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Imagen no encontrada o no pertenece al producto indicado';
+  END IF;
+END$$
+
+DELIMITER ;
