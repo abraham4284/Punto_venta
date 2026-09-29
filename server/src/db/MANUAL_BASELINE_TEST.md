@@ -146,6 +146,14 @@ Expected legal hashes:
 8. If the environment has multiple businesses/products, verify cross-tenant and cross-product access does not expose or mutate images.
 9. Verify the gallery rejects the eleventh image with a clear business error.
 
+### Product Gallery reorder regression
+
+1. Current gallery order `A -> 0`, `B -> 1`, `C -> 2`; send `[B, A, C]` to `PATCH /products/:idProduct/images/order`; expect success.
+2. Current gallery order `A -> 0`, `B -> 1`, `C -> 2`; send `[A, B, C]`; expect success/no-op.
+3. Current gallery has 9 images; run two concurrent `POST /products/:idProduct/images`; expect the gallery never exceeds 10 images.
+4. Run `POST /products/:idProduct/images` concurrently with `PATCH /products/:idProduct/images/order`; expect a consistent final order without duplicate `sortOrder`.
+5. Run `DELETE /products/:idProduct/images/:idProductImage` concurrently with `PATCH /products/:idProduct/images/order`; expect one operation waits or fails cleanly without corrupting the gallery set.
+
 ## Expected clean install state
 
 A successful clean install should include:

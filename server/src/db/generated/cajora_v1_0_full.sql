@@ -8174,6 +8174,33 @@ END$$
 DELIMITER ;
 
 
+DROP PROCEDURE IF EXISTS sp_lock_product_for_gallery;
+DELIMITER $$
+
+CREATE PROCEDURE sp_lock_product_for_gallery(
+  IN p_idBusiness INT,
+  IN p_idProduct INT
+)
+BEGIN
+  DECLARE v_idProduct INT DEFAULT NULL;
+
+  SELECT idProduct
+  INTO v_idProduct
+  FROM products
+  WHERE idBusiness = p_idBusiness
+    AND idProduct = p_idProduct
+  LIMIT 1
+  FOR UPDATE;
+
+  IF v_idProduct IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Producto no encontrado o no pertenece al negocio';
+  END IF;
+END$$
+
+DELIMITER ;
+
+
 DROP PROCEDURE IF EXISTS sp_get_product_images;
 DELIMITER $$
 
@@ -8318,6 +8345,17 @@ CREATE PROCEDURE sp_update_product_image_sort_order(
   IN p_sort_order INT
 )
 BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM product_images
+    WHERE idBusiness = p_idBusiness
+      AND idProduct = p_idProduct
+      AND idProductImage = p_idProductImage
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Imagen no encontrada o no pertenece al producto indicado';
+  END IF;
+
   UPDATE product_images
   SET
     sort_order = p_sort_order,
@@ -8325,11 +8363,6 @@ BEGIN
   WHERE idBusiness = p_idBusiness
     AND idProduct = p_idProduct
     AND idProductImage = p_idProductImage;
-
-  IF ROW_COUNT() = 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Imagen no encontrada o no pertenece al producto indicado';
-  END IF;
 END$$
 
 DELIMITER ;
