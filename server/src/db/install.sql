@@ -41,6 +41,7 @@ SOURCE procedures/cash_movements.sql;
 SOURCE procedures/cash_settlements.sql;
 SOURCE procedures/product-categories.sql;
 SOURCE procedures/products.sql;
+SOURCE procedures/storefront_catalog.sql;
 SOURCE procedures/customers.sql;
 SOURCE procedures/suppliers.sql;
 SOURCE procedures/stock.sql;
