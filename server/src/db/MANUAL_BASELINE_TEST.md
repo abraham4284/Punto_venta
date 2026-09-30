@@ -154,6 +154,31 @@ Expected legal hashes:
 4. Run `POST /products/:idProduct/images` concurrently with `PATCH /products/:idProduct/images/order`; expect a consistent final order without duplicate `sortOrder`.
 5. Run `DELETE /products/:idProduct/images/:idProductImage` concurrently with `PATCH /products/:idProduct/images/order`; expect one operation waits or fails cleanly without corrupting the gallery set.
 
+## Smoke test Public Storefront Catalog
+
+Codex must not execute these HTTP or DB-connected checks. They are for the operator after configuring the deployment.
+
+1. Configure `PUBLIC_CATALOG_BUSINESS_SLUG` with the active business slug.
+2. Configure `STOREFRONT_URL` with the public Storefront origin.
+3. Run `GET /api/public/catalog`.
+4. Run `GET /api/public/catalog/categories`.
+5. Run `GET /api/public/catalog/products?page=1&limit=24`.
+6. Run `GET /api/public/catalog/products?search=term`.
+7. Run `GET /api/public/catalog/products?idProductCategory=1`.
+8. Confirm active products are visible.
+9. Confirm inactive products are not visible.
+10. Confirm inactive categories are not published.
+11. Run `GET /api/public/catalog/products/:idProduct` and verify cover plus additional gallery images.
+12. Confirm gallery order is `sortOrder ASC, idProductImage ASC`.
+13. Confirm `priceCost` is absent.
+14. Confirm `stockMin` is absent.
+15. Confirm `idBusiness` is absent.
+16. Confirm `available` is returned as true/false without exact stock quantity.
+17. Configure a nonexistent slug and expect 404.
+18. Remove `PUBLIC_CATALOG_BUSINESS_SLUG` and expect 404.
+19. Suspend or deactivate the business and expect 404.
+20. Confirm requests from `STOREFRONT_URL` are allowed by CORS without using wildcard origins.
+
 ## Expected clean install state
 
 A successful clean install should include:
@@ -169,6 +194,7 @@ A successful clean install should include:
 - TERMS 1.0 published;
 - PRIVACY 1.0 published;
 - product gallery table, indexes, foreign key, constraint and procedures;
+- public Storefront catalog procedures;
 - current stored procedures.
 
 It should not require historical migrations or fixed scripts.

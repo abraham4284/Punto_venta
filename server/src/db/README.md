@@ -37,6 +37,7 @@ Conceptual roles:
 - `schema/`: final current table structure, indexes, foreign keys and constraints.
 - `seeds/`: required system catalog data.
 - `procedures/`: current stored procedure logic.
+- `procedures/storefront_catalog.sql`: public read-only catalog procedures for Storefront deployments.
 - `publications/`: official versioned publications such as legal documents.
 - `generated/`: generated importable full SQL. Do not edit manually.
 - `tools/`: file-only builder, validator and localhost-only DB tooling.
