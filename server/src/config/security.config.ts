@@ -42,6 +42,7 @@ export const securityConfig = {
   frontendOrigins: [
     getOptionalOrigin(process.env.FRONTEND_URL),
     getOptionalOrigin(process.env.FRONTEND_URL_LOCAL),
+    getOptionalOrigin(process.env.STOREFRONT_URL),
   ].filter(function filterOrigin(origin): origin is string {
     return Boolean(origin);
   }),

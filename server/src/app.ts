@@ -9,7 +9,11 @@ import { bodyParserErrorMiddleware } from "@/middlewares/bodyParserError.middlew
 import { csrfProtection } from "@/middlewares/csrfProtection.middleware.js";
 import { errorHandler } from "@/middlewares/errorHandler.js";
 import { globalApiRateLimiter } from "@/middlewares/rate-limit/rate-limit.middleware.js";
-import { businessesAppRoutes, platformRoutes } from "@/modules/index.js";
+import {
+  businessesAppRoutes,
+  platformRoutes,
+  storefrontAppRoutes,
+} from "@/modules/index.js";
 
 dotenv.config({ quiet: true });
 
@@ -72,6 +76,7 @@ if (process.env.NODE_ENV === "test") {
   });
 }
 
+app.use("/api/public", storefrontAppRoutes);
 app.use("/api", platformRoutes);
 app.use("/api", businessesAppRoutes);
 
