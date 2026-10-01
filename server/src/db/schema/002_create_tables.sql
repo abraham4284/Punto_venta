@@ -391,6 +391,7 @@ CREATE TABLE IF NOT EXISTS `products` (
   `barcode` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `name` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `rich_content` json DEFAULT NULL,
   `image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `price_cost` decimal(18,2) NOT NULL DEFAULT '0.00',
   `price_sale` decimal(18,2) NOT NULL DEFAULT '0.00',

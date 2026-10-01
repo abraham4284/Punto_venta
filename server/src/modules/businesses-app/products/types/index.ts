@@ -1,5 +1,6 @@
 import type { Request } from "express";
 import type { BusinessRequestUser } from "@/types/auth.types.js";
+import type { ProductRichContent } from "@/shared/product-rich-content.js";
 
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 
@@ -23,6 +24,10 @@ export interface ProductDbRow {
   updated_at: Date | null;
 }
 
+export interface ProductDetailDbRow extends ProductDbRow {
+  rich_content: unknown;
+}
+
 export interface ProductResponse {
   idProduct: number;
   idBusiness: number;
@@ -41,6 +46,10 @@ export interface ProductResponse {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date | null;
+}
+
+export interface ProductDetailResponse extends ProductResponse {
+  richContent: ProductRichContent | null;
 }
 
 export interface ProductListFilters {
@@ -74,6 +83,7 @@ export interface CreateProductPayload {
   barcode?: string | null;
   name: string;
   description?: string | null;
+  richContent?: ProductRichContent | null;
   imageUrl?: string | null;
   priceCost: number;
   priceSale: number;
@@ -89,6 +99,7 @@ export interface UpdateProductPayload {
   barcode?: string | null;
   name?: string;
   description?: string | null;
+  richContent?: ProductRichContent | null;
   imageUrl?: string | null;
   priceCost?: number;
   priceSale?: number;

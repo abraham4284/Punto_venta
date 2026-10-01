@@ -9,6 +9,7 @@ import type {
   PublicCatalogProductImageDbRow,
   PublicCatalogProductListItem,
 } from "../types/catalog.types.js";
+import { parseProductRichContentFromDb } from "@/shared/product-rich-content.js";
 
 function toNumber(value: string | number): number {
   return Number(value);
@@ -52,6 +53,7 @@ export function mapPublicCatalogProductListItem(
       name: row.product_category_name,
     },
     available: toBoolean(row.available),
+    secondaryImageUrl: row.secondary_image_url ?? null,
   };
 }
 
@@ -69,8 +71,17 @@ export function mapPublicCatalogProductDetail(
   row: PublicCatalogProductDbRow,
   gallery: PublicCatalogProductImage[],
 ): PublicCatalogProductDetail {
+  const base = mapPublicCatalogProductListItem(row);
+
   return {
-    ...mapPublicCatalogProductListItem(row),
+    idProduct: base.idProduct,
+    name: base.name,
+    description: base.description,
+    price: base.price,
+    imageUrl: base.imageUrl,
+    category: base.category,
+    available: base.available,
     gallery,
+    richContent: parseProductRichContentFromDb(row.rich_content ?? null),
   };
 }

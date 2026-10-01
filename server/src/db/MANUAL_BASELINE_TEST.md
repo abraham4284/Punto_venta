@@ -146,6 +146,32 @@ Expected legal hashes:
 8. If the environment has multiple businesses/products, verify cross-tenant and cross-product access does not expose or mutate images.
 9. Verify the gallery rejects the eleventh image with a clear business error.
 
+## Smoke test Product Rich Content
+
+Codex must not execute these HTTP or DB-connected checks. They are for the operator after installing or updating the database definition.
+
+### Admin product flow
+
+1. Create a product without `richContent`; expect product detail `richContent: null`.
+2. Create a product with a valid rich content document; expect success.
+3. Run `GET /products/:id` and verify the same document is returned.
+4. Update the product without sending `richContent`; expect the previous document to be preserved.
+5. Update the product with `richContent: null`; expect the stored document to be removed.
+6. Update the product with a different valid document; expect full replacement, not partial merge.
+7. Send an invalid document; expect HTTP 400 validation errors.
+8. Verify the existing Excel import flow still creates products with `richContent: null`.
+
+### Public catalog flow
+
+1. In `GET /api/public/catalog/products`, confirm `secondaryImageUrl` is `null` when the product has no additional images.
+2. Add additional images and confirm `secondaryImageUrl` uses the first gallery image by `sortOrder ASC, idProductImage ASC`.
+3. If the first additional image repeats the cover URL, confirm `secondaryImageUrl` uses the next different image.
+4. Confirm public product list does not include `gallery`.
+5. Confirm public product list does not include `richContent`.
+6. In `GET /api/public/catalog/products/:idProduct`, confirm gallery remains ordered.
+7. Confirm public detail returns `richContent` as `null` or the valid object.
+8. Confirm public detail does not expose private product fields.
+
 ### Product Gallery reorder regression
 
 1. Current gallery order `A -> 0`, `B -> 1`, `C -> 2`; send `[B, A, C]` to `PATCH /products/:idProduct/images/order`; expect success.
@@ -168,7 +194,7 @@ Codex must not execute these HTTP or DB-connected checks. They are for the opera
 8. Confirm active products are visible.
 9. Confirm inactive products are not visible.
 10. Confirm inactive categories are not published.
-11. Run `GET /api/public/catalog/products/:idProduct` and verify cover plus additional gallery images.
+11. Run `GET /api/public/catalog/products/:idProduct` and verify cover, additional gallery images and rich content.
 12. Confirm gallery order is `sortOrder ASC, idProductImage ASC`.
 13. Confirm `priceCost` is absent.
 14. Confirm `stockMin` is absent.
@@ -194,7 +220,26 @@ A successful clean install should include:
 - TERMS 1.0 published;
 - PRIVACY 1.0 published;
 - product gallery table, indexes, foreign key, constraint and procedures;
+- products rich content nullable column and procedures;
 - public Storefront catalog procedures;
 - current stored procedures.
 
 It should not require historical migrations or fixed scripts.
+
+## Pre-release databases already created
+
+The canonical baseline does not mutate existing databases. For a disposable local database, recreate it from the updated baseline. For a database with data to preserve, take a backup and apply the column manually before refreshing procedure definitions:
+
+```sql
+ALTER TABLE products
+ADD COLUMN rich_content JSON NULL AFTER description;
+```
+
+Then refresh the current definitions from:
+
+```text
+server/src/db/procedures/products.sql
+server/src/db/procedures/storefront_catalog.sql
+```
+
+Codex does not execute these SQL statements.

@@ -60,10 +60,27 @@ BEGIN
     p.description,
     p.price_sale,
     p.image_url,
+    (
+      SELECT pi.image_url
+      FROM product_images pi
+      WHERE pi.idBusiness = b.idBusiness
+        AND pi.idProduct = p.idProduct
+        AND (
+          p.image_url IS NULL
+          OR pi.image_url <> p.image_url
+        )
+      ORDER BY pi.sort_order ASC, pi.idProductImage ASC
+      LIMIT 1
+    ) AS secondary_image_url,
     pc.idProductCategory,
     pc.name AS product_category_name,
     CASE
-      WHEN COALESCE(SUM(s.quantity), 0) > 0 THEN 1
+      WHEN (
+        SELECT COALESCE(SUM(s.quantity), 0)
+        FROM stock s
+        WHERE s.idBusiness = b.idBusiness
+          AND s.idProduct = p.idProduct
+      ) > 0 THEN 1
       ELSE 0
     END AS available
   FROM businesses b
@@ -72,9 +89,6 @@ BEGIN
   INNER JOIN product_categories pc
     ON pc.idBusiness = b.idBusiness
     AND pc.idProductCategory = p.idProductCategory
-  LEFT JOIN stock s
-    ON s.idBusiness = b.idBusiness
-    AND s.idProduct = p.idProduct
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
     AND b.status = 'ACTIVE'
@@ -90,14 +104,6 @@ BEGIN
       p_idProductCategory IS NULL
       OR p.idProductCategory = p_idProductCategory
     )
-  GROUP BY
-    p.idProduct,
-    p.name,
-    p.description,
-    p.price_sale,
-    p.image_url,
-    pc.idProductCategory,
-    pc.name
   ORDER BY p.name ASC, p.idProduct ASC
   LIMIT p_limit OFFSET p_offset;
 
@@ -140,12 +146,18 @@ BEGIN
     p.idProduct,
     p.name,
     p.description,
+    p.rich_content,
     p.price_sale,
     p.image_url,
     pc.idProductCategory,
     pc.name AS product_category_name,
     CASE
-      WHEN COALESCE(SUM(s.quantity), 0) > 0 THEN 1
+      WHEN (
+        SELECT COALESCE(SUM(s.quantity), 0)
+        FROM stock s
+        WHERE s.idBusiness = b.idBusiness
+          AND s.idProduct = p.idProduct
+      ) > 0 THEN 1
       ELSE 0
     END AS available
   FROM businesses b
@@ -154,23 +166,12 @@ BEGIN
   INNER JOIN product_categories pc
     ON pc.idBusiness = b.idBusiness
     AND pc.idProductCategory = p.idProductCategory
-  LEFT JOIN stock s
-    ON s.idBusiness = b.idBusiness
-    AND s.idProduct = p.idProduct
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
     AND b.status = 'ACTIVE'
     AND p.idProduct = p_idProduct
     AND p.is_active = 1
     AND pc.is_active = 1
-  GROUP BY
-    p.idProduct,
-    p.name,
-    p.description,
-    p.price_sale,
-    p.image_url,
-    pc.idProductCategory,
-    pc.name
   LIMIT 1;
 
   SELECT

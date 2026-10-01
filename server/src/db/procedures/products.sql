@@ -9,6 +9,7 @@ CREATE PROCEDURE sp_create_product(
   IN p_barcode VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_rich_content LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_image_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_price_cost DECIMAL(18,2),
   IN p_price_sale DECIMAL(18,2),
@@ -97,6 +98,7 @@ BEGIN
     barcode,
     name,
     description,
+    rich_content,
     image_url,
     price_cost,
     price_sale,
@@ -113,6 +115,7 @@ BEGIN
     p_barcode,
     p_name,
     p_description,
+    p_rich_content,
     p_image_url,
     p_price_cost,
     p_price_sale,
@@ -174,7 +177,12 @@ BEGIN
     p.price_sale,
     p.price_wholesale,
     p.unit_type,
-    COALESCE(SUM(s.quantity), 0) AS stock,
+    (
+      SELECT COALESCE(SUM(s.quantity), 0)
+      FROM stock s
+      WHERE s.idBusiness = p.idBusiness
+        AND s.idProduct = p.idProduct
+    ) AS stock,
     p.stock_min,
     p.is_active,
     p.created_at,
@@ -183,9 +191,6 @@ BEGIN
   INNER JOIN product_categories pc
     ON pc.idProductCategory = p.idProductCategory
     AND pc.idBusiness = p.idBusiness
-  LEFT JOIN stock s
-    ON s.idBusiness = p.idBusiness
-    AND s.idProduct = p.idProduct
   WHERE p.idBusiness = p_idBusiness
     AND (p_search IS NULL OR p_search = ''
       OR p.name LIKE CONCAT('%', p_search, '%')
@@ -193,23 +198,6 @@ BEGIN
       OR p.description LIKE CONCAT('%', p_search, '%'))
     AND (p_idProductCategory IS NULL OR p.idProductCategory = p_idProductCategory)
     AND (p_isActive IS NULL OR p.is_active = p_isActive)
-  GROUP BY
-    p.idProduct,
-    p.idBusiness,
-    p.idProductCategory,
-    pc.name,
-    p.barcode,
-    p.name,
-    p.description,
-    p.image_url,
-    p.price_cost,
-    p.price_sale,
-    p.price_wholesale,
-    p.unit_type,
-    p.stock_min,
-    p.is_active,
-    p.created_at,
-    p.updated_at
   ORDER BY p.name ASC, p.idProduct ASC
   LIMIT p_limit OFFSET p_offset;
 
@@ -246,12 +234,18 @@ BEGIN
     p.barcode,
     p.name,
     p.description,
+    p.rich_content,
     p.image_url,
     p.price_cost,
     p.price_sale,
     p.price_wholesale,
     p.unit_type,
-    COALESCE(SUM(s.quantity), 0) AS stock,
+    (
+      SELECT COALESCE(SUM(s.quantity), 0)
+      FROM stock s
+      WHERE s.idBusiness = p.idBusiness
+        AND s.idProduct = p.idProduct
+    ) AS stock,
     p.stock_min,
     p.is_active,
     p.created_at,
@@ -260,28 +254,8 @@ BEGIN
   INNER JOIN product_categories pc
     ON pc.idProductCategory = p.idProductCategory
     AND pc.idBusiness = p.idBusiness
-  LEFT JOIN stock s
-    ON s.idBusiness = p.idBusiness
-    AND s.idProduct = p.idProduct
   WHERE p.idBusiness = p_idBusiness
     AND p.idProduct = p_idProduct
-  GROUP BY
-    p.idProduct,
-    p.idBusiness,
-    p.idProductCategory,
-    pc.name,
-    p.barcode,
-    p.name,
-    p.description,
-    p.image_url,
-    p.price_cost,
-    p.price_sale,
-    p.price_wholesale,
-    p.unit_type,
-    p.stock_min,
-    p.is_active,
-    p.created_at,
-    p.updated_at
   LIMIT 1;
 END$$
 
@@ -301,6 +275,8 @@ CREATE PROCEDURE sp_update_product(
   IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_description TINYINT,
+  IN p_rich_content LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_update_rich_content TINYINT,
   IN p_image_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_image_url TINYINT,
   IN p_price_cost DECIMAL(18,2),
@@ -342,6 +318,10 @@ BEGIN
     description = CASE
       WHEN p_update_description = 1 THEN p_description
       ELSE description
+    END,
+    rich_content = CASE
+      WHEN p_update_rich_content = 1 THEN p_rich_content
+      ELSE rich_content
     END,
     image_url = CASE
       WHEN p_update_image_url = 1 THEN p_image_url
