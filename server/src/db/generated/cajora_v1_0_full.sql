@@ -8432,13 +8432,9 @@ BEGIN
     ) AS secondary_image_url,
     pc.idProductCategory,
     pc.name AS product_category_name,
+    COALESCE(default_stock.stock_available, 0) AS stock_available,
     CASE
-      WHEN (
-        SELECT COALESCE(SUM(s.quantity), 0)
-        FROM stock s
-        WHERE s.idBusiness = b.idBusiness
-          AND s.idProduct = p.idProduct
-      ) > 0 THEN 1
+      WHEN COALESCE(default_stock.stock_available, 0) > 0 THEN 1
       ELSE 0
     END AS available
   FROM businesses b
@@ -8447,6 +8443,26 @@ BEGIN
   INNER JOIN product_categories pc
     ON pc.idBusiness = b.idBusiness
     AND pc.idProductCategory = p.idProductCategory
+  LEFT JOIN (
+    SELECT
+      s.idBusiness,
+      s.idProduct,
+      COALESCE(SUM(
+        CASE
+          WHEN s.quantity > 0 THEN s.quantity
+          ELSE 0
+        END
+      ), 0) AS stock_available
+    FROM stock s
+    INNER JOIN deposits d
+      ON d.idBusiness = s.idBusiness
+      AND d.idDeposit = s.idDeposit
+      AND d.is_default = 1
+      AND d.is_active = 1
+    GROUP BY s.idBusiness, s.idProduct
+  ) default_stock
+    ON default_stock.idBusiness = b.idBusiness
+    AND default_stock.idProduct = p.idProduct
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
     AND b.status = 'ACTIVE'
@@ -8509,13 +8525,9 @@ BEGIN
     p.image_url,
     pc.idProductCategory,
     pc.name AS product_category_name,
+    COALESCE(default_stock.stock_available, 0) AS stock_available,
     CASE
-      WHEN (
-        SELECT COALESCE(SUM(s.quantity), 0)
-        FROM stock s
-        WHERE s.idBusiness = b.idBusiness
-          AND s.idProduct = p.idProduct
-      ) > 0 THEN 1
+      WHEN COALESCE(default_stock.stock_available, 0) > 0 THEN 1
       ELSE 0
     END AS available
   FROM businesses b
@@ -8524,6 +8536,26 @@ BEGIN
   INNER JOIN product_categories pc
     ON pc.idBusiness = b.idBusiness
     AND pc.idProductCategory = p.idProductCategory
+  LEFT JOIN (
+    SELECT
+      s.idBusiness,
+      s.idProduct,
+      COALESCE(SUM(
+        CASE
+          WHEN s.quantity > 0 THEN s.quantity
+          ELSE 0
+        END
+      ), 0) AS stock_available
+    FROM stock s
+    INNER JOIN deposits d
+      ON d.idBusiness = s.idBusiness
+      AND d.idDeposit = s.idDeposit
+      AND d.is_default = 1
+      AND d.is_active = 1
+    GROUP BY s.idBusiness, s.idProduct
+  ) default_stock
+    ON default_stock.idBusiness = b.idBusiness
+    AND default_stock.idProduct = p.idProduct
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
     AND b.status = 'ACTIVE'

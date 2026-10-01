@@ -171,6 +171,11 @@ Codex must not execute these HTTP or DB-connected checks. They are for the opera
 6. In `GET /api/public/catalog/products/:idProduct`, confirm gallery remains ordered.
 7. Confirm public detail returns `richContent` as `null` or the valid object.
 8. Confirm public detail does not expose private product fields.
+9. Confirm public list and detail return `stockAvailable`.
+10. Confirm `available` is exactly `stockAvailable > 0`.
+11. Confirm `stockAvailable` is calculated only from the active default deposit.
+12. Confirm secondary deposits are not added to public availability.
+13. Confirm public list and detail do not expose deposit id or deposit name.
 
 ### Product Gallery reorder regression
 
@@ -199,11 +204,19 @@ Codex must not execute these HTTP or DB-connected checks. They are for the opera
 13. Confirm `priceCost` is absent.
 14. Confirm `stockMin` is absent.
 15. Confirm `idBusiness` is absent.
-16. Confirm `available` is returned as true/false without exact stock quantity.
+16. Confirm `stockAvailable` is returned as the vendible stock from the active default deposit only.
 17. Configure a nonexistent slug and expect 404.
 18. Remove `PUBLIC_CATALOG_BUSINESS_SLUG` and expect 404.
 19. Suspend or deactivate the business and expect 404.
 20. Confirm requests from `STOREFRONT_URL` are allowed by CORS without using wildcard origins.
+21. With active default deposit stock 5 and secondary deposit stock 20, expect `stockAvailable = 5` and `available = true`.
+22. With active default deposit stock 0 and secondary deposit stock 20, expect `stockAvailable = 0` and `available = false`.
+23. With active default deposit stock 1 and no secondary stock, expect `stockAvailable = 1` and `available = true`.
+24. Without a stock row for the product in the active default deposit, expect `stockAvailable = 0` and `available = false`.
+25. Without an active default deposit, expect `stockAvailable = 0` and `available = false`; secondary deposits must not be used as fallback.
+26. Confirm inactive products are not published.
+27. Confirm inactive categories are not published.
+28. Confirm inactive businesses keep the catalog unavailable.
 
 ## Expected clean install state
 
@@ -221,7 +234,7 @@ A successful clean install should include:
 - PRIVACY 1.0 published;
 - product gallery table, indexes, foreign key, constraint and procedures;
 - products rich content nullable column and procedures;
-- public Storefront catalog procedures;
+- public Storefront catalog procedures with availability based only on the active default deposit;
 - current stored procedures.
 
 It should not require historical migrations or fixed scripts.

@@ -31,6 +31,7 @@ Status: Release Candidate
 - Product Gallery hardening is included in the baseline and must be smoke-tested manually before L.2/video.
 - M.1 Public Catalog API is included in the baseline. Configure `PUBLIC_CATALOG_BUSINESS_SLUG` and `STOREFRONT_URL` before manual smoke tests.
 - N.1 Product Rich Content is included in the baseline. Existing pre-release databases need the documented manual column add plus refreshed product/catalog procedures, or a clean reinstall.
+- M.2 Public Catalog Main Deposit Stock is included in the baseline. Public `stockAvailable` and `available` now use only the active default deposit, without fallback to secondary deposits.
 - Public catalog smoke was not executed by Codex.
 - Product rich content smoke was not executed by Codex.
 - Historical migration history remains available in Git.
