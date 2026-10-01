@@ -1,8 +1,11 @@
 import type {
+  ProductDetailDbRow,
+  ProductDetailResponse,
   ProductDbRow,
   ProductResponse,
   ProductUnitType,
 } from "../types/index.js";
+import { parseProductRichContentFromDb } from "@/shared/product-rich-content.js";
 
 function toNumber(value: string | number): number {
   return Number(value);
@@ -39,5 +42,14 @@ export function mapProduct(product: ProductDbRow): ProductResponse {
     isActive: Boolean(product.is_active),
     createdAt: product.created_at,
     updatedAt: product.updated_at,
+  };
+}
+
+export function mapProductDetail(
+  product: ProductDetailDbRow,
+): ProductDetailResponse {
+  return {
+    ...mapProduct(product),
+    richContent: parseProductRichContentFromDb(product.rich_content),
   };
 }
