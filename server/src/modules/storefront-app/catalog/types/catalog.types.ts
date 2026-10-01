@@ -35,6 +35,7 @@ export interface PublicCatalogProductDbRow extends RowDataPacket {
   secondary_image_url?: string | null;
   idProductCategory: number;
   product_category_name: string;
+  stock_available: string | number;
   available: string | number;
 }
 
@@ -63,6 +64,7 @@ export interface PublicCatalogProductBase {
   imageUrl: string | null;
   category: PublicCatalogProductCategory;
   available: boolean;
+  stockAvailable: number;
 }
 
 export interface PublicCatalogProductListItem

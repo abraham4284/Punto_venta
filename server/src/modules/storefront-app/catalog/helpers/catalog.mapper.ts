@@ -15,8 +15,14 @@ function toNumber(value: string | number): number {
   return Number(value);
 }
 
-function toBoolean(value: string | number): boolean {
-  return Number(value) > 0;
+function toPublicStockAvailable(value: string | number): number {
+  const stockAvailable = Number(value);
+
+  if (!Number.isFinite(stockAvailable)) {
+    return 0;
+  }
+
+  return Math.max(0, stockAvailable);
 }
 
 export function mapPublicCatalogBusiness(
@@ -42,6 +48,8 @@ export function mapPublicCatalogCategory(
 export function mapPublicCatalogProductListItem(
   row: PublicCatalogProductDbRow,
 ): PublicCatalogProductListItem {
+  const stockAvailable = toPublicStockAvailable(row.stock_available);
+
   return {
     idProduct: row.idProduct,
     name: row.name,
@@ -52,7 +60,8 @@ export function mapPublicCatalogProductListItem(
       idProductCategory: row.idProductCategory,
       name: row.product_category_name,
     },
-    available: toBoolean(row.available),
+    available: stockAvailable > 0,
+    stockAvailable,
     secondaryImageUrl: row.secondary_image_url ?? null,
   };
 }
@@ -81,6 +90,7 @@ export function mapPublicCatalogProductDetail(
     imageUrl: base.imageUrl,
     category: base.category,
     available: base.available,
+    stockAvailable: base.stockAvailable,
     gallery,
     richContent: parseProductRichContentFromDb(row.rich_content ?? null),
   };
