@@ -1,3 +1,5 @@
+import type { ProductRichContent } from "./product-rich-content.types";
+
 export interface FieldError {
   field: string;
   message: string;
@@ -86,6 +88,10 @@ export interface ProductResponse {
   updatedAt: Date | null;
 }
 
+export interface ProductDetailResponse extends ProductResponse {
+  richContent: ProductRichContent | null;
+}
+
 export interface CreateProductPayload {
   idProductCategory: number;
   idDeposit: number;
@@ -99,6 +105,7 @@ export interface CreateProductPayload {
   unitType: ProductUnitType;
   initialStock: number;
   stockMin?: number;
+  richContent?: ProductRichContent | null;
 }
 
 export interface UpdateProductPayload {
@@ -112,6 +119,7 @@ export interface UpdateProductPayload {
   priceWholesale?: number | null;
   unitType?: ProductUnitType;
   stockMin?: number;
+  richContent?: ProductRichContent | null;
 }
 
 export interface UpdateProductPricesPayload {

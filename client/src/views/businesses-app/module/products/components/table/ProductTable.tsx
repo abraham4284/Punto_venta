@@ -1,4 +1,4 @@
-import { DollarSign, Images } from "lucide-react";
+import { DollarSign, FileText, Images } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -22,6 +22,7 @@ type Props = {
   addDataEdit: (product: ProductResponse | null) => void;
   toggleModal: () => void;
   onOpenGallery: (product: ProductResponse) => void;
+  onOpenRichContent: (product: ProductResponse) => void;
   onOpenPricesModal: (product: ProductResponse) => void;
   toggleProductStatus: (
     idProduct: number,
@@ -50,6 +51,7 @@ export const ProductTable = ({
   addDataEdit,
   toggleModal,
   onOpenGallery,
+  onOpenRichContent,
   onOpenPricesModal,
   toggleProductStatus,
 }: Props) => {
@@ -154,6 +156,17 @@ export const ProductTable = ({
                 onClick={() => onOpenGallery(product)}
               >
                 <Images className="h-4 w-4" />
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                title="Contenido detallado"
+                aria-label={`Gestionar contenido detallado de ${product.name}`}
+                onClick={() => onOpenRichContent(product)}
+              >
+                <FileText className="h-4 w-4" />
               </Button>
 
               <Button
