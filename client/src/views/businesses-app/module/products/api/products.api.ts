@@ -3,6 +3,7 @@ import type { AxiosResponse } from "axios";
 import type {
   ApiResponse,
   CreateProductPayload,
+  ProductDetailResponse,
   ProductCategoryOption,
   ProductsListResponse,
   ProductsQueryParams,
@@ -40,20 +41,20 @@ export const getProductsRequest = (
 
 export const getProductByIdRequest = (
   idProduct: number,
-): Promise<AxiosResponse<ApiResponse<ProductResponse>>> => {
+): Promise<AxiosResponse<ApiResponse<ProductDetailResponse>>> => {
   return axios.get(`/products/${idProduct}`);
 };
 
 export const createProductRequest = (
   payload: CreateProductPayload,
-): Promise<AxiosResponse<ApiResponse<ProductResponse>>> => {
+): Promise<AxiosResponse<ApiResponse<ProductDetailResponse>>> => {
   return axios.post("/products", payload);
 };
 
 export const updateProductRequest = (
   idProduct: number,
   payload: UpdateProductPayload,
-): Promise<AxiosResponse<ApiResponse<ProductResponse>>> => {
+): Promise<AxiosResponse<ApiResponse<ProductDetailResponse>>> => {
   return axios.put(`/products/${idProduct}`, payload);
 };
 
