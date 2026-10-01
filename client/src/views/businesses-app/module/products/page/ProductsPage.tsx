@@ -14,6 +14,7 @@ import {
   ProductModalForm,
   ProductPagination,
   ProductPricesModal,
+  ProductRichContentModal,
   ProductTable,
 } from "../components";
 import { useProducts } from "../hooks/useProducts";
@@ -31,6 +32,9 @@ export const ProductsPage = () => {
   const [galleryProduct, setGalleryProduct] = useState<ProductResponse | null>(
     null,
   );
+  const [isOpenRichContentModal, setIsOpenRichContentModal] = useState(false);
+  const [richContentProduct, setRichContentProduct] =
+    useState<ProductResponse | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [idProductCategory, setIdProductCategory] = useState<number | null>(
@@ -152,9 +156,19 @@ export const ProductsPage = () => {
     setIsOpenGalleryModal(true);
   };
 
+  const handleOpenRichContentModal = (product: ProductResponse) => {
+    setRichContentProduct(product);
+    setIsOpenRichContentModal(true);
+  };
+
   const handleCloseGalleryModal = () => {
     setIsOpenGalleryModal(false);
     setGalleryProduct(null);
+  };
+
+  const handleCloseRichContentModal = () => {
+    setIsOpenRichContentModal(false);
+    setRichContentProduct(null);
   };
 
   const handleClosePricesModal = () => {
@@ -286,6 +300,7 @@ export const ProductsPage = () => {
             addDataEdit={addDataEdit}
             toggleModal={toggleModal}
             onOpenGallery={handleOpenGalleryModal}
+            onOpenRichContent={handleOpenRichContentModal}
             onOpenPricesModal={handleOpenPricesModal}
             toggleProductStatus={toggleProductStatus}
           />
@@ -318,6 +333,11 @@ export const ProductsPage = () => {
         isOpen={isOpenGalleryModal}
         product={galleryProduct}
         onClose={handleCloseGalleryModal}
+      />
+      <ProductRichContentModal
+        isOpen={isOpenRichContentModal}
+        product={richContentProduct}
+        onClose={handleCloseRichContentModal}
       />
       <ImportProductModal
         isOpen={isOpenImportModal}
