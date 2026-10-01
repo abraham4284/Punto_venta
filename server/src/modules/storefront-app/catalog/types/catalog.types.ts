@@ -1,4 +1,5 @@
 import type { RowDataPacket } from "mysql2";
+import type { ProductRichContent } from "@/shared/product-rich-content.js";
 
 export interface PublicCatalogBusinessDbRow extends RowDataPacket {
   name: string;
@@ -28,8 +29,10 @@ export interface PublicCatalogProductDbRow extends RowDataPacket {
   idProduct: number;
   name: string;
   description: string | null;
+  rich_content?: unknown;
   price_sale: string | number;
   image_url: string | null;
+  secondary_image_url?: string | null;
   idProductCategory: number;
   product_category_name: string;
   available: string | number;
@@ -52,7 +55,7 @@ export interface PublicCatalogProductImage {
   sortOrder: number;
 }
 
-export interface PublicCatalogProductListItem {
+export interface PublicCatalogProductBase {
   idProduct: number;
   name: string;
   description: string | null;
@@ -62,9 +65,15 @@ export interface PublicCatalogProductListItem {
   available: boolean;
 }
 
+export interface PublicCatalogProductListItem
+  extends PublicCatalogProductBase {
+  secondaryImageUrl: string | null;
+}
+
 export interface PublicCatalogProductDetail
-  extends PublicCatalogProductListItem {
+  extends PublicCatalogProductBase {
   gallery: PublicCatalogProductImage[];
+  richContent: ProductRichContent | null;
 }
 
 export interface PublicCatalogProductsFilters {

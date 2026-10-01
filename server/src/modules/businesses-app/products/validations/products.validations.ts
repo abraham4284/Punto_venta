@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { productRichContentSchema } from "@/shared/product-rich-content.js";
 
 const emptyStringToNull = z.literal("").transform(function transformEmptyString() {
   return null;
@@ -56,6 +57,8 @@ export const createProductSchema = z
       },
       "La descripcion no puede superar los 255 caracteres",
     ),
+
+    richContent: productRichContentSchema.optional().nullable(),
 
     imageUrl: z
       .string()
@@ -203,6 +206,8 @@ export const updateProductSchema = z
       },
       "La descripcion no puede superar los 255 caracteres",
     ),
+
+    richContent: productRichContentSchema.optional().nullable(),
 
     imageUrl: z
       .string()

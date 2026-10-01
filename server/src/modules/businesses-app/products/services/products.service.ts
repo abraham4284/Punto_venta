@@ -1,9 +1,12 @@
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
 import { assertSubscriptionResourceAvailable } from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
-import { mapProduct } from "../helpers/product.mapper.js";
+import { serializeProductRichContent } from "@/shared/product-rich-content.js";
+import { mapProduct, mapProductDetail } from "../helpers/product.mapper.js";
 import type {
   CreateProductPayload,
+  ProductDetailDbRow,
+  ProductDetailResponse,
   ProductDbRow,
   ProductListFilters,
   ProductListResponse,
@@ -19,11 +22,12 @@ interface ProductTotalDbRow extends RowDataPacket {
 
 export async function createProductService(
   data: CreateProductPayload,
-): Promise<ProductResponse> {
+): Promise<ProductDetailResponse> {
   await assertSubscriptionResourceAvailable(data.idBusiness, "PRODUCTS", 1);
+  const richContent = serializeProductRichContent(data.richContent ?? null);
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idProductCategory,
@@ -32,6 +36,7 @@ export async function createProductService(
       data.barcode ?? null,
       data.name,
       data.description ?? null,
+      richContent,
       data.imageUrl ?? null,
       data.priceCost,
       data.priceSale,
@@ -41,14 +46,14 @@ export async function createProductService(
     ],
   );
 
-  const result = rows as unknown as ProductDbRow[][];
+  const result = rows as unknown as ProductDetailDbRow[][];
   const product = result[0]?.[0];
 
   if (!product) {
     throw new Error("No se pudo crear el producto");
   }
 
-  return mapProduct(product);
+  return mapProductDetail(product);
 }
 
 export async function getProductsService(
@@ -88,27 +93,32 @@ export async function getProductsService(
 export async function getProductByIdService(
   idBusiness: number,
   idProduct: number,
-): Promise<ProductResponse> {
+): Promise<ProductDetailResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
     "CALL sp_get_product_by_id(?, ?)",
     [idBusiness, idProduct],
   );
 
-  const result = rows as unknown as ProductDbRow[][];
+  const result = rows as unknown as ProductDetailDbRow[][];
   const product = result[0]?.[0];
 
   if (!product) {
     throw new Error("Producto no encontrado");
   }
 
-  return mapProduct(product);
+  return mapProductDetail(product);
 }
 
 export async function updateProductService(
   data: UpdateProductPayload,
-): Promise<ProductResponse> {
+): Promise<ProductDetailResponse> {
+  const hasRichContent = Object.hasOwn(data, "richContent");
+  const richContent = hasRichContent
+    ? serializeProductRichContent(data.richContent ?? null)
+    : null;
+
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_update_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_update_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idProduct,
@@ -119,6 +129,8 @@ export async function updateProductService(
       data.name ?? null,
       data.description ?? null,
       Object.hasOwn(data, "description") ? 1 : 0,
+      richContent,
+      hasRichContent ? 1 : 0,
       data.imageUrl ?? null,
       Object.hasOwn(data, "imageUrl") ? 1 : 0,
       data.priceCost ?? null,
@@ -131,14 +143,14 @@ export async function updateProductService(
     ],
   );
 
-  const result = rows as unknown as ProductDbRow[][];
+  const result = rows as unknown as ProductDetailDbRow[][];
   const product = result[0]?.[0];
 
   if (!product) {
     throw new Error("Producto no encontrado");
   }
 
-  return mapProduct(product);
+  return mapProductDetail(product);
 }
 
 export async function updateProductPricesService(
