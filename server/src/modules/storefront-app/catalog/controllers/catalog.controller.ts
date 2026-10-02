@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import {
   getPublicCatalogCategoriesService,
-  getPublicCatalogProductByIdService,
+  getPublicCatalogProductBySlugService,
   getPublicCatalogProductsService,
   getPublicCatalogService,
   PublicCatalogUnavailableError,
@@ -95,13 +95,13 @@ export async function getPublicCatalogProductsController(
   }
 }
 
-export async function getPublicCatalogProductByIdController(
+export async function getPublicCatalogProductBySlugController(
   req: Request,
   res: Response,
 ): Promise<Response> {
   try {
     const params = publicCatalogProductParamsSchema.parse(req.params);
-    const result = await getPublicCatalogProductByIdService(params.idProduct);
+    const result = await getPublicCatalogProductBySlugService(params.slug);
 
     return res.status(200).json({
       status: true,

@@ -2,6 +2,7 @@ export interface ProductCategoryDbRow {
   idProductCategory: number;
   idBusiness: number;
   name: string;
+  slug: string;
   description: string | null;
   is_default: number;
   is_active: number;
@@ -13,6 +14,7 @@ export interface ProductCategoryResponse {
   idProductCategory: number;
   idBusiness: number;
   name: string;
+  slug: string;
   description: string | null;
   isDefault: boolean;
   isActive: boolean;

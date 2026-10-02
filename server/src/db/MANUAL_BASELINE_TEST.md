@@ -160,6 +160,13 @@ Codex must not execute these HTTP or DB-connected checks. They are for the opera
 6. Update the product with a different valid document; expect full replacement, not partial merge.
 7. Send an invalid document; expect HTTP 400 validation errors.
 8. Verify the existing Excel import flow still creates products with `richContent: null`.
+9. Create a product named `Perfume Arabe 100 ml`; expect a stable generated `slug` like `perfume-arabe-100-ml`.
+10. Rename that product; expect the original `slug` to be preserved.
+11. Create another product with the same name in the same business; expect a suffix slug like `perfume-arabe-100-ml-2`.
+12. Create or update a product with `saleMode: "on_order"` and `availabilityNote`; expect both values to persist.
+13. Import a new product from Excel; expect generated `slug`, `saleMode: "stock"` and `availabilityNote: null`.
+14. Import an update for an existing product; expect `slug`, `saleMode` and `availabilityNote` to be preserved.
+15. Create two categories with the same name in the same business; expect unique generated category slugs.
 
 ### Public catalog flow
 
@@ -168,14 +175,18 @@ Codex must not execute these HTTP or DB-connected checks. They are for the opera
 3. If the first additional image repeats the cover URL, confirm `secondaryImageUrl` uses the next different image.
 4. Confirm public product list does not include `gallery`.
 5. Confirm public product list does not include `richContent`.
-6. In `GET /api/public/catalog/products/:idProduct`, confirm gallery remains ordered.
+6. In `GET /api/public/catalog/products/:slug`, confirm gallery remains ordered.
 7. Confirm public detail returns `richContent` as `null` or the valid object.
 8. Confirm public detail does not expose private product fields.
 9. Confirm public list and detail return `stockAvailable`.
-10. Confirm `available` is exactly `stockAvailable > 0`.
+10. Confirm public list and detail return `availabilityStatus`.
 11. Confirm `stockAvailable` is calculated only from the active default deposit.
 12. Confirm secondary deposits are not added to public availability.
 13. Confirm public list and detail do not expose deposit id or deposit name.
+14. Confirm public categories return `slug`.
+15. Confirm public products return product `slug`, category `slug`, `saleMode` and `availabilityNote`.
+16. Confirm `saleMode: "on_order"` returns `availabilityStatus: "on_order"` even when default-deposit stock exists.
+17. Confirm the legacy `available` boolean is absent from public list and detail responses.
 
 ### Product Gallery reorder regression
 
@@ -195,11 +206,11 @@ Codex must not execute these HTTP or DB-connected checks. They are for the opera
 4. Run `GET /api/public/catalog/categories`.
 5. Run `GET /api/public/catalog/products?page=1&limit=24`.
 6. Run `GET /api/public/catalog/products?search=term`.
-7. Run `GET /api/public/catalog/products?idProductCategory=1`.
+7. Run `GET /api/public/catalog/products?categorySlug=category-slug`.
 8. Confirm active products are visible.
 9. Confirm inactive products are not visible.
 10. Confirm inactive categories are not published.
-11. Run `GET /api/public/catalog/products/:idProduct` and verify cover, additional gallery images and rich content.
+11. Run `GET /api/public/catalog/products/:slug` and verify cover, additional gallery images and rich content.
 12. Confirm gallery order is `sortOrder ASC, idProductImage ASC`.
 13. Confirm `priceCost` is absent.
 14. Confirm `stockMin` is absent.
@@ -209,14 +220,15 @@ Codex must not execute these HTTP or DB-connected checks. They are for the opera
 18. Remove `PUBLIC_CATALOG_BUSINESS_SLUG` and expect 404.
 19. Suspend or deactivate the business and expect 404.
 20. Confirm requests from `STOREFRONT_URL` are allowed by CORS without using wildcard origins.
-21. With active default deposit stock 5 and secondary deposit stock 20, expect `stockAvailable = 5` and `available = true`.
-22. With active default deposit stock 0 and secondary deposit stock 20, expect `stockAvailable = 0` and `available = false`.
-23. With active default deposit stock 1 and no secondary stock, expect `stockAvailable = 1` and `available = true`.
-24. Without a stock row for the product in the active default deposit, expect `stockAvailable = 0` and `available = false`.
-25. Without an active default deposit, expect `stockAvailable = 0` and `available = false`; secondary deposits must not be used as fallback.
+21. With active default deposit stock 5 and secondary deposit stock 20, expect `stockAvailable = 5` and `availabilityStatus = "in_stock"`.
+22. With active default deposit stock 0 and secondary deposit stock 20, expect `stockAvailable = 0` and `availabilityStatus = "out_of_stock"`.
+23. With active default deposit stock 1 and no secondary stock, expect `stockAvailable = 1` and `availabilityStatus = "in_stock"`.
+24. Without a stock row for the product in the active default deposit, expect `stockAvailable = 0` and `availabilityStatus = "out_of_stock"`.
+25. Without an active default deposit, expect `stockAvailable = 0` and `availabilityStatus = "out_of_stock"`; secondary deposits must not be used as fallback.
 26. Confirm inactive products are not published.
 27. Confirm inactive categories are not published.
 28. Confirm inactive businesses keep the catalog unavailable.
+29. Confirm `saleMode: "on_order"` returns `availabilityStatus = "on_order"` and does not expose the legacy `available` field.
 
 ## Expected clean install state
 
@@ -234,23 +246,25 @@ A successful clean install should include:
 - PRIVACY 1.0 published;
 - product gallery table, indexes, foreign key, constraint and procedures;
 - products rich content nullable column and procedures;
-- public Storefront catalog procedures with availability based only on the active default deposit;
+- product and category public slugs;
+- product sale mode and availability note fields;
+- public Storefront catalog procedures with slug detail, category slug filter and availability based only on the active default deposit;
 - current stored procedures.
 
 It should not require historical migrations or fixed scripts.
 
 ## Pre-release databases already created
 
-The canonical baseline does not mutate existing databases. For a disposable local database, recreate it from the updated baseline. For a database with data to preserve, take a backup and apply the column manually before refreshing procedure definitions:
+The canonical baseline does not mutate existing databases. For a disposable local database, recreate it from the updated baseline. For a database with data to preserve, take a backup and apply the manual update script:
 
-```sql
-ALTER TABLE products
-ADD COLUMN rich_content JSON NULL AFTER description;
+```text
+server/src/db/manual/001_slugs_sale_mode_public_catalog.sql
 ```
 
 Then refresh the current definitions from:
 
 ```text
+server/src/db/procedures/product-categories.sql
 server/src/db/procedures/products.sql
 server/src/db/procedures/storefront_catalog.sql
 ```

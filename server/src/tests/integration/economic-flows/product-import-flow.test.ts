@@ -2,6 +2,7 @@ import XLSX from "xlsx";
 import type { RowDataPacket } from "mysql2";
 import { beforeEach, describe, expect, it } from "vitest";
 import { pool } from "@/db/db.js";
+import { normalizeSlugBase } from "@/shared/slug.js";
 import { confirmProductImportService } from "@/modules/businesses-app/products/services/confirm-product-import.service.js";
 import { previewProductImportService } from "@/modules/businesses-app/products/services/preview-product-import.service.js";
 import { createOperationalBusinessFixture } from "@/tests/fixtures/business.fixture.js";
@@ -15,6 +16,13 @@ import {
 
 interface ProductCountRow extends RowDataPacket {
   total: number;
+}
+
+interface ImportedProductRow extends RowDataPacket {
+  slug: string;
+  sale_mode: string;
+  availability_note: string | null;
+  price_wholesale: string | null;
 }
 
 interface StockQuantityRow extends RowDataPacket {
@@ -79,14 +87,17 @@ async function createProductWithoutBarcode(input: {
   name: string;
   unitType?: string;
 }): Promise<number> {
+  const slug = normalizeSlugBase(input.name);
+
   return executeInsert(
     `INSERT INTO products
-      (idBusiness, idProductCategory, barcode, name, description, price_cost, price_sale, price_wholesale, unit_type, stock_min, is_active)
-     VALUES (?, ?, NULL, ?, 'Producto test', 10, 20, NULL, ?, 1, 1)`,
+      (idBusiness, idProductCategory, barcode, name, slug, description, price_cost, price_sale, price_wholesale, unit_type, sale_mode, availability_note, stock_min, is_active)
+     VALUES (?, ?, NULL, ?, ?, 'Producto test', 10, 20, NULL, ?, 'STOCK', NULL, 1, 1)`,
     [
       input.idBusiness,
       input.idProductCategory,
       input.name,
+      slug,
       input.unitType ?? "UNIT",
     ],
   );
@@ -158,8 +169,19 @@ describe("product import flow", function productImportFlowSuite() {
       "SELECT COUNT(*) AS total FROM products WHERE idBusiness = ? AND name = ? AND barcode IS NULL",
       [tenant.business.idBusiness, "Mouse Logitech"],
     );
+    const product = await querySingleRow<ImportedProductRow>(
+      `SELECT slug, sale_mode, availability_note, price_wholesale
+       FROM products
+       WHERE idBusiness = ? AND name = ? AND barcode IS NULL
+       LIMIT 1`,
+      [tenant.business.idBusiness, "Mouse Logitech"],
+    );
 
     expect(productCount?.total).toBe(1);
+    expect(product?.slug).toBe("mouse-logitech");
+    expect(product?.sale_mode).toBe("STOCK");
+    expect(product?.availability_note).toBeNull();
+    expect(product?.price_wholesale).toBeNull();
   });
 
   it("omite por defecto stock existente detectado por nombre normalizado", async function testSkipExistingStockByName() {

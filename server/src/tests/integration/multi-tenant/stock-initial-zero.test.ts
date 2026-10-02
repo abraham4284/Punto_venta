@@ -2,6 +2,7 @@ import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { RowDataPacket } from "mysql2";
 import { getTestApp } from "@/tests/helpers/test-app.helper.js";
+import { normalizeSlugBase } from "@/shared/slug.js";
 import {
   executeInsert,
   querySingleRow,
@@ -25,15 +26,18 @@ async function createProductWithoutStock(input: {
   idProductCategory: number;
   name: string;
 }): Promise<number> {
+  const slug = normalizeSlugBase(input.name);
+
   return executeInsert(
     `INSERT INTO products
-      (idBusiness, idProductCategory, barcode, name, description, price_cost, price_sale, price_wholesale, unit_type, stock_min, is_active)
-     VALUES (?, ?, ?, ?, ?, 10, 20, NULL, 'UNIT', 1, 1)`,
+      (idBusiness, idProductCategory, barcode, name, slug, description, price_cost, price_sale, price_wholesale, unit_type, sale_mode, availability_note, stock_min, is_active)
+     VALUES (?, ?, ?, ?, ?, ?, 10, 20, NULL, 'UNIT', 'STOCK', NULL, 1, 1)`,
     [
       input.idBusiness,
       input.idProductCategory,
       null,
       input.name,
+      slug,
       "Producto sin stock inicial para test",
     ],
   );

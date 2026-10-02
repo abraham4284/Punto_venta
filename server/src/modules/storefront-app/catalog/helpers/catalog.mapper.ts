@@ -10,6 +10,10 @@ import type {
   PublicCatalogProductListItem,
 } from "../types/catalog.types.js";
 import { parseProductRichContentFromDb } from "@/shared/product-rich-content.js";
+import {
+  getPublicAvailabilityStatus,
+  toProductSaleMode,
+} from "@/shared/product-sale-mode.js";
 
 function toNumber(value: string | number): number {
   return Number(value);
@@ -42,6 +46,7 @@ export function mapPublicCatalogCategory(
   return {
     idProductCategory: row.idProductCategory,
     name: row.name,
+    slug: row.slug,
   };
 }
 
@@ -49,18 +54,23 @@ export function mapPublicCatalogProductListItem(
   row: PublicCatalogProductDbRow,
 ): PublicCatalogProductListItem {
   const stockAvailable = toPublicStockAvailable(row.stock_available);
+  const saleMode = toProductSaleMode(row.sale_mode);
 
   return {
     idProduct: row.idProduct,
     name: row.name,
+    slug: row.slug,
     description: row.description,
     price: toNumber(row.price_sale),
     imageUrl: row.image_url,
     category: {
       idProductCategory: row.idProductCategory,
       name: row.product_category_name,
+      slug: row.product_category_slug,
     },
-    available: stockAvailable > 0,
+    saleMode,
+    availabilityStatus: getPublicAvailabilityStatus(saleMode, stockAvailable),
+    availabilityNote: row.availability_note,
     stockAvailable,
     secondaryImageUrl: row.secondary_image_url ?? null,
   };
@@ -85,11 +95,14 @@ export function mapPublicCatalogProductDetail(
   return {
     idProduct: base.idProduct,
     name: base.name,
+    slug: base.slug,
     description: base.description,
     price: base.price,
     imageUrl: base.imageUrl,
     category: base.category,
-    available: base.available,
+    saleMode: base.saleMode,
+    availabilityStatus: base.availabilityStatus,
+    availabilityNote: base.availabilityNote,
     stockAvailable: base.stockAvailable,
     gallery,
     richContent: parseProductRichContentFromDb(row.rich_content ?? null),
