@@ -316,6 +316,7 @@ CREATE TABLE IF NOT EXISTS `deposits` (
   `idDeposit` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `name` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_default` tinyint NOT NULL DEFAULT '0',
   `is_active` tinyint NOT NULL DEFAULT '1',
@@ -410,6 +411,7 @@ CREATE TABLE IF NOT EXISTS `products` (
   `idProductCategory` int NOT NULL,
   `barcode` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `name` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `slug` varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `rich_content` json DEFAULT NULL,
   `image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -417,6 +419,8 @@ CREATE TABLE IF NOT EXISTS `products` (
   `price_sale` decimal(18,2) NOT NULL DEFAULT '0.00',
   `price_wholesale` decimal(18,2) DEFAULT NULL,
   `unit_type` enum('UNIT','KG','GRAM','LITER','METER') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'UNIT',
+  `sale_mode` enum('STOCK','ON_ORDER') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'STOCK',
+  `availability_note` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `stock_min` decimal(18,2) NOT NULL DEFAULT '0.00',
   `is_active` tinyint NOT NULL DEFAULT '1',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -739,8 +743,10 @@ CALL sp_add_index_if_not_exists('cash_session_payment_summaries', 'uk_cash_summa
 CALL sp_add_index_if_not_exists('cash_session_payment_summaries', 'uk_cash_summary_business_session_payment', 'ALTER TABLE `cash_session_payment_summaries` ADD UNIQUE KEY `uk_cash_summary_business_session_payment` (`idBusiness`,`idCashSession`,`idPaymentMethod`)');
 CALL sp_add_index_if_not_exists('product_categories', 'uk_category_business_name', 'ALTER TABLE `product_categories` ADD UNIQUE KEY `uk_category_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('product_categories', 'uk_category_business_id', 'ALTER TABLE `product_categories` ADD UNIQUE KEY `uk_category_business_id` (`idBusiness`,`idProductCategory`)');
+CALL sp_add_index_if_not_exists('product_categories', 'uk_category_business_slug', 'ALTER TABLE `product_categories` ADD UNIQUE KEY `uk_category_business_slug` (`idBusiness`,`slug`)');
 CALL sp_add_index_if_not_exists('products', 'uk_product_business_id', 'ALTER TABLE `products` ADD UNIQUE KEY `uk_product_business_id` (`idBusiness`,`idProduct`)');
 CALL sp_add_index_if_not_exists('products', 'uk_product_business_barcode', 'ALTER TABLE `products` ADD UNIQUE KEY `uk_product_business_barcode` (`idBusiness`,`barcode`)');
+CALL sp_add_index_if_not_exists('products', 'uk_product_business_slug', 'ALTER TABLE `products` ADD UNIQUE KEY `uk_product_business_slug` (`idBusiness`,`slug`)');
 CALL sp_add_index_if_not_exists('products', 'idx_products_business_name', 'ALTER TABLE `products` ADD KEY `idx_products_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('products', 'fk_products_category', 'ALTER TABLE `products` ADD KEY `fk_products_category` (`idBusiness`,`idProductCategory`)');
 CALL sp_add_index_if_not_exists('product_images', 'uk_product_image_business_id', 'ALTER TABLE `product_images` ADD UNIQUE KEY `uk_product_image_business_id` (`idBusiness`,`idProductImage`)');
@@ -7532,6 +7538,7 @@ DELIMITER $$
 CREATE PROCEDURE sp_create_product_category(
   IN p_idBusiness INT,
   IN p_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_is_default TINYINT
 )
@@ -7547,6 +7554,7 @@ BEGIN
   INSERT INTO product_categories (
     idBusiness,
     name,
+    slug,
     description,
     is_default,
     is_active,
@@ -7555,6 +7563,7 @@ BEGIN
   VALUES (
     p_idBusiness,
     p_name,
+    p_slug,
     p_description,
     p_is_default,
     1,
@@ -7578,6 +7587,7 @@ BEGIN
     idProductCategory,
     idBusiness,
     name,
+    slug,
     description,
     is_default,
     is_active,
@@ -7603,6 +7613,7 @@ BEGIN
     idProductCategory,
     idBusiness,
     name,
+    slug,
     description,
     is_default,
     is_active,
@@ -7703,6 +7714,7 @@ CREATE PROCEDURE sp_create_product(
   IN p_quantity DECIMAL(18,2),
   IN p_barcode VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_rich_content LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_image_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -7710,6 +7722,8 @@ CREATE PROCEDURE sp_create_product(
   IN p_price_sale DECIMAL(18,2),
   IN p_price_wholesale DECIMAL(18,2),
   IN p_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_sale_mode VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_availability_note VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_stock_min DECIMAL(18,2)
 )
 BEGIN
@@ -7749,6 +7763,11 @@ BEGIN
   IF COALESCE(p_unit_type, 'UNIT') NOT IN ('UNIT', 'KG', 'GRAM', 'LITER', 'METER') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La unidad de medida indicada no es valida';
+  END IF;
+
+  IF COALESCE(p_sale_mode, 'STOCK') NOT IN ('STOCK', 'ON_ORDER') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La modalidad de venta indicada no es valida';
   END IF;
 
   IF p_quantity < 0 THEN
@@ -7792,6 +7811,7 @@ BEGIN
     idProductCategory,
     barcode,
     name,
+    slug,
     description,
     rich_content,
     image_url,
@@ -7799,6 +7819,8 @@ BEGIN
     price_sale,
     price_wholesale,
     unit_type,
+    sale_mode,
+    availability_note,
     stock_min,
     is_active,
     created_at,
@@ -7809,6 +7831,7 @@ BEGIN
     p_idProductCategory,
     p_barcode,
     p_name,
+    p_slug,
     p_description,
     p_rich_content,
     p_image_url,
@@ -7816,6 +7839,8 @@ BEGIN
     p_price_sale,
     p_price_wholesale,
     COALESCE(p_unit_type, 'UNIT'),
+    COALESCE(p_sale_mode, 'STOCK'),
+    p_availability_note,
     p_stock_min,
     1,
     NOW(),
@@ -7866,12 +7891,15 @@ BEGIN
     pc.name AS product_category_name,
     p.barcode,
     p.name,
+    p.slug,
     p.description,
     p.image_url,
     p.price_cost,
     p.price_sale,
     p.price_wholesale,
     p.unit_type,
+    p.sale_mode,
+    p.availability_note,
     (
       SELECT COALESCE(SUM(s.quantity), 0)
       FROM stock s
@@ -7928,6 +7956,7 @@ BEGIN
     pc.name AS product_category_name,
     p.barcode,
     p.name,
+    p.slug,
     p.description,
     p.rich_content,
     p.image_url,
@@ -7935,6 +7964,8 @@ BEGIN
     p.price_sale,
     p.price_wholesale,
     p.unit_type,
+    p.sale_mode,
+    p.availability_note,
     (
       SELECT COALESCE(SUM(s.quantity), 0)
       FROM stock s
@@ -7980,6 +8011,10 @@ CREATE PROCEDURE sp_update_product(
   IN p_update_price_wholesale TINYINT,
   IN p_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_unit_type TINYINT,
+  IN p_sale_mode VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_update_sale_mode TINYINT,
+  IN p_availability_note VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_update_availability_note TINYINT,
   IN p_stock_min DECIMAL(18,2)
 )
 BEGIN
@@ -7997,6 +8032,11 @@ BEGIN
   IF p_update_unit_type = 1 AND p_unit_type NOT IN ('UNIT', 'KG', 'GRAM', 'LITER', 'METER') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La unidad de medida indicada no es valida';
+  END IF;
+
+  IF p_update_sale_mode = 1 AND p_sale_mode NOT IN ('STOCK', 'ON_ORDER') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La modalidad de venta indicada no es valida';
   END IF;
 
   UPDATE products
@@ -8031,6 +8071,14 @@ BEGIN
     unit_type = CASE
       WHEN p_update_unit_type = 1 THEN p_unit_type
       ELSE unit_type
+    END,
+    sale_mode = CASE
+      WHEN p_update_sale_mode = 1 THEN p_sale_mode
+      ELSE sale_mode
+    END,
+    availability_note = CASE
+      WHEN p_update_availability_note = 1 THEN p_availability_note
+      ELSE availability_note
     END,
     stock_min = COALESCE(p_stock_min, stock_min),
     updated_at = NOW()
@@ -8387,7 +8435,8 @@ CREATE PROCEDURE sp_storefront_get_categories(
 BEGIN
   SELECT
     pc.idProductCategory,
-    pc.name
+    pc.name,
+    pc.slug
   FROM businesses b
   INNER JOIN product_categories pc
     ON pc.idBusiness = b.idBusiness
@@ -8409,15 +8458,18 @@ CREATE PROCEDURE sp_storefront_get_products(
   IN p_limit INT,
   IN p_offset INT,
   IN p_search VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  IN p_idProductCategory INT
+  IN p_category_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   SELECT
     p.idProduct,
     p.name,
+    p.slug,
     p.description,
     p.price_sale,
     p.image_url,
+    p.sale_mode,
+    p.availability_note,
     (
       SELECT pi.image_url
       FROM product_images pi
@@ -8431,12 +8483,9 @@ BEGIN
       LIMIT 1
     ) AS secondary_image_url,
     pc.idProductCategory,
+    pc.slug AS product_category_slug,
     pc.name AS product_category_name,
-    COALESCE(default_stock.stock_available, 0) AS stock_available,
-    CASE
-      WHEN COALESCE(default_stock.stock_available, 0) > 0 THEN 1
-      ELSE 0
-    END AS available
+    COALESCE(default_stock.stock_available, 0) AS stock_available
   FROM businesses b
   INNER JOIN products p
     ON p.idBusiness = b.idBusiness
@@ -8475,8 +8524,9 @@ BEGIN
       OR p.description LIKE CONCAT('%', p_search, '%')
     )
     AND (
-      p_idProductCategory IS NULL
-      OR p.idProductCategory = p_idProductCategory
+      p_category_slug IS NULL
+      OR p_category_slug = ''
+      OR pc.slug = p_category_slug
     )
   ORDER BY p.name ASC, p.idProduct ASC
   LIMIT p_limit OFFSET p_offset;
@@ -8500,8 +8550,9 @@ BEGIN
       OR p.description LIKE CONCAT('%', p_search, '%')
     )
     AND (
-      p_idProductCategory IS NULL
-      OR p.idProductCategory = p_idProductCategory
+      p_category_slug IS NULL
+      OR p_category_slug = ''
+      OR pc.slug = p_category_slug
     );
 END$$
 
@@ -8509,27 +8560,28 @@ DELIMITER ;
 
 
 DROP PROCEDURE IF EXISTS sp_storefront_get_product_by_id;
+DROP PROCEDURE IF EXISTS sp_storefront_get_product_by_slug;
 DELIMITER $$
 
-CREATE PROCEDURE sp_storefront_get_product_by_id(
+CREATE PROCEDURE sp_storefront_get_product_by_slug(
   IN p_business_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  IN p_idProduct INT
+  IN p_product_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
   SELECT
     p.idProduct,
     p.name,
+    p.slug,
     p.description,
     p.rich_content,
     p.price_sale,
     p.image_url,
+    p.sale_mode,
+    p.availability_note,
     pc.idProductCategory,
+    pc.slug AS product_category_slug,
     pc.name AS product_category_name,
-    COALESCE(default_stock.stock_available, 0) AS stock_available,
-    CASE
-      WHEN COALESCE(default_stock.stock_available, 0) > 0 THEN 1
-      ELSE 0
-    END AS available
+    COALESCE(default_stock.stock_available, 0) AS stock_available
   FROM businesses b
   INNER JOIN products p
     ON p.idBusiness = b.idBusiness
@@ -8559,7 +8611,7 @@ BEGIN
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
     AND b.status = 'ACTIVE'
-    AND p.idProduct = p_idProduct
+    AND p.slug = p_product_slug
     AND p.is_active = 1
     AND pc.is_active = 1
   LIMIT 1;
@@ -8580,7 +8632,7 @@ BEGIN
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
     AND b.status = 'ACTIVE'
-    AND p.idProduct = p_idProduct
+    AND p.slug = p_product_slug
     AND p.is_active = 1
     AND pc.is_active = 1
   ORDER BY pi.sort_order ASC, pi.idProductImage ASC;

@@ -39,13 +39,15 @@ export const publicCatalogProductsQuerySchema = z
       .transform(function normalizeSearch(value) {
         return value && value.length > 0 ? value : null;
       }),
-    idProductCategory: z
+    categorySlug: z
       .preprocess(
         emptyQueryStringToUndefined,
-        z.coerce
-          .number({ error: "La categoria debe ser un numero valido" })
-          .int("La categoria debe ser un numero entero")
-          .positive("La categoria debe ser valida")
+        z
+          .string()
+          .trim()
+          .min(1, "El slug de categoria no puede estar vacio")
+          .max(180, "El slug de categoria no puede superar 180 caracteres")
+          .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "El slug de categoria no es valido")
           .optional(),
       )
       .transform(function normalizeCategory(value) {
@@ -56,9 +58,11 @@ export const publicCatalogProductsQuerySchema = z
 
 export const publicCatalogProductParamsSchema = z
   .object({
-    idProduct: z.coerce
-      .number({ error: "El producto debe ser un numero valido" })
-      .int("El producto debe ser un numero entero")
-      .positive("El producto debe ser valido"),
+    slug: z
+      .string({ error: "El slug del producto es obligatorio" })
+      .trim()
+      .min(1, "El slug del producto es obligatorio")
+      .max(180, "El slug del producto no puede superar 180 caracteres")
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "El slug del producto no es valido"),
   })
   .strict();

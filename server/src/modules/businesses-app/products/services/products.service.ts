@@ -2,6 +2,8 @@ import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
 import { assertSubscriptionResourceAvailable } from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
 import { serializeProductRichContent } from "@/shared/product-rich-content.js";
+import { resolveUniqueSlug } from "@/shared/slug.js";
+import { toProductSaleModeDb } from "@/shared/product-sale-mode.js";
 import { mapProduct, mapProductDetail } from "../helpers/product.mapper.js";
 import type {
   CreateProductPayload,
@@ -20,40 +22,97 @@ interface ProductTotalDbRow extends RowDataPacket {
   totalRecords: number;
 }
 
+interface ProductSlugRow extends RowDataPacket {
+  slug: string;
+}
+
+interface DbError {
+  code?: string;
+  sqlMessage?: string;
+  message?: string;
+}
+
+async function productSlugExists(
+  idBusiness: number,
+  slug: string,
+): Promise<boolean> {
+  const [rows] = await pool.query<ProductSlugRow[]>(
+    `SELECT slug
+     FROM products
+     WHERE idBusiness = ?
+       AND slug = ?
+     LIMIT 1`,
+    [idBusiness, slug],
+  );
+
+  return Boolean(rows[0]);
+}
+
+function isDuplicateProductSlugError(error: unknown): boolean {
+  const dbError = error as DbError;
+  const message = dbError.sqlMessage || dbError.message || "";
+
+  return dbError.code === "ER_DUP_ENTRY" && message.includes("uk_product_business_slug");
+}
+
 export async function createProductService(
   data: CreateProductPayload,
 ): Promise<ProductDetailResponse> {
   await assertSubscriptionResourceAvailable(data.idBusiness, "PRODUCTS", 1);
   const richContent = serializeProductRichContent(data.richContent ?? null);
+  const maxAttempts = 5;
 
-  const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [
-      data.idBusiness,
-      data.idProductCategory,
-      data.idDeposit,
-      data.initialStock,
-      data.barcode ?? null,
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const slug = await resolveUniqueSlug(
       data.name,
-      data.description ?? null,
-      richContent,
-      data.imageUrl ?? null,
-      data.priceCost,
-      data.priceSale,
-      data.priceWholesale ?? null,
-      data.unitType,
-      data.stockMin ?? 0,
-    ],
-  );
+      function exists(candidate) {
+        return productSlugExists(data.idBusiness, candidate);
+      },
+      { maxAttempts: 50 + attempt },
+    );
 
-  const result = rows as unknown as ProductDetailDbRow[][];
-  const product = result[0]?.[0];
+    try {
+      const [rows] = await pool.query<RowDataPacket[]>(
+        "CALL sp_create_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          data.idBusiness,
+          data.idProductCategory,
+          data.idDeposit,
+          data.initialStock,
+          data.barcode ?? null,
+          data.name,
+          slug,
+          data.description ?? null,
+          richContent,
+          data.imageUrl ?? null,
+          data.priceCost,
+          data.priceSale,
+          data.priceWholesale ?? null,
+          data.unitType,
+          toProductSaleModeDb(data.saleMode),
+          data.availabilityNote ?? null,
+          data.stockMin ?? 0,
+        ],
+      );
 
-  if (!product) {
-    throw new Error("No se pudo crear el producto");
+      const result = rows as unknown as ProductDetailDbRow[][];
+      const product = result[0]?.[0];
+
+      if (!product) {
+        throw new Error("No se pudo crear el producto");
+      }
+
+      return mapProductDetail(product);
+    } catch (error) {
+      if (attempt < maxAttempts && isDuplicateProductSlugError(error)) {
+        continue;
+      }
+
+      throw error;
+    }
   }
 
-  return mapProductDetail(product);
+  throw new Error("No se pudo generar un slug unico para el producto");
 }
 
 export async function getProductsService(
@@ -116,9 +175,11 @@ export async function updateProductService(
   const richContent = hasRichContent
     ? serializeProductRichContent(data.richContent ?? null)
     : null;
+  const hasSaleMode = Object.hasOwn(data, "saleMode");
+  const hasAvailabilityNote = Object.hasOwn(data, "availabilityNote");
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_update_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_update_product(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idProduct,
@@ -139,6 +200,10 @@ export async function updateProductService(
       Object.hasOwn(data, "priceWholesale") ? 1 : 0,
       data.unitType ?? null,
       Object.hasOwn(data, "unitType") ? 1 : 0,
+      hasSaleMode ? toProductSaleModeDb(data.saleMode) : null,
+      hasSaleMode ? 1 : 0,
+      data.availabilityNote ?? null,
+      hasAvailabilityNote ? 1 : 0,
       data.stockMin ?? null,
     ],
   );

@@ -1,5 +1,10 @@
 import type { RowDataPacket } from "mysql2";
 import type { ProductRichContent } from "@/shared/product-rich-content.js";
+import type {
+  ProductSaleMode,
+  ProductSaleModeDb,
+  PublicProductAvailabilityStatus,
+} from "@/shared/product-sale-mode.js";
 
 export interface PublicCatalogBusinessDbRow extends RowDataPacket {
   name: string;
@@ -18,25 +23,30 @@ export interface PublicCatalogBusiness {
 export interface PublicCatalogCategoryDbRow extends RowDataPacket {
   idProductCategory: number;
   name: string;
+  slug: string;
 }
 
 export interface PublicCatalogCategory {
   idProductCategory: number;
   name: string;
+  slug: string;
 }
 
 export interface PublicCatalogProductDbRow extends RowDataPacket {
   idProduct: number;
   name: string;
+  slug: string;
   description: string | null;
   rich_content?: unknown;
   price_sale: string | number;
   image_url: string | null;
+  sale_mode: ProductSaleModeDb | null;
+  availability_note: string | null;
   secondary_image_url?: string | null;
   idProductCategory: number;
+  product_category_slug: string;
   product_category_name: string;
   stock_available: string | number;
-  available: string | number;
 }
 
 export interface PublicCatalogProductImageDbRow extends RowDataPacket {
@@ -48,6 +58,7 @@ export interface PublicCatalogProductImageDbRow extends RowDataPacket {
 export interface PublicCatalogProductCategory {
   idProductCategory: number;
   name: string;
+  slug: string;
 }
 
 export interface PublicCatalogProductImage {
@@ -59,11 +70,14 @@ export interface PublicCatalogProductImage {
 export interface PublicCatalogProductBase {
   idProduct: number;
   name: string;
+  slug: string;
   description: string | null;
   price: number;
   imageUrl: string | null;
   category: PublicCatalogProductCategory;
-  available: boolean;
+  saleMode: ProductSaleMode;
+  availabilityStatus: PublicProductAvailabilityStatus;
+  availabilityNote: string | null;
   stockAvailable: number;
 }
 
@@ -82,7 +96,7 @@ export interface PublicCatalogProductsFilters {
   page: number;
   limit: number;
   search: string | null;
-  idProductCategory: number | null;
+  categorySlug: string | null;
 }
 
 export interface PublicCatalogPagination {
