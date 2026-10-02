@@ -18,6 +18,7 @@ server/src/db/
 ├── seeds/
 ├── publications/
 ├── procedures/
+├── manual/
 ├── generated/
 ├── tools/
 └── local/
@@ -39,11 +40,13 @@ Conceptual roles:
 - `procedures/`: current stored procedure logic.
 - `procedures/storefront_catalog.sql`: public read-only catalog procedures for Storefront deployments.
 - `publications/`: official versioned publications such as legal documents.
+- `manual/`: data-preserving SQL update scripts for pre-release databases. These scripts are not part of clean install and must be reviewed before use.
 - `generated/`: generated importable full SQL. Do not edit manually.
 - `tools/`: file-only builder, validator and localhost-only DB tooling.
 - `local/`: documentation for local development helpers.
 
 Historical migrations were squashed into baseline v1.0 before first release; history remains available in Git.
+Manual scripts are only for existing databases created before a baseline change, such as adding public slugs or product sale modes without losing data.
 
 ## Clean Install - MySQL/MariaDB CLI
 

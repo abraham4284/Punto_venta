@@ -5,6 +5,7 @@ import {
 } from "./preview-product-import.service.js";
 import { pool } from "@/db/db.js";
 import { assertSubscriptionResourceAvailable } from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
+import { resolveUniqueSlug } from "@/shared/slug.js";
 import type {
   ProductImportConfirmInput,
   ProductImportConfirmResponse,
@@ -20,6 +21,40 @@ interface ImportSubscriptionLimitRow extends RowDataPacket {
 
 interface ImportCountRow extends RowDataPacket {
   currentUsage: number;
+}
+
+interface ImportSlugRow extends RowDataPacket {
+  slug: string;
+}
+
+interface DbError {
+  code?: string;
+  sqlMessage?: string;
+  message?: string;
+}
+
+async function productSlugExistsInsideTransaction(
+  connection: PoolConnection,
+  idBusiness: number,
+  slug: string,
+): Promise<boolean> {
+  const [rows] = await connection.query<ImportSlugRow[]>(
+    `SELECT slug
+     FROM products
+     WHERE idBusiness = ?
+       AND slug = ?
+     LIMIT 1`,
+    [idBusiness, slug],
+  );
+
+  return Boolean(rows[0]);
+}
+
+function isDuplicateProductSlugError(error: unknown): boolean {
+  const dbError = error as DbError;
+  const message = dbError.sqlMessage || dbError.message || "";
+
+  return dbError.code === "ER_DUP_ENTRY" && message.includes("uk_product_business_slug");
 }
 
 function hasRowError(
@@ -83,40 +118,66 @@ async function createProduct(
   idBusiness: number,
   row: ProductImportResolvedRow,
 ): Promise<number> {
-  const [result] = await connection.query<ResultSetHeader>(
-    `INSERT INTO products (
-      idBusiness,
-      idProductCategory,
-      barcode,
-      name,
-      description,
-      image_url,
-      price_cost,
-      price_sale,
-      price_wholesale,
-      unit_type,
-      stock_min,
-      is_active,
-      created_at,
-      updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-    [
-      idBusiness,
-      row.idProductCategory,
-      row.barcode,
-      row.name,
-      row.description,
-      row.imageUrl,
-      row.priceCost,
-      row.priceSale,
-      row.priceWholesale,
-      row.unitType,
-      row.stockMin,
-      row.isActive ? 1 : 0,
-    ],
-  );
+  const maxAttempts = 5;
 
-  return result.insertId;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const slug = await resolveUniqueSlug(
+      row.name,
+      function exists(candidate) {
+        return productSlugExistsInsideTransaction(connection, idBusiness, candidate);
+      },
+      { maxAttempts: 50 + attempt },
+    );
+
+    try {
+      const [result] = await connection.query<ResultSetHeader>(
+        `INSERT INTO products (
+          idBusiness,
+          idProductCategory,
+          barcode,
+          name,
+          slug,
+          description,
+          image_url,
+          price_cost,
+          price_sale,
+          price_wholesale,
+          unit_type,
+          sale_mode,
+          availability_note,
+          stock_min,
+          is_active,
+          created_at,
+          updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'STOCK', NULL, ?, ?, NOW(), NOW())`,
+        [
+          idBusiness,
+          row.idProductCategory,
+          row.barcode,
+          row.name,
+          slug,
+          row.description,
+          row.imageUrl,
+          row.priceCost,
+          row.priceSale,
+          row.priceWholesale,
+          row.unitType,
+          row.stockMin,
+          row.isActive ? 1 : 0,
+        ],
+      );
+
+      return result.insertId;
+    } catch (error) {
+      if (attempt < maxAttempts && isDuplicateProductSlugError(error)) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error("No se pudo generar un slug unico para el producto importado");
 }
 
 async function assertProductImportLimitInsideTransaction(

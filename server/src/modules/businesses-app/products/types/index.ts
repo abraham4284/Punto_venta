@@ -1,6 +1,7 @@
 import type { Request } from "express";
 import type { BusinessRequestUser } from "@/types/auth.types.js";
 import type { ProductRichContent } from "@/shared/product-rich-content.js";
+import type { ProductSaleMode, ProductSaleModeDb } from "@/shared/product-sale-mode.js";
 
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 
@@ -11,12 +12,15 @@ export interface ProductDbRow {
   product_category_name: string;
   barcode: string | null;
   name: string;
+  slug: string;
   description: string | null;
   image_url: string | null;
   price_cost: string | number;
   price_sale: string | number;
   price_wholesale: string | number | null;
   unit_type: ProductUnitType | null;
+  sale_mode: ProductSaleModeDb | null;
+  availability_note: string | null;
   stock: string | number;
   stock_min: string | number;
   is_active: number;
@@ -35,12 +39,15 @@ export interface ProductResponse {
   productCategoryName: string;
   barcode: string | null;
   name: string;
+  slug: string;
   description: string | null;
   imageUrl: string | null;
   priceCost: number;
   priceSale: number;
   priceWholesale: number | null;
   unitType: ProductUnitType;
+  saleMode: ProductSaleMode;
+  availabilityNote: string | null;
   stock: number;
   stockMin: number;
   isActive: boolean;
@@ -89,6 +96,8 @@ export interface CreateProductPayload {
   priceSale: number;
   priceWholesale?: number | null;
   unitType: ProductUnitType;
+  saleMode?: ProductSaleMode;
+  availabilityNote?: string | null;
   stockMin?: number;
 }
 
@@ -105,6 +114,8 @@ export interface UpdateProductPayload {
   priceSale?: number;
   priceWholesale?: number | null;
   unitType?: ProductUnitType;
+  saleMode?: ProductSaleMode;
+  availabilityNote?: string | null;
   stockMin?: number;
 }
 

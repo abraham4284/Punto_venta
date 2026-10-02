@@ -16,6 +16,10 @@ const productUnitTypeSchema = z.enum(["UNIT", "KG", "GRAM", "LITER", "METER"], {
   error: "La unidad de medida seleccionada no es valida",
 });
 
+const productSaleModeSchema = z.enum(["stock", "on_order"], {
+  error: "La modalidad de venta seleccionada no es valida",
+});
+
 export const createProductSchema = z
   .object({
     idBusiness: z
@@ -84,6 +88,16 @@ export const createProductSchema = z
       .nullable(),
 
     unitType: productUnitTypeSchema.default("UNIT"),
+
+    saleMode: productSaleModeSchema.optional().default("stock"),
+
+    availabilityNote: z
+      .string()
+      .trim()
+      .max(500, "La nota de disponibilidad no puede superar los 500 caracteres")
+      .optional()
+      .nullable()
+      .or(emptyStringToNull),
 
     stockMin: z
       .number()
@@ -235,6 +249,16 @@ export const updateProductSchema = z
       .nullable(),
 
     unitType: productUnitTypeSchema.optional(),
+
+    saleMode: productSaleModeSchema.optional(),
+
+    availabilityNote: z
+      .string()
+      .trim()
+      .max(500, "La nota de disponibilidad no puede superar los 500 caracteres")
+      .optional()
+      .nullable()
+      .or(emptyStringToNull),
 
     stockMin: z
       .number()

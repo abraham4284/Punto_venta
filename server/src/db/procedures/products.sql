@@ -8,6 +8,7 @@ CREATE PROCEDURE sp_create_product(
   IN p_quantity DECIMAL(18,2),
   IN p_barcode VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_rich_content LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_image_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -15,6 +16,8 @@ CREATE PROCEDURE sp_create_product(
   IN p_price_sale DECIMAL(18,2),
   IN p_price_wholesale DECIMAL(18,2),
   IN p_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_sale_mode VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_availability_note VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_stock_min DECIMAL(18,2)
 )
 BEGIN
@@ -54,6 +57,11 @@ BEGIN
   IF COALESCE(p_unit_type, 'UNIT') NOT IN ('UNIT', 'KG', 'GRAM', 'LITER', 'METER') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La unidad de medida indicada no es valida';
+  END IF;
+
+  IF COALESCE(p_sale_mode, 'STOCK') NOT IN ('STOCK', 'ON_ORDER') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La modalidad de venta indicada no es valida';
   END IF;
 
   IF p_quantity < 0 THEN
@@ -97,6 +105,7 @@ BEGIN
     idProductCategory,
     barcode,
     name,
+    slug,
     description,
     rich_content,
     image_url,
@@ -104,6 +113,8 @@ BEGIN
     price_sale,
     price_wholesale,
     unit_type,
+    sale_mode,
+    availability_note,
     stock_min,
     is_active,
     created_at,
@@ -114,6 +125,7 @@ BEGIN
     p_idProductCategory,
     p_barcode,
     p_name,
+    p_slug,
     p_description,
     p_rich_content,
     p_image_url,
@@ -121,6 +133,8 @@ BEGIN
     p_price_sale,
     p_price_wholesale,
     COALESCE(p_unit_type, 'UNIT'),
+    COALESCE(p_sale_mode, 'STOCK'),
+    p_availability_note,
     p_stock_min,
     1,
     NOW(),
@@ -171,12 +185,15 @@ BEGIN
     pc.name AS product_category_name,
     p.barcode,
     p.name,
+    p.slug,
     p.description,
     p.image_url,
     p.price_cost,
     p.price_sale,
     p.price_wholesale,
     p.unit_type,
+    p.sale_mode,
+    p.availability_note,
     (
       SELECT COALESCE(SUM(s.quantity), 0)
       FROM stock s
@@ -233,6 +250,7 @@ BEGIN
     pc.name AS product_category_name,
     p.barcode,
     p.name,
+    p.slug,
     p.description,
     p.rich_content,
     p.image_url,
@@ -240,6 +258,8 @@ BEGIN
     p.price_sale,
     p.price_wholesale,
     p.unit_type,
+    p.sale_mode,
+    p.availability_note,
     (
       SELECT COALESCE(SUM(s.quantity), 0)
       FROM stock s
@@ -285,6 +305,10 @@ CREATE PROCEDURE sp_update_product(
   IN p_update_price_wholesale TINYINT,
   IN p_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_unit_type TINYINT,
+  IN p_sale_mode VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_update_sale_mode TINYINT,
+  IN p_availability_note VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_update_availability_note TINYINT,
   IN p_stock_min DECIMAL(18,2)
 )
 BEGIN
@@ -302,6 +326,11 @@ BEGIN
   IF p_update_unit_type = 1 AND p_unit_type NOT IN ('UNIT', 'KG', 'GRAM', 'LITER', 'METER') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La unidad de medida indicada no es valida';
+  END IF;
+
+  IF p_update_sale_mode = 1 AND p_sale_mode NOT IN ('STOCK', 'ON_ORDER') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La modalidad de venta indicada no es valida';
   END IF;
 
   UPDATE products
@@ -336,6 +365,14 @@ BEGIN
     unit_type = CASE
       WHEN p_update_unit_type = 1 THEN p_unit_type
       ELSE unit_type
+    END,
+    sale_mode = CASE
+      WHEN p_update_sale_mode = 1 THEN p_sale_mode
+      ELSE sale_mode
+    END,
+    availability_note = CASE
+      WHEN p_update_availability_note = 1 THEN p_availability_note
+      ELSE availability_note
     END,
     stock_min = COALESCE(p_stock_min, stock_min),
     updated_at = NOW()

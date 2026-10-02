@@ -10,6 +10,7 @@ export function mapProductCategory(
     idProductCategory: productCategory.idProductCategory,
     idBusiness: productCategory.idBusiness,
     name: productCategory.name,
+    slug: productCategory.slug,
     description: productCategory.description,
     isDefault: Boolean(productCategory.is_default),
     isActive: Boolean(productCategory.is_active),

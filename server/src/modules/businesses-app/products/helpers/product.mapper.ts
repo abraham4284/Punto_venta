@@ -6,6 +6,7 @@ import type {
   ProductUnitType,
 } from "../types/index.js";
 import { parseProductRichContentFromDb } from "@/shared/product-rich-content.js";
+import { toProductSaleMode } from "@/shared/product-sale-mode.js";
 
 function toNumber(value: string | number): number {
   return Number(value);
@@ -31,12 +32,15 @@ export function mapProduct(product: ProductDbRow): ProductResponse {
     productCategoryName: product.product_category_name,
     barcode: product.barcode,
     name: product.name,
+    slug: product.slug,
     description: product.description,
     imageUrl: product.image_url,
     priceCost: toNumber(product.price_cost),
     priceSale: toNumber(product.price_sale),
     priceWholesale: toNullableNumber(product.price_wholesale),
     unitType: normalizeUnitType(product.unit_type),
+    saleMode: toProductSaleMode(product.sale_mode),
+    availabilityNote: product.availability_note,
     stock: toNumber(product.stock),
     stockMin: toNumber(product.stock_min),
     isActive: Boolean(product.is_active),

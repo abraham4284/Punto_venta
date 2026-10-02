@@ -92,7 +92,7 @@ export async function getPublicCatalogProductsService(
       filters.limit,
       offset,
       filters.search,
-      filters.idProductCategory,
+      filters.categorySlug,
     ],
   );
 
@@ -117,15 +117,15 @@ export async function getPublicCatalogProductsService(
   };
 }
 
-export async function getPublicCatalogProductByIdService(
-  idProduct: number,
+export async function getPublicCatalogProductBySlugService(
+  slug: string,
 ): Promise<PublicCatalogProductDetail> {
   const businessSlug = getRequiredPublicCatalogSlug();
   await getPublicCatalogBusinessBySlug(businessSlug);
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_storefront_get_product_by_id(?, ?)",
-    [businessSlug, idProduct],
+    "CALL sp_storefront_get_product_by_slug(?, ?)",
+    [businessSlug, slug],
   );
 
   const result = rows as unknown as [

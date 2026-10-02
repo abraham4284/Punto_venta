@@ -4,6 +4,7 @@ DELIMITER $$
 CREATE PROCEDURE sp_create_product_category(
   IN p_idBusiness INT,
   IN p_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_description VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_is_default TINYINT
 )
@@ -19,6 +20,7 @@ BEGIN
   INSERT INTO product_categories (
     idBusiness,
     name,
+    slug,
     description,
     is_default,
     is_active,
@@ -27,6 +29,7 @@ BEGIN
   VALUES (
     p_idBusiness,
     p_name,
+    p_slug,
     p_description,
     p_is_default,
     1,
@@ -50,6 +53,7 @@ BEGIN
     idProductCategory,
     idBusiness,
     name,
+    slug,
     description,
     is_default,
     is_active,
@@ -75,6 +79,7 @@ BEGIN
     idProductCategory,
     idBusiness,
     name,
+    slug,
     description,
     is_default,
     is_active,

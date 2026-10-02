@@ -119,8 +119,10 @@ CALL sp_add_index_if_not_exists('cash_session_payment_summaries', 'uk_cash_summa
 CALL sp_add_index_if_not_exists('cash_session_payment_summaries', 'uk_cash_summary_business_session_payment', 'ALTER TABLE `cash_session_payment_summaries` ADD UNIQUE KEY `uk_cash_summary_business_session_payment` (`idBusiness`,`idCashSession`,`idPaymentMethod`)');
 CALL sp_add_index_if_not_exists('product_categories', 'uk_category_business_name', 'ALTER TABLE `product_categories` ADD UNIQUE KEY `uk_category_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('product_categories', 'uk_category_business_id', 'ALTER TABLE `product_categories` ADD UNIQUE KEY `uk_category_business_id` (`idBusiness`,`idProductCategory`)');
+CALL sp_add_index_if_not_exists('product_categories', 'uk_category_business_slug', 'ALTER TABLE `product_categories` ADD UNIQUE KEY `uk_category_business_slug` (`idBusiness`,`slug`)');
 CALL sp_add_index_if_not_exists('products', 'uk_product_business_id', 'ALTER TABLE `products` ADD UNIQUE KEY `uk_product_business_id` (`idBusiness`,`idProduct`)');
 CALL sp_add_index_if_not_exists('products', 'uk_product_business_barcode', 'ALTER TABLE `products` ADD UNIQUE KEY `uk_product_business_barcode` (`idBusiness`,`barcode`)');
+CALL sp_add_index_if_not_exists('products', 'uk_product_business_slug', 'ALTER TABLE `products` ADD UNIQUE KEY `uk_product_business_slug` (`idBusiness`,`slug`)');
 CALL sp_add_index_if_not_exists('products', 'idx_products_business_name', 'ALTER TABLE `products` ADD KEY `idx_products_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('products', 'fk_products_category', 'ALTER TABLE `products` ADD KEY `fk_products_category` (`idBusiness`,`idProductCategory`)');
 CALL sp_add_index_if_not_exists('product_images', 'uk_product_image_business_id', 'ALTER TABLE `product_images` ADD UNIQUE KEY `uk_product_image_business_id` (`idBusiness`,`idProductImage`)');
