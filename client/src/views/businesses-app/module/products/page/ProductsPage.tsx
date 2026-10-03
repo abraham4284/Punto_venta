@@ -203,7 +203,13 @@ export const ProductsPage = () => {
       imageUrl: values.imageUrl.trim() || null,
       priceCost: Number(values.priceCost),
       priceSale: Number(values.priceSale),
+      priceWholesale:
+        values.priceWholesale.trim() === ""
+          ? null
+          : Number(values.priceWholesale),
       unitType: values.unitType,
+      saleMode: values.saleMode,
+      availabilityNote: values.availabilityNote.trim() || null,
       stockMin: values.stockMin === "" ? 0 : Number(values.stockMin),
     };
 
@@ -215,7 +221,13 @@ export const ProductsPage = () => {
       imageUrl: values.imageUrl.trim() || null,
       priceCost: Number(values.priceCost),
       priceSale: Number(values.priceSale),
+      priceWholesale:
+        values.priceWholesale.trim() === ""
+          ? null
+          : Number(values.priceWholesale),
       unitType: values.unitType,
+      saleMode: values.saleMode,
+      availabilityNote: values.availabilityNote.trim() || null,
       stockMin: values.stockMin === "" ? 0 : Number(values.stockMin),
     };
 

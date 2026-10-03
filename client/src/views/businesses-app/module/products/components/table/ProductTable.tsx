@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/table";
 import {
   PRODUCT_UNIT_TYPE_OPTIONS,
+  PRODUCT_SALE_MODE_OPTIONS,
+  type ProductSaleMode,
   type ProductResponse,
   type ProductUnitType,
 } from "../../types/products.types";
@@ -42,6 +44,13 @@ const getUnitLabel = (unitType: ProductUnitType): string => {
   return (
     PRODUCT_UNIT_TYPE_OPTIONS.find((option) => option.value === unitType)
       ?.shortLabel ?? "u."
+  );
+};
+
+const getSaleModeLabel = (saleMode: ProductSaleMode): string => {
+  return (
+    PRODUCT_SALE_MODE_OPTIONS.find((option) => option.value === saleMode)
+      ?.label ?? "Stock"
   );
 };
 
@@ -91,6 +100,7 @@ export const ProductTable = ({
           <TableHead>Nombre</TableHead>
           <TableHead>Categoría</TableHead>
           <TableHead>Unidad</TableHead>
+          <TableHead>Modalidad</TableHead>
           <TableHead>Costo</TableHead>
           <TableHead>Precio venta</TableHead>
           <TableHead>Stock mínimo</TableHead>
@@ -124,6 +134,14 @@ export const ProductTable = ({
 
             <TableCell>
               <Badge variant="outline">{getUnitLabel(product.unitType)}</Badge>
+            </TableCell>
+
+            <TableCell>
+              <Badge
+                variant={product.saleMode === "on_order" ? "secondary" : "outline"}
+              >
+                {getSaleModeLabel(product.saleMode)}
+              </Badge>
             </TableCell>
 
             <TableCell>{formatCurrency(product.priceCost)}</TableCell>

@@ -19,6 +19,7 @@ export interface ProductCategoryResponse {
   idProductCategory: number;
   idBusiness: number;
   name: string;
+  slug: string;
   description: string | null;
   isDefault: boolean;
   isActive: boolean;
