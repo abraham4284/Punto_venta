@@ -54,6 +54,10 @@ export const PRODUCT_UNIT_TYPES = [
 
 export type ProductUnitType = (typeof PRODUCT_UNIT_TYPES)[number];
 
+export const PRODUCT_SALE_MODES = ["stock", "on_order"] as const;
+
+export type ProductSaleMode = (typeof PRODUCT_SALE_MODES)[number];
+
 export const PRODUCT_UNIT_TYPE_OPTIONS: {
   value: ProductUnitType;
   label: string;
@@ -66,6 +70,23 @@ export const PRODUCT_UNIT_TYPE_OPTIONS: {
   { value: "METER", label: "Metro", shortLabel: "m" },
 ];
 
+export const PRODUCT_SALE_MODE_OPTIONS: {
+  value: ProductSaleMode;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "stock",
+    label: "Venta con stock",
+    description: "Disponibilidad segun stock del deposito principal.",
+  },
+  {
+    value: "on_order",
+    label: "Por encargo",
+    description: "El catalogo mostrara el producto como disponible por encargo.",
+  },
+];
+
 export interface ProductResponse {
   idProduct: number;
   idDeposit: number;
@@ -75,12 +96,15 @@ export interface ProductResponse {
   productCategoryName: string | null;
   barcode: string | null;
   name: string;
+  slug: string;
   description: string | null;
   imageUrl: string | null;
   priceCost: number;
   priceSale: number;
   priceWholesale?: number | null;
   unitType: ProductUnitType;
+  saleMode: ProductSaleMode;
+  availabilityNote: string | null;
   stock: number;
   stockMin: number;
   isActive: boolean;
@@ -103,6 +127,8 @@ export interface CreateProductPayload {
   priceSale: number;
   priceWholesale?: number | null;
   unitType: ProductUnitType;
+  saleMode?: ProductSaleMode;
+  availabilityNote?: string | null;
   initialStock: number;
   stockMin?: number;
   richContent?: ProductRichContent | null;
@@ -118,6 +144,8 @@ export interface UpdateProductPayload {
   priceSale?: number;
   priceWholesale?: number | null;
   unitType?: ProductUnitType;
+  saleMode?: ProductSaleMode;
+  availabilityNote?: string | null;
   stockMin?: number;
   richContent?: ProductRichContent | null;
 }
@@ -147,7 +175,10 @@ export interface ProductFormValues {
   imageUrl: string;
   priceCost: string;
   priceSale: string;
+  priceWholesale: string;
   unitType: ProductUnitType;
+  saleMode: ProductSaleMode;
+  availabilityNote: string;
   stock: string;
   stockMin: string;
 }

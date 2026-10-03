@@ -36,9 +36,12 @@ import type {
   FieldError,
   ProductFormValues,
   ProductResponse,
+  ProductSaleMode,
   ProductUnitType,
 } from "../../types/products.types";
 import {
+  PRODUCT_SALE_MODE_OPTIONS,
+  PRODUCT_SALE_MODES,
   PRODUCT_UNIT_TYPE_OPTIONS,
   PRODUCT_UNIT_TYPES,
 } from "../../types/products.types";
@@ -71,7 +74,10 @@ const initialForm: ProductFormValues = {
   imageUrl: "",
   priceCost: "",
   priceSale: "",
+  priceWholesale: "",
   unitType: "UNIT",
+  saleMode: "stock",
+  availabilityNote: "",
   stock: "0",
   stockMin: "0",
 };
@@ -84,6 +90,16 @@ const isProductUnitType = (
 
 const getUnitOption = (unitType: ProductUnitType) => {
   return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => option.value === unitType);
+};
+
+const isProductSaleMode = (
+  value: string | null | undefined,
+): value is ProductSaleMode => {
+  return PRODUCT_SALE_MODES.some((saleMode) => saleMode === value);
+};
+
+const getSaleModeOption = (saleMode: ProductSaleMode) => {
+  return PRODUCT_SALE_MODE_OPTIONS.find((option) => option.value === saleMode);
 };
 
 const mapErrorsToRecord = (errors: FieldError[]): Record<string, string> => {
@@ -120,6 +136,7 @@ export const ProductModalForm = ({
   );
   const selectedDepositLabel = selectedDeposit?.name?.trim() || undefined;
   const selectedUnitType = getUnitOption(formSate.unitType);
+  const selectedSaleMode = getSaleModeOption(formSate.saleMode);
   const stockStep = formSate.unitType === "UNIT" ? "1" : "0.01";
 
   useEffect(() => {
@@ -134,7 +151,14 @@ export const ProductModalForm = ({
           imageUrl: dataEdit.imageUrl ?? "",
           priceCost: String(dataEdit.priceCost),
           priceSale: String(dataEdit.priceSale),
+          priceWholesale:
+            dataEdit.priceWholesale === null ||
+            dataEdit.priceWholesale === undefined
+              ? ""
+              : String(dataEdit.priceWholesale),
           unitType: dataEdit.unitType ?? "UNIT",
+          saleMode: dataEdit.saleMode ?? "stock",
+          availabilityNote: dataEdit.availabilityNote ?? "",
           stock: String(dataEdit.stock),
           stockMin: String(dataEdit.stockMin),
         });
@@ -197,6 +221,15 @@ export const ProductModalForm = ({
 
     setFormSate({ ...formSate, unitType: value });
     clearFieldError("unitType");
+  };
+
+  const handleSaleModeChange = (value: string | null) => {
+    if (!isProductSaleMode(value)) {
+      return;
+    }
+
+    setFormSate({ ...formSate, saleMode: value });
+    clearFieldError("saleMode");
   };
 
   const handleBarcodeKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -330,6 +363,24 @@ export const ProductModalForm = ({
           </div>
 
           <div className="grid gap-2">
+            <Label htmlFor="slug">Slug público</Label>
+            <Input
+              id="slug"
+              value={
+                dataEdit?.slug ??
+                "Se generará automáticamente al crear el producto."
+              }
+              readOnly
+              disabled
+              className="bg-muted text-muted-foreground"
+            />
+            <p className="text-xs text-muted-foreground">
+              La URL pública se genera automáticamente y no cambia al renombrar
+              el producto.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
             <Label htmlFor="description">Descripción</Label>
             <Textarea
               id="description"
@@ -357,7 +408,7 @@ export const ProductModalForm = ({
             )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="grid gap-2">
               <Label htmlFor="priceCost">Precio costo</Label>
               <Input
@@ -389,6 +440,81 @@ export const ProductModalForm = ({
               />
               {errors.priceSale && (
                 <p className="text-sm text-destructive">{errors.priceSale}</p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="priceWholesale">Precio mayorista</Label>
+              <Input
+                id="priceWholesale"
+                name="priceWholesale"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formSate.priceWholesale}
+                onChange={handleInputChange}
+                placeholder="Opcional"
+              />
+              {errors.priceWholesale && (
+                <p className="text-sm text-destructive">
+                  {errors.priceWholesale}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="saleMode">
+                Modalidad de venta <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formSate.saleMode}
+                onValueChange={handleSaleModeChange}
+              >
+                <SelectTrigger id="saleMode" className="w-full">
+                  <SelectValue placeholder="Seleccione una modalidad">
+                    {selectedSaleMode?.label ?? "Seleccione una modalidad"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {PRODUCT_SALE_MODE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {selectedSaleMode?.description ??
+                  "Define cómo se comunica la disponibilidad en el catálogo."}
+              </p>
+              {errors.saleMode && (
+                <p className="text-sm text-destructive">{errors.saleMode}</p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="availabilityNote">
+                Mensaje de disponibilidad
+              </Label>
+              <Textarea
+                id="availabilityNote"
+                name="availabilityNote"
+                value={formSate.availabilityNote}
+                onChange={handleInputChange}
+                placeholder="Entrega estimada entre 7 y 10 días."
+              />
+              <p className="text-xs text-muted-foreground">
+                Opcional. Se mostrará en el catálogo cuando necesites aclarar
+                condiciones de entrega o disponibilidad.
+              </p>
+              {errors.availabilityNote && (
+                <p className="text-sm text-destructive">
+                  {errors.availabilityNote}
+                </p>
               )}
             </div>
           </div>

@@ -1,9 +1,29 @@
 import { z } from "zod";
-import { PRODUCT_UNIT_TYPES } from "../types/products.types";
+import {
+  PRODUCT_SALE_MODES,
+  PRODUCT_UNIT_TYPES,
+} from "../types/products.types";
 
 const productUnitTypeSchema = z.enum(PRODUCT_UNIT_TYPES, {
   error: "La unidad de medida seleccionada no es valida",
 });
+
+const productSaleModeSchema = z.enum(PRODUCT_SALE_MODES, {
+  error: "La modalidad de venta seleccionada no es valida",
+});
+
+const optionalPriceSchema = z.string().refine(
+  (value) => {
+    if (value.trim() === "") return true;
+
+    const numericValue = Number(value);
+
+    return Number.isFinite(numericValue) && numericValue >= 0;
+  },
+  {
+    message: "El precio mayorista no puede ser negativo",
+  },
+);
 
 const productBaseSchema = z.object({
   idProductCategory: z
@@ -53,7 +73,15 @@ const productBaseSchema = z.object({
       "El precio de venta debe ser mayor a cero",
     ),
 
+  priceWholesale: optionalPriceSchema,
+
   unitType: productUnitTypeSchema,
+
+  saleMode: productSaleModeSchema,
+
+  availabilityNote: z
+    .string()
+    .max(500, "El mensaje de disponibilidad no puede superar los 500 caracteres"),
 
   stock: z.string().refine(
     (value) => {
