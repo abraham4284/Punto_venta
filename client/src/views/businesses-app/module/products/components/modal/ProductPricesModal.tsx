@@ -54,6 +54,12 @@ const isInvalidPrice = (value: string): boolean => {
   );
 };
 
+const isInvalidOptionalPrice = (value: string): boolean => {
+  if (value.trim() === "") return false;
+
+  return !Number.isFinite(Number(value)) || Number(value) < 0;
+};
+
 export const ProductPricesModal = ({
   isOpen,
   product,
@@ -87,8 +93,16 @@ export const ProductPricesModal = ({
           : "El precio de venta no puede ser negativo";
     }
 
+    if (isInvalidOptionalPrice(formSate.priceWholesale)) {
+      nextErrors.priceWholesale = !Number.isFinite(
+        Number(formSate.priceWholesale),
+      )
+        ? "El precio mayorista no es válido"
+        : "El precio mayorista no puede ser negativo";
+    }
+
     return nextErrors;
-  }, [formSate.priceCost, formSate.priceSale]);
+  }, [formSate.priceCost, formSate.priceSale, formSate.priceWholesale]);
 
   const visibleErrors = isOpen && formIsReady
     ? {
@@ -259,6 +273,36 @@ export const ProductPricesModal = ({
                   {visibleErrors.priceSale && (
                     <p className="text-sm text-destructive">
                       {visibleErrors.priceSale}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="quickPriceWholesale">
+                    Precio Mayorista ($)
+                  </Label>
+                  <Input
+                    id="quickPriceWholesale"
+                    name="priceWholesale"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formSate.priceWholesale}
+                    disabled={saving}
+                    aria-invalid={Boolean(visibleErrors.priceWholesale)}
+                    placeholder="Opcional"
+                    onChange={(event) => {
+                      onInputChange(event);
+                      setErrors((currentErrors) => {
+                        const nextErrors = { ...currentErrors };
+                        delete nextErrors.priceWholesale;
+                        return nextErrors;
+                      });
+                    }}
+                  />
+                  {visibleErrors.priceWholesale && (
+                    <p className="text-sm text-destructive">
+                      {visibleErrors.priceWholesale}
                     </p>
                   )}
                 </div>

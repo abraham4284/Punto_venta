@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
-import { productCategoryFormSchema } from "../../validations/productCategory.validation"
+import { productCategoryFormSchema } from "../../validations/productCategory.validation";
 import type {
   FieldError,
   ProductCategoryFormValues,
@@ -57,23 +57,31 @@ export const CategoryModalForm = ({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (dataEdit) {
-      setFormSate({
-        name: dataEdit.name,
-        description: dataEdit.description ?? "",
-        isDefault: dataEdit.isDefault,
-      });
-    } else {
-      onResetForm();
-    }
+    const timeoutId = window.setTimeout(() => {
+      if (dataEdit) {
+        setFormSate({
+          name: dataEdit.name,
+          description: dataEdit.description ?? "",
+          isDefault: dataEdit.isDefault,
+        });
+      } else {
+        setFormSate(initialForm);
+      }
 
-    setErrors({});
-  }, [dataEdit, isOpen]);
+      setErrors({});
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dataEdit, isOpen, setFormSate]);
 
   useEffect(() => {
-    if (backendErrors.length > 0) {
-      setErrors(mapErrorsToRecord(backendErrors));
-    }
+    const timeoutId = window.setTimeout(() => {
+      if (backendErrors.length > 0) {
+        setErrors(mapErrorsToRecord(backendErrors));
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [backendErrors]);
 
   const handleOpenChange = (open: boolean) => {
@@ -145,6 +153,23 @@ export const CategoryModalForm = ({
             {errors.name && (
               <p className="text-sm text-destructive">{errors.name}</p>
             )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="slug">Slug público</Label>
+            <Input
+              id="slug"
+              value={
+                dataEdit?.slug ??
+                "Se generará automáticamente al crear la categoría."
+              }
+              readOnly
+              disabled
+              className="bg-muted text-muted-foreground"
+            />
+            <p className="text-xs text-muted-foreground">
+              El slug público permanece estable aunque cambies el nombre.
+            </p>
           </div>
 
           <div className="grid gap-2">
