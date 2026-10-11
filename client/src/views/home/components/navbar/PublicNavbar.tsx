@@ -5,9 +5,9 @@ import { BrandLogo } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { label: "Funcionalidades", href: "#funcionalidades" },
-  { label: "Beneficios", href: "#beneficios" },
-  { label: "Precios", href: "#precios" },
+  { label: "Funcionalidades", to: "/funcionalidades" },
+  { label: "Beneficios", to: "/#beneficios" },
+  { label: "Precios", to: "/#precios" },
 ];
 
 export const PublicNavbar = () => {
@@ -20,13 +20,13 @@ export const PublicNavbar = () => {
 
         <div className="hidden items-center gap-6 md:flex">
           {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
+            <Link
+              key={link.to}
+              to={link.to}
               className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
 

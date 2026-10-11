@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { HomePage } from "../page/HomePage";
+import { FeaturesPage } from "../page/FeaturesPage";
 import { LoginPage } from "../page/LoginPage";
 import { RegisterPage } from "../page/RegisterPage";
 import { LegalDocumentPage } from "@/views/businesses-app/module/legal/page/LegalDocumentPage";
@@ -8,6 +9,7 @@ export const HomeRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/funcionalidades" element={<FeaturesPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route

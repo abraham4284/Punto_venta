@@ -5,6 +5,7 @@ import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FeaturesSection } from "../components/features/FeaturesSection";
+import { PublicFooter } from "../components/footer/PublicFooter";
 import { HeroSection } from "../components/hero/HeroSection";
 import { PublicNavbar } from "../components/navbar/PublicNavbar";
 
@@ -68,22 +69,7 @@ export const HomePage = () => {
           </div>
         </section>
 
-        <footer className="border-t bg-white py-8">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-            <p>© {new Date().getFullYear()} Cajora. Todos los derechos reservados.</p>
-            <div className="flex gap-4">
-              <a href="#funcionalidades" className="hover:text-foreground">
-                Funcionalidades
-              </a>
-              <a href="#beneficios" className="hover:text-foreground">
-                Beneficios
-              </a>
-              <Link to="/login" className="hover:text-foreground">
-                Acceder
-              </Link>
-            </div>
-          </div>
-        </footer>
+        <PublicFooter />
       </div>
     </>
   );
