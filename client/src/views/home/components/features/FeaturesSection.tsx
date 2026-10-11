@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import {
+  ArrowRight,
   BarChart3,
   Building2,
   FileSpreadsheet,
@@ -7,6 +9,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 const features = [
@@ -85,6 +88,13 @@ export const FeaturesSection = () => {
               </Card>
             );
           })}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <Button variant="outline" render={<Link to="/funcionalidades" />}>
+            Ver todas las funcionalidades
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       </div>
     </section>
