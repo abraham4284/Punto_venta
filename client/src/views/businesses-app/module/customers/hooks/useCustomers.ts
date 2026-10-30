@@ -20,10 +20,10 @@ export const useCustomers = () => {
   const [loading, setLoading] = useState(false);
   const [loadingById, setLoadingById] = useState(false);
 
-  const getCustomers = useCallback(async () => {
+  const getCustomers = useCallback(async (search?: string) => {
     try {
       setLoading(true);
-      const { data } = await getCustomersRequest();
+      const { data } = await getCustomersRequest(search);
       setCustomers(data.data ?? []);
     } finally {
       setLoading(false);

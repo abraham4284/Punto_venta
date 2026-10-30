@@ -14,6 +14,7 @@ import {
 import { useCustomers } from "../hooks/useCustomers";
 import type { Customer, CustomerFormValues } from "../types/customers.types";
 import { useUtilsState } from "@/hooks/useUtilsState";
+import { matchesCustomerSearch } from "../helpers/customer.helpers";
 
 export const CustomersPage = () => {
   const {
@@ -46,14 +47,7 @@ export const CustomersPage = () => {
 
     if (!value) return customers;
 
-    return customers.filter((customer) => {
-      return (
-        customer.name.toLowerCase().includes(value) ||
-        customer.phone?.toLowerCase().includes(value) ||
-        customer.email?.toLowerCase().includes(value) ||
-        customer.address?.toLowerCase().includes(value)
-      );
-    });
+    return customers.filter((customer) => matchesCustomerSearch(customer, value));
   }, [customers, search]);
 
   const handleOpenCreate = () => {
@@ -68,7 +62,10 @@ export const CustomersPage = () => {
 
   const handleSubmit = async (values: CustomerFormValues) => {
     const payload = {
-      name: values.name.trim(),
+      firstName: values.firstName.trim(),
+      lastName: values.lastName.trim(),
+      documentType: values.documentType || null,
+      documentNumber: values.documentType ? values.documentNumber.trim() : null,
       phone: values.phone.trim() || null,
       email: values.email.trim() || null,
       address: values.address.trim() || null,

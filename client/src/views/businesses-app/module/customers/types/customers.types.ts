@@ -1,7 +1,13 @@
+export type CustomerDocumentType = "DNI" | "CUIL" | "CUIT" | "PASSPORT" | "OTHER";
+
 export interface Customer {
   idCustomer: number;
   idBusiness: number;
-  name: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  documentType: CustomerDocumentType | null;
+  documentNumber: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;
@@ -12,7 +18,10 @@ export interface Customer {
 }
 
 export interface CreateCustomerPayload {
-  name: string;
+  firstName: string;
+  lastName: string;
+  documentType?: CustomerDocumentType | null;
+  documentNumber?: string | null;
   phone?: string | null;
   email?: string | null;
   address?: string | null;
@@ -21,7 +30,10 @@ export interface CreateCustomerPayload {
 
 export interface UpdateCustomerPayload {
   idCustomer: number;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
+  documentType?: CustomerDocumentType | null;
+  documentNumber?: string | null;
   phone?: string | null;
   email?: string | null;
   address?: string | null;
@@ -34,7 +46,10 @@ export interface ToggleCustomerStatusPayload {
 }
 
 export interface CustomerFormValues {
-  name: string;
+  firstName: string;
+  lastName: string;
+  documentType: CustomerDocumentType | "";
+  documentNumber: string;
   phone: string;
   email: string;
   address: string;

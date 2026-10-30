@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Customer } from "../../types/customers.types";
+import { getCustomerDocumentLabel } from "../../helpers/customer.helpers";
 
 interface Props {
   customers: Customer[];
@@ -44,7 +45,8 @@ export const CustomersTable = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nombre</TableHead>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Documento</TableHead>
             <TableHead>Teléfono</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Dirección</TableHead>
@@ -56,7 +58,8 @@ export const CustomersTable = ({
         <TableBody>
           {customers.map((customer) => (
             <TableRow key={customer.idCustomer}>
-              <TableCell className="font-medium">{customer.name}</TableCell>
+              <TableCell className="font-medium">{customer.fullName}</TableCell>
+              <TableCell>{getCustomerDocumentLabel(customer)}</TableCell>
               <TableCell>{customer.phone || "-"}</TableCell>
               <TableCell>{customer.email || "-"}</TableCell>
               <TableCell>{customer.address || "-"}</TableCell>
