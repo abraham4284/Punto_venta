@@ -83,7 +83,8 @@ CALL sp_add_index_if_not_exists('notification_recipients', 'idx_notification_rec
 CALL sp_add_index_if_not_exists('notification_recipients', 'uq_notification_recipient_user', 'ALTER TABLE `notification_recipients` ADD UNIQUE KEY `uq_notification_recipient_user` (`idNotification`,`idUser`)');
 CALL sp_add_index_if_not_exists('notification_recipients', 'uq_notification_recipient_platform_user', 'ALTER TABLE `notification_recipients` ADD UNIQUE KEY `uq_notification_recipient_platform_user` (`idNotification`,`idPlatformUser`)');
 CALL sp_add_index_if_not_exists('customers', 'uk_customer_business_id', 'ALTER TABLE `customers` ADD UNIQUE KEY `uk_customer_business_id` (`idBusiness`,`idCustomer`)');
-CALL sp_add_index_if_not_exists('customers', 'idx_customers_business_name', 'ALTER TABLE `customers` ADD KEY `idx_customers_business_name` (`idBusiness`,`name`)');
+CALL sp_add_index_if_not_exists('customers', 'idx_customers_business_last_first', 'ALTER TABLE `customers` ADD KEY `idx_customers_business_last_first` (`idBusiness`,`last_name`,`first_name`)');
+CALL sp_add_index_if_not_exists('customers', 'uk_customers_business_document', 'ALTER TABLE `customers` ADD UNIQUE KEY `uk_customers_business_document` (`idBusiness`,`document_type`,`document_number`)');
 CALL sp_add_index_if_not_exists('suppliers', 'uk_supplier_business_id', 'ALTER TABLE `suppliers` ADD UNIQUE KEY `uk_supplier_business_id` (`idBusiness`,`idSupplier`)');
 CALL sp_add_index_if_not_exists('suppliers', 'idx_suppliers_business_name', 'ALTER TABLE `suppliers` ADD KEY `idx_suppliers_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('deposits', 'uk_deposit_business_name', 'ALTER TABLE `deposits` ADD UNIQUE KEY `uk_deposit_business_name` (`idBusiness`,`name`)');

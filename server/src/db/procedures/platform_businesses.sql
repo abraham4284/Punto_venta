@@ -302,7 +302,7 @@ BEGIN
     s.total,
     s.status,
     u.name AS userName,
-    COALESCE(c.name, 'Consumidor Final') AS customerName
+    COALESCE(NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), ''), 'Consumidor Final') AS customerName
   FROM sales s
   INNER JOIN users u ON u.idUser = s.idUser
   LEFT JOIN customers c ON c.idBusiness = s.idBusiness AND c.idCustomer = s.idCustomer
