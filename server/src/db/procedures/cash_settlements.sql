@@ -94,7 +94,7 @@ BEGIN
     s.sale_number,
     sp.amount,
     sp.collected_at,
-    customer.name AS customer_name
+    NULLIF(TRIM(CONCAT_WS(' ', customer.first_name, customer.last_name)), '') AS customer_name
   FROM sale_payments sp
   INNER JOIN payment_methods pm
     ON pm.idBusiness = sp.idBusiness

@@ -13,10 +13,13 @@ export async function createCustomerService(
   data: CreateCustomerPayload,
 ): Promise<CustomerResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_create_customer(?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
-      data.name,
+      data.firstName,
+      data.lastName,
+      data.documentType ?? null,
+      data.documentNumber ?? null,
       data.phone ?? null,
       data.email ?? null,
       data.address ?? null,
@@ -36,9 +39,11 @@ export async function createCustomerService(
 
 export async function getCustomersService(
   idBusiness: number,
+  search?: string,
 ): Promise<CustomerResponse[]> {
-  const [rows] = await pool.query<RowDataPacket[]>("CALL sp_get_customers(?)", [
+  const [rows] = await pool.query<RowDataPacket[]>("CALL sp_get_customers(?, ?)", [
     idBusiness,
+    search ?? null,
   ]);
 
   const result = rows as unknown as CustomerDbRow[][];
@@ -68,11 +73,15 @@ export async function updateCustomerService(
   data: UpdateCustomerPayload,
 ): Promise<CustomerResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idCustomer,
-      data.name ?? null,
+      data.firstName ?? null,
+      data.lastName ?? null,
+      data.documentType ?? null,
+      data.documentNumber ?? null,
+      Object.hasOwn(data, "documentType") ? 1 : 0,
       data.phone ?? null,
       Object.hasOwn(data, "phone") ? 1 : 0,
       data.email ?? null,

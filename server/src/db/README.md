@@ -6,6 +6,10 @@ The clean-install baseline is for an already selected EMPTY database. It is not 
 
 ## Final Structure
 
+### Customers v2
+
+El baseline incluye identidad de clientes con nombre/apellido separados y documento opcional unico por negocio. Ver [CUSTOMERS_V2.md](CUSTOMERS_V2.md) para el contrato, el breaking change de frontend y el orden exacto de actualizacion de bases existentes mediante `manual/002_customers_v2.sql` y los seis archivos de procedures afectados. No ejecutar el instalador limpio sobre una base existente.
+
 ```text
 server/src/db/
 ├── db.ts

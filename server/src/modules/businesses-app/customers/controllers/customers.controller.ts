@@ -9,6 +9,7 @@ import {
 } from "../services/customers.service.js";
 import {
   createCustomerSchema,
+  customerSearchSchema,
   toggleCustomerStatusSchema,
   updateCustomerSchema,
 } from "../validations/customers.validations.js";
@@ -22,12 +23,18 @@ function getZodErrors(error: z.ZodError) {
   });
 }
 
-function getErrorStatus(error: any): number {
-  if (error?.sqlState === "45000") {
-    return 400;
+function respondCustomerError(res: Response, error: unknown): Response {
+  if (error instanceof z.ZodError) {
+    return res.status(400).json({ status: false, message: "Error de validacion", errors: getZodErrors(error) });
   }
-
-  return 500;
+  const dbError = error as { code?: string; sqlState?: string; sqlMessage?: string } | null;
+  if (dbError?.code === "ER_DUP_ENTRY" && dbError.sqlMessage?.includes("uk_customers_business_document")) {
+    const message = "Ya existe un cliente con ese documento";
+    return res.status(400).json({ status: false, message, errors: [{ field: "documentNumber", message }] });
+  }
+  const notFound = error instanceof Error && error.message === "Cliente no encontrado";
+  const status = notFound ? 404 : dbError?.sqlState === "45000" ? 400 : 500;
+  return res.status(status).json({ status: false, message: status === 500 ? "No se pudo procesar la solicitud de clientes" : error instanceof Error ? error.message : "Solicitud invalida" });
 }
 
 export async function createCustomerController(
@@ -44,19 +51,8 @@ export async function createCustomerController(
       message: "Cliente creado correctamente",
       data: result,
     });
-  } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        status: false,
-        message: "Error de validacion",
-        errors: getZodErrors(error),
-      });
-    }
-
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+  } catch (error: unknown) {
+    return respondCustomerError(res, error);
   }
 }
 
@@ -65,18 +61,16 @@ export async function getCustomersController(
   res: Response,
 ): Promise<Response> {
   try {
-    const result = await getCustomersService(req.user!.idBusiness);
+    const { search } = customerSearchSchema.parse(req.query);
+    const result = await getCustomersService(req.user!.idBusiness, search);
 
     return res.status(200).json({
       status: true,
       message: "Clientes obtenidos correctamente",
       data: result,
     });
-  } catch (error: any) {
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+  } catch (error: unknown) {
+    return respondCustomerError(res, error);
   }
 }
 
@@ -104,11 +98,8 @@ export async function getCustomerByIdController(
       message: "Cliente obtenido correctamente",
       data: result,
     });
-  } catch (error: any) {
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+  } catch (error: unknown) {
+    return respondCustomerError(res, error);
   }
 }
 
@@ -130,19 +121,8 @@ export async function updateCustomerController(
       message: "Cliente actualizado correctamente",
       data: result,
     });
-  } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        status: false,
-        message: "Error de validacion",
-        errors: getZodErrors(error),
-      });
-    }
-
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+  } catch (error: unknown) {
+    return respondCustomerError(res, error);
   }
 }
 
@@ -164,18 +144,7 @@ export async function toggleCustomerStatusController(
       message: "Estado del cliente actualizado correctamente",
       data: result,
     });
-  } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        status: false,
-        message: "Error de validacion",
-        errors: getZodErrors(error),
-      });
-    }
-
-    return res.status(getErrorStatus(error)).json({
-      status: false,
-      message: error.sqlMessage || error.message,
-    });
+  } catch (error: unknown) {
+    return respondCustomerError(res, error);
   }
 }

@@ -19,7 +19,7 @@ BEGIN
     s.total,
     s.observation,
     s.status,
-    COALESCE(c.name, 'Consumidor Final') AS customer_name,
+    COALESCE(NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), ''), 'Consumidor Final') AS customer_name,
     u.name AS user_name,
     d.name AS deposit_name,
     GROUP_CONCAT(DISTINCT pm.code ORDER BY pm.name SEPARATOR ', ') AS payment_method_code,
@@ -57,7 +57,8 @@ BEGIN
     s.total,
     s.observation,
     s.status,
-    c.name,
+    c.first_name,
+    c.last_name,
     u.name,
     d.name
   LIMIT 1;

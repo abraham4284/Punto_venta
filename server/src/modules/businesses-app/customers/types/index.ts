@@ -1,10 +1,15 @@
 import type { Request } from "express";
 import type { BusinessRequestUser } from "@/types/auth.types.js";
 
+export type CustomerDocumentType = "DNI" | "CUIL" | "CUIT" | "PASSPORT" | "OTHER";
+
 export interface CustomerDbRow {
   idCustomer: number;
   idBusiness: number;
-  name: string;
+  first_name: string;
+  last_name: string;
+  document_type: CustomerDocumentType | null;
+  document_number: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;
@@ -17,7 +22,11 @@ export interface CustomerDbRow {
 export interface CustomerResponse {
   idCustomer: number;
   idBusiness: number;
-  name: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  documentType: CustomerDocumentType | null;
+  documentNumber: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;
@@ -29,7 +38,10 @@ export interface CustomerResponse {
 
 export interface CreateCustomerPayload {
   idBusiness: number;
-  name: string;
+  firstName: string;
+  lastName: string;
+  documentType?: CustomerDocumentType | null;
+  documentNumber?: string | null;
   phone?: string | null;
   email?: string | null;
   address?: string | null;
@@ -39,7 +51,10 @@ export interface CreateCustomerPayload {
 export interface UpdateCustomerPayload {
   idBusiness: number;
   idCustomer: number;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
+  documentType?: CustomerDocumentType | null;
+  documentNumber?: string | null;
   phone?: string | null;
   email?: string | null;
   address?: string | null;

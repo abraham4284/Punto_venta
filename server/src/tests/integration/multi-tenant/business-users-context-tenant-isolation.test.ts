@@ -21,7 +21,8 @@ import {
 
 interface BusinessCustomerRow extends RowDataPacket {
   idBusiness: number;
-  name: string;
+  first_name: string;
+  last_name: string;
 }
 
 interface BusinessSupplierRow extends RowDataPacket {
@@ -56,13 +57,13 @@ describe("multi-tenant users, customers, suppliers and tenant context", function
       .get("/api/customers")
       .set("Cookie", scenario.tenantB.auth.cookies);
     const search = await request(getTestApp())
-      .get(`/api/customers?search=${encodeURIComponent(customerA.name)}`)
+      .get(`/api/customers?search=${encodeURIComponent(customerA.fullName)}`)
       .set("Cookie", scenario.tenantB.auth.cookies);
 
     expect(list.status).toBe(200);
-    expect(JSON.stringify(extractArrayFromBody(list.body))).toContain(customerB.name);
-    expect(JSON.stringify(extractArrayFromBody(list.body))).not.toContain(customerA.name);
-    expectResponseDoesNotLeak(search, customerA.name);
+    expect(JSON.stringify(extractArrayFromBody(list.body))).toContain(customerB.fullName);
+    expect(JSON.stringify(extractArrayFromBody(list.body))).not.toContain(customerA.fullName);
+    expectResponseDoesNotLeak(search, customerA.fullName);
   });
 
   it("bloquea detalle, edicion y desactivacion de cliente ajeno", async function test() {
@@ -77,7 +78,7 @@ describe("multi-tenant users, customers, suppliers and tenant context", function
     const update = await request(getTestApp())
       .put(`/api/customers/${customerA.idCustomer}`)
       .set("Cookie", scenario.tenantB.auth.cookies)
-      .send({ name: "Cliente alterado" });
+      .send({ firstName: "Cliente alterado" });
     const status = await request(getTestApp())
       .patch(`/api/customers/${customerA.idCustomer}/status`)
       .set("Cookie", scenario.tenantB.auth.cookies)
@@ -88,12 +89,13 @@ describe("multi-tenant users, customers, suppliers and tenant context", function
     expectTenantBlocked(status);
 
     const state = await querySingleRow<BusinessCustomerRow>(
-      "SELECT idBusiness, name FROM customers WHERE idCustomer = ?",
+      "SELECT idBusiness, first_name, last_name FROM customers WHERE idCustomer = ?",
       [customerA.idCustomer],
     );
 
     expect(state?.idBusiness).toBe(scenario.tenantA.business.idBusiness);
-    expect(state?.name).toBe(customerA.name);
+    expect(state?.first_name).toBe(customerA.firstName);
+    expect(state?.last_name).toBe(customerA.lastName);
   });
 
   it("ignora idBusiness manipulado al crear cliente", async function test() {
@@ -102,7 +104,8 @@ describe("multi-tenant users, customers, suppliers and tenant context", function
       .set("Cookie", scenario.tenantB.auth.cookies)
       .send({
         idBusiness: scenario.tenantA.business.idBusiness,
-        name: "Cliente creado por tenant B",
+        firstName: "Cliente creado por tenant B",
+        lastName: "Apellido",
         phone: null,
         email: null,
         address: null,
@@ -111,11 +114,40 @@ describe("multi-tenant users, customers, suppliers and tenant context", function
 
     expect(response.status).toBe(201);
     const state = await querySingleRow<BusinessCustomerRow>(
-      "SELECT idBusiness, name FROM customers WHERE name = ?",
+      "SELECT idBusiness, first_name, last_name FROM customers WHERE first_name = ?",
       ["Cliente creado por tenant B"],
     );
 
     expect(state?.idBusiness).toBe(scenario.tenantB.business.idBusiness);
+  });
+
+  it("normaliza documentos, bloquea duplicados por negocio y permite otro tenant", async function test() {
+    const body = { firstName: "Ana", lastName: "Perez", documentType: "DNI", documentNumber: "12.345.678" };
+    const first = await request(getTestApp()).post("/api/customers").set("Cookie", scenario.tenantA.auth.cookies).send(body);
+    expect(first.status).toBe(201);
+    expect(first.body.data.documentNumber).toBe("12345678");
+    expect(first.body.data.fullName).toBe("Ana Perez");
+    expect(first.body.data).not.toHaveProperty("name");
+    const duplicate = await request(getTestApp()).post("/api/customers").set("Cookie", scenario.tenantA.auth.cookies).send({ ...body, documentNumber: "12345678" });
+    expect(duplicate.status).toBe(400);
+    expect(duplicate.body.errors[0].field).toBe("documentNumber");
+    const other = await request(getTestApp()).post("/api/customers").set("Cookie", scenario.tenantB.auth.cookies).send(body);
+    expect(other.status).toBe(201);
+
+    for (const search of ["Ana Perez", "12.345.678", "12 345 678", "12-345-678"]) {
+      const result = await request(getTestApp()).get(`/api/customers?search=${encodeURIComponent(search)}`).set("Cookie", scenario.tenantA.auth.cookies);
+      expect(result.status).toBe(200);
+      expect(result.body.data).toHaveLength(1);
+      expect(result.body.data[0].idCustomer).toBe(first.body.data.idCustomer);
+    }
+    const another = await createCustomerFixture(scenario.tenantA.business.idBusiness);
+    const conflictingUpdate = await request(getTestApp()).put(`/api/customers/${another.idCustomer}`).set("Cookie", scenario.tenantA.auth.cookies).send({ documentType: "DNI", documentNumber: "12.345.678" });
+    expect(conflictingUpdate.status).toBe(400);
+    const clear = await request(getTestApp()).put(`/api/customers/${first.body.data.idCustomer}`).set("Cookie", scenario.tenantA.auth.cookies).send({ documentType: null, documentNumber: null });
+    expect(clear.status).toBe(200);
+    expect(clear.body.data).toMatchObject({ documentType: null, documentNumber: null, firstName: "Ana", lastName: "Perez" });
+    const assign = await request(getTestApp()).put(`/api/customers/${another.idCustomer}`).set("Cookie", scenario.tenantA.auth.cookies).send({ documentType: "DNI", documentNumber: "12345678" });
+    expect(assign.status).toBe(200);
   });
 
   it("aisla listado y detalle de proveedores", async function test() {
