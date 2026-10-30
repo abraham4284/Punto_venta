@@ -123,7 +123,7 @@ BEGIN
   SELECT
     s.idSale,
     s.idSale AS receiptNumber,
-    COALESCE(c.name, 'Consumidor Final') AS customerName,
+    COALESCE(NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), ''), 'Consumidor Final') AS customerName,
     s.total,
     s.status,
     s.sale_date AS saleDate,

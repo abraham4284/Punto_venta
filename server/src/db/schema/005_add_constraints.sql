@@ -106,6 +106,8 @@ CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_rec
 CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_recipient_read_fields', 'ALTER TABLE `notification_recipients` ADD CONSTRAINT `chk_notification_recipient_read_fields` CHECK ((`is_read` = 0 AND `read_at` IS NULL) OR (`is_read` = 1 AND `read_at` IS NOT NULL))');
 CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_recipient_archived_fields', 'ALTER TABLE `notification_recipients` ADD CONSTRAINT `chk_notification_recipient_archived_fields` CHECK ((`is_archived` = 0 AND `archived_at` IS NULL) OR (`is_archived` = 1 AND `archived_at` IS NOT NULL))');
 
+CALL sp_add_check_if_not_exists('customers', 'chk_customers_document_pair', 'ALTER TABLE customers ADD CONSTRAINT chk_customers_document_pair CHECK ((document_type IS NULL AND document_number IS NULL) OR (document_type IS NOT NULL AND document_number IS NOT NULL AND CHAR_LENGTH(TRIM(document_number)) > 0))');
+
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
 DROP PROCEDURE IF EXISTS sp_drop_check_if_exists;

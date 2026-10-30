@@ -287,7 +287,10 @@ CREATE TABLE IF NOT EXISTS `notification_recipients` (
 CREATE TABLE IF NOT EXISTS `customers` (
   `idCustomer` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
-  `name` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `first_name` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `last_name` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `document_type` enum('DNI','CUIL','CUIT','PASSPORT','OTHER') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `document_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `phone` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `address` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -707,7 +710,8 @@ CALL sp_add_index_if_not_exists('notification_recipients', 'idx_notification_rec
 CALL sp_add_index_if_not_exists('notification_recipients', 'uq_notification_recipient_user', 'ALTER TABLE `notification_recipients` ADD UNIQUE KEY `uq_notification_recipient_user` (`idNotification`,`idUser`)');
 CALL sp_add_index_if_not_exists('notification_recipients', 'uq_notification_recipient_platform_user', 'ALTER TABLE `notification_recipients` ADD UNIQUE KEY `uq_notification_recipient_platform_user` (`idNotification`,`idPlatformUser`)');
 CALL sp_add_index_if_not_exists('customers', 'uk_customer_business_id', 'ALTER TABLE `customers` ADD UNIQUE KEY `uk_customer_business_id` (`idBusiness`,`idCustomer`)');
-CALL sp_add_index_if_not_exists('customers', 'idx_customers_business_name', 'ALTER TABLE `customers` ADD KEY `idx_customers_business_name` (`idBusiness`,`name`)');
+CALL sp_add_index_if_not_exists('customers', 'idx_customers_business_last_first', 'ALTER TABLE `customers` ADD KEY `idx_customers_business_last_first` (`idBusiness`,`last_name`,`first_name`)');
+CALL sp_add_index_if_not_exists('customers', 'uk_customers_business_document', 'ALTER TABLE `customers` ADD UNIQUE KEY `uk_customers_business_document` (`idBusiness`,`document_type`,`document_number`)');
 CALL sp_add_index_if_not_exists('suppliers', 'uk_supplier_business_id', 'ALTER TABLE `suppliers` ADD UNIQUE KEY `uk_supplier_business_id` (`idBusiness`,`idSupplier`)');
 CALL sp_add_index_if_not_exists('suppliers', 'idx_suppliers_business_name', 'ALTER TABLE `suppliers` ADD KEY `idx_suppliers_business_name` (`idBusiness`,`name`)');
 CALL sp_add_index_if_not_exists('deposits', 'uk_deposit_business_name', 'ALTER TABLE `deposits` ADD UNIQUE KEY `uk_deposit_business_name` (`idBusiness`,`name`)');
@@ -1037,6 +1041,8 @@ CALL sp_add_check_if_not_exists('notifications', 'chk_notifications_resolved_fie
 CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_recipient_target_xor', 'ALTER TABLE `notification_recipients` ADD CONSTRAINT `chk_notification_recipient_target_xor` CHECK ((`idUser` IS NOT NULL AND `idPlatformUser` IS NULL) OR (`idUser` IS NULL AND `idPlatformUser` IS NOT NULL))');
 CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_recipient_read_fields', 'ALTER TABLE `notification_recipients` ADD CONSTRAINT `chk_notification_recipient_read_fields` CHECK ((`is_read` = 0 AND `read_at` IS NULL) OR (`is_read` = 1 AND `read_at` IS NOT NULL))');
 CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_recipient_archived_fields', 'ALTER TABLE `notification_recipients` ADD CONSTRAINT `chk_notification_recipient_archived_fields` CHECK ((`is_archived` = 0 AND `archived_at` IS NULL) OR (`is_archived` = 1 AND `archived_at` IS NOT NULL))');
+
+CALL sp_add_check_if_not_exists('customers', 'chk_customers_document_pair', 'ALTER TABLE customers ADD CONSTRAINT chk_customers_document_pair CHECK ((document_type IS NULL AND document_number IS NULL) OR (document_type IS NOT NULL AND document_number IS NOT NULL AND CHAR_LENGTH(TRIM(document_number)) > 0))');
 
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
@@ -2929,7 +2935,7 @@ BEGIN
     s.total,
     s.status,
     u.name AS userName,
-    COALESCE(c.name, 'Consumidor Final') AS customerName
+    COALESCE(NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), ''), 'Consumidor Final') AS customerName
   FROM sales s
   INNER JOIN users u ON u.idUser = s.idUser
   LEFT JOIN customers c ON c.idBusiness = s.idBusiness AND c.idCustomer = s.idCustomer
@@ -7449,7 +7455,7 @@ BEGIN
     s.sale_number,
     sp.amount,
     sp.collected_at,
-    customer.name AS customer_name
+    NULLIF(TRIM(CONCAT_WS(' ', customer.first_name, customer.last_name)), '') AS customer_name
   FROM sale_payments sp
   INNER JOIN payment_methods pm
     ON pm.idBusiness = sp.idBusiness
@@ -8648,108 +8654,91 @@ DELIMITER ;
    BEGIN: procedures/customers.sql
    ============================================================ */
 
+-- Customers v2: fullName is derived; document uniqueness is enforced by the table index.
+DROP PROCEDURE IF EXISTS sp_get_customer_by_id;
+DELIMITER $$
+CREATE PROCEDURE sp_get_customer_by_id(IN p_idBusiness INT, IN p_idCustomer INT)
+BEGIN
+  SELECT idCustomer, idBusiness, first_name, last_name, document_type, document_number,
+    phone, email, address, observation, is_active, created_at, updated_at
+  FROM customers
+  WHERE idBusiness = p_idBusiness AND idCustomer = p_idCustomer
+  LIMIT 1;
+END$$
+DELIMITER ;
+
 DROP PROCEDURE IF EXISTS sp_create_customer;
 DELIMITER $$
-
 CREATE PROCEDURE sp_create_customer(
   IN p_idBusiness INT,
-  IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_first_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_last_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_document_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_document_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
+  IF (p_document_type IS NULL) <> (p_document_number IS NULL)
+     OR (p_document_number IS NOT NULL AND TRIM(p_document_number) = '')
+     OR (p_document_type IS NOT NULL AND p_document_type NOT IN ('DNI', 'CUIL', 'CUIT', 'PASSPORT', 'OTHER')) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Tipo y numero de documento deben informarse juntos';
+  END IF;
   INSERT INTO customers (
-    idBusiness,
-    name,
-    phone,
-    email,
-    address,
-    observation,
-    is_active,
-    created_at,
-    updated_at
-  )
-  VALUES (
-    p_idBusiness,
-    p_name,
-    p_phone,
-    p_email,
-    p_address,
-    p_observation,
-    1,
-    NOW(),
-    NOW()
+    idBusiness, first_name, last_name, document_type, document_number,
+    phone, email, address, observation, is_active, created_at, updated_at
+  ) VALUES (
+    p_idBusiness, p_first_name, p_last_name, p_document_type, p_document_number,
+    p_phone, p_email, p_address, p_observation, 1, NOW(), NOW()
   );
-
   CALL sp_get_customer_by_id(p_idBusiness, LAST_INSERT_ID());
 END$$
-
 DELIMITER ;
-
 
 DROP PROCEDURE IF EXISTS sp_get_customers;
 DELIMITER $$
-
 CREATE PROCEDURE sp_get_customers(
-  IN p_idBusiness INT
-)
-BEGIN
-  SELECT
-    idCustomer,
-    idBusiness,
-    name,
-    phone,
-    email,
-    address,
-    observation,
-    is_active,
-    created_at,
-    updated_at
-  FROM customers
-  WHERE idBusiness = p_idBusiness
-  ORDER BY name ASC, idCustomer ASC;
-END$$
-
-DELIMITER ;
-
-
-DROP PROCEDURE IF EXISTS sp_get_customer_by_id;
-DELIMITER $$
-
-CREATE PROCEDURE sp_get_customer_by_id(
   IN p_idBusiness INT,
-  IN p_idCustomer INT
+  IN p_search VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
-  SELECT
-    idCustomer,
-    idBusiness,
-    name,
-    phone,
-    email,
-    address,
-    observation,
-    is_active,
-    created_at,
-    updated_at
+  DECLARE v_search VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_document_search VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  SET v_search = NULLIF(TRIM(p_search), '');
+  -- Preserve the original text for names/passports; normalize only the numeric alternative.
+  SET v_document_search = REGEXP_REPLACE(v_search, '[[:space:].-]', '');
+  SELECT idCustomer, idBusiness, first_name, last_name, document_type, document_number,
+    phone, email, address, observation, is_active, created_at, updated_at
   FROM customers
   WHERE idBusiness = p_idBusiness
-    AND idCustomer = p_idCustomer
-  LIMIT 1;
+    AND (
+      v_search IS NULL
+      OR LOCATE(v_search, first_name) > 0
+      OR LOCATE(v_search, last_name) > 0
+      OR LOCATE(v_search, TRIM(CONCAT_WS(' ', first_name, last_name))) > 0
+      OR LOCATE(v_search, document_number) > 0
+      OR (document_type IN ('DNI', 'CUIL', 'CUIT')
+          AND v_document_search REGEXP '^[0-9]+$'
+          AND LOCATE(v_document_search, document_number) > 0)
+      OR LOCATE(v_search, phone) > 0
+      OR LOCATE(v_search, email) > 0
+    )
+  ORDER BY last_name ASC, first_name ASC, idCustomer ASC;
 END$$
-
 DELIMITER ;
-
 
 DROP PROCEDURE IF EXISTS sp_update_customer;
 DELIMITER $$
-
 CREATE PROCEDURE sp_update_customer(
   IN p_idBusiness INT,
   IN p_idCustomer INT,
-  IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_first_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_last_name VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_document_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_document_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_update_document TINYINT,
   IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_phone TINYINT,
   IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -8760,54 +8749,36 @@ CREATE PROCEDURE sp_update_customer(
   IN p_update_observation TINYINT
 )
 BEGIN
-  UPDATE customers
-  SET
-    name = COALESCE(p_name, name),
-    phone = CASE
-      WHEN p_update_phone = 1 THEN p_phone
-      ELSE phone
-    END,
-    email = CASE
-      WHEN p_update_email = 1 THEN p_email
-      ELSE email
-    END,
-    address = CASE
-      WHEN p_update_address = 1 THEN p_address
-      ELSE address
-    END,
-    observation = CASE
-      WHEN p_update_observation = 1 THEN p_observation
-      ELSE observation
-    END,
+  IF (p_document_type IS NULL) <> (p_document_number IS NULL)
+     OR (p_document_number IS NOT NULL AND TRIM(p_document_number) = '')
+     OR (p_document_type IS NOT NULL AND p_document_type NOT IN ('DNI', 'CUIL', 'CUIT', 'PASSPORT', 'OTHER')) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Tipo y numero de documento deben informarse juntos';
+  END IF;
+  UPDATE customers SET
+    first_name = COALESCE(p_first_name, first_name),
+    last_name = COALESCE(p_last_name, last_name),
+    document_type = CASE WHEN p_update_document = 1 THEN p_document_type ELSE document_type END,
+    document_number = CASE WHEN p_update_document = 1 THEN p_document_number ELSE document_number END,
+    phone = CASE WHEN p_update_phone = 1 THEN p_phone ELSE phone END,
+    email = CASE WHEN p_update_email = 1 THEN p_email ELSE email END,
+    address = CASE WHEN p_update_address = 1 THEN p_address ELSE address END,
+    observation = CASE WHEN p_update_observation = 1 THEN p_observation ELSE observation END,
     updated_at = NOW()
-  WHERE idBusiness = p_idBusiness
-    AND idCustomer = p_idCustomer;
-
+  WHERE idBusiness = p_idBusiness AND idCustomer = p_idCustomer;
   CALL sp_get_customer_by_id(p_idBusiness, p_idCustomer);
 END$$
-
 DELIMITER ;
-
 
 DROP PROCEDURE IF EXISTS sp_toggle_customer_status;
 DELIMITER $$
-
 CREATE PROCEDURE sp_toggle_customer_status(
-  IN p_idBusiness INT,
-  IN p_idCustomer INT,
-  IN p_is_active TINYINT
+  IN p_idBusiness INT, IN p_idCustomer INT, IN p_is_active TINYINT
 )
 BEGIN
-  UPDATE customers
-  SET
-    is_active = p_is_active,
-    updated_at = NOW()
-  WHERE idBusiness = p_idBusiness
-    AND idCustomer = p_idCustomer;
-
+  UPDATE customers SET is_active = p_is_active, updated_at = NOW()
+  WHERE idBusiness = p_idBusiness AND idCustomer = p_idCustomer;
   CALL sp_get_customer_by_id(p_idBusiness, p_idCustomer);
 END$$
-
 DELIMITER ;
 
 /* ============================================================
@@ -11726,7 +11697,7 @@ BEGIN
     s.idUser,
     u.name AS user_name,
     s.idCustomer,
-    c.name AS customer_name,
+    NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), '') AS customer_name,
     s.idDeposit,
     d.name AS deposit_name,
     s.idCashSession,
@@ -11854,7 +11825,8 @@ BEGIN
     s.idUser,
     u.name,
     s.idCustomer,
-    c.name,
+    c.first_name,
+    c.last_name,
     s.idDeposit,
     d.name,
     s.idCashSession,
@@ -12005,7 +11977,7 @@ BEGIN
     s.idUser,
     u.name AS user_name,
     s.idCustomer,
-    c.name AS customer_name,
+    NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), '') AS customer_name,
     s.idDeposit,
     d.name AS deposit_name,
     s.idCashSession,
@@ -12057,7 +12029,8 @@ BEGIN
     s.idUser,
     u.name,
     s.idCustomer,
-    c.name,
+    c.first_name,
+    c.last_name,
     s.idDeposit,
     d.name,
     s.idCashSession,
@@ -12788,7 +12761,7 @@ BEGIN
     s.total,
     s.observation,
     s.status,
-    COALESCE(c.name, 'Consumidor Final') AS customer_name,
+    COALESCE(NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), ''), 'Consumidor Final') AS customer_name,
     u.name AS user_name,
     d.name AS deposit_name,
     GROUP_CONCAT(DISTINCT pm.code ORDER BY pm.name SEPARATOR ', ') AS payment_method_code,
@@ -12826,7 +12799,8 @@ BEGIN
     s.total,
     s.observation,
     s.status,
-    c.name,
+    c.first_name,
+    c.last_name,
     u.name,
     d.name
   LIMIT 1;
@@ -13000,7 +12974,7 @@ BEGIN
   SELECT
     s.idSale,
     s.idSale AS receiptNumber,
-    COALESCE(c.name, 'Consumidor Final') AS customerName,
+    COALESCE(NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), ''), 'Consumidor Final') AS customerName,
     s.total,
     s.status,
     s.sale_date AS saleDate,
