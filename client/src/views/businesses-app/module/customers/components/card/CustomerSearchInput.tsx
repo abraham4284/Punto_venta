@@ -10,7 +10,8 @@ export const CustomerSearchInput = ({ value, onChange }: Props) => {
     <Input
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      placeholder="Buscar por nombre, teléfono, email o dirección..."
+      aria-label="Buscar clientes"
+      placeholder="Buscar por nombre, apellido, documento, teléfono o email..."
     />
   );
 };

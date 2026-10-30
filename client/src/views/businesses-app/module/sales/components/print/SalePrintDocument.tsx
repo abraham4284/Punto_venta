@@ -1,6 +1,7 @@
 import { Package } from "lucide-react";
 import type { BusinessResponse } from "../../../businesses/types";
 import type { Customer } from "../../../customers/types/customers.types";
+import { getCustomerDocumentLabel } from "../../../customers/helpers/customer.helpers";
 import type { SaleWithDetailsResponse } from "../../types";
 import { formatCurrency, formatDate } from "@/helpers";
 
@@ -64,7 +65,7 @@ export const SalePrintDocument = ({
 }: SalePrintDocumentProps) => {
   const businessName = business?.name || "Cajora";
   const businessType = getBusinessTypeLabel(business?.businessType);
-  const customerName = customer?.name || sale.customerName || "Consumidor Final";
+  const customerName = customer?.fullName || sale.customerName || "Consumidor Final";
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;
 
   return (
@@ -119,6 +120,7 @@ export const SalePrintDocument = ({
               <p>
                 <strong>Nombre:</strong> {customerName}
               </p>
+              {customer?.documentNumber ? <p><strong>Documento:</strong> {getCustomerDocumentLabel(customer)}</p> : null}
               {customer?.phone ? (
                 <p>
                   <strong>Teléfono:</strong> {customer.phone}

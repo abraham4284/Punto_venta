@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { Customer } from "../../../customers/types/customers.types";
+import { getCustomerDocumentLabel, matchesCustomerSearch } from "../../../customers/helpers/customer.helpers";
 
 type Props = {
   isOpen: boolean;
@@ -35,13 +36,7 @@ export const CustomerSelectionModal = ({
     if (!value) return activeCustomers.slice(0, 40);
 
     return activeCustomers
-      .filter((customer) => {
-        return (
-          customer.name.toLowerCase().includes(value) ||
-          customer.email?.toLowerCase().includes(value) ||
-          customer.phone?.toLowerCase().includes(value)
-        );
-      })
+      .filter((customer) => matchesCustomerSearch(customer, value))
       .slice(0, 40);
   }, [customers, search]);
 
@@ -56,7 +51,7 @@ export const CustomerSelectionModal = ({
         <DialogHeader>
           <DialogTitle>Seleccionar cliente</DialogTitle>
           <DialogDescription>
-            Buscá por nombre, teléfono o correo. También podés registrar la
+            Buscá por nombre, documento, teléfono o correo. También podés registrar la
             venta como consumidor final.
           </DialogDescription>
         </DialogHeader>
@@ -102,7 +97,8 @@ export const CustomerSelectionModal = ({
                     <UserRound className="size-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">{customer.name}</p>
+                    <p className="truncate font-semibold">{customer.fullName}</p>
+                    {customer.documentNumber && <p className="truncate text-sm text-muted-foreground">{getCustomerDocumentLabel(customer)}</p>}
                     <p className="truncate text-sm text-muted-foreground">
                       {customer.phone || "Sin teléfono"} ·{" "}
                       {customer.email || "Sin correo"}
