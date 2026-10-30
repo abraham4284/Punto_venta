@@ -97,7 +97,7 @@ export const SaleContextSection = ({
               onClick={onOpenCustomerModal}
             >
               <span className="truncate">
-                {selectedCustomer?.name ?? "Consumidor final"}
+                {selectedCustomer?.fullName ?? "Consumidor final"}
               </span>
             </Button>
           </div>

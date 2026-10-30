@@ -45,6 +45,7 @@ import {
 import { useCan } from "@/views/businesses-app/hooks/useCan";
 import { SalePaymentsPanel } from "../../../sale-payments/components/SalePaymentsPanel";
 import type { Customer } from "../../../customers/types/customers.types";
+import { getCustomerDocumentLabel } from "../../../customers/helpers/customer.helpers";
 import type { SaleWithDetailsResponse } from "../../types";
 
 type SaleDetailsViewProps = {
@@ -122,7 +123,7 @@ export const SaleDetailsView = ({
   const canCancelSales = useCan("sales.cancel");
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;
   const customerName =
-    customer?.name || sale.customerName || "Consumidor final";
+    customer?.fullName || sale.customerName || "Consumidor final";
   const itemsCount = sale.items.length;
   const paidAmount = sale.confirmedAmount + sale.collectedAmount;
   const balanceDue = Math.max(sale.total - paidAmount, 0);
@@ -365,7 +366,8 @@ export const SaleDetailsView = ({
                 <p className="text-muted-foreground">Cargando datos...</p>
               ) : sale.idCustomer && customer ? (
                 <>
-                  <p className="font-semibold">{customer.name}</p>
+                  <p className="font-semibold">{customer.fullName}</p>
+                  {customer.documentNumber ? <p>Documento: {getCustomerDocumentLabel(customer)}</p> : null}
                   {customer.phone ? <p>Teléfono: {customer.phone}</p> : null}
                   {customer.email ? <p>Email: {customer.email}</p> : null}
                   {customer.address ? (
@@ -378,7 +380,7 @@ export const SaleDetailsView = ({
                   ) : null}
                 </>
               ) : (
-                <p className="font-semibold">Consumidor final</p>
+                <p className="font-semibold">{sale.customerName || "Consumidor final"}</p>
               )}
             </CardContent>
           </Card>

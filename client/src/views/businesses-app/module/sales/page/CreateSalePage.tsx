@@ -240,7 +240,7 @@ export const CreateSalePage = () => {
     if (!delivery.enabled || !selectedCustomer) return;
 
     if (!delivery.recipientName.trim()) {
-      updateDeliveryField("recipientName", selectedCustomer.name);
+      updateDeliveryField("recipientName", selectedCustomer.fullName);
     }
 
     if (!delivery.recipientPhone.trim() && selectedCustomer.phone) {
