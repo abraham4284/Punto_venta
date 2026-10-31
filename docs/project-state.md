@@ -2,9 +2,9 @@
 
 Revisado: 2026-10-30. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `236eca1ca1c46c29d573fbf6a6e01a6d9f25fd82` — `docs: establecer documentacion canonica de Cajora`. Es el HEAD `dev` previo a F0.1, distinto del master de referencia aportado `793ed2f3f5774bccca1c03e9cb8812a6e5a60fe8`. El repositorio estaba limpio al comenzar; no se cambio de rama.
+Last reviewed commit: `fe846c3279af026a7516041dae85ccc46b5aae6b` — `docs: organizar documentacion jerarquica por subsistema`. Es el HEAD `dev` previo a los cambios F3, distinto del master de referencia aportado `5927aaf8c9c8d93ee4cdf57b63a59a309e49232f`. El repositorio estaba limpio al comenzar; no se cambio de rama.
 
-Current phase: F0.1 documentation hierarchy completed. Last completed phase: F0.1 (documental); last completed functional phase: F2. Next functional phase: F3, pendiente. Ver [tasks](tasks.md), [evidencias F0](f00-documentation-validation.md) y [evidencias F0.1](f00-1-documentation-hierarchy-validation.md).
+Current phase: F3 Orders Core implementada y validada DB-free. Last completed functional phase: F3. Next functional phase: F4, pendiente. Ver [tasks](tasks.md) y [evidencias F3](f03-orders-core-validation.md). No implica SQL aplicado ni despliegue.
 
 ## Identidad, stack y mapa actual
 
@@ -12,13 +12,13 @@ Cajora / Punto_Venta es gestion comercial multi-negocio; [PRD](prd.md) define pr
 
 La jerarquia documental separa sistema/contratos/roadmap en root, implementacion frontend en [client/AGENTS](../client/AGENTS.md) y backend en [server/AGENTS](../server/AGENTS.md). Detalles DB permanecen en server/src/db; [contracts](contracts.md) concentra acuerdos HTTP sin uniformar envelopes.
 
-BUSINESS monta auth, negocios, usuarios, permisos, suscripcion, legal, notificaciones, dashboard, customers, suppliers, categorias, products/imagenes, deposits, stock/movimientos, purchases, sales, pagos, caja/sesiones/movimientos, entregas, rendiciones y tickets. PLATFORM monta auth, negocios, usuarios, suscripciones/planes/pagos, dashboard, auditoria y notificaciones. El dashboard de plataforma consulta API y `sp_platform_dashboard`; no es un placeholder estatico.
+BUSINESS monta auth, negocios, usuarios, permisos, suscripcion, legal, notificaciones, dashboard, customers, orders, suppliers, categorias, products/imagenes, deposits, stock/movimientos, purchases, sales, pagos, caja/sesiones/movimientos, entregas, rendiciones y tickets. PLATFORM monta auth, negocios, usuarios, suscripciones/planes/pagos, dashboard, auditoria y notificaciones. El dashboard de plataforma consulta API y `sp_platform_dashboard`; no es un placeholder estatico.
 
 El catalogo publico vive en `/api/public`, aislado del API administrativo y configurado por slug de negocio. VITRUNO es externo: acuerdo de catalogo/WhatsApp y ausencia de Orders automaticos, no inspeccion de su implementacion.
 
 ## DB y Customers v2
 
-Existe baseline canonico completo, schema 002..005, seeds, procedures, publicaciones legales y generado. Hay dos migraciones manuales (001 slugs/sale mode, 002 Customers v2); no un runner automatico de migraciones. Operacion y riesgos: [database](database.md).
+Existe baseline canonico completo, schema 002..005, seeds, procedures, publicaciones legales y generado. Hay tres migraciones manuales (001 slugs/sale mode, 002 Customers v2, 003 Orders Core); no un runner automatico de migraciones. Operacion y riesgos: [database](database.md).
 
 Customers backend y frontend estan implementados: `firstName`, `lastName`, `fullName` derivado, documento opcional y contacto. `Customer.name` fue eliminado. Sales/Tickets y otros consumidores conservan `customerName`/`customer_name` donde corresponde. El formulario, helper de busqueda, tipos y seleccion/detalle de Sales usan el contrato v2. [Guia de entrega](../server/src/db/CUSTOMERS_V2.md).
 
@@ -30,8 +30,8 @@ Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pago
 
 ## Roadmap y limites conocidos
 
-- F0: base documental; F0.1: jerarquia por subsistema completada; F1/F2: cerradas con los limites anteriores; F3..F6: pendientes.
-- Orders: **NOT IMPLEMENTED / NEXT PLANNED PHASE**. No hay tablas, modulo, rutas ni permisos Orders. Primero pedido manual interno, stock informativo; despues frontend y conversion a Sale en fases independientes. Contrato: [tasks F3](tasks.md).
+- F0/F0.1 y F1/F2 cerradas; F3 implementada/validada DB-free; F4..F6 pendientes.
+- Orders: **IMPLEMENTED DB/BACKEND; PENDING REAL DB VALIDATION**. Tablas, modulo, ocho rutas y permisos; snapshots DB, transacciones/locks, idempotencia y eventos. Stock informativo, sin frontend ni conversion/reservas. Contrato: [contracts](contracts.md); 65 tests DB-free, typecheck/build y baseline aprobados.
 - SQL/migracion real y comportamiento de ambientes desplegados requieren verificacion del operador; los validadores de archivos no ejecutan SQL.
 - `manual/002_customers_v2.sql` usa modo de datos descartables; no es migracion semantica de clientes reales.
 - El README conserva contenido historico bajo aviso visible. La guia Customers v2 conserva la advertencia de fase frontend como antecedente backend; no describe una carencia vigente del cliente.

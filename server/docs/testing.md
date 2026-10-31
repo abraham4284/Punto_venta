@@ -7,6 +7,7 @@ Comandos reales desde `server`, fuente [package.json](../package.json):
 | `npm run typecheck` | tsc --noEmit; tipado sin ejecutar endpoints. |
 | `npm run build` | tsc + tsc-alias; no demuestra comportamiento DB/API. |
 | `npx vitest run --config vitest.customers-v2.config.ts` | Unit tests DB-free de Customers v2. |
+| `npx vitest run --config vitest.orders-core.config.ts` | Orders Core DB-free: dominio, services/controllers/permisos y contratos SQL estaticos, sin setup de integracion. |
 | `npm run test:security` | Vitest sobre src/tests/security con config general. |
 | `npm run test:tenant` | vitest.tenant.config.ts; aislamiento multi-tenant. |
 | `npm run test:economic` | vitest.economic.config.ts; flujos economicos. |
