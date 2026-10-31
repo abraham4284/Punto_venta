@@ -14,6 +14,7 @@ BEGIN
   FROM order_details od
   LEFT JOIN products p ON p.idBusiness = od.idBusiness AND p.idProduct = od.idProduct
   WHERE od.idBusiness = p_business AND od.idOrder = p_order ORDER BY od.idOrderDetail;
+  SELECT idSale, sale_number, status FROM sales WHERE idBusiness = p_business AND idOrder = p_order;
 END$$
 
 DROP PROCEDURE IF EXISTS sp_order_create$$
@@ -157,5 +158,22 @@ BEGIN
   ORDER BY p.name, p.idProduct LIMIT p_limit OFFSET p_offset;
   SELECT COUNT(*) AS totalRecords FROM products p WHERE p.idBusiness = p_business AND p.is_active = 1
     AND (p_search IS NULL OR LOCATE(p_search, p.name) > 0 OR LOCATE(p_search, p.barcode) > 0);
+END$$
+DELIMITER ;
+
+-- Conversion only. Transaction and STATUS_CHANGED event are owned by the caller.
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_order_complete_from_sale$$
+CREATE PROCEDURE sp_order_complete_from_sale(IN p_business INT, IN p_order INT, IN p_actor INT, IN p_sale INT)
+BEGIN
+  DECLARE v_status VARCHAR(20);
+  SELECT status INTO v_status FROM orders WHERE idBusiness = p_business AND idOrder = p_order FOR UPDATE;
+  IF v_status IS NULL OR v_status <> 'READY' OR NOT EXISTS (
+    SELECT 1 FROM sales WHERE idBusiness = p_business AND idOrder = p_order AND idSale = p_sale AND status = 'COMPLETED'
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_SALE_INCONSISTENT';
+  END IF;
+  UPDATE orders SET status = 'COMPLETED', updated_by_user_id = p_actor, updated_at = NOW()
+  WHERE idBusiness = p_business AND idOrder = p_order;
 END$$
 DELIMITER ;

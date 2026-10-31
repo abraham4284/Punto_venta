@@ -29,7 +29,7 @@ export default defineConfig({
   resolve: { alias: { "@": resolve(root, "src") } },
   test: {
     environment: "node", setupFiles: ["./src/tests/setup.ts"],
-    include: ["src/tests/integration/orders/**/*.test.ts"],
+    include: ["src/tests/integration/orders/orders.integration.test.ts"],
     fileParallelism: false, sequence: { concurrent: false }, testTimeout: 20000, hookTimeout: 30000,
     env: { ...connectionEnv, NODE_ENV: "test", TEST_DISABLE_RATE_LIMITS: "true",
       JSON_BODY_LIMIT: "1mb", URL_ENCODED_BODY_LIMIT: "1mb",

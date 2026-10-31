@@ -12,25 +12,16 @@ CREATE PROCEDURE sp_create_sale(
   IN p_subtotal DECIMAL(18,2),
   IN p_discount_total DECIMAL(18,2),
   IN p_total DECIMAL(18,2),
-  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_idOrder INT,
+  IN p_delivery_fee DECIMAL(18,2)
 )
 BEGIN
   DECLARE v_idSale INT;
+  DECLARE v_existingOrder INT;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashRegisterActive TINYINT;
   DECLARE v_existingSaleNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-  DECLARE EXIT HANDLER FOR 1062
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
-
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
 
   IF p_sale_number IS NULL OR TRIM(p_sale_number) = '' THEN
     SIGNAL SQLSTATE '45000'
@@ -42,14 +33,17 @@ BEGIN
       SET MESSAGE_TEXT = 'IDEMPOTENCY_KEY_REQUIRED';
   END IF;
 
-  SELECT idSale, sale_number
-  INTO v_idSale, v_existingSaleNumber
+  SELECT idSale, sale_number, idOrder
+  INTO v_idSale, v_existingSaleNumber, v_existingOrder
   FROM sales
   WHERE idBusiness = p_idBusiness
     AND idempotency_key = p_idempotency_key
   LIMIT 1;
 
   IF v_idSale IS NOT NULL THEN
+    IF NOT (v_existingOrder <=> p_idOrder) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'IDEMPOTENCY_KEY_CONFLICT';
+    END IF;
     SELECT
       v_idSale AS idSale,
       v_existingSaleNumber AS saleNumber,
@@ -128,6 +122,8 @@ BEGIN
     sale_number,
     idempotency_key,
     idCustomer,
+    idOrder,
+    delivery_fee,
     idDeposit,
     idCashSession,
     sale_date,
@@ -144,6 +140,8 @@ BEGIN
     p_sale_number,
     p_idempotency_key,
     p_idCustomer,
+    p_idOrder,
+    COALESCE(p_delivery_fee, 0),
     p_idDeposit,
     p_idCashSession,
     NOW(),
@@ -163,7 +161,6 @@ END$$
 
 DELIMITER ;
 
-
 DROP PROCEDURE IF EXISTS sp_create_sale_detail_and_discount_stock;
 DELIMITER $$
 
@@ -182,12 +179,6 @@ BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
   DECLARE v_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_sale_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
 
   IF NOT EXISTS (
     SELECT 1
@@ -303,7 +294,6 @@ BEGIN
 END$$
 
 DELIMITER ;
-
 
 DROP PROCEDURE IF EXISTS sp_cancel_sale_and_revert_stock;
 DELIMITER $$
@@ -527,7 +517,6 @@ END$$
 
 DELIMITER ;
 
-
 DROP PROCEDURE IF EXISTS sp_get_sales;
 DELIMITER $$
 
@@ -570,6 +559,8 @@ BEGIN
       ELSE 'PAID'
     END AS payment_status,
     s.sale_date,
+    s.idOrder,
+    s.delivery_fee,
     s.subtotal,
     s.discount_total,
     s.total,
@@ -687,6 +678,8 @@ BEGIN
     d.name,
     s.idCashSession,
     s.sale_date,
+    s.idOrder,
+    s.delivery_fee,
     s.subtotal,
     s.discount_total,
     s.total,
@@ -817,7 +810,6 @@ END$$
 
 DELIMITER ;
 
-
 DROP PROCEDURE IF EXISTS sp_get_sale_by_id;
 DELIMITER $$
 
@@ -850,6 +842,8 @@ BEGIN
       ELSE 'PAID'
     END AS payment_status,
     s.sale_date,
+    s.idOrder,
+    s.delivery_fee,
     s.subtotal,
     s.discount_total,
     s.total,
@@ -891,6 +885,8 @@ BEGIN
     d.name,
     s.idCashSession,
     s.sale_date,
+    s.idOrder,
+    s.delivery_fee,
     s.subtotal,
     s.discount_total,
     s.total,
@@ -983,7 +979,6 @@ BEGIN
 END$$
 
 DELIMITER ;
-
 
 DROP PROCEDURE IF EXISTS sp_get_products_with_stock_by_deposit;
 DELIMITER $$

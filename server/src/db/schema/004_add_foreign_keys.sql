@@ -123,4 +123,6 @@ CALL sp_add_foreign_key_if_not_exists('fk_order_details_product', 'ALTER TABLE o
 CALL sp_add_foreign_key_if_not_exists('fk_order_events_order', 'ALTER TABLE order_events ADD CONSTRAINT fk_order_events_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
 CALL sp_add_foreign_key_if_not_exists('fk_order_events_actor', 'ALTER TABLE order_events ADD CONSTRAINT fk_order_events_actor FOREIGN KEY (idBusiness, idUser) REFERENCES business_users (idBusiness, idUser)');
 -- End Orders Core F3
+-- Order to Sale F5
+CALL sp_add_foreign_key_if_not_exists('fk_sales_order', 'ALTER TABLE sales ADD CONSTRAINT fk_sales_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
 DROP PROCEDURE IF EXISTS sp_add_foreign_key_if_not_exists;

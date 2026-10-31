@@ -97,6 +97,8 @@ export const createSaleSchema = z
 
     discountTotal: moneySchema("El descuento total"),
 
+    deliveryFee: moneySchema("El costo de entrega").default(0),
+
     total: moneySchema("El total"),
 
     observation: z
@@ -204,6 +206,7 @@ export const createSaleSchema = z
     );
     const calculatedTotal = new Decimal(calculatedSubtotal)
       .minus(calculatedDiscount)
+      .plus(data.deliveryFee)
       .toDecimalPlaces(2)
       .toNumber();
     const paymentsTotal = sumMoney(
@@ -232,7 +235,7 @@ export const createSaleSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["total"],
-        message: "El total debe coincidir con subtotal menos descuento total",
+        message: "El total debe coincidir con subtotal menos descuento total mas entrega",
       });
     }
 

@@ -33,7 +33,7 @@ Son operaciones de archivos. El builder regenera el SQL completo; el validator c
 
 Para instalaciones nuevas, actualizar schema/procedures/seeds segun corresponda y regenerar baseline por tooling. Si cambian archivos de entrada, mantener manifest e instalador alineados. Para bases existentes, preparar ademas migracion aditiva/manual revisada; no reemplazarla con el instalador limpio ni recrear carpetas historicas `fixed`/`tables`.
 
-Actualmente existen `manual/001_slugs_sale_mode_public_catalog.sql`, `manual/002_customers_v2.sql` y [manual/003_orders_core.sql](../server/src/db/manual/003_orders_core.sql). Orders 003 es aditiva para un baseline existente compatible con Customers v2: crea tablas/indices/FKs/checks Orders y agrega sus permisos sin resetear grants ajenos. Luego importar [procedures/orders.sql](../server/src/db/procedures/orders.sql) completo antes de desplegar backend. Backup, DB seleccionada y revision del operador obligatorios; no ejecutar install ni el seed completo para esta actualizacion. No se aplico SQL real durante F3.
+Actualmente existen manual/001, manual/002, [manual/003_orders_core.sql](../server/src/db/manual/003_orders_core.sql) y [manual/004_order_to_sale.sql](../server/src/db/manual/004_order_to_sale.sql). Orders 003 es aditiva para un baseline existente compatible con Customers v2: crea tablas/indices/FKs/checks Orders y agrega sus permisos sin resetear grants ajenos. Luego importar [procedures/orders.sql](../server/src/db/procedures/orders.sql) completo antes de desplegar backend. Backup, DB seleccionada y revision del operador obligatorios; no ejecutar install ni el seed completo para esta actualizacion. No se aplico SQL real durante F3.
 
 Actualizacion posterior a la entrega inicial: el operador confirma SQL F3 aplicado/sincronizado en local, test y produccion. La [validacion real F3](f03-orders-core-validation.md) comprobo HTTP/procedures en MySQL 8.0.33 test local; el agente no ejecuto migraciones ni consulto produccion. No equivale a validar MariaDB/hosting remoto ni a reinstalar el baseline.
 
@@ -47,12 +47,12 @@ Toda aplicacion SQL real requiere autorizacion del operador, backup, confirmacio
 | Maestros | customers, suppliers, product_categories, products, product_images, deposits, payment_methods |
 | Inventario | stock, stock_movements |
 | Compras | purchases, purchase_details |
-| Pedidos internos | orders, order_details, order_events (sin referencia de conversion a Sale) |
+| Pedidos internos | orders, order_details, order_events; referencia inversa via sales.idOrder |
 | Ventas y entregas | sales, sale_details, sale_payments, sale_payment_events, sale_deliveries, delivery_events |
 | Caja | cash_registers, cash_sessions, cash_movements, cash_settlements, cash_session_payment_summaries |
 | Notificaciones y auditoria | notifications, notification_recipients, platform_audit_logs; eventos de pagos, entregas y suscripciones en sus propias tablas |
 
-Orders guarda snapshots de cliente/productos, no reserva ni descuenta stock y no genera operaciones economicas. `idBusiness` delimita las entidades del negocio; existen catalogos/identidades de plataforma globales. Stock es por negocio/producto/deposito. `purchase_details` posee `idDeposit`; no la cabecera de compra. `payment_methods` es unico por `(idBusiness, name)`, permite repetir code. Cantidades y montos usan DECIMAL segun schema; revisar precision concreta antes de ampliar contratos.
+Orders guarda snapshots de cliente/productos; alta/edicion/preparacion no reservan ni descuentan stock. La conversion F5 crea Sales y sus efectos atomicos con un vinculo unico. `idBusiness` delimita las entidades del negocio; existen catalogos/identidades de plataforma globales. Stock es por negocio/producto/deposito. `purchase_details` posee `idDeposit`; no la cabecera de compra. `payment_methods` es unico por `(idBusiness, name)`, permite repetir code. Cantidades y montos usan DECIMAL segun schema; revisar precision concreta antes de ampliar contratos.
 
 ## Customers v2 y despliegue
 
@@ -67,3 +67,11 @@ La llamada actual `CALL sp_migrate_customers_v2(1)` SOLO sirve para datos descar
 El contexto operativo aportado indica backend/frontend separados en Render, DB alojada MariaDB/Hostinger y desarrollo MySQL local. F0 no certifica configuracion ni despliegues activos. No inferir que una conexion es local por ejecutar localmente la app.
 
 Para el frontend estatico, la referencia operativa es raiz `client`, build `npm ci && npm run build`, salida `dist` y rewrite SPA `/* -> /index.html`. `VITE_BACKEND_URL` se incorpora en build. Verificar destino por ambiente, CORS, cookies y configuracion de produccion antes de desplegar; no copiar secretos entre QA y produccion.
+
+## F5 — Vinculo y entrega en Sales
+
+`sales.idOrder INT NULL`, UNIQUE `(idBusiness,idOrder)` y FK a orders por las mismas columnas: POS usa NULL y un Order tiene como maximo una Sale, aun cancelada. No existe orders.idSale. `sales.delivery_fee DECIMAL(18,2) NOT NULL DEFAULT 0.00`; checks no negativo y total = subtotal - discount_total + delivery_fee. El baseline anterior no tenia un CHECK de total Sales que hubiera que eliminar.
+
+Despliegue existente (pendiente, no ejecutado por el agente): revisar backup, ambiente y totales existentes; detener escrituras; aplicar [manual/004_order_to_sale.sql](../server/src/db/manual/004_order_to_sale.sql), luego importar completos [sales.sql](../server/src/db/procedures/sales.sql) y [orders.sql](../server/src/db/procedures/orders.sql), y desplegar backend compatible antes de reanudar escrituras. sp_create_sale pasa de 11 a 13 parametros; requiere coordinar procedures/backend, incluido POS directo. La migracion agrega permiso orders.convert y grant ADMIN sin resetear otros grants. DDL no es atomico; si falla un check, revisar datos con el operador, no corregirlos silenciosamente. No aplicar baseline/seed completos sobre una DB existente.
+
+Sin nuevos archivos de procedures, manifest/install conservan su orden. Baseline regenerado con tooling oficial. F4.1 orders.sql aplicado/probado en local/test/produccion segun operador; no es verificacion del agente ni incluye SQL F5. [Validacion F5](f05-order-to-sale-backend-validation.md) distingue DB-free y suite real preparada, todavia no ejecutada.
