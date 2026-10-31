@@ -108,6 +108,12 @@ CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_rec
 
 CALL sp_add_check_if_not_exists('customers', 'chk_customers_document_pair', 'ALTER TABLE customers ADD CONSTRAINT chk_customers_document_pair CHECK ((document_type IS NULL AND document_number IS NULL) OR (document_type IS NOT NULL AND document_number IS NOT NULL AND CHAR_LENGTH(TRIM(document_number)) > 0))');
 
+-- Orders Core F3
+CALL sp_add_check_if_not_exists('orders', 'chk_orders_totals', 'ALTER TABLE orders ADD CONSTRAINT chk_orders_totals CHECK (subtotal >= 0 AND discount_total >= 0 AND subtotal >= discount_total AND delivery_fee >= 0 AND total = subtotal - discount_total + delivery_fee)');
+CALL sp_add_check_if_not_exists('orders', 'chk_orders_delivery', 'ALTER TABLE orders ADD CONSTRAINT chk_orders_delivery CHECK ((fulfillment_type = ''PICKUP'' AND delivery_recipient_name IS NULL AND delivery_recipient_phone IS NULL AND delivery_address IS NULL AND delivery_reference IS NULL AND delivery_fee = 0) OR (fulfillment_type = ''DELIVERY'' AND delivery_recipient_name IS NOT NULL AND CHAR_LENGTH(TRIM(delivery_recipient_name)) >= 2 AND delivery_recipient_phone IS NOT NULL AND CHAR_LENGTH(TRIM(delivery_recipient_phone)) > 0 AND delivery_address IS NOT NULL AND CHAR_LENGTH(TRIM(delivery_address)) >= 3))');
+CALL sp_add_check_if_not_exists('orders', 'chk_orders_cancel_reason', 'ALTER TABLE orders ADD CONSTRAINT chk_orders_cancel_reason CHECK ((status = ''CANCELLED'' AND cancellation_reason IS NOT NULL AND CHAR_LENGTH(TRIM(cancellation_reason)) >= 3) OR (status <> ''CANCELLED'' AND cancellation_reason IS NULL))');
+CALL sp_add_check_if_not_exists('order_details', 'chk_order_details_math', 'ALTER TABLE order_details ADD CONSTRAINT chk_order_details_math CHECK (quantity > 0 AND unit_price >= 0 AND discount >= 0 AND total >= 0 AND total = ROUND(quantity * unit_price, 2) - discount AND (unit_type <> ''UNIT'' OR quantity = FLOOR(quantity)))');
+-- End Orders Core F3
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
 DROP PROCEDURE IF EXISTS sp_drop_check_if_exists;

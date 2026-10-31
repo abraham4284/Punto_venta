@@ -29,4 +29,4 @@ La solicitud actual define el alcance. Codigo, schema, procedures, tests y confi
 
 ## Cierre de fase
 
-Actualizar `docs/tasks.md` y `docs/project-state.md`; modificar `docs/decisions.md` solo ante una decision relevante. Registrar evidencias reales en `docs/fXX-<fase>-validation.md` (ejemplo futuro: `docs/f03-orders-core-validation.md`, aun no creado). No marcar completado sin validacion ni crear placeholders de fases futuras. PRD/arquitectura se actualizan cuando cambia su contenido, no por cada ajuste menor.
+Actualizar `docs/tasks.md` y `docs/project-state.md`; modificar `docs/decisions.md` solo ante una decision relevante. Registrar evidencias reales en `docs/fXX-<fase>-validation.md` (ejemplo: [F3 Orders Core](docs/f03-orders-core-validation.md)). No marcar completado sin validacion ni crear placeholders de fases futuras. PRD/arquitectura se actualizan cuando cambia su contenido, no por cada ajuste menor.

@@ -601,6 +601,65 @@ CREATE TABLE IF NOT EXISTS `cash_settlements` (
   PRIMARY KEY (`idCashSettlement`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Orders Core F3: no economic or inventory effects.
+CREATE TABLE IF NOT EXISTS `orders` (
+  `idOrder` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idCustomer` int NOT NULL,
+  `idDeposit` int NOT NULL,
+  `expected_payment_method_id` int DEFAULT NULL,
+  `order_number` varchar(50) NOT NULL,
+  `idempotency_key` varchar(64) NOT NULL,
+  `status` enum('PENDING','CONFIRMED','PREPARING','READY','COMPLETED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+  `fulfillment_type` enum('PICKUP','DELIVERY') NOT NULL,
+  `customer_snapshot` json NOT NULL,
+  `delivery_recipient_name` varchar(240) DEFAULT NULL,
+  `delivery_recipient_phone` varchar(80) DEFAULT NULL,
+  `delivery_address` varchar(255) DEFAULT NULL,
+  `delivery_reference` varchar(500) DEFAULT NULL,
+  `subtotal` decimal(18,2) NOT NULL,
+  `discount_total` decimal(18,2) NOT NULL,
+  `delivery_fee` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `total` decimal(18,2) NOT NULL,
+  `observation` varchar(500) DEFAULT NULL,
+  `cancellation_reason` varchar(500) DEFAULT NULL,
+  `created_by_user_id` int NOT NULL,
+  `updated_by_user_id` int NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idOrder`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `order_details` (
+  `idOrderDetail` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idOrder` int NOT NULL,
+  `idProduct` int NOT NULL,
+  `product_name` varchar(160) NOT NULL,
+  `barcode` varchar(100) DEFAULT NULL,
+  `unit_type` enum('UNIT','KG','GRAM','LITER','METER') NOT NULL,
+  `sale_mode` enum('STOCK','ON_ORDER') NOT NULL,
+  `quantity` decimal(18,2) NOT NULL,
+  `unit_price` decimal(18,2) NOT NULL,
+  `discount` decimal(18,2) NOT NULL,
+  `total` decimal(18,2) NOT NULL,
+  PRIMARY KEY (`idOrderDetail`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `order_events` (
+  `idOrderEvent` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idOrder` int NOT NULL,
+  `idUser` int NOT NULL,
+  `event_type` enum('CREATED','UPDATED','STATUS_CHANGED','CANCELLED') NOT NULL,
+  `from_status` enum('PENDING','CONFIRMED','PREPARING','READY','COMPLETED','CANCELLED') DEFAULT NULL,
+  `to_status` enum('PENDING','CONFIRMED','PREPARING','READY','COMPLETED','CANCELLED') NOT NULL,
+  `reason` varchar(500) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idOrderEvent`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- End Orders Core F3 tables.
+
 CREATE TABLE IF NOT EXISTS `stock_movements` (
   `idStockMovement` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
@@ -801,6 +860,15 @@ CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_user', 'A
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_deposit_from', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_deposit_from` (`idBusiness`,`idDepositFrom`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_deposit_to', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_deposit_to` (`idBusiness`,`idDepositTo`)');
 
+-- Orders Core F3
+CALL sp_add_index_if_not_exists('orders', 'uk_orders_business_id', 'ALTER TABLE orders ADD UNIQUE KEY uk_orders_business_id (idBusiness, idOrder)');
+CALL sp_add_index_if_not_exists('orders', 'uq_orders_business_number', 'ALTER TABLE orders ADD UNIQUE KEY uq_orders_business_number (idBusiness, order_number)');
+CALL sp_add_index_if_not_exists('orders', 'uq_orders_business_idempotency', 'ALTER TABLE orders ADD UNIQUE KEY uq_orders_business_idempotency (idBusiness, idempotency_key)');
+CALL sp_add_index_if_not_exists('orders', 'idx_orders_business_status_created', 'ALTER TABLE orders ADD KEY idx_orders_business_status_created (idBusiness, status, created_at, idOrder)');
+CALL sp_add_index_if_not_exists('orders', 'idx_orders_business_created', 'ALTER TABLE orders ADD KEY idx_orders_business_created (idBusiness, created_at, idOrder)');
+CALL sp_add_index_if_not_exists('order_details', 'uq_order_details_product', 'ALTER TABLE order_details ADD UNIQUE KEY uq_order_details_product (idBusiness, idOrder, idProduct)');
+CALL sp_add_index_if_not_exists('order_events', 'idx_order_events_business_order', 'ALTER TABLE order_events ADD KEY idx_order_events_business_order (idBusiness, idOrder, idOrderEvent)');
+-- End Orders Core F3
 DROP PROCEDURE IF EXISTS sp_add_index_if_not_exists;
 
 /* ============================================================
@@ -924,6 +992,18 @@ CALL sp_add_foreign_key_if_not_exists('fk_stock_movements_deposit_to', 'ALTER TA
 CALL sp_add_foreign_key_if_not_exists('fk_stock_movements_product', 'ALTER TABLE `stock_movements` ADD CONSTRAINT `fk_stock_movements_product` FOREIGN KEY (`idBusiness`, `idProduct`) REFERENCES `products` (`idBusiness`, `idProduct`)');
 CALL sp_add_foreign_key_if_not_exists('fk_stock_movements_user', 'ALTER TABLE `stock_movements` ADD CONSTRAINT `fk_stock_movements_user` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`)');
 
+-- Orders Core F3
+CALL sp_add_foreign_key_if_not_exists('fk_orders_business', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_business FOREIGN KEY (idBusiness) REFERENCES businesses (idBusiness)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_customer', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_customer FOREIGN KEY (idBusiness, idCustomer) REFERENCES customers (idBusiness, idCustomer)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_deposit', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_deposit FOREIGN KEY (idBusiness, idDeposit) REFERENCES deposits (idBusiness, idDeposit)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_payment_method', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_payment_method FOREIGN KEY (idBusiness, expected_payment_method_id) REFERENCES payment_methods (idBusiness, idPaymentMethod)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_creator', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_creator FOREIGN KEY (idBusiness, created_by_user_id) REFERENCES business_users (idBusiness, idUser)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_updater', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_updater FOREIGN KEY (idBusiness, updated_by_user_id) REFERENCES business_users (idBusiness, idUser)');
+CALL sp_add_foreign_key_if_not_exists('fk_order_details_order', 'ALTER TABLE order_details ADD CONSTRAINT fk_order_details_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
+CALL sp_add_foreign_key_if_not_exists('fk_order_details_product', 'ALTER TABLE order_details ADD CONSTRAINT fk_order_details_product FOREIGN KEY (idBusiness, idProduct) REFERENCES products (idBusiness, idProduct)');
+CALL sp_add_foreign_key_if_not_exists('fk_order_events_order', 'ALTER TABLE order_events ADD CONSTRAINT fk_order_events_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
+CALL sp_add_foreign_key_if_not_exists('fk_order_events_actor', 'ALTER TABLE order_events ADD CONSTRAINT fk_order_events_actor FOREIGN KEY (idBusiness, idUser) REFERENCES business_users (idBusiness, idUser)');
+-- End Orders Core F3
 DROP PROCEDURE IF EXISTS sp_add_foreign_key_if_not_exists;
 
 /* ============================================================
@@ -1044,6 +1124,12 @@ CALL sp_add_check_if_not_exists('notification_recipients', 'chk_notification_rec
 
 CALL sp_add_check_if_not_exists('customers', 'chk_customers_document_pair', 'ALTER TABLE customers ADD CONSTRAINT chk_customers_document_pair CHECK ((document_type IS NULL AND document_number IS NULL) OR (document_type IS NOT NULL AND document_number IS NOT NULL AND CHAR_LENGTH(TRIM(document_number)) > 0))');
 
+-- Orders Core F3
+CALL sp_add_check_if_not_exists('orders', 'chk_orders_totals', 'ALTER TABLE orders ADD CONSTRAINT chk_orders_totals CHECK (subtotal >= 0 AND discount_total >= 0 AND subtotal >= discount_total AND delivery_fee >= 0 AND total = subtotal - discount_total + delivery_fee)');
+CALL sp_add_check_if_not_exists('orders', 'chk_orders_delivery', 'ALTER TABLE orders ADD CONSTRAINT chk_orders_delivery CHECK ((fulfillment_type = ''PICKUP'' AND delivery_recipient_name IS NULL AND delivery_recipient_phone IS NULL AND delivery_address IS NULL AND delivery_reference IS NULL AND delivery_fee = 0) OR (fulfillment_type = ''DELIVERY'' AND delivery_recipient_name IS NOT NULL AND CHAR_LENGTH(TRIM(delivery_recipient_name)) >= 2 AND delivery_recipient_phone IS NOT NULL AND CHAR_LENGTH(TRIM(delivery_recipient_phone)) > 0 AND delivery_address IS NOT NULL AND CHAR_LENGTH(TRIM(delivery_address)) >= 3))');
+CALL sp_add_check_if_not_exists('orders', 'chk_orders_cancel_reason', 'ALTER TABLE orders ADD CONSTRAINT chk_orders_cancel_reason CHECK ((status = ''CANCELLED'' AND cancellation_reason IS NOT NULL AND CHAR_LENGTH(TRIM(cancellation_reason)) >= 3) OR (status <> ''CANCELLED'' AND cancellation_reason IS NULL))');
+CALL sp_add_check_if_not_exists('order_details', 'chk_order_details_math', 'ALTER TABLE order_details ADD CONSTRAINT chk_order_details_math CHECK (quantity > 0 AND unit_price >= 0 AND discount >= 0 AND total >= 0 AND total = ROUND(quantity * unit_price, 2) - discount AND (unit_type <> ''UNIT'' OR quantity = FLOOR(quantity)))');
+-- End Orders Core F3
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
 DROP PROCEDURE IF EXISTS sp_drop_check_if_exists;
@@ -1239,6 +1325,20 @@ WHERE code IN (
   'sale_payments.view',
   'sale_payments.collect'
 );
+
+-- Orders Core F3: additive grants, no unrelated permission changes.
+INSERT INTO permissions (code, module, action, name, description, is_active) VALUES
+('orders.view','orders','view','Ver pedidos','Permite consultar pedidos y productos para pedidos',1),
+('orders.create','orders','create','Crear pedidos','Permite registrar pedidos internos',1),
+('orders.update','orders','update','Editar pedidos','Permite editar pedidos pendientes o confirmados',1),
+('orders.change_status','orders','change_status','Cambiar estado de pedidos','Permite avanzar la preparacion de pedidos',1),
+('orders.cancel','orders','cancel','Cancelar pedidos','Permite cancelar pedidos no terminales',1)
+ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), is_active = VALUES(is_active);
+INSERT IGNORE INTO role_permissions (role, idPermission)
+SELECT 'ADMIN', idPermission FROM permissions WHERE code IN ('orders.view','orders.create','orders.update','orders.change_status','orders.cancel');
+INSERT IGNORE INTO role_permissions (role, idPermission)
+SELECT 'SELLER', idPermission FROM permissions WHERE code IN ('orders.view','orders.create','orders.update');
+-- End Orders Core F3
 
 /* ============================================================
    END: seeds/002_permissions_and_role_permissions.sql
@@ -8783,6 +8883,173 @@ DELIMITER ;
 
 /* ============================================================
    END: procedures/customers.sql
+   ============================================================ */
+
+/* ============================================================
+   BEGIN: procedures/orders.sql
+   ============================================================ */
+
+-- Orders Core: service owns all write transactions. No stock or economic writes.
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_order_lock$$
+CREATE PROCEDURE sp_order_lock(IN p_business INT, IN p_order INT)
+BEGIN
+  SELECT * FROM orders WHERE idBusiness = p_business AND idOrder = p_order FOR UPDATE;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_get$$
+CREATE PROCEDURE sp_order_get(IN p_business INT, IN p_order INT)
+BEGIN
+  SELECT * FROM orders WHERE idBusiness = p_business AND idOrder = p_order;
+  SELECT * FROM order_details WHERE idBusiness = p_business AND idOrder = p_order ORDER BY idOrderDetail;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_create$$
+CREATE PROCEDURE sp_order_create(
+  IN p_business INT, IN p_actor INT, IN p_customer INT, IN p_deposit INT, IN p_payment INT,
+  IN p_fulfillment VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_snapshot LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_recipient VARCHAR(240) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_reference VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_subtotal DECIMAL(18,2), IN p_discount DECIMAL(18,2), IN p_fee DECIMAL(18,2), IN p_total DECIMAL(18,2),
+  IN p_observation VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_key VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+)
+BEGIN
+  IF p_key IS NULL OR CHAR_LENGTH(TRIM(p_key)) = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'IDEMPOTENCY_KEY_REQUIRED';
+  END IF;
+  INSERT INTO orders (idBusiness, idCustomer, idDeposit, expected_payment_method_id, order_number, idempotency_key,
+    fulfillment_type, customer_snapshot, delivery_recipient_name, delivery_recipient_phone, delivery_address,
+    delivery_reference, subtotal, discount_total, delivery_fee, total, observation, created_by_user_id, updated_by_user_id)
+  VALUES (p_business, p_customer, p_deposit, p_payment, p_number, p_key, p_fulfillment, p_snapshot,
+    p_recipient, p_phone, p_address, p_reference, p_subtotal, p_discount, p_fee, p_total, p_observation, p_actor, p_actor);
+  SELECT LAST_INSERT_ID() AS idOrder;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_update$$
+CREATE PROCEDURE sp_order_update(
+  IN p_order INT, IN p_business INT, IN p_actor INT, IN p_customer INT, IN p_deposit INT, IN p_payment INT,
+  IN p_fulfillment VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_snapshot LONGTEXT,
+  IN p_recipient VARCHAR(240) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_reference VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_subtotal DECIMAL(18,2), IN p_discount DECIMAL(18,2), IN p_fee DECIMAL(18,2), IN p_total DECIMAL(18,2),
+  IN p_observation VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+)
+BEGIN
+  DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+  SELECT status INTO v_status FROM orders WHERE idBusiness = p_business AND idOrder = p_order FOR UPDATE;
+  IF v_status IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_NOT_FOUND'; END IF;
+  IF v_status NOT IN ('PENDING','CONFIRMED') THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_NOT_EDITABLE'; END IF;
+  UPDATE orders SET idCustomer = p_customer, idDeposit = p_deposit, expected_payment_method_id = p_payment,
+    fulfillment_type = p_fulfillment, customer_snapshot = p_snapshot, delivery_recipient_name = p_recipient,
+    delivery_recipient_phone = p_phone, delivery_address = p_address, delivery_reference = p_reference,
+    subtotal = p_subtotal, discount_total = p_discount, delivery_fee = p_fee, total = p_total,
+    observation = p_observation, updated_by_user_id = p_actor, updated_at = NOW()
+  WHERE idBusiness = p_business AND idOrder = p_order;
+  DELETE FROM order_details WHERE idBusiness = p_business AND idOrder = p_order;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_add_detail$$
+CREATE PROCEDURE sp_order_add_detail(
+  IN p_business INT, IN p_order INT, IN p_product INT, IN p_name VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_barcode VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_unit VARCHAR(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_mode VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_quantity DECIMAL(18,2), IN p_price DECIMAL(18,2),
+  IN p_discount DECIMAL(18,2), IN p_total DECIMAL(18,2)
+)
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM orders WHERE idBusiness = p_business AND idOrder = p_order AND status IN ('PENDING','CONFIRMED')) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_NOT_EDITABLE';
+  END IF;
+  INSERT INTO order_details (idBusiness, idOrder, idProduct, product_name, barcode, unit_type, sale_mode, quantity, unit_price, discount, total)
+  VALUES (p_business, p_order, p_product, p_name, p_barcode, p_unit, p_mode, p_quantity, p_price, p_discount, p_total);
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_change_status$$
+CREATE PROCEDURE sp_order_change_status(
+  IN p_business INT, IN p_order INT, IN p_actor INT, IN p_from VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_to VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_reason VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+)
+BEGIN
+  DECLARE v_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL;
+  SELECT status INTO v_status FROM orders WHERE idBusiness = p_business AND idOrder = p_order FOR UPDATE;
+  IF v_status IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_NOT_FOUND'; END IF;
+  IF p_to IS NULL OR p_from IS NULL OR v_status <> p_from OR NOT (
+    (v_status = 'PENDING' AND p_to = 'CONFIRMED') OR
+    (v_status = 'CONFIRMED' AND p_to = 'PREPARING') OR
+    (v_status = 'PREPARING' AND p_to = 'READY') OR
+    (v_status IN ('PENDING','CONFIRMED','PREPARING','READY') AND p_to = 'CANCELLED'
+      AND p_reason IS NOT NULL AND CHAR_LENGTH(TRIM(p_reason)) >= 3)
+  ) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_INVALID_TRANSITION'; END IF;
+  -- COMPLETED is reserved for a future atomic Order -> Sale conversion.
+  UPDATE orders SET status = p_to, updated_by_user_id = p_actor, updated_at = NOW(),
+    cancellation_reason = CASE WHEN p_to = 'CANCELLED' THEN TRIM(p_reason) ELSE NULL END
+  WHERE idBusiness = p_business AND idOrder = p_order;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_add_event$$
+CREATE PROCEDURE sp_order_add_event(
+  IN p_business INT, IN p_order INT, IN p_actor INT, IN p_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_from VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_to VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_reason VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+)
+BEGIN
+  INSERT INTO order_events (idBusiness, idOrder, idUser, event_type, from_status, to_status, reason)
+  VALUES (p_business, p_order, p_actor, p_type, p_from, p_to, p_reason);
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_events$$
+CREATE PROCEDURE sp_order_events(IN p_business INT, IN p_order INT)
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM orders WHERE idBusiness = p_business AND idOrder = p_order) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_NOT_FOUND';
+  END IF;
+  SELECT * FROM order_events WHERE idBusiness = p_business AND idOrder = p_order ORDER BY idOrderEvent;
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_list$$
+CREATE PROCEDURE sp_order_list(
+  IN p_business INT, IN p_status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_customer INT, IN p_deposit INT, IN p_fulfillment VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_search VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_from DATE, IN p_to DATE, IN p_limit INT, IN p_offset INT
+)
+BEGIN
+  SELECT o.* FROM orders o
+  WHERE o.idBusiness = p_business
+    AND (p_status IS NULL OR o.status = p_status)
+    AND (p_customer IS NULL OR o.idCustomer = p_customer)
+    AND (p_deposit IS NULL OR o.idDeposit = p_deposit)
+    AND (p_fulfillment IS NULL OR o.fulfillment_type = p_fulfillment)
+    AND (p_search IS NULL OR LOCATE(p_search, o.order_number) > 0 OR LOCATE(p_search, JSON_UNQUOTE(JSON_EXTRACT(o.customer_snapshot, '$.fullName'))) > 0)
+    AND (p_from IS NULL OR o.created_at >= p_from)
+    AND (p_to IS NULL OR DATE(o.created_at) <= p_to)
+  ORDER BY o.created_at DESC, o.idOrder DESC LIMIT p_limit OFFSET p_offset;
+
+  -- Same full filtered set as rows, never only the page.
+  SELECT COUNT(*) AS totalRecords, COALESCE(SUM(o.total), 0) AS totalAmount,
+    COALESCE(SUM(o.status = 'PENDING'),0) AS pending, COALESCE(SUM(o.status = 'CONFIRMED'),0) AS confirmed,
+    COALESCE(SUM(o.status = 'PREPARING'),0) AS preparing, COALESCE(SUM(o.status = 'READY'),0) AS ready,
+    COALESCE(SUM(o.status = 'COMPLETED'),0) AS completed, COALESCE(SUM(o.status = 'CANCELLED'),0) AS cancelled
+  FROM orders o WHERE o.idBusiness = p_business
+    AND (p_status IS NULL OR o.status = p_status)
+    AND (p_customer IS NULL OR o.idCustomer = p_customer)
+    AND (p_deposit IS NULL OR o.idDeposit = p_deposit)
+    AND (p_fulfillment IS NULL OR o.fulfillment_type = p_fulfillment)
+    AND (p_search IS NULL OR LOCATE(p_search, o.order_number) > 0 OR LOCATE(p_search, JSON_UNQUOTE(JSON_EXTRACT(o.customer_snapshot, '$.fullName'))) > 0)
+    AND (p_from IS NULL OR o.created_at >= p_from)
+    AND (p_to IS NULL OR DATE(o.created_at) <= p_to);
+END$$
+
+DROP PROCEDURE IF EXISTS sp_order_products$$
+CREATE PROCEDURE sp_order_products(IN p_business INT, IN p_deposit INT, IN p_search VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, IN p_limit INT, IN p_offset INT)
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM deposits WHERE idBusiness = p_business AND idDeposit = p_deposit AND is_active = 1) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_DEPOSIT_INVALID';
+  END IF;
+  SELECT p.idProduct, p.name, p.barcode, p.unit_type, p.sale_mode, p.price_sale, COALESCE(s.quantity, 0) AS stock_quantity
+  FROM products p LEFT JOIN stock s ON s.idBusiness = p.idBusiness AND s.idProduct = p.idProduct AND s.idDeposit = p_deposit
+  WHERE p.idBusiness = p_business AND p.is_active = 1
+    AND (p_search IS NULL OR LOCATE(p_search, p.name) > 0 OR LOCATE(p_search, p.barcode) > 0)
+  ORDER BY p.name, p.idProduct LIMIT p_limit OFFSET p_offset;
+  SELECT COUNT(*) AS totalRecords FROM products p WHERE p.idBusiness = p_business AND p.is_active = 1
+    AND (p_search IS NULL OR LOCATE(p_search, p.name) > 0 OR LOCATE(p_search, p.barcode) > 0);
+END$$
+DELIMITER ;
+
+/* ============================================================
+   END: procedures/orders.sql
    ============================================================ */
 
 /* ============================================================

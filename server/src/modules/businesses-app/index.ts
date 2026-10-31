@@ -12,6 +12,7 @@ import cashRegisterRoutes from "./cash-registers/index.js";
 import cashSessionRoutes from "./cash-sessions/index.js";
 import cashSettlementRoutes from "./cash-settlements/index.js";
 import customerRoutes from "./customers/index.js";
+import orderRoutes from "./orders/index.js";
 import dashboardRoutes from "./dashboard/index.js";
 import deliveryRoutes from "./deliveries/index.js";
 import depositRoutes from "./deposits/index.js";
@@ -53,6 +54,7 @@ businessesAppRoutes.use(
   requireOperationalSubscription,
 );
 businessesAppRoutes.use(customerRoutes);
+businessesAppRoutes.use(orderRoutes);
 businessesAppRoutes.use(permissionRoutes);
 businessesAppRoutes.use(businessUserRoutes);
 businessesAppRoutes.use(dashboardRoutes);
@@ -82,6 +84,7 @@ export {
   cashSessionRoutes,
   cashSettlementRoutes,
   customerRoutes,
+  orderRoutes,
   dashboardRoutes,
   depositRoutes,
   deliveryRoutes,

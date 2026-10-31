@@ -24,6 +24,10 @@ El mismo negocio/clave recupera el registro existente; una clave en otro negocio
 
 Mantener orden de locks/lineas y misma conexion segun operacion. Evitar dobles descuentos de stock, pagos, detalles y eventos; preservar historia de dominio y montos Decimal.js. Testear replay/carreras sin DB cuando sea posible; pruebas conectadas requieren autorizacion [segun testing](testing.md).
 
-## F3 planificada
+## Orders Core F3
 
-Orders no esta implementado. F3 debera definir owner, row lock, create idempotente y eventos conforme al [contrato de roadmap](../../docs/tasks.md), sin reservar/descontar stock ni crear ventas/pagos/caja. No copiar efectos de Sales solo por reutilizar su estructura.
+[Orders service](../src/modules/businesses-app/orders/services/orders.service.ts) posee begin/commit/rollback/release para create/update/status/cancel. Los procedures no abren ni confirman transacciones. Update/status/cancel bloquean cabecera por negocio/ID antes de validar el estado; las referencias activas/snapshots se leen con locks. El GET de detalle tambien bloquea cabecera durante lectura de header/items para evitar mezclar revisiones.
+
+Create usa UNIQUE `(idBusiness, idempotency_key)`, replay temprano y recuperacion despues de rollback ante una carrera en esa clave especifica. Se libera conexion antes de recuperar replay; otras colisiones no se convierten en exito. Repetir clave devuelve pedido existente sin comparar hash de payload ni duplicar detalles/eventos. Una respuesta perdida despues de commit se recupera reenviando create con la misma clave. Lectura final de respuesta ocurre despues del commit de escritura; un fallo de esa lectura no deshace el cambio ya confirmado.
+
+Edicion completa reemplaza detalles en la misma transaccion; eventos existentes permanecen. El evento nuevo se confirma junto con header/details o status/cancel. No se reserva/descuenta stock ni se crean ventas/pagos/caja. Deadlock/lock timeout se informa como 409 para reintento, no como operacion aprobada. Alcance de tests mockeados y limite de concurrencia real: [F3 validation](../../docs/f03-orders-core-validation.md).

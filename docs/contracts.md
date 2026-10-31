@@ -16,7 +16,7 @@ La SPA usa `/admin/*`, `/platform/*` y home; esas rutas de navegador no son pref
 
 - BUSINESS: cookies HttpOnly de backend; `requireAuth` acepta `access_token` de cookie, no Bearer para rutas de negocio. Axios envia credenciales, refresh por `/refresh`, inicializacion `/me`; login/register/refresh/logout se excluyen del reintento automatico de 401.
 - PLATFORM: Axios propio usa `platform_access_token` de localStorage como `Authorization: Bearer ...`, con credenciales y refresh `/platform/auth/refresh`. Backend prioriza cookie `access_token` si existe y usa Bearer como alternativa en rutas platform; no intercambiar tokens BUSINESS/PLATFORM ni extrapolar almacenamiento BUSINESS a plataforma.
-- `Content-Type: application/json` es habitual; respetar excepciones del endpoint (por ejemplo uploads). `Idempotency-Key` se usa en creacion Sales/Purchases; no es un requisito de todo POST.
+- `Content-Type: application/json` es habitual; respetar excepciones del endpoint (por ejemplo uploads). `Idempotency-Key` se usa en creacion Sales/Purchases/Orders; no es un requisito de todo POST.
 - `X-CSRF-Protection: 1` acompana mutaciones BUSINESS desde Axios. El middleware actual verifica Origin permitido + header en POST/PUT/PATCH/DELETE no-platform cuando hay Origin; excluye platform y deja pasar sin Origin. Es un contrato actual, no un token CSRF por sesion. CORS permite Content-Type, Authorization, Idempotency-Key y X-CSRF-Protection con credenciales.
 
 Evidencia: [requireAuth](../server/src/middlewares/requireAuth.ts), [CSRF](../server/src/middlewares/csrfProtection.middleware.ts), [app](../server/src/app.ts), [Axios BUSINESS](../client/src/api/axios.config.ts), [Axios PLATFORM](../client/src/views/platform/module/auth/api/platformAuth.api.ts).
@@ -50,4 +50,53 @@ Tambien existen 413/429 por limites y 500 para fallos inesperados. No todos los 
 
 Catalogo: GET `/api/public/catalog`, `/categories`, `/products`, `/products/:slug` (los ultimos tres relativos a `/api/public/catalog`). Negocio seleccionado por `PUBLIC_CATALOG_BUSINESS_SLUG`; stock publico del deposito predeterminado activo y campos publicos sin costos. Los consumidores publicos/VITRUNO no deben consumir endpoints administrativos.
 
-No hay endpoints Orders ni conversion a Sale implementados. WhatsApp/sin Orders automaticos es acuerdo de integracion externa: [ADR-007](decisions.md). F3 sigue [pendiente](tasks.md).
+No hay Orders publicos ni conversion a Sale implementados. WhatsApp/sin Orders automaticos es acuerdo de integracion externa: [ADR-007](decisions.md).
+
+## Orders Core F3 — API administrativa implementada
+
+Rutas relativas a `/api` con sesion BUSINESS, suscripcion operativa y permiso backend:
+
+| Metodo/ruta | Permiso / comportamiento |
+| --- | --- |
+| POST `/orders` | orders.create; UUID `Idempotency-Key` obligatorio. 201 nuevo / 200 replay, `{ status: true, message, data: order, idempotentReplay }`. |
+| GET `/orders` | orders.view; `{ orders, pagination, metrics }` dentro de data. |
+| GET `/orders/products-by-deposit/:idDeposit` | orders.view; productos activos, incluso sin stock/stock cero y ON_ORDER. `{ items, pagination }` dentro de data. |
+| GET `/orders/:id` | orders.view; header con items/snapshots. |
+| PUT `/orders/:id` | orders.update; reemplazo completo solo en PENDING/CONFIRMED. |
+| GET `/orders/:id/events` | orders.view; lista de eventos por ID ascendente. |
+| PATCH `/orders/:id/status` | orders.change_status; body `{ status: "CONFIRMED" | "PREPARING" | "READY" }`, solo siguiente paso. |
+| PATCH `/orders/:id/cancel` | orders.cancel; body `{ reason }`, trim 3..500, desde no terminales. |
+
+Otros exitos usan `{ status: true, message, data }`. ID ajeno/inexistente se trata como no encontrado. COMPLETED no se asigna por API, CANCELLED solo por cancel. Un cambio de estado invalido/no editable devuelve 409; entrada/referencia invalida 400, permiso/contexto 403, fallo inesperado 500 seguro. Los deadlocks/timeouts de lock devuelven 409 para reintento.
+
+### Crear y reemplazar
+
+```json
+{
+  "idCustomer": 3,
+  "idDeposit": 2,
+  "expectedPaymentMethodId": null,
+  "fulfillmentType": "PICKUP",
+  "deliveryFee": 0,
+  "subtotal": 10,
+  "discountTotal": 1,
+  "total": 9,
+  "items": [{ "idProduct": 5, "quantity": 2, "unitPrice": 5, "discount": 1, "total": 9 }]
+}
+```
+
+Cliente/deposito obligatorios y activos del tenant; metodo esperado opcional/nullable y activo si se informa. Items 1..100, IDs distintos, productos activos del tenant. Precios/cantidades son numeros del presupuesto manual (precio puede ser cero); datos descriptivos/documentales y unidad/modo se toman de DB. No se acepta tenant, actor, estado ni snapshots en body. El contrato es estricto y rechaza campos desconocidos.
+
+Cantidad positiva hasta 999999999 con maximo 2 decimales; UNIT exige entero segun producto DB. Importes no negativos, maximo 999999999999.99 y dos decimales. Bruto por linea = round half-up(cantidad * precio, 2); total linea = bruto - descuento. `subtotal` suma brutos, `discountTotal` suma descuentos de linea, `total = subtotal - discountTotal + deliveryFee`; validar todos con Decimal.js. No hay descuento global adicional.
+
+DELIVERY requiere `delivery: { recipientName, recipientPhone, address, reference? }`: nombre 2..240, telefono texto 1..80, direccion 3..255, referencia hasta 500, tras trim. PICKUP rechaza delivery no-null y deliveryFee distinto de cero. `observation` opcional/nullable hasta 500. `deliveryFee` omitido usa 0. PUT completo limpia campos opcionales omitidos y refresca snapshots desde DB; no admite parches parciales. Delivery son datos del pedido, no una entidad sale_delivery ni asignacion de cadete.
+
+Replay por negocio/clave devuelve el pedido existente actual sin duplicar details/eventos ni comparar hash del payload; se valida forma del body antes del replay. Un error de lectura posterior al commit no revierte la escritura: reintentar create con la misma clave.
+
+### Consultas y permisos iniciales
+
+Listado: `page` (1..1000000, default 1), `limit` (1..100, default 20), `search` (1..160 tras trim: numero/nombre snapshot), `status`, `idCustomer`, `idDeposit`, `fulfillmentType`, `dateFrom`/`dateTo` (YYYY-MM-DD inclusivos, sobre created_at del servidor DB). Paginacion SQL `{ totalRecords, currentPage, totalPages, limit }`; metrics del conjunto filtrado: total, totalAmount y conteo por cada estado. `totalAmount` incluye todos los estados filtrados, no representa facturacion. Productos por deposito admite page/limit/search, con stockQuantity informativo. No hay filtros arbitrarios por tenant.
+
+Snapshots se exponen en `customerSnapshot` y campos de items; fechas serializadas. Eventos registran tipo, actor, estado previo/destino, motivo y fecha; no son un archivo completo de cada revision de items. OWNER usa shortcut existente; ADMIN recibe los cinco permisos, SELLER view/create/update y DELIVERY ninguno por defecto; overrides existentes pueden ajustar acceso. No se agregaron labels UI ni permisos administrativos de otros modulos.
+
+Implementacion y limites de evidencia: [F3 validation](f03-orders-core-validation.md). No hay frontend Orders, conversion, reservas ni integracion VITRUNO.

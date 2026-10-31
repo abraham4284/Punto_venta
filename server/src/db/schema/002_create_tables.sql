@@ -581,6 +581,65 @@ CREATE TABLE IF NOT EXISTS `cash_settlements` (
   PRIMARY KEY (`idCashSettlement`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Orders Core F3: no economic or inventory effects.
+CREATE TABLE IF NOT EXISTS `orders` (
+  `idOrder` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idCustomer` int NOT NULL,
+  `idDeposit` int NOT NULL,
+  `expected_payment_method_id` int DEFAULT NULL,
+  `order_number` varchar(50) NOT NULL,
+  `idempotency_key` varchar(64) NOT NULL,
+  `status` enum('PENDING','CONFIRMED','PREPARING','READY','COMPLETED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+  `fulfillment_type` enum('PICKUP','DELIVERY') NOT NULL,
+  `customer_snapshot` json NOT NULL,
+  `delivery_recipient_name` varchar(240) DEFAULT NULL,
+  `delivery_recipient_phone` varchar(80) DEFAULT NULL,
+  `delivery_address` varchar(255) DEFAULT NULL,
+  `delivery_reference` varchar(500) DEFAULT NULL,
+  `subtotal` decimal(18,2) NOT NULL,
+  `discount_total` decimal(18,2) NOT NULL,
+  `delivery_fee` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `total` decimal(18,2) NOT NULL,
+  `observation` varchar(500) DEFAULT NULL,
+  `cancellation_reason` varchar(500) DEFAULT NULL,
+  `created_by_user_id` int NOT NULL,
+  `updated_by_user_id` int NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idOrder`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `order_details` (
+  `idOrderDetail` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idOrder` int NOT NULL,
+  `idProduct` int NOT NULL,
+  `product_name` varchar(160) NOT NULL,
+  `barcode` varchar(100) DEFAULT NULL,
+  `unit_type` enum('UNIT','KG','GRAM','LITER','METER') NOT NULL,
+  `sale_mode` enum('STOCK','ON_ORDER') NOT NULL,
+  `quantity` decimal(18,2) NOT NULL,
+  `unit_price` decimal(18,2) NOT NULL,
+  `discount` decimal(18,2) NOT NULL,
+  `total` decimal(18,2) NOT NULL,
+  PRIMARY KEY (`idOrderDetail`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `order_events` (
+  `idOrderEvent` int NOT NULL AUTO_INCREMENT,
+  `idBusiness` int NOT NULL,
+  `idOrder` int NOT NULL,
+  `idUser` int NOT NULL,
+  `event_type` enum('CREATED','UPDATED','STATUS_CHANGED','CANCELLED') NOT NULL,
+  `from_status` enum('PENDING','CONFIRMED','PREPARING','READY','COMPLETED','CANCELLED') DEFAULT NULL,
+  `to_status` enum('PENDING','CONFIRMED','PREPARING','READY','COMPLETED','CANCELLED') NOT NULL,
+  `reason` varchar(500) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idOrderEvent`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- End Orders Core F3 tables.
+
 CREATE TABLE IF NOT EXISTS `stock_movements` (
   `idStockMovement` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,

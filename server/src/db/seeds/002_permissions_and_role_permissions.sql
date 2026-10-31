@@ -140,3 +140,17 @@ WHERE code IN (
   'sale_payments.view',
   'sale_payments.collect'
 );
+
+-- Orders Core F3: additive grants, no unrelated permission changes.
+INSERT INTO permissions (code, module, action, name, description, is_active) VALUES
+('orders.view','orders','view','Ver pedidos','Permite consultar pedidos y productos para pedidos',1),
+('orders.create','orders','create','Crear pedidos','Permite registrar pedidos internos',1),
+('orders.update','orders','update','Editar pedidos','Permite editar pedidos pendientes o confirmados',1),
+('orders.change_status','orders','change_status','Cambiar estado de pedidos','Permite avanzar la preparacion de pedidos',1),
+('orders.cancel','orders','cancel','Cancelar pedidos','Permite cancelar pedidos no terminales',1)
+ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), is_active = VALUES(is_active);
+INSERT IGNORE INTO role_permissions (role, idPermission)
+SELECT 'ADMIN', idPermission FROM permissions WHERE code IN ('orders.view','orders.create','orders.update','orders.change_status','orders.cancel');
+INSERT IGNORE INTO role_permissions (role, idPermission)
+SELECT 'SELLER', idPermission FROM permissions WHERE code IN ('orders.view','orders.create','orders.update');
+-- End Orders Core F3
