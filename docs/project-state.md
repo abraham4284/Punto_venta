@@ -2,9 +2,9 @@
 
 Revisado: 2026-10-30. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `6a381750eef240e9f36f403683b90e5723abd2d0` — `feat(orders): implementar Orders Core en DB y backend`. HEAD `dev` inspeccionado antes de la validacion real F3, distinto del master de referencia aportado `094c9f1f51c96d723cf16aaa28f019f80a2452fb`. El repositorio estaba limpio al comenzar; no se cambio de rama.
+Last reviewed commit: `31beded0e6111c6c8548a7fbd0b13e935b79d74b` — `test(orders): validar F3 contra MySQL real de test`. HEAD `dev` inspeccionado antes de F4, distinto del master de referencia aportado `947874b0369963a6b6ec54d221d4ec160adf78a0`. El repositorio estaba limpio al comenzar; no se cambio de rama.
 
-Current phase: F3 Orders Core implementada, validada DB-free y contra DB test real. Last completed functional phase: F3. Next functional phase: F4, pendiente. Ver [tasks](tasks.md) y [evidencias F3](f03-orders-core-validation.md). Operador confirma SQL aplicado/sincronizado en local, test y produccion; el agente solo probo la DB test local, no produccion ni su despliegue.
+Current phase: F4 Orders Admin frontend implementada con validacion estatica/aislada. Last completed functional phase: F4; QA navegador pendiente. Next functional phase: F5, pendiente. Ver [tasks](tasks.md), [evidencias F4](f04-orders-admin-frontend-validation.md) y [F3 real](f03-orders-core-validation.md). Operador confirma SQL F3 aplicado/sincronizado en local, test y produccion; F4 no modifico backend ni ejecuto DB.
 
 ## Identidad, stack y mapa actual
 
@@ -30,13 +30,14 @@ Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pago
 
 ## Roadmap y limites conocidos
 
-- F0/F0.1 y F1/F2 cerradas; F3 implementada/validada DB-free y DB real; F4..F6 pendientes.
-- Orders: **IMPLEMENTED DB/BACKEND; REAL LOCAL TEST DB VALIDATED**. 11 pruebas HTTP/DB aprobadas en `localhost:3306 / punto_venta_integration_test`, servidor `DESKTOP-M4JH3TC`, MySQL 8.0.33. Flujo completo, tenant, permisos, actores inactivos, stock informativo y replay concurrente sin duplicados. Fixtures propios limpiados sin reset general ni desactivar FKs. Contrato: [contracts](contracts.md). Sin frontend/conversion/reservas; los 65 tests DB-free son evidencia de la entrega inicial.
+- F0/F0.1 y F1/F2 cerradas; F3 implementada/validada DB-free y DB real; F4 implementada con build/lint acotado y comprobaciones aisladas; F5/F6 pendientes.
+- Orders Core: **IMPLEMENTED DB/BACKEND; REAL LOCAL TEST DB VALIDATED**. 11 pruebas HTTP/DB aprobadas en `localhost:3306 / punto_venta_integration_test`, servidor `DESKTOP-M4JH3TC`, MySQL 8.0.33. Flujo completo, tenant, permisos, actores inactivos, stock informativo y replay concurrente sin duplicados. Fixtures propios limpiados sin reset general ni desactivar FKs. Contrato HTTP F3 sin cambios: [contracts](contracts.md); sus referencias al alcance original sin frontend corresponden al cierre F3. Los 65 tests DB-free son evidencia de la entrega inicial.
+- Orders Admin F4: UI de lista/filtros/metricas/paginacion, create/edit con Decimal.js e idempotencia estable, detalle/eventos y acciones por permiso/estado. Sidebar, rutas y labels integrados. 51 comprobaciones ad hoc (no suite persistente), build y lint acotado aprobados. Navegador/computer-use no pudieron inicializar assets: no hubo QA visual ni operaciones desde navegador contra backend real. Sin conversion/reservas/VITRUNO.
 - Stock identico y conteos globales de stock_movements/sales/sale_details/sale_payments/sale_deliveries/cash_movements en 0 antes/despues de la suite. Typecheck/build y validacion baseline aprobados nuevamente. No se detectaron bugs funcionales Orders; se corrigio solo la limpieza de la nueva suite.
 - SQL de produccion sincronizado segun operador; no se consulto ni modifico produccion ni se probo MariaDB remoto, instalacion limpia o reaplicacion de migraciones. Los validadores de archivos no ejecutan SQL.
 - `manual/002_customers_v2.sql` usa modo de datos descartables; no es migracion semantica de clientes reales.
 - El README conserva contenido historico bajo aviso visible. La guia Customers v2 conserva la advertencia de fase frontend como antecedente backend; no describe una carencia vigente del cliente.
-- Deuda previa informada: lint global y warnings de bundle/imports dinamicos. No se midio en F0; no afirmar builds actuales aprobados ni deuda resuelta.
+- Lint global medido en F4: 8 errores y 2 warnings en seis archivos previos fuera de scope; lint F4 limpio. Build exitoso con warnings de bundle grande/imports dinamicos inefectivos. Deuda no corregida fuera de scope.
 - API no tiene envelope uniforme entre contextos; preservar consumidores. Precision decimal y columnas como timestamps deben comprobarse en schema concreto.
 
 Fuera de alcance: implementar funcionalidad durante F0/F0.1, F4..F6 dentro de F3, reservas anticipadas, checkout publico e integracion automatica VITRUNO. No hay evidencia de despliegue/migracion activa verificada en esta fase.
