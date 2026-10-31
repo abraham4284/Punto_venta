@@ -1,48 +1,30 @@
-# Arquitectura actual
+# Arquitectura del sistema
 
-## Componentes y limites
+Cajora integra una SPA de administracion, una API backend y MySQL/MariaDB. Esta pagina define responsabilidades y fronteras; los detalles de implementacion viven en cada subsistema.
 
-| Componente | Implementacion / entrada |
-| --- | --- |
-| client | React 19, TypeScript, Vite 8, React Router, Tailwind CSS 4, Base UI/shadcn, Zustand, Axios y Zod. [AppRoutes](../client/src/routes/AppRoutes.tsx) separa `/admin/*`, `/platform/*` y home. |
-| server | Node.js, Express 5, TypeScript ESM/NodeNext, mysql2/promise, Zod 4, Decimal.js y JWT. [app.ts](../server/src/app.ts) configura HTTP y monta los contextos. |
-| database | MySQL/MariaDB, tablas InnoDB, stored procedures y SQL versionado. [Operacion canonica](database.md). |
+## Componentes y comunicacion
 
-El backend monta storefront en `/api/public`, platform en `/api/platform` y negocios bajo `/api`. No hay una Clean Architecture formal ni ORM. Los services llaman procedures y, en algunos casos, SQL parametrizado directo.
+| Componente | Responsabilidad | Documentacion principal |
+| --- | --- | --- |
+| Client SPA | React/TypeScript: interfaz de negocio y plataforma, navegacion, formularios y estado de presentacion. Habla HTTP/JSON con API; no accede directamente a DB. | [client/architecture](../client/docs/architecture.md) |
+| Backend API | Node/Express/TypeScript: autenticacion, autorizacion, validacion, reglas comerciales y persistencia. Usa mysql2/procedures y algunas queries parametrizadas. | [server/architecture](../server/docs/architecture.md) |
+| MySQL/MariaDB | Persistencia, integridad relacional, operaciones SQL y auditoria/eventos del dominio. | [database](database.md) y [DB tecnica](../server/src/db/README.md) |
+| Consumidor publico externo | VITRUNO consume catalogo publicado por Cajora; es un proyecto independiente. | [contracts](contracts.md), [PRD](prd.md) |
 
-## Backend
+Direccion de comunicacion: usuario -> SPA -> API -> DB -> API -> SPA. Consumidores publicos -> API publica -> DB; no llaman al API administrativo ni se conectan a la DB. No hay ORM ni una Clean Architecture formal que imponer al codigo existente.
 
-Flujo representativo: route -> middleware -> controller -> validacion Zod -> service -> procedure/DB -> mapper -> respuesta. Los helpers/mappers no son una capa obligatoria uniforme en todos los modulos.
+## Contextos
 
-- [businesses-app](../server/src/modules/businesses-app/index.ts): operacion de negocio; agrupa rutas de maestros, stock, compras, ventas, pagos, caja, entregas, rendiciones y tickets.
-- [platform](../server/src/modules/platform/index.ts): auth, negocios, usuarios, dashboard, suscripciones, auditoria y notificaciones. Mantiene identidad/contexto PLATFORM separado.
-- [storefront-app](../server/src/modules/storefront-app/index.ts): catalogo publico de solo lectura.
-- [notifications compartido](../server/src/modules/notifications): infraestructura consumida por los contextos internos.
+- businesses-app: operacion diaria de cada negocio (maestros, inventario, compras, ventas, pagos, entregas, caja/rendiciones y tickets).
+- platform: administracion SaaS (negocios, usuarios, planes/suscripciones/pagos, dashboard, auditoria y notificaciones).
+- storefront-app: catalogo publico de solo lectura asociado a un negocio, separado de la administracion. La configuracion por slug y proyeccion publica viven en backend.
 
-Cada modulo suele separar `routes`, `controllers`, `validations`, `services`, `types`, helpers e `index.ts`. Customers es un ejemplo compacto; Sales muestra coordinacion transaccional compleja.
+La identidad autenticada distingue BUSINESS y PLATFORM. `idBusiness` delimita datos y operaciones del negocio; plataforma no equivale a pertenencia a un negocio. Permisos backend, aislamiento SQL y relaciones tenant-safe complementan autenticacion. Decision: [ADR-001](decisions.md); implementacion: [server/security-tenancy](../server/docs/security-tenancy.md).
 
-### Tenant, identidad y autorizacion
+## Contratos y responsabilidades
 
-`users` representa identidad, `business_users` pertenencia/rol en un negocio y `platform_users` acceso de plataforma. El token distingue BUSINESS y PLATFORM. `requireAuth` carga el contexto; `req.user.idBusiness` fija el tenant y `req.user.idUser` el actor.
+[contracts.md](contracts.md) es la fuente principal de prefijos HTTP, cookies/Bearer, CSRF, headers, envelopes, paginacion y errores compartidos. No hay un envelope global uniforme. Los guards del client ayudan a presentar acceso; el backend mantiene la autoridad.
 
-La cadena operativa BUSINESS es `requireAuth -> requireBusinessContext -> requirePasswordChangeCompleted -> requireOperationalSubscription`. Auth, businesses, subscription, notifications y legal se montan antes y tienen controles propios. No moverlas indiscriminadamente ni asumir proteccion heredada para una ruta nueva.
+La arquitectura interna de React, layouts, Axios y stores vive en client/docs; montaje Express, services/mappers y middleware vive en server/docs. Ownership transaccional por flujo e idempotencia: [server/transactions](../server/docs/transactions.md). Reglas transversales: [coding-rules](coding-rules.md).
 
-`requirePermission` protege operaciones backend; filtros SQL por negocio y FKs compuestas refuerzan aislamiento. Ocultar UI no autoriza operaciones. Revisar permisos de SELLER/DELIVERY y endpoints de contexto antes de ampliar privilegios administrativos.
-
-### HTTP y transacciones
-
-`app.ts` configura Helmet, CORS con credenciales, limites de payload, CSRF, rate limiting y manejo global de errores. BUSINESS usa cookies HttpOnly con refresh y `/me`; [Axios](../client/src/api/axios.config.ts) usa `withCredentials`, header CSRF y coordinacion de refresh/suscripcion.
-
-[Sales service](../server/src/modules/businesses-app/sales/services/sales.service.ts) posee la transaccion de creacion: misma conexion para cabecera, detalles/stock, pagos y entrega; commit/rollback y recuperacion idempotente. Los procedures participan en ese contrato; no agregar transacciones anidadas por suposicion. Existen otros procedures con manejo propio: inspeccionar el flujo afectado.
-
-## Frontend
-
-Las vistas viven en `client/src/views/businesses-app`, `platform` y `home`. El flujo habitual es page -> hook -> api -> backend; cada modulo separa componentes, tipos, validaciones y rutas. Zustand se usa para estado compartido, por ejemplo sesion y carritos; los hooks tambien mantienen estado local (Customers).
-
-Los formularios usan `useForm` y utilidades del repo cuando corresponde. La UI es Base UI, no se debe asumir API Radix. Las rutas privadas y controles visuales complementan los permisos del servidor.
-
-## Frontera publica y futura
-
-[Catalog routes](../server/src/modules/storefront-app/catalog/routes/catalog.routes.ts) expone GET `/catalog`, `/catalog/categories`, `/catalog/products` y `/catalog/products/:slug`, relativos a `/api/public`. `PUBLIC_CATALOG_BUSINESS_SLUG` selecciona un negocio; sin configuracion valida el catalogo no esta disponible. Los procedures publicos consultan stock del deposito predeterminado activo y los mappers exponen datos publicos, no costos.
-
-Admin API y storefront no se intercambian. VITRUNO es externo; el acuerdo de uso esta en [PRD](prd.md). Order y Sale seran entidades distintas: Orders aun no tiene tablas/modulo/rutas en este checkout. Conversion y reservas son fases futuras: [tasks](tasks.md).
+Order y Sale seran entidades distintas: Orders no esta implementado. Conversion y reservas son futuras fases en [tasks](tasks.md); las decisiones planificadas estan etiquetadas en [decisions](decisions.md). El acuerdo externo de VITRUNO/WhatsApp no certifica su despliegue ni implementacion desde este checkout.
