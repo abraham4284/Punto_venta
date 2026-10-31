@@ -8,6 +8,7 @@ Comandos reales desde `server`, fuente [package.json](../package.json):
 | `npm run build` | tsc + tsc-alias; no demuestra comportamiento DB/API. |
 | `npx vitest run --config vitest.customers-v2.config.ts` | Unit tests DB-free de Customers v2. |
 | `npx vitest run --config vitest.orders-core.config.ts` | Orders Core DB-free: dominio, services/controllers/permisos y contratos SQL estaticos, sin setup de integracion. |
+| `npx vitest run --config vitest.orders-integration.config.ts` | Orders HTTP/DB real, exclusivamente loopback + punto_venta_integration_test, fixtures propios y limpieza acotada. Requiere autorizacion DB explicita. |
 | `npm run test:security` | Vitest sobre src/tests/security con config general. |
 | `npm run test:tenant` | vitest.tenant.config.ts; aislamiento multi-tenant. |
 | `npm run test:economic` | vitest.economic.config.ts; flujos economicos. |
@@ -22,6 +23,12 @@ Comandos reales desde `server`, fuente [package.json](../package.json):
 [Config general](../vitest.config.ts) y configs [tenant](../vitest.tenant.config.ts), [economic](../vitest.economic.config.ts), [auth](../vitest.auth-permissions.config.ts), [notifications](../vitest.notifications.config.ts) cargan [setup](../src/tests/setup.ts). Este configura entorno, valida nombre de DB y toca pool al cerrar; helpers/suites de integracion pueden conectar y modificar datos. No asumir que security es DB-free por su nombre ni que `_test` garantiza host local.
 
 **`npm test` backend NO debe asumirse DB-free.** Antes de ejecutar, revisar setup, imports y efectos. No ejecutar suites conectadas, queries, SQL manual o resets sin autorizacion explicita; politica global en [AGENTS](../../AGENTS.md). Esta fase documental no requiere esas ejecuciones.
+
+### Orders real, sin reset general
+
+[Config Orders real](../vitest.orders-integration.config.ts) comprueba host loopback y nombre exacto antes de cargar setup. Lee credenciales de `.env.test` si existe o solo datos de conexion de `.env`; fuerza la DB de test y nunca hereda DB_NAME de desarrollo. Rechaza overrides incompatibles y usa secretos JWT exclusivos del test. Antes de fixtures verifica `SELECT DATABASE()`/servidor/version y requiere un plan activo existente, sin crear catalogos globales.
+
+[Suite Orders](../src/tests/integration/orders/orders.integration.test.ts) reutiliza app, setup, helpers y fixtures actuales, sin mocks ni segunda arquitectura. Crea tenants/usuarios con prefijo UUID; `afterAll` elimina solo esos datos respetando FKs en una transaccion, con joins de suscripciones cuando no existe idBusiness directo. No llama `resetIntegrationTestData`, no aplica SQL estructural ni modifica grants globales. No ejecutar esta suite sobre hosting remoto o produccion; evidencia y limites en [F3 validation](../../docs/f03-orders-core-validation.md).
 
 ## Evidencia y cierre
 

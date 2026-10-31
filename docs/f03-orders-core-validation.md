@@ -1,5 +1,7 @@
 # F3 — Orders Core DB/procedures/backend
 
+Este documento conserva la evidencia inicial DB-free y agrega al final la validacion real posterior. Las restricciones/resultados de la entrega inicial no describen el estado actualizado de la ultima seccion.
+
 Fecha: 2026-10-30. Base inspeccionada: `dev`, HEAD `fe846c3279af026a7516041dae85ccc46b5aae6b`, arbol limpio al comenzar. El master de referencia aportado no reemplazo el checkout real. No se hizo staging, commit ni push.
 
 ## Implementacion
@@ -55,3 +57,61 @@ Pendiente del operador: comprobar instalacion limpia y manual 003, constraints/F
 - [x] Roadmap/estado/contratos/DB/arquitectura sincronizados; F3 completada y F4 siguiente, sin comenzar F4. ADR-005/006 actualizan su estado sin agregar ADRs nuevos ni reescribir evidencias historicas F0/F0.1.
 
 No hay bloqueos ni desviaciones de alcance identificados. La aplicacion SQL queda expresamente fuera de las acciones autorizadas a este agente.
+
+## Validacion real posterior — 2026-10-30
+
+Base inspeccionada: `dev`, HEAD `6a381750eef240e9f36f403683b90e5723abd2d0`, limpio al comenzar. El prompt de esta tarea autoriza exclusivamente la DB test local; el operador confirma tablas/procedures/constraints/indices/FKs/permisos F3 sincronizados en local, test y produccion. Esa confirmacion es del operador, no resultado de consultas a produccion.
+
+### Destino y seguridad comprobados
+
+- `.env.test` no existe. `.env` apunta a desarrollo: su DB_NAME no se uso. Se reutilizaron credenciales locales sin mostrarlas y se selecciono explicitamente `localhost:3306 / punto_venta_integration_test`.
+- Preflight de solo lectura confirmo `DATABASE() = punto_venta_integration_test`, servidor `DESKTOP-M4JH3TC`, MySQL `8.0.33`; tres tablas Orders, diez procedures `sp_order_*` y grants ADMIN/SELLER esperados. El primer intento de red en sandbox dio EACCES; la ejecucion autorizada fuera del sandbox funciono con el mismo destino restringido.
+- [Config nueva](../server/vitest.orders-integration.config.ts) rechaza hosts remotos/nombres incompatibles antes de imports de app/DB. Reutiliza setup existente, secretos JWT de test y rate limits desactivados para la suite.
+- [Suite real](../server/src/tests/integration/orders/orders.integration.test.ts) reutiliza fixtures/helpers/app Express/Supertest; no mockea DB. No usa resetIntegrationTestData, TRUNCATE, desactivacion de FKs ni limpieza general. Elimina exclusivamente datos de sus tenants/usuarios con prefijo UUID y comprueba su desaparicion.
+
+### Resultados HTTP/DB — 11 pruebas aprobadas
+
+| Escenario | Evidencia comprobada |
+| --- | --- |
+| PICKUP, detail, events | PENDING, snapshot cliente/producto desde DB, una linea, un CREATED con actor correcto, delivery null/fee 0; lectura de detalle igual a creacion. |
+| Replay secuencial | HTTP 200/replay true, mismo idOrder, un order/linea/evento; creacion original 201. |
+| Edicion PENDING y CONFIRMED | Reemplazo de producto, cliente/deposito, observacion y metodo esperado; snapshot actualizado; estado conservado y UPDATED por edicion. |
+| State machine | PENDING -> CONFIRMED -> PREPARING -> READY con eventos; PUT PREPARING 409 ORDER_NOT_EDITABLE y ninguna mutacion; COMPLETED 400 sin mutacion; historia ordenada por ID/fecha y actor. |
+| DELIVERY/cancelacion | Persistencia de destinatario, telefono, direccion, referencia y fee 7.50; total 45.50. Motivo y evento CANCELLED persistidos; recancelacion 409. PICKUP con entrega/costo 400 sin crear filas. |
+| Listado/filtros | Paginacion limit=1, count/metrics del conjunto filtrado completo comparados con SQL; busqueda por numero/cliente/tipo sin fuga de tenant. |
+| Products-by-deposit | STOCK cantidad 10, STOCK 0, ON_ORDER 0 y productos sin fila stock en otro deposito; crear ON_ORDER sin stock funciona. |
+| Tenant A/B | A recibe 404 al leer/editar/cambiar estado/cancelar/ver eventos de B; referencias customer/deposit/product/payment method de B rechazadas 400. Catalogo por deposito ajeno rechazado; B conserva header/eventos intactos. |
+| Roles y actores | OWNER opera flujo; SELLER crea/lee/edita pero status/cancel devuelven 403; ADMIN avanza/cancela; DELIVERY sin lectura/create. User y business_user inactivos no pueden crear aun con cookie previa. Grants no modificados. |
+| Dos creates concurrentes | Misma key con Promise.all: respuestas 201/200, mismo idOrder, flags false/true, un header, un conjunto de details y un CREATED. |
+| Stock/economia | Todas las filas stock de los dos tenants identicas antes/despues (incluidos timestamps); conteos globales de seis tablas iguales, ver tabla siguiente. |
+
+| Tabla | Antes | Despues |
+| --- | --- | --- |
+| stock_movements | 0 | 0 |
+| sales | 0 | 0 |
+| sale_details | 0 | 0 |
+| sale_payments | 0 | 0 |
+| sale_deliveries | 0 | 0 |
+| cash_movements | 0 | 0 |
+
+Ejecucion completa aprobada: fixture tag `ordtest_5bbc186e1101`; afterAll retiro dos negocios y siete usuarios propios, con FKs activas y verificacion de ausencia de residuos por prefijo.
+
+### Incidencia de la suite y correccion
+
+La primera ejecucion paso los once escenarios funcionales pero fallo en afterAll: subscription_events/subscription_payments no tienen idBusiness directo. La transaccion de limpieza se revirtio. Se corrigio solo la limpieza para unir esas tablas con business_subscriptions y filtrar los IDs propios. Se limpiaron expresamente los fixtures del intento `ordtest_b41cadcfd910` (dos negocios/siete usuarios) en la misma DB test, sin desactivar FKs, antes de repetir la suite completa con exito.
+
+No se encontraron bugs funcionales de Orders en los escenarios probados. No se modificaron services/controllers/procedures/schema, reparto de permisos ni contratos de dominio.
+
+### Comandos ejecutados en esta validacion
+
+- `npx vitest run --config vitest.orders-integration.config.ts --reporter=verbose`: 11/11 tests y limpieza aprobados; ejecucion fuera del sandbox por restricciones de acceso local.
+- `npm run typecheck`: aprobado.
+- `npm run build`: aprobado.
+- `npm run db:validate-baseline`: aprobado, SHA-256 sin cambios `3918a584d3c12389f01c14cdeee44ffa37986e14412b5d08a53b2fee0dacf915`.
+- La suite DB-free conserva los 65 resultados de la entrega inicial; no se repitio porque no cambio codigo funcional.
+
+### Alcance final
+
+SQL aplicado en local/test/produccion por confirmacion del operador; validacion directa HTTP/DB solo en MySQL test local. Produccion no fue consultada, modificada ni sometida a smoke test destructivo. No se ejecutaron migraciones, reinstalaciones, suites generales con reset ni pruebas de MariaDB remoto. No se implementaron F4/F5/F6, conversion, reservas o VITRUNO. F4 sigue NEXT. Sin bloqueos ni desviaciones de alcance; correccion limitada al harness de test.
+
+Comprobaciones finales: 265 enlaces locales comprobados; scope de siete archivos (dos nuevos de testing y cinco documentos), sin codigo funcional/SQL/client modificado. `git diff --check` aprobado; `git status --short` y `git diff --stat` revisados, incluyendo archivos nuevos por separado. Verificacion SQL final de solo lectura: ambos tags de ejecucion tienen cero negocios/usuarios residuales y `@@foreign_key_checks = 1` en la misma DB test. No se hizo staging, commit ni push.
