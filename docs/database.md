@@ -4,6 +4,8 @@
 
 La fuente SQL vigente esta en [server/src/db](../server/src/db/README.md). El detalle de instalacion permanece alli; [BASELINE_AUDIT](../server/src/db/BASELINE_AUDIT.md) conserva auditoria historica, no sustituye el schema actual.
 
+Este documento conserva operacion/modelo de DB a nivel sistema. Los patrones de ejecucion backend viven en [transactions](../server/docs/transactions.md) y [security-tenancy](../server/docs/security-tenancy.md); la documentacion tecnica proxima a DB permanece en su ubicacion.
+
 | Fuente | Responsabilidad |
 | --- | --- |
 | [schema/002_create_tables.sql](../server/src/db/schema/002_create_tables.sql) | Tablas finales, columnas y primary keys; InnoDB, utf8mb4, utf8mb4_unicode_ci. |

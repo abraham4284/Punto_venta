@@ -8,6 +8,8 @@
 
 Luego abrir solo lo necesario: [producto](docs/prd.md), [arquitectura](docs/architecture.md), [convenciones](docs/coding-rules.md), [DB](docs/database.md), [decisiones](docs/decisions.md) y validaciones de la fase. Inspeccionar unicamente el codigo relevante; no leer todo el repositorio por defecto.
 
+Si la tarea toca `client/`, leer [client/AGENTS.md](client/AGENTS.md) y su documentacion frontend; si toca `server/`, leer [server/AGENTS.md](server/AGENTS.md) y su documentacion backend (ademas DB si afecta persistencia). Si toca ambos, leer ambos AGENTS. Para contratos entre componentes consultar [docs/contracts.md](docs/contracts.md). Esta seleccion se realiza despues del orden global anterior; no requiere leer todo el otro subsistema.
+
 La solicitud actual define el alcance. Codigo, schema, procedures, tests y configuracion actuales junto con docs canonicas prevalecen sobre chats, prompts y documentos historicos. Si docs contradice el codigo, registrar y resolver la discrepancia; no inventar funcionalidad.
 
 ## Trabajo y Git

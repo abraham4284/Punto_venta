@@ -2,13 +2,15 @@
 
 Revisado: 2026-10-30. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `892efcd03dbf31bd72cfd524e11afe66c5fb35c0` — `feat(customers): adaptar frontend a Customers v2`. Es el HEAD previo a los cambios documentales F0; no el master de referencia historica `97c62cfe106a10f60e1841843e06c4b602373f08`. El repositorio estaba limpio al comenzar.
+Last reviewed commit: `236eca1ca1c46c29d573fbf6a6e01a6d9f25fd82` — `docs: establecer documentacion canonica de Cajora`. Es el HEAD `dev` previo a F0.1, distinto del master de referencia aportado `793ed2f3f5774bccca1c03e9cb8812a6e5a60fe8`. El repositorio estaba limpio al comenzar; no se cambio de rama.
 
-Current phase: F0 completada (documentacion). Last completed phase: F0; last completed functional phase: F2. Next implementation phase: F3, pendiente. Ver [tasks](tasks.md) y [evidencias F0](f00-documentation-validation.md).
+Current phase: F0.1 documentation hierarchy completed. Last completed phase: F0.1 (documental); last completed functional phase: F2. Next functional phase: F3, pendiente. Ver [tasks](tasks.md), [evidencias F0](f00-documentation-validation.md) y [evidencias F0.1](f00-1-documentation-hierarchy-validation.md).
 
 ## Identidad, stack y mapa actual
 
 Cajora / Punto_Venta es gestion comercial multi-negocio; [PRD](prd.md) define producto y actores. Backend Node/Express 5/TypeScript/MySQL-MariaDB/procedures/Zod/Decimal.js; frontend React 19/Vite 8/TypeScript/Tailwind 4/Base UI/Zustand/Axios. Estructura y flujo: [architecture](architecture.md).
+
+La jerarquia documental separa sistema/contratos/roadmap en root, implementacion frontend en [client/AGENTS](../client/AGENTS.md) y backend en [server/AGENTS](../server/AGENTS.md). Detalles DB permanecen en server/src/db; [contracts](contracts.md) concentra acuerdos HTTP sin uniformar envelopes.
 
 BUSINESS monta auth, negocios, usuarios, permisos, suscripcion, legal, notificaciones, dashboard, customers, suppliers, categorias, products/imagenes, deposits, stock/movimientos, purchases, sales, pagos, caja/sesiones/movimientos, entregas, rendiciones y tickets. PLATFORM monta auth, negocios, usuarios, suscripciones/planes/pagos, dashboard, auditoria y notificaciones. El dashboard de plataforma consulta API y `sp_platform_dashboard`; no es un placeholder estatico.
 
@@ -28,7 +30,7 @@ Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pago
 
 ## Roadmap y limites conocidos
 
-- F0: base documental; F1/F2: cerradas con los limites anteriores; F3..F6: pendientes.
+- F0: base documental; F0.1: jerarquia por subsistema completada; F1/F2: cerradas con los limites anteriores; F3..F6: pendientes.
 - Orders: **NOT IMPLEMENTED / NEXT PLANNED PHASE**. No hay tablas, modulo, rutas ni permisos Orders. Primero pedido manual interno, stock informativo; despues frontend y conversion a Sale en fases independientes. Contrato: [tasks F3](tasks.md).
 - SQL/migracion real y comportamiento de ambientes desplegados requieren verificacion del operador; los validadores de archivos no ejecutan SQL.
 - `manual/002_customers_v2.sql` usa modo de datos descartables; no es migracion semantica de clientes reales.
@@ -36,4 +38,4 @@ Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pago
 - Deuda previa informada: lint global y warnings de bundle/imports dinamicos. No se midio en F0; no afirmar builds actuales aprobados ni deuda resuelta.
 - API no tiene envelope uniforme entre contextos; preservar consumidores. Precision decimal y columnas como timestamps deben comprobarse en schema concreto.
 
-Fuera de alcance: implementar funcionalidad durante F0, F4..F6 dentro de F3, reservas anticipadas, checkout publico e integracion automatica VITRUNO. No hay evidencia de despliegue/migracion activa verificada en esta fase.
+Fuera de alcance: implementar funcionalidad durante F0/F0.1, F4..F6 dentro de F3, reservas anticipadas, checkout publico e integracion automatica VITRUNO. No hay evidencia de despliegue/migracion activa verificada en esta fase.
