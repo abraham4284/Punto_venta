@@ -2,9 +2,9 @@
 
 Revisado: 2026-10-31. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `530e03bd728be01cf3c42d8131006651ef3a017f` — `feat(orders): agregar checkout de conversión a venta`. HEAD dev inspeccionado antes de F7; checkout limpio, sin cambio de rama. Master del prompt es referencia historica.
+Last reviewed commit: `76397c123b789fe3433166e069eaae3f3dd78938` — `feat(deliveries): agregar proveedores y endurecer anulaciones`. HEAD dev inspeccionado para el gate final F7; checkout limpio al iniciar, sin cambio de rama. La referencia a master del prompt no cambia la rama inspeccionada.
 
-Current phase: F7 Delivery Providers & Cancellation Hardening implementada con validacion DB-free/estatica. Last completed functional phase: F7 a ese nivel; SQL F7 y suite real pendientes del operador. F0..F6 conservan sus evidencias, incluido gate F5 real 11/11 al iniciar F6. No se ejecuto DB real ni migraciones F7. F8 Returns & Refunds queda futura, sin implementar. Ver [F7 validation](f07-delivery-providers-cancellation-validation.md).
+Current phase: F7 Delivery Providers & Cancellation Hardening CLOSED. Last completed functional phase: F7, con gate HTTP/DB real 15/15 aprobado en localhost:3306 / punto_venta_integration_test, NODE_ENV=test y cleanup acotado correcto. Operador confirma SQL F7 aplicado en local/test/produccion; el agente no ejecuto migraciones ni pruebas contra produccion. F0..F6 conservan sus evidencias, incluido gate F5 real 11/11 al iniciar F6. F8 Returns & Refunds queda NEXT, sin implementar. QA visual sigue pendiente y no forma parte de este gate DB. Ver [F7 validation](f07-delivery-providers-cancellation-validation.md).
 
 ## Identidad, stack y mapa actual
 
@@ -18,7 +18,7 @@ El catalogo publico vive en `/api/public`, aislado del API administrativo y conf
 
 ## DB y Customers v2
 
-Existe baseline canonico completo, schema 002..005, seeds, procedures, publicaciones legales y generado. Hay cinco migraciones manuales (001 slugs/sale mode, 002 Customers v2, 003 Orders Core, 004 Order -> Sale aplicada segun operador, 005 Delivery Providers pendiente de aplicar); no un runner automatico de migraciones. Operacion y riesgos: [database](database.md).
+Existe baseline canonico completo, schema 002..005, seeds, procedures, publicaciones legales y generado. Hay cinco migraciones manuales (001 slugs/sale mode, 002 Customers v2, 003 Orders Core, 004 Order -> Sale aplicada segun operador, 005 Delivery Providers aplicada en local/test/produccion segun operador); no un runner automatico de migraciones. Operacion y riesgos: [database](database.md).
 
 Customers backend y frontend estan implementados: `firstName`, `lastName`, `fullName` derivado, documento opcional y contacto. `Customer.name` fue eliminado. Sales/Tickets y otros consumidores conservan `customerName`/`customer_name` donde corresponde. El formulario, helper de busqueda, tipos y seleccion/detalle de Sales usan el contrato v2. [Guia de entrega](../server/src/db/CUSTOMERS_V2.md).
 
@@ -30,7 +30,7 @@ Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pago
 
 ## Roadmap y limites conocidos
 
-- F7: providerType null/INTERNAL/THIRD_PARTY explicito en Sale Delivery, con datos externos opcionales y costo informativo distinto del envio cobrado. Cadete exige usuario DELIVERY activo del tenant; tercero no es un usuario. Creacion directa/conversion y asignacion/reasignacion usan el mismo modelo; lista/detalle/timeline lo muestran. Tercero necesita view_all + update_status y no inicia con efectivo pendiente. Anulacion DELIVERY solo PENDING/ASSIGNED/FAILED sin COLLECTED/CONFIRMED ni pagos rendidos; en camino/entregada bloqueados con mensajes claros. Sin cambios de settlements historicos ni reapertura de Order. 142 tests DB-free, builds y baseline aprobados; suite real F7 preparada, no ejecutada.
+- F7: providerType null/INTERNAL/THIRD_PARTY explicito en Sale Delivery, con datos externos opcionales y costo informativo distinto del envio cobrado. Cadete exige usuario DELIVERY activo del tenant; tercero no es un usuario. Creacion directa/conversion y asignacion/reasignacion usan el mismo modelo; lista/detalle/timeline lo muestran. Tercero necesita view_all + update_status y no inicia con efectivo pendiente. Anulacion DELIVERY solo PENDING/ASSIGNED/FAILED sin COLLECTED/CONFIRMED ni pagos rendidos; en camino/entregada bloqueados con mensajes claros. Sin cambios de settlements historicos ni reapertura de Order. 142 tests DB-free, builds y baseline aprobados; gate real F7 15/15 aprobado en test loopback, con limpieza de tenants/usuarios UUID verificada por afterAll. Sin bugs funcionales detectados; produccion no sometida a la suite.
 
 - Orders F4.1: formulario por secciones y resumen lateral, cliente obligatorio mediante modal buscable, selects Base UI, deposito predeterminado activo solo en nuevos (edicion conserva el existente) y autofill DELIVERY opt-in, editable y sin copiar referencia. Picker/carrito con imagen actual y fallback; hoja de preparacion imprimible desde detalle con orders.view mediante window.print/Guardar PDF del navegador. Backend solo agrega imageUrl/productImageUrl desde products con tenant join, sin snapshot de imagen, schema ni migracion nuevos. Client build/lint Orders, server typecheck/build, 68 tests DB-free y baseline aprobados; 28 comprobaciones ad hoc frontend (sin suite persistente). Herramientas de navegador fallaron al inicializar assets: no se verifico layout/foco/impresion real. Al cierre F4.1 no se aplico SQL; posteriormente el operador confirma orders.sql aplicado y probado en local/test/produccion. [Detalle](f04-1-orders-ui-polish-validation.md).
 
