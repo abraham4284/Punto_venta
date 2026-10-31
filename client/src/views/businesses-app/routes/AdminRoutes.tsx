@@ -17,6 +17,7 @@ import {
   ProductsRoutes,
   PurchasesRoutes,
   SalesRoutes,
+  OrdersRoutes,
   StockRoutes,
   SuppliersRoutes,
 } from "@/views/businesses-app/module";
@@ -76,6 +77,7 @@ export const AdminRoutes = () => {
           }
         />
         <Route path="/notifications/*" element={<NotificationsRoutes />} />
+        <Route path="/orders/*" element={<PermissionRoute permissions={["orders.view", "orders.create"]}><OrdersRoutes /></PermissionRoute>} />
         <Route path="/legal/*" element={<LegalRoutes />} />
         <Route
           path="/stock/*"

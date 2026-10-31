@@ -10,6 +10,7 @@ import {
   PackagePlus,
   Settings,
   ShoppingCart,
+  ClipboardList,
   Truck,
   Users,
 } from "lucide-react";
@@ -100,6 +101,15 @@ const navigationSections: NavigationSection[] = [
             url: "/admin/sales/history",
             permission: "sales.view",
           },
+        ],
+      },
+      {
+        title: "Pedidos",
+        icon: ClipboardList,
+        activePatterns: [/^\/admin\/orders(?:\/.*)?$/],
+        children: [
+          { title: "Pedidos", url: "/admin/orders", permission: "orders.view" },
+          { title: "Nuevo pedido", url: "/admin/orders/new", permission: "orders.create" },
         ],
       },
       {
