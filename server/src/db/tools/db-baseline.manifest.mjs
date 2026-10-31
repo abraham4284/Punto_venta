@@ -34,6 +34,7 @@ export const procedureFiles = [
   "procedures/products.sql",
   "procedures/storefront_catalog.sql",
   "procedures/customers.sql",
+  "procedures/orders.sql",
   "procedures/suppliers.sql",
   "procedures/stock.sql",
   "procedures/stock_movements.sql",

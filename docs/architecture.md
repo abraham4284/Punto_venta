@@ -27,4 +27,4 @@ La identidad autenticada distingue BUSINESS y PLATFORM. `idBusiness` delimita da
 
 La arquitectura interna de React, layouts, Axios y stores vive en client/docs; montaje Express, services/mappers y middleware vive en server/docs. Ownership transaccional por flujo e idempotencia: [server/transactions](../server/docs/transactions.md). Reglas transversales: [coding-rules](coding-rules.md).
 
-Order y Sale seran entidades distintas: Orders no esta implementado. Conversion y reservas son futuras fases en [tasks](tasks.md); las decisiones planificadas estan etiquetadas en [decisions](decisions.md). El acuerdo externo de VITRUNO/WhatsApp no certifica su despliegue ni implementacion desde este checkout.
+Order y Sale son entidades distintas: Orders Core tiene DB/backend interno sin frontend ni efectos economicos/inventario. Conversion y reservas son futuras fases en [tasks](tasks.md); decisiones en [decisions](decisions.md). El acuerdo externo de VITRUNO/WhatsApp no certifica su despliegue ni implementacion desde este checkout.

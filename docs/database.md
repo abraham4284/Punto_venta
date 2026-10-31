@@ -33,7 +33,7 @@ Son operaciones de archivos. El builder regenera el SQL completo; el validator c
 
 Para instalaciones nuevas, actualizar schema/procedures/seeds segun corresponda y regenerar baseline por tooling. Si cambian archivos de entrada, mantener manifest e instalador alineados. Para bases existentes, preparar ademas migracion aditiva/manual revisada; no reemplazarla con el instalador limpio ni recrear carpetas historicas `fixed`/`tables`.
 
-Actualmente existen `manual/001_slugs_sale_mode_public_catalog.sql` y `manual/002_customers_v2.sql`. No existe una migracion Orders 003; ese numero queda sujeto a disponibilidad al implementar F3.
+Actualmente existen `manual/001_slugs_sale_mode_public_catalog.sql`, `manual/002_customers_v2.sql` y [manual/003_orders_core.sql](../server/src/db/manual/003_orders_core.sql). Orders 003 es aditiva para un baseline existente compatible con Customers v2: crea tablas/indices/FKs/checks Orders y agrega sus permisos sin resetear grants ajenos. Luego importar [procedures/orders.sql](../server/src/db/procedures/orders.sql) completo antes de desplegar backend. Backup, DB seleccionada y revision del operador obligatorios; no ejecutar install ni el seed completo para esta actualizacion. No se aplico SQL real durante F3.
 
 Toda aplicacion SQL real requiere autorizacion del operador, backup, confirmacion de base/ambiente y ventana de mantenimiento cuando corresponda. DDL puede hacer commits implicitos; no prometer rollback integral. No deshabilitar FKs/safe updates para sortear errores. Respetar DELIMITER al importar archivos completos, tambien en DROP PROCEDURE. No ejecutar automaticamente SQL, migraciones ni `db:local:create/reset`. Ver [AGENTS](../AGENTS.md).
 
@@ -45,11 +45,12 @@ Toda aplicacion SQL real requiere autorizacion del operador, backup, confirmacio
 | Maestros | customers, suppliers, product_categories, products, product_images, deposits, payment_methods |
 | Inventario | stock, stock_movements |
 | Compras | purchases, purchase_details |
+| Pedidos internos | orders, order_details, order_events (sin referencia de conversion a Sale) |
 | Ventas y entregas | sales, sale_details, sale_payments, sale_payment_events, sale_deliveries, delivery_events |
 | Caja | cash_registers, cash_sessions, cash_movements, cash_settlements, cash_session_payment_summaries |
 | Notificaciones y auditoria | notifications, notification_recipients, platform_audit_logs; eventos de pagos, entregas y suscripciones en sus propias tablas |
 
-No hay tablas Orders. `idBusiness` delimita las entidades del negocio; existen catalogos/identidades de plataforma globales. Stock es por negocio/producto/deposito. `purchase_details` posee `idDeposit`; no la cabecera de compra. `payment_methods` es unico por `(idBusiness, name)`, permite repetir code. Cantidades y montos usan DECIMAL segun schema; revisar precision concreta antes de ampliar contratos.
+Orders guarda snapshots de cliente/productos, no reserva ni descuenta stock y no genera operaciones economicas. `idBusiness` delimita las entidades del negocio; existen catalogos/identidades de plataforma globales. Stock es por negocio/producto/deposito. `purchase_details` posee `idDeposit`; no la cabecera de compra. `payment_methods` es unico por `(idBusiness, name)`, permite repetir code. Cantidades y montos usan DECIMAL segun schema; revisar precision concreta antes de ampliar contratos.
 
 ## Customers v2 y despliegue
 

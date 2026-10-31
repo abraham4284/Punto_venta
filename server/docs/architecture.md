@@ -28,4 +28,4 @@ Seguridad y orden exacto de middleware BUSINESS: [security-tenancy](security-ten
 
 [Catalog routes](../src/modules/storefront-app/catalog/routes/catalog.routes.ts) expone GET de negocio/catalogo, categorias, productos y detalle por slug. Los procedures y mappers publicos usan stock del deposito predeterminado activo y campos publicos sin costos. API publica y administrativa son contratos distintos; no reutilizar respuestas privadas.
 
-Orders no tiene modulo/tablas/rutas implementados. F3 seguira el roadmap de [tasks](../../docs/tasks.md); no convertir este documento en especificacion de una feature futura.
+[Orders](../src/modules/businesses-app/orders/index.ts) implementa pedidos internos DB/backend, montados en BUSINESS despues de sus controles operativos. Create/update/status/cancel usan transacciones del service y procedures Orders; no escriben stock ni entidades economicas. API en [contracts](../../docs/contracts.md), ownership en [transactions](transactions.md) y evidencias en [F3](../../docs/f03-orders-core-validation.md). Frontend/conversion/reservas siguen pendientes.

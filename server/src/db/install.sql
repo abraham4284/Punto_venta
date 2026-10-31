@@ -43,6 +43,7 @@ SOURCE procedures/product-categories.sql;
 SOURCE procedures/products.sql;
 SOURCE procedures/storefront_catalog.sql;
 SOURCE procedures/customers.sql;
+SOURCE procedures/orders.sql;
 SOURCE procedures/suppliers.sql;
 SOURCE procedures/stock.sql;
 SOURCE procedures/stock_movements.sql;

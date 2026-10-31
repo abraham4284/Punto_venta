@@ -111,4 +111,16 @@ CALL sp_add_foreign_key_if_not_exists('fk_stock_movements_deposit_to', 'ALTER TA
 CALL sp_add_foreign_key_if_not_exists('fk_stock_movements_product', 'ALTER TABLE `stock_movements` ADD CONSTRAINT `fk_stock_movements_product` FOREIGN KEY (`idBusiness`, `idProduct`) REFERENCES `products` (`idBusiness`, `idProduct`)');
 CALL sp_add_foreign_key_if_not_exists('fk_stock_movements_user', 'ALTER TABLE `stock_movements` ADD CONSTRAINT `fk_stock_movements_user` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`)');
 
+-- Orders Core F3
+CALL sp_add_foreign_key_if_not_exists('fk_orders_business', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_business FOREIGN KEY (idBusiness) REFERENCES businesses (idBusiness)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_customer', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_customer FOREIGN KEY (idBusiness, idCustomer) REFERENCES customers (idBusiness, idCustomer)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_deposit', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_deposit FOREIGN KEY (idBusiness, idDeposit) REFERENCES deposits (idBusiness, idDeposit)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_payment_method', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_payment_method FOREIGN KEY (idBusiness, expected_payment_method_id) REFERENCES payment_methods (idBusiness, idPaymentMethod)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_creator', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_creator FOREIGN KEY (idBusiness, created_by_user_id) REFERENCES business_users (idBusiness, idUser)');
+CALL sp_add_foreign_key_if_not_exists('fk_orders_updater', 'ALTER TABLE orders ADD CONSTRAINT fk_orders_updater FOREIGN KEY (idBusiness, updated_by_user_id) REFERENCES business_users (idBusiness, idUser)');
+CALL sp_add_foreign_key_if_not_exists('fk_order_details_order', 'ALTER TABLE order_details ADD CONSTRAINT fk_order_details_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
+CALL sp_add_foreign_key_if_not_exists('fk_order_details_product', 'ALTER TABLE order_details ADD CONSTRAINT fk_order_details_product FOREIGN KEY (idBusiness, idProduct) REFERENCES products (idBusiness, idProduct)');
+CALL sp_add_foreign_key_if_not_exists('fk_order_events_order', 'ALTER TABLE order_events ADD CONSTRAINT fk_order_events_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
+CALL sp_add_foreign_key_if_not_exists('fk_order_events_actor', 'ALTER TABLE order_events ADD CONSTRAINT fk_order_events_actor FOREIGN KEY (idBusiness, idUser) REFERENCES business_users (idBusiness, idUser)');
+-- End Orders Core F3
 DROP PROCEDURE IF EXISTS sp_add_foreign_key_if_not_exists;

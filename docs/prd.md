@@ -29,6 +29,6 @@ Customers v2 separa nombre/apellido y permite documento opcional; la identidad v
 
 ## Planificado y fuera de alcance
 
-Orders esta planificado: primero pedidos manuales internos, luego administracion visual y conversion a venta en fases separadas. No esta implementado; no hay reserva de stock inicial. Ver [roadmap](tasks.md).
+Orders Core implementa pedidos manuales internos a nivel DB/backend, sin interfaz administrativa todavia. La administracion visual y conversion a venta son fases posteriores; no hay reserva de stock inicial. No implica despliegue ni disponibilidad al usuario final. Ver [roadmap](tasks.md).
 
 VITRUNO es un proyecto consumidor separado del catalogo publico. El acuerdo de producto mantiene el cierre por WhatsApp y excluye la creacion automatica de Orders y el uso de endpoints administrativos por ese consumidor. Su UX y despliegue no se verifican desde este repositorio.

@@ -6,6 +6,10 @@ The clean-install baseline is for an already selected EMPTY database. It is not 
 
 ## Final Structure
 
+### Orders Core F3
+
+El baseline incluye orders, order_details y order_events, permisos y [procedures/orders.sql](procedures/orders.sql). Para una base existente compatible con Customers v2, revisar/aplicar por operador [manual/003_orders_core.sql](manual/003_orders_core.sql) y luego importar el archivo de procedures completo. La migracion agrega solo tablas/constraints/grants Orders, sin reset de roles ajenos. No ejecutar el instalador limpio ni el seed completo sobre esa base. Evidencias y limites: [F3 validation](../../../docs/f03-orders-core-validation.md). SQL real no ejecutado durante esta entrega.
+
 ### Customers v2
 
 El baseline incluye identidad de clientes con nombre/apellido separados y documento opcional unico por negocio. Ver [CUSTOMERS_V2.md](CUSTOMERS_V2.md) para el contrato, el breaking change de frontend y el orden exacto de actualizacion de bases existentes mediante `manual/002_customers_v2.sql` y los seis archivos de procedures afectados. No ejecutar el instalador limpio sobre una base existente.

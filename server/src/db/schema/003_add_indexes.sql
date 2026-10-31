@@ -174,4 +174,13 @@ CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_user', 'A
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_deposit_from', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_deposit_from` (`idBusiness`,`idDepositFrom`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_deposit_to', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_deposit_to` (`idBusiness`,`idDepositTo`)');
 
+-- Orders Core F3
+CALL sp_add_index_if_not_exists('orders', 'uk_orders_business_id', 'ALTER TABLE orders ADD UNIQUE KEY uk_orders_business_id (idBusiness, idOrder)');
+CALL sp_add_index_if_not_exists('orders', 'uq_orders_business_number', 'ALTER TABLE orders ADD UNIQUE KEY uq_orders_business_number (idBusiness, order_number)');
+CALL sp_add_index_if_not_exists('orders', 'uq_orders_business_idempotency', 'ALTER TABLE orders ADD UNIQUE KEY uq_orders_business_idempotency (idBusiness, idempotency_key)');
+CALL sp_add_index_if_not_exists('orders', 'idx_orders_business_status_created', 'ALTER TABLE orders ADD KEY idx_orders_business_status_created (idBusiness, status, created_at, idOrder)');
+CALL sp_add_index_if_not_exists('orders', 'idx_orders_business_created', 'ALTER TABLE orders ADD KEY idx_orders_business_created (idBusiness, created_at, idOrder)');
+CALL sp_add_index_if_not_exists('order_details', 'uq_order_details_product', 'ALTER TABLE order_details ADD UNIQUE KEY uq_order_details_product (idBusiness, idOrder, idProduct)');
+CALL sp_add_index_if_not_exists('order_events', 'idx_order_events_business_order', 'ALTER TABLE order_events ADD KEY idx_order_events_business_order (idBusiness, idOrder, idOrderEvent)');
+-- End Orders Core F3
 DROP PROCEDURE IF EXISTS sp_add_index_if_not_exists;

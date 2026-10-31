@@ -42,23 +42,23 @@ Decision: schema/seeds/procedures/publications forman baseline generado; `manual
 
 Consequences: no ejecutar install sobre datos existentes ni editar generado a mano; mantener ambas rutas cuando cambia el modelo. Evidencia: [DB README](../server/src/db/README.md).
 
-## ADR-005 — Order y Sale seran entidades diferentes
+## ADR-005 — Order y Sale son entidades diferentes
 
-Status: Accepted / planned. Date: 2026-10-30.
+Status: Accepted / implemented DB/backend; conversion planned. Date: 2026-10-30.
 
 Context: un pedido expresa intencion y preparacion, una venta produce efectos economicos.
 
-Decision: F3 creara pedidos manuales internos independientes. COMPLETED quedara reservado para futura conversion atomica Order -> Sale, fuera de F3.
+Decision: F3 implementa pedidos manuales internos independientes. COMPLETED queda reservado para futura conversion atomica Order -> Sale, fuera de F3.
 
-Consequences: no crear ventas, pagos, caja ni deliveries reales desde Orders Core. No hay tablas/modulo Orders hoy. Fuente: roadmap acordado en F0; [contrato F3](tasks.md).
+Consequences: no crear ventas, pagos, caja ni deliveries reales desde Orders Core. Estado actualizado en F3: Accepted / implemented DB/backend, con conversion aun planned. Fuente: roadmap acordado en F0; [evidencia F3](f03-orders-core-validation.md).
 
 ## ADR-006 — Stock solo informativo en Orders inicial
 
-Status: Accepted / planned. Date: 2026-10-30.
+Status: Accepted / implemented DB/backend. Date: 2026-10-30.
 
 Context: los pedidos iniciales deben admitir disponibilidad insuficiente y productos por encargo.
 
-Decision: F3 no reserva ni descuenta stock; cero/insuficiente y ON_ORDER no bloquean el pedido.
+Decision: F3 no reserva ni descuenta stock; cero/insuficiente y ON_ORDER no bloquean el pedido. Estado actualizado en F3: Accepted / implemented DB/backend; reservas siguen fuera de alcance.
 
 Consequences: consultar disponibilidad no promete entrega ni exclusividad; reservas requieren fase separada justificada por uso real. No existe implementacion de reservas Orders en este checkout.
 
