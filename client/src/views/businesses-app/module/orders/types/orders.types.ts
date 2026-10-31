@@ -1,3 +1,4 @@
+import type { CreateSalePayload, SaleWithDetailsResponse } from "../../sales/types";
 export type OrderStatus = "PENDING" | "CONFIRMED" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";
 export type OrderFulfillmentType = "PICKUP" | "DELIVERY";
 export type OrderUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
@@ -19,13 +20,21 @@ export interface OrderDetail extends OrderItemPayload {
   idOrderDetail: number; idOrder: number; productName: string; barcode: string | null;
   unitType: OrderUnitType; saleMode: "stock" | "on_order";
 }
+export interface OrderLinkedSale { idSale: number; saleNumber: string; status: "COMPLETED" | "CANCELLED" }
+export type ConvertOrderPayment = CreateSalePayload["payments"][number];
+export interface ConvertOrderPayload {
+  idCashSession: number; payments: ConvertOrderPayment[];
+  delivery?: Pick<NonNullable<CreateSalePayload["delivery"]>, "assignedToUserId" | "scheduledAt" | "observation"> | null;
+}
+export interface ConvertOrderResult { order: Order; sale: SaleWithDetailsResponse }
 export interface Order extends Omit<CreateOrderPayload, "items"> {
   idOrder: number; idBusiness: number; orderNumber: string; status: OrderStatus;
   customerSnapshot: CustomerSnapshot; cancellationReason: string | null;
   createdByUserId: number; updatedByUserId: number; createdAt: string; updatedAt: string;
+  linkedSale: OrderLinkedSale | null;
   items: OrderDetail[];
 }
-export type OrderSummary = Omit<Order, "items">;
+export type OrderSummary = Omit<Order, "items" | "linkedSale">;
 export interface OrderEvent {
   idOrderEvent: number; idOrder: number; eventType: "CREATED" | "UPDATED" | "STATUS_CHANGED" | "CANCELLED";
   fromStatus: OrderStatus | null; toStatus: OrderStatus; idUser: number; reason: string | null; createdAt: string;

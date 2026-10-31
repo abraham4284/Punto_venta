@@ -50,6 +50,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   "orders.create": "Crear pedidos",
   "orders.update": "Editar pedidos",
   "orders.change_status": "Cambiar estado de pedidos",
+  "orders.convert": "Convertir pedidos a venta",
   "orders.cancel": "Cancelar pedidos",
   "purchases.view": "Ver compras",
   "purchases.create": "Crear compras",

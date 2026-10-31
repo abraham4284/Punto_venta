@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Plus, Trash2, WalletCards } from "lucide-react";
 import Decimal from "decimal.js";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,7 @@ export const SalePaymentsSection = ({
   onRemovePayment,
   onPaymentChange,
 }: Props) => {
+  const fieldPrefix = useId();
   const pendingPaymentsTotal = payments.reduce((acc, payment) => {
     if (payment.status !== "PENDING") return acc;
 
@@ -191,7 +193,7 @@ export const SalePaymentsSection = ({
         <Dialog>
           <DialogTrigger
             render={
-              <Button type="button" variant="outline" className="w-full" />
+              <Button type="button" variant="outline" className="w-full" disabled={disabled || paymentMethodsLoading} />
             }
           >
             Configurar pagos
@@ -241,6 +243,8 @@ export const SalePaymentsSection = ({
                 const selectedPaymentMethod = paymentMethods.find((method) => {
                   return method.idPaymentMethod === payment.idPaymentMethod;
                 });
+                const rowErrors = Object.entries(errors).filter(([field]) => field.startsWith(`payments.${index}.`));
+                const errorId = `${fieldPrefix}-${payment.id}-errors`;
                 const assignedWithoutCurrent = getAssignedExcludingPayment(
                   payments,
                   payment.id,
@@ -259,7 +263,7 @@ export const SalePaymentsSection = ({
                     className="grid gap-3 rounded-lg border bg-muted/20 p-3 lg:grid-cols-[minmax(0,1fr)_150px_170px_auto]"
                   >
                     <div className="grid gap-2">
-                      <Label>
+                      <Label htmlFor={`${fieldPrefix}-${payment.id}-method`}>
                         {index === 0 ? "Medio principal" : "Medio adicional"}
                       </Label>
                       <Select
@@ -281,7 +285,7 @@ export const SalePaymentsSection = ({
                           paymentMethods.length === 0
                         }
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger id={`${fieldPrefix}-${payment.id}-method`} aria-invalid={Boolean(errors[`payments.${index}.idPaymentMethod`])} aria-describedby={rowErrors.length ? errorId : undefined} className="w-full">
                           <span
                             className={
                               payment.idPaymentMethod
@@ -311,7 +315,7 @@ export const SalePaymentsSection = ({
 
                     <div className="grid gap-2">
                       <div className="flex items-center justify-between gap-2">
-                        <Label>Importe</Label>
+                        <Label htmlFor={`${fieldPrefix}-${payment.id}-amount`}>Importe</Label>
                         {rowRemaining > 0 ? (
                           <button
                             type="button"
@@ -330,6 +334,9 @@ export const SalePaymentsSection = ({
                         ) : null}
                       </div>
                       <Input
+                        id={`${fieldPrefix}-${payment.id}-amount`}
+                        aria-invalid={Boolean(errors[`payments.${index}.amount`])}
+                        aria-describedby={rowErrors.length ? errorId : undefined}
                         type="number"
                         min="0"
                         step="0.01"
@@ -347,7 +354,7 @@ export const SalePaymentsSection = ({
                     </div>
 
                     <div className="grid gap-2">
-                      <Label>Estado</Label>
+                      <Label htmlFor={`${fieldPrefix}-${payment.id}-status`}>Estado</Label>
                       <Select
                         value={hasDelivery ? payment.status : "CONFIRMED"}
                         onValueChange={(value: string | null) => {
@@ -357,7 +364,7 @@ export const SalePaymentsSection = ({
                         }}
                         disabled={disabled || !hasDelivery}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger id={`${fieldPrefix}-${payment.id}-status`} aria-invalid={Boolean(errors[`payments.${index}.status`])} aria-describedby={rowErrors.length ? errorId : undefined} className="w-full">
                           <span className="flex flex-1 text-left">
                             {hasDelivery
                               ? getPaymentStatusLabel(payment.status)
@@ -391,6 +398,10 @@ export const SalePaymentsSection = ({
 
                     <div className="grid gap-3 lg:col-span-4 lg:grid-cols-2">
                       <Input
+                        aria-label={`Referencia del pago ${index + 1}`}
+                        maxLength={100}
+                        aria-invalid={Boolean(errors[`payments.${index}.reference`])}
+                        aria-describedby={rowErrors.length ? errorId : undefined}
                         value={payment.reference}
                         onChange={(event) =>
                           onPaymentChange(
@@ -403,6 +414,10 @@ export const SalePaymentsSection = ({
                         disabled={disabled}
                       />
                       <Input
+                        aria-label={`Observación del pago ${index + 1}`}
+                        maxLength={255}
+                        aria-invalid={Boolean(errors[`payments.${index}.observation`])}
+                        aria-describedby={rowErrors.length ? errorId : undefined}
                         value={payment.observation}
                         onChange={(event) =>
                           onPaymentChange(
@@ -415,6 +430,7 @@ export const SalePaymentsSection = ({
                         disabled={disabled}
                       />
                     </div>
+                    {rowErrors.length > 0 && <ul id={errorId} role="alert" className="text-sm text-destructive lg:col-span-4">{rowErrors.map(([field, message]) => <li key={field}>{message}</li>)}</ul>}
                   </div>
                 );
               })}
@@ -425,7 +441,7 @@ export const SalePaymentsSection = ({
                 type="button"
                 variant="outline"
                 onClick={onAddPayment}
-                disabled={disabled || paymentMethods.length === 0}
+                disabled={disabled || paymentMethods.length === 0 || payments.length >= 5}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar otro medio
