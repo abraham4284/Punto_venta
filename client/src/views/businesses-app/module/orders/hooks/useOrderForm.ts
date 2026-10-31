@@ -4,9 +4,14 @@ import { createOrderRequest, updateOrderRequest } from "../api/orders.api";
 import { draftFromOrder, draftNumber, linesFromOrder, orderDraftTotals, orderLineTotal, orderRequestError, orderSubmissionKey, orderUnitQuantityError } from "../helpers/orders.helpers";
 import { orderPayloadSchema } from "../validations/orders.validations";
 import type { Order, OrderDraft, OrderDraftLine, OrderProductOption, OrderRequestError } from "../types/orders.types";
+import type { Customer } from "../../customers/types/customers.types";
+import { deliveryFromCustomer } from "../helpers/order-context.helpers";
 
-export const useOrderForm = (initial: Order | undefined, onSaved: (order: Order) => void) => {
-  const { formSate: draft, setFormSate } = useForm(draftFromOrder(initial));
+export const useOrderForm = (initial: Order | undefined, onSaved: (order: Order) => void, defaultDeposit = "") => {
+  const { formSate: storedDraft, setFormSate } = useForm(draftFromOrder(initial));
+  const [depositChosen, setDepositChosen] = useState(Boolean(initial));
+  const [autofill, setAutofill] = useState(false);
+  const draft = { ...storedDraft, idDeposit: depositChosen ? storedDraft.idDeposit : storedDraft.idDeposit || defaultDeposit };
   const [lines, setLines] = useState<OrderDraftLine[]>(() => linesFromOrder(initial));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<OrderRequestError | null>(null);
@@ -15,7 +20,18 @@ export const useOrderForm = (initial: Order | undefined, onSaved: (order: Order)
   const inFlight = useRef(false);
   const touch = () => { key.current = null; };
   const change = <K extends keyof OrderDraft>(field: K, value: OrderDraft[K]) => {
+    if (field === "idDeposit") setDepositChosen(true);
     touch(); setFormSate((current) => ({ ...current, [field]: value, ...(field === "fulfillmentType" && value === "PICKUP" ? { deliveryFee: "0" } : {}) }));
+  };
+  const selectCustomer = (customer: Customer) => {
+    touch();
+    setFormSate((current) => ({ ...current, idCustomer: String(customer.idCustomer), ...(autofill ? deliveryFromCustomer(customer) : {}) }));
+  };
+  const changeAutofill = (enabled: boolean, customer?: Customer) => {
+    setAutofill(enabled);
+    if (enabled && customer) {
+      touch(); setFormSate((current) => ({ ...current, ...deliveryFromCustomer(customer) }));
+    }
   };
   const changeLine = (id: number, field: "quantity" | "unitPrice" | "discount", value: string) => {
     touch(); setLines((current) => current.map((line) => line.idProduct === id ? { ...line, [field]: value } : line));
@@ -24,7 +40,7 @@ export const useOrderForm = (initial: Order | undefined, onSaved: (order: Order)
   const addLine = (product: OrderProductOption) => {
     if (lines.some((line) => line.idProduct === product.idProduct) || lines.length >= 100) return;
     touch(); setLines((current) => current.some((line) => line.idProduct === product.idProduct) || current.length >= 100 ? current : [...current, { idProduct: product.idProduct, productName: product.name, barcode: product.barcode,
-      unitType: product.unitType, saleMode: product.saleMode, quantity: "1", unitPrice: String(product.priceSale), discount: "0" }]);
+      productImageUrl: product.imageUrl ?? null, unitType: product.unitType, saleMode: product.saleMode, quantity: "1", unitPrice: String(product.priceSale), discount: "0" }]);
   };
   const fee = draft.fulfillmentType === "PICKUP" ? 0 : draftNumber(draft.deliveryFee);
   const totals = useMemo(() => orderDraftTotals(lines, fee), [lines, fee]);
@@ -56,5 +72,5 @@ export const useOrderForm = (initial: Order | undefined, onSaved: (order: Order)
       setFieldErrors(Object.fromEntries(failure.errors.map((issue) => [issue.field, issue.message])));
     } finally { inFlight.current = false; setSaving(false); }
   };
-  return { draft, change, lines, addLine, removeLine, changeLine, totals, saving, error, fieldErrors, submit };
+  return { draft, change, lines, addLine, removeLine, changeLine, totals, saving, error, fieldErrors, submit, autofill, selectCustomer, changeAutofill };
 };
