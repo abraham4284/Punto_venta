@@ -29,6 +29,7 @@ export interface OrderDbRow extends RowDataPacket {
   created_by_user_id: number; updated_by_user_id: number; created_at: Date; updated_at: Date;
 }
 export interface OrderDetailDbRow extends RowDataPacket {
+  product_image_url: string | null;
   idOrderDetail: number; idOrder: number; idProduct: number; product_name: string; barcode: string | null;
   unit_type: UnitType; sale_mode: "STOCK" | "ON_ORDER";
   quantity: string | number; unit_price: string | number; discount: string | number; total: string | number;
@@ -38,6 +39,7 @@ export interface OrderEventDbRow extends RowDataPacket {
   from_status: OrderStatus | null; to_status: OrderStatus; idUser: number; reason: string | null; created_at: Date;
 }
 export interface OrderProductDbRow extends RowDataPacket {
+  image_url: string | null;
   idProduct: number; name: string; barcode: string | null; unit_type: UnitType;
   sale_mode: "STOCK" | "ON_ORDER"; price_sale: string | number; stock_quantity: string | number;
 }

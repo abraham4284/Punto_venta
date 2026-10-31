@@ -35,6 +35,7 @@ export const draftFromOrder = (order?: Order): OrderDraft => ({
 });
 export const linesFromOrder = (order?: Order): OrderDraftLine[] => (order?.items ?? []).map((item) => ({
   idProduct: item.idProduct, productName: item.productName, barcode: item.barcode, unitType: item.unitType,
+  productImageUrl: item.productImageUrl ?? null,
   saleMode: item.saleMode, quantity: String(item.quantity), unitPrice: String(item.unitPrice), discount: String(item.discount),
 }));
 export const draftNumber = (value: string) => value.trim() === "" ? NaN : Number(value);

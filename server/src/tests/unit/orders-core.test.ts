@@ -297,7 +297,33 @@ describe("HTTP and mapping contracts", function contracts() {
   });
 });
 
+describe("Orders current product images (DB-free)", function images() {
+  it.each(["https://example.test/product.jpg", null])("propaga imagen nullable %s en catalogo y detalle", async function image(imageUrl) {
+    mocks.poolQuery.mockResolvedValue(sets([{ idProduct: 5, name: "Arroz actual", image_url: imageUrl, barcode: "002", unit_type: "UNIT", sale_mode: "ON_ORDER", price_sale: "5", stock_quantity: "0" }], [{ totalRecords: 1 }]));
+    const products = await orderProductsService(actor.idBusiness, 2, { page: 1, limit: 20 });
+    expect(products.items[0]).toMatchObject({ imageUrl, stockQuantity: 0, saleMode: "on_order" });
+    expect(mocks.poolQuery).toHaveBeenCalledWith("CALL sp_order_products(?, ?, ?, ?, ?)", [7, 2, null, 20, 0]);
+    mocks.query.mockImplementation(async function read(sql: string) {
+      if (sql.includes("sp_order_lock")) return sets([row]);
+      return sets([row], [{ ...detail, product_image_url: imageUrl }]);
+    });
+    const order = await getOrderService(7, 9);
+    expect(order.items[0]).toMatchObject({ productImageUrl: imageUrl, productName: "Arroz", barcode: "001", unitPrice: 5 });
+    expect(mocks.query).toHaveBeenCalledWith("CALL sp_order_get(?, ?)", [7, 9]);
+  });
+});
+
 describe("SQL invariants (static, not execution)", function sql() {
+  it("imagenes actuales del mismo tenant, sin reemplazar snapshots historicos", function images() {
+    const source = readFileSync("src/db/procedures/orders.sql", "utf8");
+    const get = source.split("CREATE PROCEDURE sp_order_get(")[1].split("DROP PROCEDURE")[0];
+    expect(get).toContain("SELECT od.*, p.image_url AS product_image_url");
+    expect(get).toContain("LEFT JOIN products p ON p.idBusiness = od.idBusiness AND p.idProduct = od.idProduct");
+    expect(get).toContain("WHERE od.idBusiness = p_business AND od.idOrder = p_order");
+    const products = source.split("CREATE PROCEDURE sp_order_products(")[1];
+    expect(products).toContain("p.image_url");
+    expect(products).toContain("p.idBusiness = p_business");
+  });
   it("read/write procedures have no economic writes and SQL state guard blocks COMPLETED", function effects() {
     const source = readFileSync("src/db/procedures/orders.sql", "utf8");
     expect(source).not.toMatch(/(?:INSERT INTO|UPDATE|DELETE FROM)\s+(?:stock|stock_movements|sales|sale_payments|cash_\w+|sale_deliveries)\b/i);

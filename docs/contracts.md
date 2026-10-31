@@ -69,6 +69,8 @@ Rutas relativas a `/api` con sesion BUSINESS, suscripcion operativa y permiso ba
 
 Otros exitos usan `{ status: true, message, data }`. ID ajeno/inexistente se trata como no encontrado. COMPLETED no se asigna por API, CANCELLED solo por cancel. Un cambio de estado invalido/no editable devuelve 409; entrada/referencia invalida 400, permiso/contexto 403, fallo inesperado 500 seguro. Los deadlocks/timeouts de lock devuelven 409 para reintento.
 
+Extension de lectura F4.1: cada producto de `/orders/products-by-deposit/:idDeposit` incluye `imageUrl: string | null`; cada item de detalle incluye `productImageUrl: string | null`. Ambos derivan de `products.image_url` actual, con aislamiento por negocio. La imagen es enriquecimiento visual, no snapshot persistido: puede cambiar o desaparecer. Nombre/codigo/unidad/modo/precios del detalle siguen siendo historicos; un LEFT JOIN conserva la linea aun sin producto actual. No se aceptan campos de imagen en POST/PUT. Requiere actualizar los procedures de [orders.sql](../server/src/db/procedures/orders.sql); no cambia schema ni agrega migracion. Evidencia y despliegue pendiente: [F4.1](f04-1-orders-ui-polish-validation.md).
+
 ### Crear y reemplazar
 
 ```json

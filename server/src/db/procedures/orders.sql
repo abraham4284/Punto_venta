@@ -10,7 +10,10 @@ DROP PROCEDURE IF EXISTS sp_order_get$$
 CREATE PROCEDURE sp_order_get(IN p_business INT, IN p_order INT)
 BEGIN
   SELECT * FROM orders WHERE idBusiness = p_business AND idOrder = p_order;
-  SELECT * FROM order_details WHERE idBusiness = p_business AND idOrder = p_order ORDER BY idOrderDetail;
+  SELECT od.*, p.image_url AS product_image_url
+  FROM order_details od
+  LEFT JOIN products p ON p.idBusiness = od.idBusiness AND p.idProduct = od.idProduct
+  WHERE od.idBusiness = p_business AND od.idOrder = p_order ORDER BY od.idOrderDetail;
 END$$
 
 DROP PROCEDURE IF EXISTS sp_order_create$$
@@ -147,7 +150,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM deposits WHERE idBusiness = p_business AND idDeposit = p_deposit AND is_active = 1) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_DEPOSIT_INVALID';
   END IF;
-  SELECT p.idProduct, p.name, p.barcode, p.unit_type, p.sale_mode, p.price_sale, COALESCE(s.quantity, 0) AS stock_quantity
+  SELECT p.idProduct, p.name, p.barcode, p.image_url, p.unit_type, p.sale_mode, p.price_sale, COALESCE(s.quantity, 0) AS stock_quantity
   FROM products p LEFT JOIN stock s ON s.idBusiness = p.idBusiness AND s.idProduct = p.idProduct AND s.idDeposit = p_deposit
   WHERE p.idBusiness = p_business AND p.is_active = 1
     AND (p_search IS NULL OR LOCATE(p_search, p.name) > 0 OR LOCATE(p_search, p.barcode) > 0)

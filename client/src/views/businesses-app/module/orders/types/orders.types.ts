@@ -15,6 +15,7 @@ export interface CreateOrderPayload {
 }
 export type UpdateOrderPayload = CreateOrderPayload;
 export interface OrderDetail extends OrderItemPayload {
+  productImageUrl: string | null;
   idOrderDetail: number; idOrder: number; productName: string; barcode: string | null;
   unitType: OrderUnitType; saleMode: "stock" | "on_order";
 }
@@ -30,6 +31,7 @@ export interface OrderEvent {
   fromStatus: OrderStatus | null; toStatus: OrderStatus; idUser: number; reason: string | null; createdAt: string;
 }
 export interface OrderProductOption {
+  imageUrl: string | null;
   idProduct: number; name: string; barcode: string | null; unitType: OrderUnitType;
   saleMode: "stock" | "on_order"; priceSale: number; stockQuantity: number;
 }
@@ -45,6 +47,7 @@ export interface OrdersResponse<T> { status: boolean; message: string; data: T; 
 export interface OrderFieldError { field: string; message: string }
 export interface OrderRequestError { status?: number; code?: string; message: string; errors: OrderFieldError[] }
 export interface OrderDraftLine {
+  productImageUrl: string | null;
   idProduct: number; productName: string; barcode: string | null; unitType: OrderUnitType;
   saleMode: "stock" | "on_order"; quantity: string; unitPrice: string; discount: string;
 }
