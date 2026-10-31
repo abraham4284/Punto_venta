@@ -35,6 +35,8 @@ Para instalaciones nuevas, actualizar schema/procedures/seeds segun corresponda 
 
 Actualmente existen `manual/001_slugs_sale_mode_public_catalog.sql`, `manual/002_customers_v2.sql` y [manual/003_orders_core.sql](../server/src/db/manual/003_orders_core.sql). Orders 003 es aditiva para un baseline existente compatible con Customers v2: crea tablas/indices/FKs/checks Orders y agrega sus permisos sin resetear grants ajenos. Luego importar [procedures/orders.sql](../server/src/db/procedures/orders.sql) completo antes de desplegar backend. Backup, DB seleccionada y revision del operador obligatorios; no ejecutar install ni el seed completo para esta actualizacion. No se aplico SQL real durante F3.
 
+Actualizacion posterior a la entrega inicial: el operador confirma SQL F3 aplicado/sincronizado en local, test y produccion. La [validacion real F3](f03-orders-core-validation.md) comprobo HTTP/procedures en MySQL 8.0.33 test local; el agente no ejecuto migraciones ni consulto produccion. No equivale a validar MariaDB/hosting remoto ni a reinstalar el baseline.
+
 Toda aplicacion SQL real requiere autorizacion del operador, backup, confirmacion de base/ambiente y ventana de mantenimiento cuando corresponda. DDL puede hacer commits implicitos; no prometer rollback integral. No deshabilitar FKs/safe updates para sortear errores. Respetar DELIMITER al importar archivos completos, tambien en DROP PROCEDURE. No ejecutar automaticamente SQL, migraciones ni `db:local:create/reset`. Ver [AGENTS](../AGENTS.md).
 
 ## Modelo resumido actual
