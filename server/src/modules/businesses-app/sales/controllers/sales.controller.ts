@@ -69,6 +69,7 @@ function getSaleErrorStatus(message: string): number {
   ]);
 
   const conflictErrors = new Set([
+    "IDEMPOTENCY_KEY_CONFLICT",
     "OPEN_CASH_SESSION_REQUIRED",
     "CASH_SESSION_NOT_FOUND",
     "CASH_SESSION_CLOSED",

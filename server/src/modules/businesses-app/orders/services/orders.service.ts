@@ -3,8 +3,8 @@ import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/db/db.js";
 import { orderBodySchema, orderCancelSchema, orderKeySchema, orderStatusSchema } from "../validations/orders.validations.js";
 import { assertOrderCancellable, assertOrderEditable, assertOrderQuantity, assertOrderTransition, OrderError } from "../helpers/orders.helper.js";
-import { mapOrder, mapOrderDetail, mapOrderEvent, mapOrderProduct } from "../helpers/orders.mapper.js";
-import type { CustomerSnapshotRow, OrderActor, OrderBody, OrderDbRow, OrderDetailDbRow, OrderEventDbRow, OrderFilters, OrderProductDbRow, OrderProductsQuery } from "../types/index.js";
+import { mapOrderLinkedSale, mapOrder, mapOrderDetail, mapOrderEvent, mapOrderProduct } from "../helpers/orders.mapper.js";
+import type { CustomerSnapshotRow, OrderActor, OrderBody, OrderLinkedSaleDbRow, OrderDbRow, OrderDetailDbRow, OrderEventDbRow, OrderFilters, OrderProductDbRow, OrderProductsQuery } from "../types/index.js";
 
 type Database = Pool | PoolConnection;
 interface IdRow extends RowDataPacket { idOrder: number }
@@ -28,10 +28,11 @@ export async function getOrderService(idBusiness: number, idOrder: number) {
     await connection.beginTransaction();
     // The header lock prevents a concurrent edit from mixing old header/new lines.
     await lockOrder(connection, idBusiness, idOrder);
-    const result = await call<OrderDbRow | OrderDetailDbRow>(connection, "CALL sp_order_get(?, ?)", [idBusiness, idOrder]);
+    const result = await call<OrderDbRow | OrderDetailDbRow | OrderLinkedSaleDbRow>(connection, "CALL sp_order_get(?, ?)", [idBusiness, idOrder]);
     const header = result[0]?.[0] as OrderDbRow | undefined;
     if (!header) throw new OrderError(404, "ORDER_NOT_FOUND", "Pedido no encontrado");
-    const order = { ...mapOrder(header), items: ((result[1] ?? []) as OrderDetailDbRow[]).map(mapOrderDetail) };
+    const linked = result[2]?.[0] as OrderLinkedSaleDbRow | undefined;
+    const order = { ...mapOrder(header), linkedSale: mapOrderLinkedSale(linked), items: ((result[1] ?? []) as OrderDetailDbRow[]).map(mapOrderDetail) };
     await connection.commit();
     return order;
   } catch (error) {

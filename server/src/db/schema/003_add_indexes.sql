@@ -183,4 +183,6 @@ CALL sp_add_index_if_not_exists('orders', 'idx_orders_business_created', 'ALTER 
 CALL sp_add_index_if_not_exists('order_details', 'uq_order_details_product', 'ALTER TABLE order_details ADD UNIQUE KEY uq_order_details_product (idBusiness, idOrder, idProduct)');
 CALL sp_add_index_if_not_exists('order_events', 'idx_order_events_business_order', 'ALTER TABLE order_events ADD KEY idx_order_events_business_order (idBusiness, idOrder, idOrderEvent)');
 -- End Orders Core F3
+-- Order to Sale F5
+CALL sp_add_index_if_not_exists('sales', 'uq_sales_business_order', 'ALTER TABLE sales ADD UNIQUE KEY uq_sales_business_order (idBusiness, idOrder)');
 DROP PROCEDURE IF EXISTS sp_add_index_if_not_exists;

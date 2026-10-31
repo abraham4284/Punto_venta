@@ -44,13 +44,13 @@ Consequences: no ejecutar install sobre datos existentes ni editar generado a ma
 
 ## ADR-005 — Order y Sale son entidades diferentes
 
-Status: Accepted / implemented DB/backend; conversion planned. Date: 2026-10-30.
+Status: Accepted / implemented DB/backend, conversion backend F5. Date: 2026-10-30.
 
 Context: un pedido expresa intencion y preparacion, una venta produce efectos economicos.
 
-Decision: F3 implementa pedidos manuales internos independientes. COMPLETED queda reservado para futura conversion atomica Order -> Sale, fuera de F3.
+Decision: F3 implementa pedidos manuales internos independientes. COMPLETED solo se alcanza mediante conversion atomica Order -> Sale (F5), fuera de los endpoints genericos F3.
 
-Consequences: no crear ventas, pagos, caja ni deliveries reales desde Orders Core. Estado actualizado en F3: Accepted / implemented DB/backend, con conversion aun planned. Fuente: roadmap acordado en F0; [evidencia F3](f03-orders-core-validation.md).
+Consequences: alta/edicion/preparacion de Orders Core no crean ventas, pagos, caja ni deliveries reales. La conversion explicita F5 si crea los efectos Sales atomicos; UI F6 pendiente. Fuente: roadmap acordado en F0; [evidencia F3](f03-orders-core-validation.md) y [F5](f05-order-to-sale-backend-validation.md).
 
 ## ADR-006 — Stock solo informativo en Orders inicial
 
@@ -71,3 +71,11 @@ Context: Cajora expone catalogo publico y VITRUNO pertenece a otro proyecto.
 Decision: mantener consumo de `/api/public`, cierre por WhatsApp y sin creacion automatica de Orders ni consumo de endpoints administrativos.
 
 Consequences: F3 no toca VITRUNO/storefront ni agrega checkout publico. El limite publico de Cajora esta implementado; el comportamiento externo de VITRUNO se toma del acuerdo aportado, no de una inspeccion de su repo/despliegue.
+
+## ADR-008 — Conversion atomica con Sales como unico vinculo persistido
+
+Status: Accepted / implemented backend F5. Date: 2026-10-31.
+
+Decision: sales.idOrder nullable con unicidad/FK por negocio; nunca orders.idSale. READY -> COMPLETED solo tras crear Sale y efectos Sales en la misma conexion/transaccion. createSaleWithinTransaction no posee transaccion; caller directo o conversion controla ownership. Cancelar Sale no reabre Order ni libera el vinculo unico. delivery_fee forma parte del total Sales, default 0 para POS existente.
+
+Consequences: lock Order, permisos orders.convert + sales.create, keys de POS/otro Order son conflicto, no replay. Valores incompatibles con Sales se rechazan sin cambiar precios ni relajar reglas. Observacion larga permanece solo en Order. expectedPaymentMethodId es expectativa; pagos reales son explicitos. Sin reservas, F6 o API publica. [Contrato](contracts.md), [ownership](../server/docs/transactions.md), [evidencias](f05-order-to-sale-backend-validation.md).

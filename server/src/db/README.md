@@ -10,6 +10,10 @@ The clean-install baseline is for an already selected EMPTY database. It is not 
 
 El baseline incluye orders, order_details y order_events, permisos y [procedures/orders.sql](procedures/orders.sql). Para una base existente compatible con Customers v2, revisar/aplicar por operador [manual/003_orders_core.sql](manual/003_orders_core.sql) y luego importar el archivo de procedures completo. La migracion agrega solo tablas/constraints/grants Orders, sin reset de roles ajenos. No ejecutar el instalador limpio ni el seed completo sobre esa base. Evidencias y limites: [F3 validation](../../../docs/f03-orders-core-validation.md). SQL real no ejecutado durante esta entrega.
 
+### Order -> Sale F5
+
+Sales agrega idOrder nullable (unique/FK por negocio) y delivery_fee default 0. Para una DB existente, backup/revision de totales y parada de escrituras; aplicar [manual/004_order_to_sale.sql](manual/004_order_to_sale.sql), luego [procedures/sales.sql](procedures/sales.sql) y [procedures/orders.sql](procedures/orders.sql) completos, y backend compatible antes de reanudar operaciones. sp_create_sale cambia de 11 a 13 parametros, tambien para POS. No aplicar install/baseline/seed completos sobre datos existentes. No se ejecuto DB F5; [evidencias y suite real pendiente](../../../docs/f05-order-to-sale-backend-validation.md).
+
 ### Customers v2
 
 El baseline incluye identidad de clientes con nombre/apellido separados y documento opcional unico por negocio. Ver [CUSTOMERS_V2.md](CUSTOMERS_V2.md) para el contrato, el breaking change de frontend y el orden exacto de actualizacion de bases existentes mediante `manual/002_customers_v2.sql` y los seis archivos de procedures afectados. No ejecutar el instalador limpio sobre una base existente.

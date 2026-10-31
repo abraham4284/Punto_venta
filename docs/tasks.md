@@ -8,9 +8,9 @@ Revisado: 2026-10-31. `[x]` indica fase cerrada con el alcance de validacion ind
 - [x] F2 — Customers v2 frontend. Implementacion corroborada en tipos, validacion, formulario, busqueda y consumidores Sales. Traspaso previo informa build, lint acotado y 35 comprobaciones ad hoc aprobadas; no equivalen a suite persistente. Sin QA E2E real informado.
 - [x] F3 — Orders Core DB/procedures/backend. Implementacion/DB-free y 11 pruebas HTTP/DB reales aprobadas en MySQL test local; [evidencias](f03-orders-core-validation.md). Operador confirma SQL sincronizado en local/test/produccion; produccion no sometida a pruebas por el agente.
 - [x] F4 — Orders Admin frontend. Implementacion, build y lint acotado aprobados; 51 comprobaciones aisladas. QA navegador/API real pendiente por indisponibilidad de herramientas; [evidencias](f04-orders-admin-frontend-validation.md).
-- [x] F4.1 — Pulido operativo de Orders. Modal Customer, selects UI, deposito default, autofill DELIVERY, imagenes actuales y hoja de preparacion. Build/lint aplicable y pruebas aisladas aprobados; QA navegador/impresion y aplicacion de procedures pendientes. [Evidencias](f04-1-orders-ui-polish-validation.md).
-- [ ] F5 — Order -> Sale backend. NEXT; conversion atomica futura, sin implementar.
-- [ ] F6 — Order -> Sale frontend. Posterior a F5; sin implementar.
+- [x] F4.1 — Pulido operativo de Orders. Modal Customer, selects UI, deposito default, autofill DELIVERY, imagenes actuales y hoja de preparacion. Build/lint aplicable y pruebas aisladas aprobados; QA navegador/impresion pendientes; operador confirma procedures aplicados en local/test/produccion. [Evidencias](f04-1-orders-ui-polish-validation.md).
+- [x] F5 — Order -> Sale backend. Conversion atomica READY -> Sale + COMPLETED, link unico por tenant, deliveryFee y permisos. Typecheck/build/baseline y 115 tests DB-free aprobados. Migracion/procedures y suite real pendientes del operador; [evidencias](f05-order-to-sale-backend-validation.md).
+- [ ] F6 — Order -> Sale frontend. NEXT; backend F5 implementado, SQL/validacion real pendientes; sin implementar frontend.
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.
@@ -34,7 +34,7 @@ F4 consume el contrato actual y preserva COMPLETED reservado, stock informativo 
 
 ## F4 — Orders Admin frontend implementado
 
-Modulo con listado, metricas del conjunto filtrado, filtros explicitos y paginacion SQL; alta/PUT completo, detalle snapshot/timeline y acciones de siguiente estado/cancelacion segun useCan. Rutas `/admin/orders`, `/new`, `/:idOrder` y `/:idOrder/edit` protegidas, navegacion y labels de permisos integrados. Create conserva Idempotency-Key por payload/reintento y la invalida al editar; stock cero/ON_ORDER no bloquean. Sin nuevos stores globales, librerias UI, endpoints o cambios backend. Alcance de validacion y deuda global de lint en [F4 validation](f04-orders-admin-frontend-validation.md). Proxima fase funcional F5, sin comenzar.
+Modulo con listado, metricas del conjunto filtrado, filtros explicitos y paginacion SQL; alta/PUT completo, detalle snapshot/timeline y acciones de siguiente estado/cancelacion segun useCan. Rutas `/admin/orders`, `/new`, `/:idOrder` y `/:idOrder/edit` protegidas, navegacion y labels de permisos integrados. Create conserva Idempotency-Key por payload/reintento y la invalida al editar; stock cero/ON_ORDER no bloquean. Sin nuevos stores globales, librerias UI, endpoints o cambios backend. Alcance de validacion y deuda global de lint en [F4 validation](f04-orders-admin-frontend-validation.md). F5 backend implementado posteriormente; siguiente fase funcional F6, sin comenzar.
 
 ## Mantenimiento
 

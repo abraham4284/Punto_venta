@@ -18,6 +18,8 @@ export type SaleSettlementFilter =
   | "NO_PENDING_SETTLEMENT";
 
 export interface SaleDbRow {
+  idOrder: number | null;
+  delivery_fee: string | number;
   idSale: number;
   sale_number: string | null;
   idBusiness: number;
@@ -122,6 +124,9 @@ export interface CreateSaleDeliveryPayload {
 }
 
 export interface CreateSalePayload {
+  /** Internal only: not accepted by the direct Sales HTTP schema. */
+  idOrder?: number | null;
+  deliveryFee?: number;
   idBusiness: number;
   idUser: number;
   idCustomer?: number | null;
@@ -198,6 +203,8 @@ export interface SalesSummary {
 }
 
 export interface SaleResponse {
+  idOrder: number | null;
+  deliveryFee: number;
   idSale: number;
   saleNumber: string;
   idBusiness: number;

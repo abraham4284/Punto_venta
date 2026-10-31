@@ -35,7 +35,7 @@ async function callCreateSaleProcedure(
   data: CreateSaleProcedurePayload,
 ): Promise<SaleIdDbRow> {
   const [rows] = await connection.query<RowDataPacket[]>(
-    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_sale(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idUser,
@@ -48,6 +48,8 @@ async function callCreateSaleProcedure(
       data.discountTotal,
       data.total,
       data.observation ?? null,
+      data.idOrder ?? null,
+      data.deliveryFee ?? 0,
     ],
   );
   const result = rows as unknown as SaleIdDbRow[][];
@@ -164,25 +166,27 @@ async function callCreateSaleDetailProcedure(
   }
 }
 
+/** Caller owns begin/commit/rollback/release. All economic writes share its connection. */
+export async function createSaleWithinTransaction(connection: PoolConnection, data: CreateSalePayload): Promise<SaleIdDbRow> {
+  const created = await callCreateSaleProcedure(connection, { ...data, saleNumber: generateSaleNumber() });
+  if (!created.alreadyProcessed) {
+    await callCreateSaleDetailProcedure(connection, data, Number(created.idSale));
+    await callCreateSalePaymentsProcedure(connection, data, Number(created.idSale));
+    await callCreateDeliveryProcedure(connection, data, Number(created.idSale));
+  }
+  return created;
+}
+
 export async function createSaleService(
   data: CreateSalePayload,
 ): Promise<CreateSaleServiceResponse> {
   const connection = await pool.getConnection();
-  const saleData: CreateSaleProcedurePayload = {
-    ...data,
-    saleNumber: generateSaleNumber(),
-  };
+  const saleData = data;
 
   try {
     await connection.beginTransaction();
-    const createdSale = await callCreateSaleProcedure(connection, saleData);
+    const createdSale = await createSaleWithinTransaction(connection, saleData);
     const idSale = Number(createdSale.idSale);
-
-    if (!createdSale.alreadyProcessed) {
-      await callCreateSaleDetailProcedure(connection, saleData, idSale);
-      await callCreateSalePaymentsProcedure(connection, saleData, idSale);
-      await callCreateDeliveryProcedure(connection, saleData, idSale);
-    }
 
     await connection.commit();
 
@@ -214,7 +218,7 @@ export async function createSaleService(
         saleData.idempotencyKey,
       );
 
-      if (existingSale) {
+      if (existingSale && existingSale.idOrder == null) {
         return {
           sale: existingSale,
           idempotentReplay: true,
