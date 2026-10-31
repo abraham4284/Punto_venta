@@ -1,5 +1,7 @@
 # Punto de Venta
 
+> **Documentacion canonica de Cajora:** empezar por [AGENTS.md](AGENTS.md), [docs/tasks.md](docs/tasks.md) y [docs/project-state.md](docs/project-state.md). Cajora es gestion comercial multi-negocio con aplicacion de negocio, plataforma SaaS y catalogo publico separado. La documentacion operativa vigente esta en `docs/`; el resto de este README conserva contenido historico. Sus referencias a SQL incompleto, carpetas antiguas de DB, tests placeholder y dashboard de plataforma estatico estan desactualizadas: consultar [arquitectura](docs/architecture.md) y [base de datos](docs/database.md) antes de trabajar. La limpieza exhaustiva del README queda fuera de F0.
+
 ## 1. Descripcion general
 
 Punto de Venta es una aplicacion web para administracion comercial de negocios que necesitan operar ventas, compras, productos, inventario, clientes, proveedores, depositos y reportes basicos desde un panel administrativo.

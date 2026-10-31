@@ -89,4 +89,4 @@ npx vitest run --config vitest.customers-v2.config.ts
 La configuracion Customers v2 omite setup de integracion y mockea pool. Los tests verifican validaciones, mapper, servicios, controllers y estructura SQL; no prueban ejecucion SQL real.
 Fixtures y tests multi-tenant fueron actualizados, incluyendo normalizacion, duplicado, aislamiento y limpieza documental. No se ejecutaron suites conectadas, migraciones, resets ni consultas a DB. Validar el baseline no certifica su ejecucion en MySQL/MariaDB: esa comprobacion queda al operador en una DB de prueba.
 
-AGENTS.md, docs/tasks.md y docs/project-state.md no existen en este checkout; se registra aqui el estado y las decisiones sin inventar documentacion canonica previa.
+La documentacion canonica ahora comienza en [AGENTS.md](../../../AGENTS.md), [docs/tasks.md](../../../docs/tasks.md) y [docs/project-state.md](../../../docs/project-state.md); este archivo conserva el contrato y las notas especificas de la entrega Customers v2.
