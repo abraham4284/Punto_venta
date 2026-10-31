@@ -2,9 +2,9 @@
 
 Revisado: 2026-10-30. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `fe846c3279af026a7516041dae85ccc46b5aae6b` — `docs: organizar documentacion jerarquica por subsistema`. Es el HEAD `dev` previo a los cambios F3, distinto del master de referencia aportado `5927aaf8c9c8d93ee4cdf57b63a59a309e49232f`. El repositorio estaba limpio al comenzar; no se cambio de rama.
+Last reviewed commit: `6a381750eef240e9f36f403683b90e5723abd2d0` — `feat(orders): implementar Orders Core en DB y backend`. HEAD `dev` inspeccionado antes de la validacion real F3, distinto del master de referencia aportado `094c9f1f51c96d723cf16aaa28f019f80a2452fb`. El repositorio estaba limpio al comenzar; no se cambio de rama.
 
-Current phase: F3 Orders Core implementada y validada DB-free. Last completed functional phase: F3. Next functional phase: F4, pendiente. Ver [tasks](tasks.md) y [evidencias F3](f03-orders-core-validation.md). No implica SQL aplicado ni despliegue.
+Current phase: F3 Orders Core implementada, validada DB-free y contra DB test real. Last completed functional phase: F3. Next functional phase: F4, pendiente. Ver [tasks](tasks.md) y [evidencias F3](f03-orders-core-validation.md). Operador confirma SQL aplicado/sincronizado en local, test y produccion; el agente solo probo la DB test local, no produccion ni su despliegue.
 
 ## Identidad, stack y mapa actual
 
@@ -30,9 +30,10 @@ Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pago
 
 ## Roadmap y limites conocidos
 
-- F0/F0.1 y F1/F2 cerradas; F3 implementada/validada DB-free; F4..F6 pendientes.
-- Orders: **IMPLEMENTED DB/BACKEND; PENDING REAL DB VALIDATION**. Tablas, modulo, ocho rutas y permisos; snapshots DB, transacciones/locks, idempotencia y eventos. Stock informativo, sin frontend ni conversion/reservas. Contrato: [contracts](contracts.md); 65 tests DB-free, typecheck/build y baseline aprobados.
-- SQL/migracion real y comportamiento de ambientes desplegados requieren verificacion del operador; los validadores de archivos no ejecutan SQL.
+- F0/F0.1 y F1/F2 cerradas; F3 implementada/validada DB-free y DB real; F4..F6 pendientes.
+- Orders: **IMPLEMENTED DB/BACKEND; REAL LOCAL TEST DB VALIDATED**. 11 pruebas HTTP/DB aprobadas en `localhost:3306 / punto_venta_integration_test`, servidor `DESKTOP-M4JH3TC`, MySQL 8.0.33. Flujo completo, tenant, permisos, actores inactivos, stock informativo y replay concurrente sin duplicados. Fixtures propios limpiados sin reset general ni desactivar FKs. Contrato: [contracts](contracts.md). Sin frontend/conversion/reservas; los 65 tests DB-free son evidencia de la entrega inicial.
+- Stock identico y conteos globales de stock_movements/sales/sale_details/sale_payments/sale_deliveries/cash_movements en 0 antes/despues de la suite. Typecheck/build y validacion baseline aprobados nuevamente. No se detectaron bugs funcionales Orders; se corrigio solo la limpieza de la nueva suite.
+- SQL de produccion sincronizado segun operador; no se consulto ni modifico produccion ni se probo MariaDB remoto, instalacion limpia o reaplicacion de migraciones. Los validadores de archivos no ejecutan SQL.
 - `manual/002_customers_v2.sql` usa modo de datos descartables; no es migracion semantica de clientes reales.
 - El README conserva contenido historico bajo aviso visible. La guia Customers v2 conserva la advertencia de fase frontend como antecedente backend; no describe una carencia vigente del cliente.
 - Deuda previa informada: lint global y warnings de bundle/imports dinamicos. No se midio en F0; no afirmar builds actuales aprobados ni deuda resuelta.
