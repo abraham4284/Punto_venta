@@ -1,44 +1,25 @@
-# Convenciones de implementacion
+# Reglas transversales
 
-Aplicar los patrones del modulo afectado. Las reglas operativas de Git/DB y cierre viven en [AGENTS](../AGENTS.md).
+Las reglas operativas globales, Git, seguridad DB y cierre de fase viven en [AGENTS](../AGENTS.md). Especializaciones: [client/coding-rules](../client/docs/coding-rules.md) y [server/coding-rules](../server/docs/coding-rules.md); los comandos y niveles de evidencia estan en [client/testing](../client/docs/testing.md) y [server/testing](../server/docs/testing.md).
 
-## TypeScript y nombres
+## Alcance y claridad
 
-- Backend: funciones convencionales exportadas (`export async function ...`); frontend: componentes, hooks, handlers y utilidades con arrow functions. No convertir codigo ajeno solo por estilo.
-- Tipar entradas, DB rows y respuestas donde aporte valor; evitar `any` nuevo sin necesidad justificada. Backend estricto y ESM/NodeNext: imports locales con `.js`; conservar aliases existentes.
-- Tablas SQL en snake_case, procedures `sp_`; muchas columnas usan snake_case pero IDs existentes son `idBusiness`, `idCustomer`, etc. No renombrarlos para forzar uniformidad.
-- Domain/API y frontend usan camelCase. Separar DB row de respuesta mediante mapper; no filtrar snake_case ni campos privados accidentalmente. JSON serializa fechas como strings aunque interfaces existentes declaren Date.
-- Mantener estructura modular de [arquitectura](architecture.md); no crear una nueva capa de repositories.
+Aplicar patrones del modulo, cambio minimo y tipado donde aporte valor; evitar any nuevo sin necesidad justificada. No convertir codigo ajeno solo por estilo ni adelantar fases. No introducir capas, librerias o arquitectura sin necesidad explicita. El estado real y las decisiones relevantes se registran en la documentacion correspondiente, sin duplicar fuentes de verdad.
 
-## Validacion, tenant y permisos
+## Nombres y contratos
 
-- Zod valida entradas; `.strict()` cuando lo exige el contrato del modulo (Customers v2 rechaza `name` y campos desconocidos).
-- Obtener tenant/actor de `req.user`; IDs de entidades externas se validan tambien contra el negocio autenticado. Consultas y procedures business-scoped filtran por `idBusiness`; usar FKs tenant-safe donde corresponda.
-- `requirePermission` en backend para operaciones sensibles. El chequeo de plan/suscripcion no sustituye autorizacion ni aislamiento.
-- UNIT requiere cantidades enteras donde se valida; otros tipos admiten decimales segun precision real. No prometer tres decimales si la columna es DECIMAL(18,2).
+Tablas SQL en snake_case y procedures con prefijo sp_; las columnas conservan convenciones reales, incluidos IDs como idBusiness/idCustomer. Domain/API y frontend usan camelCase. La separacion entre DB row y respuesta es responsabilidad backend; el frontend consume el contrato, no la forma SQL.
 
-## Dinero, DB y atomicidad
+No renombrar campos publicos incidentalmente ni agregar aliases legacy para ocultar incompatibilidad. JSON serializa fechas como strings aunque interfaces existentes declaren Date. Headers, envelopes y errores HTTP tienen su fuente principal en [contracts](contracts.md); preservar diferencias por contexto/endpoint.
 
-- Usar Decimal.js para operaciones monetarias, descuentos y comparaciones; persistir DECIMAL. Evitar igualdad y sumas monetarias con floating point directo.
-- Stored procedures son parte del contrato actual. En flujos complejos el service posee la transaccion y pasa una misma conexion; verificar ownership antes de modificar SQL. Consultas parametrizadas y locks segun el patron existente.
-- Creaciones economicas usan `Idempotency-Key` y unicidad por negocio. Preservar replay/carreras y eventos auditables, sin duplicar efectos.
-- No usar `CAST(? AS JSON)` por conveniencia: mantener serializacion compatible con MySQL/MariaDB. Actualizar SQL canonico y generado mediante tooling: [database](database.md).
+## Tenant y precision
 
-## Respuestas y errores
+idBusiness es el limite de tenant y proviene del contexto autenticado. La UI no define autorizacion; backend verifica permisos y pertenencia de referencias. [Implementacion de seguridad](../server/docs/security-tenancy.md) y [ADR-001](decisions.md).
 
-No existe un unico envelope global uniforme. Customers y otros modulos BUSINESS usan `{ status: true, message, data }`; platform/middlewares tambien usan `success`. Conservar el contrato del consumidor, sin imponer una migracion transversal.
+Usar Decimal.js para operaciones monetarias/descuentos/comparaciones y DECIMAL al persistir; evitar igualdad/sumas monetarias con floating point directo. La precision de cantidades depende del schema: UNIT requiere enteros donde se valida, otras unidades segun columna. No prometer tres decimales sobre DECIMAL(18,2). [Operacion DB](database.md).
 
-Zod en Customers devuelve 400 y `errors: [{ field, message }]`; cliente inexistente devuelve 404, documento duplicado devuelve 400 con error de `documentNumber`, SIGNAL de dominio puede mapearse a 400. Otros flujos usan 409 para conflictos: inspeccionar controller/helper real. Errores inesperados deben dar mensajes seguros, sin SQL, stack ni secretos; no crear una nueva capa global de errores para un modulo.
+## Errores y mantenimiento
 
-## Frontend
+Validacion debe ser util para el usuario y conservar errores de campos donde el contrato los ofrece. No exponer SQL inesperado, stack ni secretos. No imponer una nueva capa/envelope global para una feature aislada. Mensajes, reintentos y errores deben mantener compatibilidad entre componentes.
 
-- Respetar Base UI/shadcn, Lucide y sistema visual existente. API -> hooks -> componentes/paginas, con Zustand solo donde corresponda.
-- `client/src/hooks/useForm.ts` devuelve `formSate`, `setFormSate`, `onInputChange`, `onResetForm`; conservar esos nombres actuales. Evitar dependencias inestables en effects que reseteen formularios.
-- Mantener errores por campo y datos del modal ante fallos. Documento como texto, telefono `tel`; no convertir documentos a numero ni perder ceros iniciales.
-- No reintroducir tokens BUSINESS en localStorage; conservar cookies, refresh, CSRF y manejo de suscripcion de Axios.
-
-## Comandos de comprobacion
-
-Desde `server`: `npm run typecheck`, `npm run build`. Tests aislados Customers: `npx vitest run --config vitest.customers-v2.config.ts` (setup vacio y pool mockeado). Desde `client`: `npm run build`, `npm run lint` o lint acotado justificado. Elegir validaciones segun el cambio; no corregir deuda global de lint fuera del alcance.
-
-`server` tiene suites `test:security`, `test:tenant`, `test:economic`, `test:auth`, `test:notifications`; `npm test` las encadena. No asumir que son DB-free: [config general](../server/vitest.config.ts) carga [setup de integracion](../server/src/tests/setup.ts). El nombre `punto_venta_integration_test` no certifica host local. No ejecutarlas sin revisar efectos y autorizacion DB.
+Al cerrar una fase, actualizar tasks/project-state y registrar validacion real; decisions solo ante una decision nueva relevante. No editar PRD/arquitectura por ajustes que no cambian esos documentos. Las reglas locales de formularios, imports, mappers, transacciones y tests pertenecen a sus subsistemas enlazados arriba.
