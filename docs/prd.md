@@ -29,6 +29,6 @@ Customers v2 separa nombre/apellido y permite documento opcional; la identidad v
 
 ## Planificado y fuera de alcance
 
-Orders Core implementa pedidos manuales internos a nivel DB/backend y Orders Admin F4 agrega listado, alta/edicion, detalle/historial y preparacion/cancelacion segun permisos. F5 implementa conversion backend de READY a venta y COMPLETED, con pagos/stock/entrega atomicos; la interfaz de conversion F6 sigue pendiente. No hay reserva de stock. Implementacion no implica despliegue ni QA visual certificado. Ver [roadmap](tasks.md).
+Orders Core implementa pedidos manuales internos a nivel DB/backend y Orders Admin F4 agrega listado, alta/edicion, detalle/historial y preparacion/cancelacion segun permisos. F5 implementa conversion backend de READY a venta y COMPLETED, con pagos/stock/entrega atomicos; F6 agrega checkout administrativo reducido con caja, pagos y metadata opcional de entrega, mas acceso a la venta vinculada segun permisos. No hay reserva de stock. Implementacion no implica despliegue ni QA visual certificado. Ver [roadmap](tasks.md).
 
 VITRUNO es un proyecto consumidor separado del catalogo publico. El acuerdo de producto mantiene el cierre por WhatsApp y excluye la creacion automatica de Orders y el uso de endpoints administrativos por ese consumidor. Su UX y despliegue no se verifican desde este repositorio.

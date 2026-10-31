@@ -149,6 +149,8 @@ export interface CreateSalePayload {
 }
 
 export interface SaleResponse {
+  idOrder: number | null;
+  deliveryFee: number;
   idSale: number;
   saleNumber: string;
   idBusiness: number;
