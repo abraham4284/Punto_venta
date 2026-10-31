@@ -1,10 +1,10 @@
 # Estado vigente de Cajora
 
-Revisado: 2026-10-30. Rama inspeccionada: `dev`.
+Revisado: 2026-10-31. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `31beded0e6111c6c8548a7fbd0b13e935b79d74b` — `test(orders): validar F3 contra MySQL real de test`. HEAD `dev` inspeccionado antes de F4, distinto del master de referencia aportado `947874b0369963a6b6ec54d221d4ec160adf78a0`. El repositorio estaba limpio al comenzar; no se cambio de rama.
+Last reviewed commit: `62b91693996cdfb12e81b42c641f9dbaf5d93013` — `feat(orders): agregar administración frontend de pedidos`. HEAD `dev` inspeccionado antes de F4.1, distinto del master de referencia aportado `f8c7f482813fb72dcc507d9816cbc2612029fd43`. El repositorio estaba limpio al comenzar; no se cambio de rama.
 
-Current phase: F4 Orders Admin frontend implementada con validacion estatica/aislada. Last completed functional phase: F4; QA navegador pendiente. Next functional phase: F5, pendiente. Ver [tasks](tasks.md), [evidencias F4](f04-orders-admin-frontend-validation.md) y [F3 real](f03-orders-core-validation.md). Operador confirma SQL F3 aplicado/sincronizado en local, test y produccion; F4 no modifico backend ni ejecuto DB.
+Current phase: F4.1 Pulido operativo de Orders implementado con validacion estatica/aislada. Last completed functional phase: F4.1; QA navegador e impresion real pendientes. Next functional phase: F5, pendiente. Ver [tasks](tasks.md), [evidencias F4.1](f04-1-orders-ui-polish-validation.md), [F4](f04-orders-admin-frontend-validation.md) y [F3 real](f03-orders-core-validation.md). La confirmacion previa del operador de SQL F3 sincronizado no incluye la extension de lectura F4.1: actualizar procedures sigue pendiente. No se ejecuto DB en F4.1.
 
 ## Identidad, stack y mapa actual
 
@@ -29,6 +29,8 @@ F1/F2 estan cerradas segun el roadmap aportado, con implementacion corroborada e
 Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pagos y entrega separados. La creacion coordina transaccion en service y procedures, incluyendo detalles/stock. Caja y rendicion no equivalen a cobrar una entrega. Consultar implementacion Sales antes de reutilizar ownership transaccional, permisos, errores y calculos.
 
 ## Roadmap y limites conocidos
+
+- Orders F4.1: formulario por secciones y resumen lateral, cliente obligatorio mediante modal buscable, selects Base UI, deposito predeterminado activo solo en nuevos (edicion conserva el existente) y autofill DELIVERY opt-in, editable y sin copiar referencia. Picker/carrito con imagen actual y fallback; hoja de preparacion imprimible desde detalle con orders.view mediante window.print/Guardar PDF del navegador. Backend solo agrega imageUrl/productImageUrl desde products con tenant join, sin snapshot de imagen, schema ni migracion nuevos. Client build/lint Orders, server typecheck/build, 68 tests DB-free y baseline aprobados; 28 comprobaciones ad hoc frontend (sin suite persistente). Herramientas de navegador fallaron al inicializar assets: no se verifico layout/foco/impresion real. No se aplica SQL; operador debe actualizar procedures/orders.sql. [Detalle](f04-1-orders-ui-polish-validation.md).
 
 - F0/F0.1 y F1/F2 cerradas; F3 implementada/validada DB-free y DB real; F4 implementada con build/lint acotado y comprobaciones aisladas; F5/F6 pendientes.
 - Orders Core: **IMPLEMENTED DB/BACKEND; REAL LOCAL TEST DB VALIDATED**. 11 pruebas HTTP/DB aprobadas en `localhost:3306 / punto_venta_integration_test`, servidor `DESKTOP-M4JH3TC`, MySQL 8.0.33. Flujo completo, tenant, permisos, actores inactivos, stock informativo y replay concurrente sin duplicados. Fixtures propios limpiados sin reset general ni desactivar FKs. Contrato HTTP F3 sin cambios: [contracts](contracts.md); sus referencias al alcance original sin frontend corresponden al cierre F3. Los 65 tests DB-free son evidencia de la entrega inicial.

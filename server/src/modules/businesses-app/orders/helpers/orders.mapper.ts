@@ -22,6 +22,7 @@ export function mapOrderDetail(row: OrderDetailDbRow) {
   return {
     idOrderDetail: Number(row.idOrderDetail), idOrder: Number(row.idOrder), idProduct: Number(row.idProduct),
     productName: row.product_name, barcode: row.barcode, unitType: row.unit_type,
+    productImageUrl: row.product_image_url ?? null,
     saleMode: row.sale_mode === "ON_ORDER" ? "on_order" : "stock",
     quantity: Number(row.quantity), unitPrice: Number(row.unit_price), discount: Number(row.discount), total: Number(row.total),
   };
@@ -36,6 +37,7 @@ export function mapOrderEvent(row: OrderEventDbRow) {
 export function mapOrderProduct(row: OrderProductDbRow) {
   return {
     idProduct: Number(row.idProduct), name: row.name, barcode: row.barcode, unitType: row.unit_type,
+    imageUrl: row.image_url ?? null,
     saleMode: row.sale_mode === "ON_ORDER" ? "on_order" : "stock",
     priceSale: Number(row.price_sale), stockQuantity: Number(row.stock_quantity),
   };

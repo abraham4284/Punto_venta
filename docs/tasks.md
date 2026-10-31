@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-Revisado: 2026-10-30. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+Revisado: 2026-10-31. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
 
 - [x] F0 — Canonical documentation foundation. Validacion documental completada; evidencias en [f00-documentation-validation](f00-documentation-validation.md).
 - [x] F0.1 — Hierarchical documentation by subsystem. Validacion documental completada; [evidencias](f00-1-documentation-hierarchy-validation.md).
@@ -8,6 +8,7 @@ Revisado: 2026-10-30. `[x]` indica fase cerrada con el alcance de validacion ind
 - [x] F2 — Customers v2 frontend. Implementacion corroborada en tipos, validacion, formulario, busqueda y consumidores Sales. Traspaso previo informa build, lint acotado y 35 comprobaciones ad hoc aprobadas; no equivalen a suite persistente. Sin QA E2E real informado.
 - [x] F3 — Orders Core DB/procedures/backend. Implementacion/DB-free y 11 pruebas HTTP/DB reales aprobadas en MySQL test local; [evidencias](f03-orders-core-validation.md). Operador confirma SQL sincronizado en local/test/produccion; produccion no sometida a pruebas por el agente.
 - [x] F4 — Orders Admin frontend. Implementacion, build y lint acotado aprobados; 51 comprobaciones aisladas. QA navegador/API real pendiente por indisponibilidad de herramientas; [evidencias](f04-orders-admin-frontend-validation.md).
+- [x] F4.1 — Pulido operativo de Orders. Modal Customer, selects UI, deposito default, autofill DELIVERY, imagenes actuales y hoja de preparacion. Build/lint aplicable y pruebas aisladas aprobados; QA navegador/impresion y aplicacion de procedures pendientes. [Evidencias](f04-1-orders-ui-polish-validation.md).
 - [ ] F5 — Order -> Sale backend. NEXT; conversion atomica futura, sin implementar.
 - [ ] F6 — Order -> Sale frontend. Posterior a F5; sin implementar.
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
