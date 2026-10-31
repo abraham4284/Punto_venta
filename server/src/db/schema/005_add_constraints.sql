@@ -117,6 +117,7 @@ CALL sp_add_check_if_not_exists('order_details', 'chk_order_details_math', 'ALTE
 -- Order to Sale F5
 CALL sp_add_check_if_not_exists('sales', 'chk_sales_delivery_fee', 'ALTER TABLE sales ADD CONSTRAINT chk_sales_delivery_fee CHECK (delivery_fee >= 0)');
 CALL sp_add_check_if_not_exists('sales', 'chk_sales_totals', 'ALTER TABLE sales ADD CONSTRAINT chk_sales_totals CHECK (subtotal >= 0 AND discount_total >= 0 AND discount_total <= subtotal AND total = subtotal - discount_total + delivery_fee)');
+CALL sp_add_check_if_not_exists('sale_deliveries', 'chk_delivery_provider', 'ALTER TABLE sale_deliveries ADD CONSTRAINT chk_delivery_provider CHECK (((provider_type IS NULL AND assigned_to_user_id IS NULL AND external_provider_name IS NULL AND external_reference IS NULL AND external_contact_name IS NULL AND external_contact_phone IS NULL AND external_cost IS NULL) OR (provider_type IS NOT NULL AND provider_type = ''INTERNAL'' AND assigned_to_user_id IS NOT NULL AND external_provider_name IS NULL AND external_reference IS NULL AND external_contact_name IS NULL AND external_contact_phone IS NULL AND external_cost IS NULL) OR (provider_type IS NOT NULL AND provider_type = ''THIRD_PARTY'' AND assigned_to_user_id IS NULL AND external_provider_name IS NOT NULL AND CHAR_LENGTH(TRIM(external_provider_name)) > 0 AND (external_cost IS NULL OR external_cost >= 0))))');
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
 DROP PROCEDURE IF EXISTS sp_drop_check_if_exists;

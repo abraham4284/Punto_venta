@@ -332,6 +332,8 @@ BEGIN
   END;
 
   START TRANSACTION;
+  IF NOT EXISTS (SELECT 1 FROM business_users bu JOIN users u ON u.idUser = bu.idUser WHERE bu.idBusiness = p_idBusiness AND bu.idUser = p_actorUserId AND bu.is_active = 1 AND u.is_active = 1) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_ACTOR_NOT_FOUND'; END IF;
+
 
   SELECT s.status, cs.status
   INTO v_status, v_cashSessionStatus
@@ -376,22 +378,26 @@ BEGIN
       SET MESSAGE_TEXT = 'CLOSED_CASH_SESSION_SALE_CANNOT_BE_CANCELLED';
   END IF;
 
-  IF v_deliveryStatus IN ('OUT_FOR_DELIVERY', 'DELIVERED') THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'DELIVERY_SALE_IN_PROGRESS_CANNOT_BE_CANCELLED';
-  END IF;
+  IF v_deliveryStatus = 'OUT_FOR_DELIVERY' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_IN_TRANSIT_CANNOT_BE_CANCELLED'; END IF;
+  IF v_deliveryStatus = 'DELIVERED' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERED_SALE_RETURN_REQUIRED'; END IF;
+  IF v_hasDelivery = 1 AND v_deliveryStatus NOT IN ('PENDING','ASSIGNED','FAILED') THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_CANNOT_BE_CANCELLED'; END IF;
 
-  SELECT COUNT(*)
-  INTO v_collectedOrConfirmedPayments
-  FROM sale_payments
-  WHERE idBusiness = p_idBusiness
-    AND idSale = p_idSale
-    AND status IN ('COLLECTED', 'CONFIRMED');
-
-  IF v_hasDelivery = 1 AND v_collectedOrConfirmedPayments > 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'DELIVERY_SALE_WITH_PAYMENTS_CANNOT_BE_CANCELLED';
-  END IF;
+  -- Current locking reads; no payment may be changed/settled between checks and reversal.
+  BEGIN
+    DECLARE v_paymentDone INT DEFAULT 0;
+    DECLARE v_paymentStatus VARCHAR(20);
+    DECLARE v_settlement BIGINT;
+    DECLARE payments_cursor CURSOR FOR SELECT status, idCashSettlement FROM sale_payments WHERE idBusiness = p_idBusiness AND idSale = p_idSale ORDER BY idSalePayment FOR UPDATE;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_paymentDone = 1;
+    OPEN payments_cursor;
+    payment_loop: LOOP
+      FETCH payments_cursor INTO v_paymentStatus, v_settlement;
+      IF v_paymentDone = 1 THEN LEAVE payment_loop; END IF;
+      IF v_settlement IS NOT NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SALE_PAYMENT_ALREADY_SETTLED'; END IF;
+      IF v_hasDelivery = 1 AND v_paymentStatus IN ('COLLECTED','CONFIRMED') THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'DELIVERY_SALE_REFUND_REQUIRED'; END IF;
+    END LOOP;
+    CLOSE payments_cursor;
+  END;
 
   UPDATE sales
   SET status = 'CANCELLED'
@@ -451,7 +457,7 @@ BEGIN
     'DELIVERY_CANCELLED',
     v_deliveryStatus,
     'CANCELLED',
-    JSON_OBJECT('reason', 'Venta anulada'),
+    JSON_OBJECT('reason', 'Venta anulada', 'providerType', sdv.provider_type, 'assignedToUserId', sdv.assigned_to_user_id, 'externalProviderName', sdv.external_provider_name, 'externalReference', sdv.external_reference, 'externalCost', sdv.external_cost),
     p_actorUserId
   FROM sale_deliveries sdv
   WHERE sdv.idBusiness = p_idBusiness
@@ -954,6 +960,7 @@ BEGIN
     sdv.idSaleDelivery,
     sdv.idBusiness,
     sdv.idSale,
+    sdv.provider_type, sdv.external_provider_name, sdv.external_reference, sdv.external_contact_name, sdv.external_contact_phone, sdv.external_cost,
     sdv.assigned_to_user_id,
     assigned_user.name AS assigned_user_name,
     sdv.status,

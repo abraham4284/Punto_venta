@@ -1,3 +1,6 @@
+import type { ReactNode } from "react";
+import { saleCancellationReason } from "../../helpers/sale-cancellation.helpers";
+import { DeliveryProviderSummary } from "../../../deliveries/components/DeliveryProviderSummary";
 import {
   ArrowLeft,
   Ban,
@@ -100,7 +103,7 @@ const formatQuantity = (value: number) => {
   }).format(value);
 };
 
-const InfoItem = ({ label, value }: { label: string; value: string }) => {
+const InfoItem = ({ label, value }: { label: string; value: ReactNode }) => {
   return (
     <div className="rounded-lg border bg-muted/20 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -121,6 +124,7 @@ export const SaleDetailsView = ({
   onPaymentChanged,
 }: SaleDetailsViewProps) => {
   const canCancelSales = useCan("sales.cancel");
+  const cancellationReason = saleCancellationReason(sale);
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;
   const customerName =
     customer?.fullName || sale.customerName || "Consumidor final";
@@ -162,7 +166,7 @@ export const SaleDetailsView = ({
               <Ban className="mr-2 h-4 w-4" />
               Venta anulada
             </Button>
-          ) : canCancelSales ? (
+          ) : canCancelSales && cancellationReason ? (<p role="status" className="max-w-md rounded-lg bg-muted p-3 text-sm">{cancellationReason}</p>) : canCancelSales ? (
             <AlertDialog>
               <AlertDialogTrigger
                 render={
@@ -347,7 +351,7 @@ export const SaleDetailsView = ({
                 />
                 <InfoItem
                   label="Cadete"
-                  value={sale.delivery.assignedUserName ?? "Sin asignar"}
+                  value={<DeliveryProviderSummary value={sale.delivery} />}
                 />
                 <InfoItem
                   label="Programada"

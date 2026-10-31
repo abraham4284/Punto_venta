@@ -69,7 +69,7 @@ describe("F5 conversion DB-free", function suite() {
     const result = await convert({ ...body, payments: [{ ...body.payments[0], amount: 13, status: "PENDING" }], delivery: { assignedToUserId: 12, scheduledAt: "2026-11-01T12:00:00Z", observation: "Avisar" } });
     expect(result.sale.deliveryFee).toBe(4);
     expect(calls("sp_create_sale(")[0][1].slice(7)).toEqual([10, 1, 13, null, 9, 4]);
-    expect(calls("sp_delivery_create")[0][1]).toEqual([7, 20, 4, 12, "Ana entrega", "00123", "Calle 123", "Porton", expect.any(Date), "Avisar"]);
+    expect(calls("sp_delivery_create")[0][1]).toEqual([7, 20, 4, 12, "Ana entrega", "00123", "Calle 123", "Porton", expect.any(Date), "Avisar", "INTERNAL", null, null, null, null, null]);
     expect(calls("sp_sale_payment_create")[0][1][6]).toBeNull();
   });
   it("observacion larga queda en Order sin truncarse", async function note() {

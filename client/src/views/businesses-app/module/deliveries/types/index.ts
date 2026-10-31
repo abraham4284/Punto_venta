@@ -1,3 +1,4 @@
+import type { DeliveryProviderPayload } from "../helpers/delivery-provider.helpers";
 export type DeliveryStatus =
   | "PENDING"
   | "ASSIGNED"
@@ -24,7 +25,7 @@ export type DeliveryEventType =
   | "DELIVERY_DELIVERED"
   | "DELIVERY_CANCELLED";
 
-export type DeliveryResponse = {
+export type DeliveryResponse = DeliveryProviderPayload & {
   idSaleDelivery: number;
   idBusiness: number;
   idSale: number;
@@ -69,7 +70,7 @@ export type PaginatedDeliveriesResponse = {
   pagination: DeliveryPagination;
 };
 
-export type DeliveryActionBody = {
+export type DeliveryActionBody = DeliveryProviderPayload & {
   assignedToUserId?: number | null;
   scheduledAt?: string | null;
   failureReason?: string | null;

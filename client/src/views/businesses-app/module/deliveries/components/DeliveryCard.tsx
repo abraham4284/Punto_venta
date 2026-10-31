@@ -1,3 +1,4 @@
+import { DeliveryProviderSummary } from "./DeliveryProviderSummary";
 import { MapPin, Phone, ReceiptText, UserRound } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeliveryActions } from "./DeliveryActions";
@@ -75,7 +76,7 @@ export const DeliveryCard = ({
 
           <p className="flex items-center gap-2 text-muted-foreground">
             <UserRound className="size-4" />
-            {delivery.assignedUserName ?? "Sin cadete asignado"}
+            {<DeliveryProviderSummary value={delivery} />}
           </p>
         </div>
 

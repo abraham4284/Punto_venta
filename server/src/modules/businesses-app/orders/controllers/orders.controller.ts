@@ -65,6 +65,7 @@ function fail(res: Response, error: unknown) {
     CASH_REGISTER_INACTIVE: [409, "La caja esta inactiva"],
     PAYMENT_METHOD_NOT_FOUND: [400, "Metodo de pago no disponible"],
     PAYMENT_METHOD_INACTIVE: [409, "Metodo de pago inactivo"],
+    DELIVERY_PROVIDER_INVALID: [400, "La asignacion del proveedor no es valida"],
     DELIVERY_USER_NOT_FOUND: [400, "Cadete no disponible en el negocio"],
     "Stock insuficiente para procesar la venta": [
       409,

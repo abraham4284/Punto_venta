@@ -187,10 +187,10 @@ export const useDeliveries = ({
 
   const assignDelivery = (
     idSaleDelivery: number,
-    assignedToUserId: number,
+    body: DeliveryActionBody,
   ) => {
     return runAction(idSaleDelivery, () =>
-      assignDeliveryRequest(idSaleDelivery, { assignedToUserId }),
+      assignDeliveryRequest(idSaleDelivery, body),
     ).then(Boolean);
   };
 

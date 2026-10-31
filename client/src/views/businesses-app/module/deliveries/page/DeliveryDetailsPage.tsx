@@ -1,3 +1,5 @@
+import type { DeliveryActionBody } from "../types";
+import { DeliveryProviderSummary } from "../components/DeliveryProviderSummary";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -161,9 +163,9 @@ export const DeliveryDetailsPage = () => {
 
   const handleAssignDelivery = async (
     idSaleDelivery: number,
-    assignedToUserId: number,
+    body: DeliveryActionBody,
   ) => {
-    const success = await assignDelivery(idSaleDelivery, assignedToUserId);
+    const success = await assignDelivery(idSaleDelivery, body);
 
     if (success) {
       await refreshEvents(idSaleDelivery);
@@ -295,9 +297,9 @@ export const DeliveryDetailsPage = () => {
             <CardContent className="flex items-center gap-3 p-4">
               <UserRound className="size-8 text-primary" />
               <div>
-                <p className="text-xs text-muted-foreground">Cadete</p>
+                <p className="text-xs text-muted-foreground">Proveedor</p>
                 <p className="font-semibold">
-                  {selectedDelivery.assignedUserName ?? "Sin asignar"}
+                  {<DeliveryProviderSummary value={selectedDelivery} />}
                 </p>
               </div>
             </CardContent>

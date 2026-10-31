@@ -101,13 +101,13 @@ Listado: `page` (1..1000000, default 1), `limit` (1..100, default 20), `search` 
 
 Snapshots se exponen en `customerSnapshot` y campos de items; fechas serializadas. Eventos registran tipo, actor, estado previo/destino, motivo y fecha; no son un archivo completo de cada revision de items. OWNER usa shortcut existente; ADMIN recibe los cinco permisos, SELLER view/create/update y DELIVERY ninguno por defecto; overrides existentes pueden ajustar acceso. No se agregaron labels UI ni permisos administrativos de otros modulos.
 
-Implementacion y limites de evidencia: [F3 validation](f03-orders-core-validation.md). Frontend Orders F4/F4.1 implementado; conversion backend F5 descrita debajo. Sin frontend de conversion F6, reservas ni integracion VITRUNO.
+Implementacion y limites de evidencia: [F3 validation](f03-orders-core-validation.md). Frontend Orders F4/F4.1 implementado; conversion backend F5 descrita debajo. Frontend de conversion F6 implementado; sin reservas ni integracion VITRUNO.
 
 ## F5 — Conversion administrativa Order -> Sale
 
 POST `/orders/:id/convert-to-sale`: BUSINESS operativo, `orders.convert` **y** `sales.create`; UUID Idempotency-Key obligatorio. OWNER usa shortcut; ADMIN recibe convert; SELLER/DELIVERY no reciben ese grant inicial. Overrides efectivos siguen vigentes.
 
-Body estricto: `{ idCashSession, payments, delivery? }`. Payments 1..5 con idPaymentMethod, amount positivo, status PENDING/CONFIRMED y reference/observation opcionales (limites Sales). Delivery solo admite assignedToUserId, scheduledAt y observation; opcional/nullable. No permite tenant/actor/customer/deposit/items/montos/destinatario en body. Un PICKUP rechaza metadata delivery no-null.
+Body estricto: `{ idCashSession, payments, delivery? }`. Payments 1..5 con idPaymentMethod, amount positivo, status PENDING/CONFIRMED y reference/observation opcionales (limites Sales). Delivery admite metadata de proveedor documentada en F7, scheduledAt y observation; opcional/nullable. No permite tenant/actor/customer/deposit/items/montos/destinatario en body. Un PICKUP rechaza metadata delivery no-null.
 
 Respuesta: `{ status: true, message, data: { order, sale }, idempotentReplay }`. 201 nueva; 200 replay. GET detalle Order agrega `linkedSale: { idSale, saleNumber, status: "COMPLETED" | "CANCELLED" } | null`. Sales agrega en sus respuestas `idOrder: number | null` y `deliveryFee: number`.
 
@@ -117,4 +117,18 @@ Pagos suman Sale.total. PICKUP no permite PENDING; DELIVERY si. Caja del tenant,
 
 El row lock de Order y UNIQUE sales(idBusiness,idOrder) aseguran un solo vinculo. COMPLETED con venta vinculada devuelve esa venta incluso cancelada y con otra key libre, sin repetir efectos ni comparar payload. Key perteneciente a POS/otro Order: 409 IDEMPOTENCY_KEY_CONFLICT (tambien en diferencias de mayusculas UUID). READY con venta o COMPLETED sin venta: 409 ORDER_SALE_INCONSISTENT. Estado distinto de READY para conversion nueva: 409 ORDER_NOT_READY. Stock/caja/deadlock: 409; validacion/referencias: 400; tenant ajeno/inexistente: 404; permisos/actor: 403; inesperados: 500 seguro. Cancelar Sale conserva Order COMPLETED y no habilita reconversion. Status generico sigue rechazando COMPLETED.
 
-SQL F5 pendiente del operador; no hay F6, reservas ni Orders publicos. Evidencia y limites: [F5 validation](f05-order-to-sale-backend-validation.md).
+Operador confirma SQL F5 aplicado y el gate real F5 paso 11/11 al iniciar F6; no se verifico produccion. F6 implementado, sin reservas ni Orders publicos. Evidencia y limites: [F5 validation](f05-order-to-sale-backend-validation.md).
+
+## F7 — Proveedor Delivery y anulacion segura
+
+Creacion directa Sales, metadata de conversion Orders y PATCH /deliveries/:id/assign aceptan providerType null/INTERNAL/THIRD_PARTY. INTERNAL exige assignedToUserId (usuario DELIVERY activo del tenant); THIRD_PARTY exige externalProviderName (trim, 1..120), assignedToUserId null y admite externalReference (150), externalContactName (160), externalContactPhone (80), externalCost (no negativo, dos decimales, nullable). Sin asignar: providerType null, usuario y campos externos nulos. INTERNAL no admite campos externos. No hay tabla maestra ni usuario para proveedores externos.
+
+Compatibilidad de request: providerType omitido + usuario implica INTERNAL; omitido sin usuario implica null. Nunca se infiere THIRD_PARTY; null explicito con usuario es invalido. Nuevos clientes envian providerType explicitamente. Campos anteriores de destinatario/direccion/programacion/observacion se mantienen. Order conversion solo agrega metadata de proveedor, no acepta editar destinatario, productos o totales de Order. Responses Delivery (incluida Sale.delivery) incluyen campos explicitos camelCase y costo nullable numerico.
+
+Crear sin proveedor produce PENDING; INTERNAL/THIRD_PARTY producen ASSIGNED/assignedAt. Assign exige INTERNAL o THIRD_PARTY, solo PENDING/ASSIGNED, permite cruzar entre ambos tipos y registra metadata previa/nueva. Reschedule FAILED -> PENDING borra proveedor/datos externos actuales y conserva la asignacion anterior en eventos. State machine existente permanece; no iniciar sin proveedor. deliveries.assign conserva su permiso; tercero requiere deliveries.view_all y deliveries.update_status para operar, cadete propio conserva acceso row-level. Busqueda incluye nombre/referencia externa; no se agrega filtro nuevo.
+
+externalCost es logistica informativa; no modifica sales.deliveryFee, Sale.total, pagos, caja o rendiciones. Tercero con PENDING + affects_cash no inicia reparto: THIRD_PARTY_PENDING_CASH_PAYMENT_NOT_ALLOWED. Tampoco se permite crear/cambiar a efectivo pendiente en tercero ya en camino/entregado. Pagos no-cash pendientes conservan comportamiento actual. No hay settlement externo; efectivo de tercero puede confirmarse por el negocio segun reglas de pagos vigentes, no cobrarse como un empleado externo ficticio.
+
+Anulacion de Sale DELIVERY solo con entrega PENDING/ASSIGNED/FAILED y sin pagos COLLECTED/CONFIRMED ni pagos con idCashSettlement. Efectos reversibles existentes en la misma transaccion: Sale CANCELLED, PENDING pagos cancelados/eventos, entrega cancelada/evento, stock restaurado. No se reabre Order COMPLETED ni se habilita reconversion. POS sin Delivery conserva su politica de caja/anulacion previa, con proteccion adicional de pagos rendidos.
+
+Errores de anulacion 409 con code y mensaje seguro: DELIVERY_IN_TRANSIT_CANNOT_BE_CANCELLED (en camino), DELIVERED_SALE_RETURN_REQUIRED (entregada), DELIVERY_SALE_REFUND_REQUIRED (cobrada/confirmada), SALE_PAYMENT_ALREADY_SETTLED (rendido), DELIVERY_CANNOT_BE_CANCELLED (otros estados no admitidos). Venta ajena/inexistente 404; fallos inesperados 500 seguro. Frontend explica bloqueos conocidos y mapea tambien codigos legacy, sin ofrecer reembolso ni restaurar stock de entregadas. Reglas nuevas de proveedor/asignacion usan errores de dominio 400 y autorizacion efectiva existente. [Validacion F7](f07-delivery-providers-cancellation-validation.md).

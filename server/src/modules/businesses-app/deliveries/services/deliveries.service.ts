@@ -67,12 +67,13 @@ export async function assignDeliveryService(
   data: DeliveryActionPayload,
 ): Promise<DeliveryResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_delivery_assign(?, ?, ?, ?)",
+    "CALL sp_delivery_assign(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idSaleDelivery,
       data.assignedToUserId ?? null,
       data.idUser,
+      data.providerType ?? (data.assignedToUserId != null ? "INTERNAL" : null), data.externalProviderName ?? null, data.externalReference ?? null, data.externalContactName ?? null, data.externalContactPhone ?? null, data.externalCost ?? null,
     ],
   );
 

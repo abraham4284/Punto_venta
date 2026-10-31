@@ -1,3 +1,4 @@
+import { DeliveryProviderSummary } from "./DeliveryProviderSummary";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -49,7 +50,7 @@ export const DeliveryTable = ({
               <TableHead>Venta</TableHead>
               <TableHead>Destinatario</TableHead>
               <TableHead>Dirección</TableHead>
-              <TableHead>Cadete</TableHead>
+              <TableHead>Proveedor</TableHead>
               <TableHead>Programada</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Estado</TableHead>
@@ -87,7 +88,7 @@ export const DeliveryTable = ({
                       ) : null}
                     </div>
                   </TableCell>
-                  <TableCell>{delivery.assignedUserName ?? "Sin asignar"}</TableCell>
+                  <TableCell>{<DeliveryProviderSummary value={delivery} />}</TableCell>
                   <TableCell>{formatDeliveryDate(delivery.scheduledAt)}</TableCell>
                   <TableCell className="font-semibold">
                     {formatDeliveryMoney(delivery.total)}

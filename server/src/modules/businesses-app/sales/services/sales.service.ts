@@ -95,7 +95,7 @@ async function callCreateDeliveryProcedure(
   }
 
   await connection.query<RowDataPacket[]>(
-    "CALL sp_delivery_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_delivery_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       idSale,
@@ -107,6 +107,8 @@ async function callCreateDeliveryProcedure(
       data.delivery.deliveryReference ?? null,
       data.delivery.scheduledAt ?? null,
       data.delivery.observation ?? null,
+      data.delivery.providerType ?? (data.delivery.assignedToUserId != null ? "INTERNAL" : null),
+      data.delivery.externalProviderName ?? null, data.delivery.externalReference ?? null, data.delivery.externalContactName ?? null, data.delivery.externalContactPhone ?? null, data.delivery.externalCost ?? null,
     ],
   );
 }

@@ -26,7 +26,7 @@ export const deliveryStatusLabels: Record<DeliveryStatus, string> = {
 
 export const deliveryEventLabels: Record<DeliveryEventType, string> = {
   DELIVERY_CREATED: "Entrega creada",
-  DELIVERY_ASSIGNED: "Cadete asignado",
+  DELIVERY_ASSIGNED: "Proveedor asignado",
   DELIVERY_UNASSIGNED: "Asignación removida",
   DELIVERY_OUT_FOR_DELIVERY: "Entrega iniciada",
   DELIVERY_FAILED: "Entrega fallida",
@@ -87,7 +87,12 @@ export const getDeliveryMetadataLines = (metadata: JsonValue | null): string[] =
 
   const lines: string[] = [];
 
-  if ("assignedToUserId" in metadata) {
+  if (metadata.providerType) lines.push(`Tipo: ${metadata.providerType === "THIRD_PARTY" ? "Tercerizado" : "Cadete propio"}`);
+  if (metadata.externalProviderName) lines.push(`Proveedor: ${String(metadata.externalProviderName)}`);
+  if (metadata.externalReference) lines.push(`Referencia: ${String(metadata.externalReference)}`);
+  if (metadata.externalCost != null) lines.push(`Costo externo: ${formatDeliveryMoney(Number(metadata.externalCost))}`);
+  if (metadata.previousAssignment && typeof metadata.previousAssignment === "object" && !Array.isArray(metadata.previousAssignment)) lines.push(`Asignación anterior: ${String(metadata.previousAssignment.externalProviderName || metadata.previousAssignment.providerType || "Sin asignar")}`);
+  if ("assignedToUserId" in metadata && metadata.assignedToUserId != null) {
     lines.push(`Cadete asignado #${String(metadata.assignedToUserId)}`);
   }
 
@@ -112,6 +117,7 @@ export const getAllowedDeliveryActions = (
 ): DeliveryAction[] => {
   const actions: DeliveryAction[] = ["VIEW"];
 
+  if (delivery.providerType === "THIRD_PARTY" && !permissions.canViewAll) permissions = { ...permissions, canUpdateStatus: false };
   if (delivery.status === "PENDING") {
     if (permissions.canAssign) actions.push("ASSIGN");
     if (permissions.canUpdateStatus) actions.push("CANCEL");
@@ -142,6 +148,8 @@ export const getDeliveryErrorMessage = (
   fallback: string,
 ): string => {
   const messages: Record<string, string> = {
+    THIRD_PARTY_PENDING_CASH_PAYMENT_NOT_ALLOWED: "Una entrega tercerizada no puede salir con efectivo pendiente. Confirmá el pago desde el negocio o usá un cadete propio.",
+    DELIVERY_PROVIDER_INVALID: "Revisá el tipo de proveedor y los datos de asignación.",
     DELIVERY_PENDING_CASH_PAYMENT_MUST_BE_COLLECTED:
       "Registrá primero el efectivo recibido antes de confirmar la entrega.",
     DELIVERY_CASH_PAYMENT_REQUIRES_COLLECTION:

@@ -469,6 +469,7 @@ export const CreateSalePage = () => {
             status: payment.status,
           })),
         delivery: {
+          ...delivery,
           enabled: delivery.enabled,
           recipientName: delivery.recipientName,
           deliveryAddress: delivery.deliveryAddress,
