@@ -154,3 +154,10 @@ SELECT 'ADMIN', idPermission FROM permissions WHERE code IN ('orders.view','orde
 INSERT IGNORE INTO role_permissions (role, idPermission)
 SELECT 'SELLER', idPermission FROM permissions WHERE code IN ('orders.view','orders.create','orders.update');
 -- End Orders Core F3
+
+-- Order to Sale F5: additive, no SELLER/DELIVERY grant.
+INSERT INTO permissions (code, module, action, name, description, is_active)
+VALUES ('orders.convert','orders','convert','Convertir pedidos a venta','Permite convertir un pedido READY a venta',1)
+ON DUPLICATE KEY UPDATE is_active = VALUES(is_active);
+INSERT IGNORE INTO role_permissions (role, idPermission)
+SELECT 'ADMIN', idPermission FROM permissions WHERE code = 'orders.convert';

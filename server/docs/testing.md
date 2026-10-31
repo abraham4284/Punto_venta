@@ -35,3 +35,9 @@ Comandos reales desde `server`, fuente [package.json](../package.json):
 Elegir validacion segun cambio: tipado/build, tests aislados para comportamiento nuevo y, solo cuando este autorizado, integracion/API. Validar SQL por archivos no demuestra ejecucion en ambos motores: comandos de baseline y checklist del operador en [database](../../docs/database.md). No presentar mocks, build o lint como QA de DB real/E2E.
 
 [TESTING.md](../TESTING.md) conserva detalle operativo de suites de integracion; este documento es la entrada canonica para elegir alcance/seguridad, no repite fixtures ni instrucciones de provisionamiento. Registrar comando, resultado y limites en validation doc de fase; distinguir fallo funcional de un bloqueo de entorno (por ejemplo EPERM). Markdown solo requiere enlaces/paths y checks Git.
+
+### F5 Order -> Sale
+
+La config Orders DB-free tambien selecciona orders-core-conversion.test.ts, con pool y notificaciones mockeados: validacion, rollback/call order, compatibilidad Sales, permisos/replay y SQL estatico. No valida locks reales.
+
+Suite real preparada en [order-to-sale.integration.test.ts](../src/tests/integration/orders/order-to-sale.integration.test.ts), comando `npx vitest run --config vitest.order-to-sale-integration.config.ts`. Reutiliza guardas loopback/DB exacta de Orders, setup y fixtures existentes; requiere SQL F5 aplicado y permiso explicito para DB real. No ejecutada durante F5. Limpia solo tenants/usuarios UUID propios, borra sales antes de orders por la nueva FK, sin reset ni desactivar FKs. Config Orders anterior queda acotada a su archivo original para no incorporar esta suite implicitamente. [Validacion F5](../../docs/f05-order-to-sale-backend-validation.md).

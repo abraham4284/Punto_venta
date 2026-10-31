@@ -12,6 +12,10 @@ Fecha: 2026-10-31. Checkout inicial limpio, rama `dev`, HEAD `62b91693996cdfb12e
 - [OrderProductImage](../client/src/views/businesses-app/module/orders/components/OrderProductImage.tsx) en picker, carrito e impresion; imagen contenida y fallback con nombre accesible para URL nula o rota. El carrito conserva lineas/nombres/codigos/precios historicos cuando no encuentra el maestro; disponibilidad y stock insuficiente siguen siendo informativos. Stock cero y ON_ORDER no bloquean.
 - [OrderPrintDocument](../client/src/views/businesses-app/module/orders/components/OrderPrintDocument.tsx): hoja de preparacion con numero, estado, fecha, cliente/documento/telefono, modalidad/entrega/referencia, deposito, productos/imagenes/codigo/cantidad/unidad/casillas visuales, observaciones y totales. No es factura ni comprobante de cobro. Portal fuera del layout con CSS de impresion que oculta el resto de body, encabezado de tabla repetible y filas sin cortes internos. Boton Imprimir pedido en detalle con orders.view, bloqueado durante carga/acciones; usa window.print y permite Guardar como PDF desde el navegador. Sin libreria PDF. El HTML/SSR fue comprobado; paginacion y resultado impreso real siguen pendientes de navegador.
 
+## Actualizacion informada al iniciar F5 (2026-10-31)
+
+El operador confirma que orders.sql F4.1 fue aplicado y probado en DB local, DB local de test y produccion. Esta confirmacion reemplaza el pendiente de aplicacion registrado al cierre F4.1; el agente no consulto ni verifico produccion. QA visual/impresion real del agente sigue pendiente.
+
 ## Backend minimo y despliegue
 
 Archivos backend modificados exactamente:

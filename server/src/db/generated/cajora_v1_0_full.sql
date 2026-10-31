@@ -490,6 +490,8 @@ CREATE TABLE IF NOT EXISTS `sales` (
   `idCashSession` bigint NOT NULL,
   `idUser` int NOT NULL,
   `idCustomer` int DEFAULT NULL,
+  `idOrder` int DEFAULT NULL,
+  `delivery_fee` decimal(18,2) NOT NULL DEFAULT '0.00',
   `sale_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `sale_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `idempotency_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -869,6 +871,8 @@ CALL sp_add_index_if_not_exists('orders', 'idx_orders_business_created', 'ALTER 
 CALL sp_add_index_if_not_exists('order_details', 'uq_order_details_product', 'ALTER TABLE order_details ADD UNIQUE KEY uq_order_details_product (idBusiness, idOrder, idProduct)');
 CALL sp_add_index_if_not_exists('order_events', 'idx_order_events_business_order', 'ALTER TABLE order_events ADD KEY idx_order_events_business_order (idBusiness, idOrder, idOrderEvent)');
 -- End Orders Core F3
+-- Order to Sale F5
+CALL sp_add_index_if_not_exists('sales', 'uq_sales_business_order', 'ALTER TABLE sales ADD UNIQUE KEY uq_sales_business_order (idBusiness, idOrder)');
 DROP PROCEDURE IF EXISTS sp_add_index_if_not_exists;
 
 /* ============================================================
@@ -1004,6 +1008,8 @@ CALL sp_add_foreign_key_if_not_exists('fk_order_details_product', 'ALTER TABLE o
 CALL sp_add_foreign_key_if_not_exists('fk_order_events_order', 'ALTER TABLE order_events ADD CONSTRAINT fk_order_events_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
 CALL sp_add_foreign_key_if_not_exists('fk_order_events_actor', 'ALTER TABLE order_events ADD CONSTRAINT fk_order_events_actor FOREIGN KEY (idBusiness, idUser) REFERENCES business_users (idBusiness, idUser)');
 -- End Orders Core F3
+-- Order to Sale F5
+CALL sp_add_foreign_key_if_not_exists('fk_sales_order', 'ALTER TABLE sales ADD CONSTRAINT fk_sales_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
 DROP PROCEDURE IF EXISTS sp_add_foreign_key_if_not_exists;
 
 /* ============================================================
@@ -1130,6 +1136,9 @@ CALL sp_add_check_if_not_exists('orders', 'chk_orders_delivery', 'ALTER TABLE or
 CALL sp_add_check_if_not_exists('orders', 'chk_orders_cancel_reason', 'ALTER TABLE orders ADD CONSTRAINT chk_orders_cancel_reason CHECK ((status = ''CANCELLED'' AND cancellation_reason IS NOT NULL AND CHAR_LENGTH(TRIM(cancellation_reason)) >= 3) OR (status <> ''CANCELLED'' AND cancellation_reason IS NULL))');
 CALL sp_add_check_if_not_exists('order_details', 'chk_order_details_math', 'ALTER TABLE order_details ADD CONSTRAINT chk_order_details_math CHECK (quantity > 0 AND unit_price >= 0 AND discount >= 0 AND total >= 0 AND total = ROUND(quantity * unit_price, 2) - discount AND (unit_type <> ''UNIT'' OR quantity = FLOOR(quantity)))');
 -- End Orders Core F3
+-- Order to Sale F5
+CALL sp_add_check_if_not_exists('sales', 'chk_sales_delivery_fee', 'ALTER TABLE sales ADD CONSTRAINT chk_sales_delivery_fee CHECK (delivery_fee >= 0)');
+CALL sp_add_check_if_not_exists('sales', 'chk_sales_totals', 'ALTER TABLE sales ADD CONSTRAINT chk_sales_totals CHECK (subtotal >= 0 AND discount_total >= 0 AND discount_total <= subtotal AND total = subtotal - discount_total + delivery_fee)');
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
 DROP PROCEDURE IF EXISTS sp_drop_check_if_exists;
@@ -1339,6 +1348,13 @@ SELECT 'ADMIN', idPermission FROM permissions WHERE code IN ('orders.view','orde
 INSERT IGNORE INTO role_permissions (role, idPermission)
 SELECT 'SELLER', idPermission FROM permissions WHERE code IN ('orders.view','orders.create','orders.update');
 -- End Orders Core F3
+
+-- Order to Sale F5: additive, no SELLER/DELIVERY grant.
+INSERT INTO permissions (code, module, action, name, description, is_active)
+VALUES ('orders.convert','orders','convert','Convertir pedidos a venta','Permite convertir un pedido READY a venta',1)
+ON DUPLICATE KEY UPDATE is_active = VALUES(is_active);
+INSERT IGNORE INTO role_permissions (role, idPermission)
+SELECT 'ADMIN', idPermission FROM permissions WHERE code = 'orders.convert';
 
 /* ============================================================
    END: seeds/002_permissions_and_role_permissions.sql
@@ -8905,6 +8921,7 @@ BEGIN
   FROM order_details od
   LEFT JOIN products p ON p.idBusiness = od.idBusiness AND p.idProduct = od.idProduct
   WHERE od.idBusiness = p_business AND od.idOrder = p_order ORDER BY od.idOrderDetail;
+  SELECT idSale, sale_number, status FROM sales WHERE idBusiness = p_business AND idOrder = p_order;
 END$$
 
 DROP PROCEDURE IF EXISTS sp_order_create$$
@@ -9048,6 +9065,23 @@ BEGIN
   ORDER BY p.name, p.idProduct LIMIT p_limit OFFSET p_offset;
   SELECT COUNT(*) AS totalRecords FROM products p WHERE p.idBusiness = p_business AND p.is_active = 1
     AND (p_search IS NULL OR LOCATE(p_search, p.name) > 0 OR LOCATE(p_search, p.barcode) > 0);
+END$$
+DELIMITER ;
+
+-- Conversion only. Transaction and STATUS_CHANGED event are owned by the caller.
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_order_complete_from_sale$$
+CREATE PROCEDURE sp_order_complete_from_sale(IN p_business INT, IN p_order INT, IN p_actor INT, IN p_sale INT)
+BEGIN
+  DECLARE v_status VARCHAR(20);
+  SELECT status INTO v_status FROM orders WHERE idBusiness = p_business AND idOrder = p_order FOR UPDATE;
+  IF v_status IS NULL OR v_status <> 'READY' OR NOT EXISTS (
+    SELECT 1 FROM sales WHERE idBusiness = p_business AND idOrder = p_order AND idSale = p_sale AND status = 'COMPLETED'
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ORDER_SALE_INCONSISTENT';
+  END IF;
+  UPDATE orders SET status = 'COMPLETED', updated_by_user_id = p_actor, updated_at = NOW()
+  WHERE idBusiness = p_business AND idOrder = p_order;
 END$$
 DELIMITER ;
 
@@ -11426,25 +11460,16 @@ CREATE PROCEDURE sp_create_sale(
   IN p_subtotal DECIMAL(18,2),
   IN p_discount_total DECIMAL(18,2),
   IN p_total DECIMAL(18,2),
-  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_idOrder INT,
+  IN p_delivery_fee DECIMAL(18,2)
 )
 BEGIN
   DECLARE v_idSale INT;
+  DECLARE v_existingOrder INT;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashRegisterActive TINYINT;
   DECLARE v_existingSaleNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-  DECLARE EXIT HANDLER FOR 1062
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
-
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
 
   IF p_sale_number IS NULL OR TRIM(p_sale_number) = '' THEN
     SIGNAL SQLSTATE '45000'
@@ -11456,14 +11481,17 @@ BEGIN
       SET MESSAGE_TEXT = 'IDEMPOTENCY_KEY_REQUIRED';
   END IF;
 
-  SELECT idSale, sale_number
-  INTO v_idSale, v_existingSaleNumber
+  SELECT idSale, sale_number, idOrder
+  INTO v_idSale, v_existingSaleNumber, v_existingOrder
   FROM sales
   WHERE idBusiness = p_idBusiness
     AND idempotency_key = p_idempotency_key
   LIMIT 1;
 
   IF v_idSale IS NOT NULL THEN
+    IF NOT (v_existingOrder <=> p_idOrder) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'IDEMPOTENCY_KEY_CONFLICT';
+    END IF;
     SELECT
       v_idSale AS idSale,
       v_existingSaleNumber AS saleNumber,
@@ -11542,6 +11570,8 @@ BEGIN
     sale_number,
     idempotency_key,
     idCustomer,
+    idOrder,
+    delivery_fee,
     idDeposit,
     idCashSession,
     sale_date,
@@ -11558,6 +11588,8 @@ BEGIN
     p_sale_number,
     p_idempotency_key,
     p_idCustomer,
+    p_idOrder,
+    COALESCE(p_delivery_fee, 0),
     p_idDeposit,
     p_idCashSession,
     NOW(),
@@ -11577,7 +11609,6 @@ END$$
 
 DELIMITER ;
 
-
 DROP PROCEDURE IF EXISTS sp_create_sale_detail_and_discount_stock;
 DELIMITER $$
 
@@ -11596,12 +11627,6 @@ BEGIN
   DECLARE v_current_quantity DECIMAL(18,2);
   DECLARE v_unit_type VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_sale_number VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
-  BEGIN
-    ROLLBACK;
-    RESIGNAL;
-  END;
 
   IF NOT EXISTS (
     SELECT 1
@@ -11717,7 +11742,6 @@ BEGIN
 END$$
 
 DELIMITER ;
-
 
 DROP PROCEDURE IF EXISTS sp_cancel_sale_and_revert_stock;
 DELIMITER $$
@@ -11941,7 +11965,6 @@ END$$
 
 DELIMITER ;
 
-
 DROP PROCEDURE IF EXISTS sp_get_sales;
 DELIMITER $$
 
@@ -11984,6 +12007,8 @@ BEGIN
       ELSE 'PAID'
     END AS payment_status,
     s.sale_date,
+    s.idOrder,
+    s.delivery_fee,
     s.subtotal,
     s.discount_total,
     s.total,
@@ -12101,6 +12126,8 @@ BEGIN
     d.name,
     s.idCashSession,
     s.sale_date,
+    s.idOrder,
+    s.delivery_fee,
     s.subtotal,
     s.discount_total,
     s.total,
@@ -12231,7 +12258,6 @@ END$$
 
 DELIMITER ;
 
-
 DROP PROCEDURE IF EXISTS sp_get_sale_by_id;
 DELIMITER $$
 
@@ -12264,6 +12290,8 @@ BEGIN
       ELSE 'PAID'
     END AS payment_status,
     s.sale_date,
+    s.idOrder,
+    s.delivery_fee,
     s.subtotal,
     s.discount_total,
     s.total,
@@ -12305,6 +12333,8 @@ BEGIN
     d.name,
     s.idCashSession,
     s.sale_date,
+    s.idOrder,
+    s.delivery_fee,
     s.subtotal,
     s.discount_total,
     s.total,
@@ -12397,7 +12427,6 @@ BEGIN
 END$$
 
 DELIMITER ;
-
 
 DROP PROCEDURE IF EXISTS sp_get_products_with_stock_by_deposit;
 DELIMITER $$

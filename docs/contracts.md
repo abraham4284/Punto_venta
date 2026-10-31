@@ -50,7 +50,7 @@ Tambien existen 413/429 por limites y 500 para fallos inesperados. No todos los 
 
 Catalogo: GET `/api/public/catalog`, `/categories`, `/products`, `/products/:slug` (los ultimos tres relativos a `/api/public/catalog`). Negocio seleccionado por `PUBLIC_CATALOG_BUSINESS_SLUG`; stock publico del deposito predeterminado activo y campos publicos sin costos. Los consumidores publicos/VITRUNO no deben consumir endpoints administrativos.
 
-No hay Orders publicos ni conversion a Sale implementados. WhatsApp/sin Orders automaticos es acuerdo de integracion externa: [ADR-007](decisions.md).
+No hay Orders publicos. F5 implementa conversion administrativa a Sale, con frontend de conversion aun pendiente. WhatsApp/sin Orders automaticos es acuerdo de integracion externa: [ADR-007](decisions.md).
 
 ## Orders Core F3 — API administrativa implementada
 
@@ -67,9 +67,9 @@ Rutas relativas a `/api` con sesion BUSINESS, suscripcion operativa y permiso ba
 | PATCH `/orders/:id/status` | orders.change_status; body `{ status: "CONFIRMED" | "PREPARING" | "READY" }`, solo siguiente paso. |
 | PATCH `/orders/:id/cancel` | orders.cancel; body `{ reason }`, trim 3..500, desde no terminales. |
 
-Otros exitos usan `{ status: true, message, data }`. ID ajeno/inexistente se trata como no encontrado. COMPLETED no se asigna por API, CANCELLED solo por cancel. Un cambio de estado invalido/no editable devuelve 409; entrada/referencia invalida 400, permiso/contexto 403, fallo inesperado 500 seguro. Los deadlocks/timeouts de lock devuelven 409 para reintento.
+Otros exitos usan `{ status: true, message, data }`. ID ajeno/inexistente se trata como no encontrado. COMPLETED no se asigna por status generico: solo por conversion F5; CANCELLED solo por cancel. Un cambio de estado invalido/no editable devuelve 409; entrada/referencia invalida 400, permiso/contexto 403, fallo inesperado 500 seguro. Los deadlocks/timeouts de lock devuelven 409 para reintento.
 
-Extension de lectura F4.1: cada producto de `/orders/products-by-deposit/:idDeposit` incluye `imageUrl: string | null`; cada item de detalle incluye `productImageUrl: string | null`. Ambos derivan de `products.image_url` actual, con aislamiento por negocio. La imagen es enriquecimiento visual, no snapshot persistido: puede cambiar o desaparecer. Nombre/codigo/unidad/modo/precios del detalle siguen siendo historicos; un LEFT JOIN conserva la linea aun sin producto actual. No se aceptan campos de imagen en POST/PUT. Requiere actualizar los procedures de [orders.sql](../server/src/db/procedures/orders.sql); no cambia schema ni agrega migracion. Evidencia y despliegue pendiente: [F4.1](f04-1-orders-ui-polish-validation.md).
+Extension de lectura F4.1: cada producto de `/orders/products-by-deposit/:idDeposit` incluye `imageUrl: string | null`; cada item de detalle incluye `productImageUrl: string | null`. Ambos derivan de `products.image_url` actual, con aislamiento por negocio. La imagen es enriquecimiento visual, no snapshot persistido: puede cambiar o desaparecer. Nombre/codigo/unidad/modo/precios del detalle siguen siendo historicos; un LEFT JOIN conserva la linea aun sin producto actual. No se aceptan campos de imagen en POST/PUT. Requiere actualizar los procedures de [orders.sql](../server/src/db/procedures/orders.sql); no cambia schema ni agrega migracion. Operador confirma aplicado y probado en local/test/produccion (sin verificacion productiva del agente): [F4.1](f04-1-orders-ui-polish-validation.md).
 
 ### Crear y reemplazar
 
@@ -101,4 +101,20 @@ Listado: `page` (1..1000000, default 1), `limit` (1..100, default 20), `search` 
 
 Snapshots se exponen en `customerSnapshot` y campos de items; fechas serializadas. Eventos registran tipo, actor, estado previo/destino, motivo y fecha; no son un archivo completo de cada revision de items. OWNER usa shortcut existente; ADMIN recibe los cinco permisos, SELLER view/create/update y DELIVERY ninguno por defecto; overrides existentes pueden ajustar acceso. No se agregaron labels UI ni permisos administrativos de otros modulos.
 
-Implementacion y limites de evidencia: [F3 validation](f03-orders-core-validation.md). No hay frontend Orders, conversion, reservas ni integracion VITRUNO.
+Implementacion y limites de evidencia: [F3 validation](f03-orders-core-validation.md). Frontend Orders F4/F4.1 implementado; conversion backend F5 descrita debajo. Sin frontend de conversion F6, reservas ni integracion VITRUNO.
+
+## F5 — Conversion administrativa Order -> Sale
+
+POST `/orders/:id/convert-to-sale`: BUSINESS operativo, `orders.convert` **y** `sales.create`; UUID Idempotency-Key obligatorio. OWNER usa shortcut; ADMIN recibe convert; SELLER/DELIVERY no reciben ese grant inicial. Overrides efectivos siguen vigentes.
+
+Body estricto: `{ idCashSession, payments, delivery? }`. Payments 1..5 con idPaymentMethod, amount positivo, status PENDING/CONFIRMED y reference/observation opcionales (limites Sales). Delivery solo admite assignedToUserId, scheduledAt y observation; opcional/nullable. No permite tenant/actor/customer/deposit/items/montos/destinatario en body. Un PICKUP rechaza metadata delivery no-null.
+
+Respuesta: `{ status: true, message, data: { order, sale }, idempotentReplay }`. 201 nueva; 200 replay. GET detalle Order agrega `linkedSale: { idSale, saleNumber, status: "COMPLETED" | "CANCELLED" } | null`. Sales agrega en sus respuestas `idOrder: number | null` y `deliveryFee: number`.
+
+Solo READY inicia conversion. El pedido bloqueado provee cliente, deposito, items, cantidades, precios, descuentos y totales; expectedPaymentMethodId no crea pagos. Se preserva deliveryFee: total = subtotal - discountTotal + deliveryFee. Sales directo acepta deliveryFee opcional (default 0); no acepta idOrder desde HTTP. Incompatibilidades con Sales (precio cero, limites delivery, aritmetica, etc.) se rechazan sin ajustes. Observacion Order de mas de 255 unidades de texto del validador se conserva solo en Order, sin truncar.
+
+Pagos suman Sale.total. PICKUP no permite PENDING; DELIVERY si. Caja del tenant, OPEN y registro activo; referencias activas del tenant validadas por Sales. Stock suficiente al convertir, incluso ON_ORDER. DELIVERY crea entrega con destinatario/telefono/direccion/referencia de Order y metadata complementaria del request. Venta, detalles, stock/movimientos, pagos/eventos, entrega/eventos y READY -> COMPLETED/evento se confirman en una transaccion.
+
+El row lock de Order y UNIQUE sales(idBusiness,idOrder) aseguran un solo vinculo. COMPLETED con venta vinculada devuelve esa venta incluso cancelada y con otra key libre, sin repetir efectos ni comparar payload. Key perteneciente a POS/otro Order: 409 IDEMPOTENCY_KEY_CONFLICT (tambien en diferencias de mayusculas UUID). READY con venta o COMPLETED sin venta: 409 ORDER_SALE_INCONSISTENT. Estado distinto de READY para conversion nueva: 409 ORDER_NOT_READY. Stock/caja/deadlock: 409; validacion/referencias: 400; tenant ajeno/inexistente: 404; permisos/actor: 403; inesperados: 500 seguro. Cancelar Sale conserva Order COMPLETED y no habilita reconversion. Status generico sigue rechazando COMPLETED.
+
+SQL F5 pendiente del operador; no hay F6, reservas ni Orders publicos. Evidencia y limites: [F5 validation](f05-order-to-sale-backend-validation.md).
