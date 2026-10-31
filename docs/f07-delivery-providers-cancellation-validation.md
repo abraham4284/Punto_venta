@@ -41,18 +41,35 @@ Codigos nuevos: DELIVERY_SALE_REFUND_REQUIRED, DELIVERY_IN_TRANSIT_CANNOT_BE_CAN
 
 - Revision final: 63 archivos involucrados (51 modificados y 12 nuevos), 183 enlaces Markdown locales y 209 imports verificados; git diff --check aprobado. Se revisaron git status --short y git diff --stat; rama dev y client/text.txt sin cambios.
 
-## Integracion y QA pendientes
+## Integracion preparada al cierre inicial y QA pendiente
 
 [Suite real F7](../server/src/tests/integration/delivery-providers/delivery-providers.integration.test.ts), **15 casos preparados**, reutiliza config segura [dedicada](../server/vitest.delivery-providers-integration.config.ts), guardas loopback/DB exacta punto_venta_integration_test, setup/fixtures y limpieza UUID de F5. Preflight exige columna provider_type y plan existente; no siembra catalogos globales. Casos: tres modos en Sales, Order -> Sale tercero, reasignacion cruzada/auditoria, efectivo pendiente no inicia, ADMIN opera tercero confirmado/cadete no accede, anulacion unpaid PENDING/ASSIGNED/FAILED, bloqueos pagada/en camino/entregada, no-cash pendiente y tenant/rol invalidos. Cleanup acotado respeta FKs y elimina Sales antes de Orders; no reset ni desactivar FKs.
 
-No se ejecuto esa suite ni otra DB real F7, ni migracion, SQL manual, baseline/install en una DB, backend en marcha o produccion. No se afirma compatibilidad ejecutada MySQL/MariaDB ni concurrencia/rollback efectivos. Se consultaron las referencias oficiales sobre [cursores MySQL](https://dev.mysql.com/doc/refman/8.4/en/cursor-restrictions.html) y [lecturas locking](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html); esa consulta tampoco sustituye validacion en el motor.
+En la implementacion inicial no se ejecuto esa suite ni otra DB real F7, ni migracion, SQL manual, baseline/install en una DB, backend en marcha o produccion. El gate autorizado posterior se registra abajo. No se afirma compatibilidad ejecutada MySQL/MariaDB ni concurrencia/rollback efectivos. Se consultaron las referencias oficiales sobre [cursores MySQL](https://dev.mysql.com/doc/refman/8.4/en/cursor-restrictions.html) y [lecturas locking](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html); esa consulta tampoco sustituye validacion en el motor.
 
 QA visual: se intento la skill computer-use/node_repl y cua, ambas fallaron antes de operar UI con `failed to write kernel assets ... os error 3`. No se verificaron responsive, foco/teclado real, dialogos ni flujo visual contra API. Build/SSR no se presentan como QA navegador.
 
-## Operador y cierre
+## Operador y cierre inicial (antecedente previo al gate)
 
 Con backup, DB/ambiente confirmados y escrituras detenidas: aplicar **manual/005_delivery_providers.sql**, luego importar completos **procedures/deliveries.sql**, **procedures/sale_payments.sql** y **procedures/sales.sql**. Desplegar backend/client compatibles antes de reanudar operaciones: sp_delivery_create cambia 10 -> 16 parametros, sp_delivery_assign 4 -> 10. No importar baseline/install/seed completo sobre DB existente. No se necesita reaplicar orders.sql por F7.
 
 Despues de SQL F7 y autorizacion expresa, ejecutar `npx vitest run --config vitest.delivery-providers-integration.config.ts` exclusivamente en test loopback, nunca produccion. DDL tiene commits implicitos; revisar datos/constraints y no prometer rollback de migracion.
 
 Docs actualizadas: tasks/project-state, contracts/database/decisions (ADR-009), arquitectura/PRD cuando cambio su contenido, ownership/testing backend y arquitectura frontend/README DB. Sin cambios client/text.txt, dependencias o grants. Sin desviacion funcional ni blocker contractual detectados; implementacion cerrada al nivel DB-free/estatico, con SQL/QA real pendientes. **F8 Returns & Refunds** solo roadmap futuro: sin returns/refunds/notas de credito/devoluciones parciales/reembolsos de caja; tampoco maestro, settlements externos, reservas o VITRUNO/Orders publicos.
+
+
+## Gate final F7 HTTP/DB real — 2026-10-31
+
+Estado: **F7 CLOSED; F8 Returns & Refunds NEXT**, sin iniciar F8. HEAD inspeccionado `76397c123b789fe3433166e069eaae3f3dd78938`, rama dev, checkout limpio al inicio. Solicitud del operador autoriza esta suite y confirma manual/005_delivery_providers.sql y procedures/deliveries.sql, sale_payments.sql, sales.sql aplicados en local, test y produccion. Esa confirmacion de despliegue no es una inspeccion de produccion.
+
+Comando desde server: `npx vitest run --config vitest.delivery-providers-integration.config.ts`.
+
+- Entorno efectivo segun config/guardas: host localhost, puerto 3306, database punto_venta_integration_test, NODE_ENV=test. La suite confirma SELECT DATABASE() y provider_type antes de crear fixtures; las llamadas HTTP usan Supertest sobre la app real y el pool real, sin mocks.
+- Seguridad revisada antes de ejecutar: loopback y DB exacta obligatorios, UUID por corrida, preflight de plan existente, limpieza transaccional restringida a tenants/usuarios de ese UUID. Sin reset general, sin desactivar FKs, sin migraciones, baseline/install ni conexion a produccion. El helper importado contiene un reset general, pero esta suite/setup no lo invocan.
+- Primer intento: EPERM de rename en cache SSR del sandbox, antes de cargar setup/tests; 0 tests ejecutados. Repetido fuera del sandbox manteniendo las guardas: **15/15 aprobados, 1 archivo, exit 0**, inicio 18:28:03, duracion 4.16 s (reloj del runner).
+- Cleanup: afterAll completo sin errores. La limpieza hace commit y comprueba cero businesses/users con el prefijo UUID propio; si falla, la suite falla. FKs permanecieron activas. No se ejecutaron escrituras deliberadas fuera de fixtures; no se hizo un snapshot global que permita certificar cambios concurrentes de otros procesos.
+- Escenarios aprobados: tres modos de proveedor en venta directa; Order READY -> Sale tercero; reasignacion INTERNAL <-> THIRD_PARTY y auditoria; cash guard tercero/efectivo pendiente; ADMIN opera tercero pagado y cadete sin view_all no accede; anulacion unpaid PENDING/ASSIGNED/FAILED y repeticion sin doble stock; bloqueo de anulacion confirmada/en camino/entregada con codigos y sin efectos; pendiente no-cash; tenant/rol invalidos rechazados.
+- Bugs funcionales: ninguno detectado. Sin cambios funcionales, de SQL ni tests; no se repitieron builds/typecheck/baseline innecesariamente. Solo se actualizan esta evidencia, tasks.md y project-state.md. QA visual anterior sigue pendiente por herramientas; no se presenta este gate como E2E navegador.
+- Produccion: SQL sincronizado exclusivamente por confirmacion del operador. **No se ejecuto alli ninguna suite ni consulta del agente.** No se valida MariaDB remoto ni instalacion limpia con este gate.
+
+Cierre documental: enlaces locales de los tres documentos comprobados, git diff --check aprobado, git status --short y git diff --stat revisados; solo esos tres documentos modificados. Commit sugerido: `docs(f7): registrar gate real de test aprobado`; descripcion: documentar 15/15, cleanup, entorno seguro y confirmacion SQL del operador, cerrar F7 y marcar F8 NEXT sin implementarla.
