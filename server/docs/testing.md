@@ -41,3 +41,7 @@ Elegir validacion segun cambio: tipado/build, tests aislados para comportamiento
 La config Orders DB-free tambien selecciona orders-core-conversion.test.ts, con pool y notificaciones mockeados: validacion, rollback/call order, compatibilidad Sales, permisos/replay y SQL estatico. No valida locks reales.
 
 Suite real preparada en [order-to-sale.integration.test.ts](../src/tests/integration/orders/order-to-sale.integration.test.ts), comando `npx vitest run --config vitest.order-to-sale-integration.config.ts`. Reutiliza guardas loopback/DB exacta de Orders, setup y fixtures existentes; requiere SQL F5 aplicado y permiso explicito para DB real. No ejecutada durante F5. Limpia solo tenants/usuarios UUID propios, borra sales antes de orders por la nueva FK, sin reset ni desactivar FKs. Config Orders anterior queda acotada a su archivo original para no incorporar esta suite implicitamente. [Validacion F5](../../docs/f05-order-to-sale-backend-validation.md).
+
+### F7 providers/cancellation
+
+DB-free: npx vitest run --config vitest.delivery-providers.config.ts (setupFiles vacio, pool mockeado; incluye regresiones Orders/F5 y delivery-providers.test.ts). Integracion preparada: npx vitest run --config vitest.delivery-providers-integration.config.ts, hereda loopback + DB exacta de Orders y fixtures/limpieza UUID propios; no ejecutar hasta SQL F7 y autorizacion expresa. Durante F7 solo se preparo/typecheckeo esa suite; no se ejecuto. [Evidencia](../../docs/f07-delivery-providers-cancellation-validation.md).

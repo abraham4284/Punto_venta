@@ -1,3 +1,4 @@
+import type { DeliveryProvider } from "../../deliveries/validations/delivery-provider.validations.js";
 import type { Request } from "express";
 import type { BusinessRequestUser } from "@/types/auth.types.js";
 
@@ -27,6 +28,8 @@ export type JsonValue =
   | { [key: string]: JsonValue };
 
 export interface DeliveryDbRow {
+  provider_type: "INTERNAL" | "THIRD_PARTY" | null;
+  external_provider_name: string | null; external_reference: string | null; external_contact_name: string | null; external_contact_phone: string | null; external_cost: number | string | null;
   idSaleDelivery: number;
   idBusiness: number;
   idSale: number;
@@ -53,7 +56,7 @@ export interface DeliveryDbRow {
   updated_at: Date;
 }
 
-export interface DeliveryResponse {
+export interface DeliveryResponse extends DeliveryProvider {
   idSaleDelivery: number;
   idBusiness: number;
   idSale: number;
@@ -102,7 +105,7 @@ export interface PaginatedDeliveriesResponse {
   pagination: DeliveryPagination;
 }
 
-export interface DeliveryActionPayload {
+export interface DeliveryActionPayload extends DeliveryProvider {
   idBusiness: number;
   idSaleDelivery: number;
   idUser: number;

@@ -14,6 +14,10 @@ El baseline incluye orders, order_details y order_events, permisos y [procedures
 
 Sales agrega idOrder nullable (unique/FK por negocio) y delivery_fee default 0. Para una DB existente, backup/revision de totales y parada de escrituras; aplicar [manual/004_order_to_sale.sql](manual/004_order_to_sale.sql), luego [procedures/sales.sql](procedures/sales.sql) y [procedures/orders.sql](procedures/orders.sql) completos, y backend compatible antes de reanudar operaciones. sp_create_sale cambia de 11 a 13 parametros, tambien para POS. No aplicar install/baseline/seed completos sobre datos existentes. No se ejecuto DB F5; [evidencias y suite real pendiente](../../../docs/f05-order-to-sale-backend-validation.md).
 
+### Delivery Providers F7
+
+Nueva migracion [manual/005_delivery_providers.sql](manual/005_delivery_providers.sql), pendiente del operador. Con backup/DB confirmada y escrituras detenidas, aplicar 005, luego importar completos [deliveries.sql](procedures/deliveries.sql), [sale_payments.sql](procedures/sale_payments.sql) y [sales.sql](procedures/sales.sql), y desplegar backend/client compatibles antes de reanudar. sp_delivery_create pasa de 10 a 16 parametros y sp_delivery_assign de 4 a 10. No aplicar install/baseline sobre DB existente. Backfill solo INTERNAL para user existente; nunca inferir tercero desde NULL. [Evidencias F7](../../../docs/f07-delivery-providers-cancellation-validation.md).
+
 ### Customers v2
 
 El baseline incluye identidad de clientes con nombre/apellido separados y documento opcional unico por negocio. Ver [CUSTOMERS_V2.md](CUSTOMERS_V2.md) para el contrato, el breaking change de frontend y el orden exacto de actualizacion de bases existentes mediante `manual/002_customers_v2.sql` y los seis archivos de procedures afectados. No ejecutar el instalador limpio sobre una base existente.

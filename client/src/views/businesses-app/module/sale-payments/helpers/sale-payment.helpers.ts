@@ -182,6 +182,7 @@ export const getSalePaymentErrorMessage = (
   fallback: string,
 ): string => {
   const messages: Record<string, string> = {
+    THIRD_PARTY_PENDING_CASH_PAYMENT_NOT_ALLOWED: "Una entrega tercerizada en camino no admite efectivo pendiente. Revisá el medio o confirmá el pago desde el negocio.",
     DELIVERY_CASH_PAYMENT_REQUIRES_COLLECTION:
       "Este efectivo debe registrarlo el cadete y luego rendirse en caja.",
     DELIVERY_COLLECTION_REQUIRES_CASH_METHOD:

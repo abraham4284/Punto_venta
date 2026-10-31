@@ -2,9 +2,9 @@
 
 Revisado: 2026-10-31. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `5906faaa74515e638a18d13c9be21f9c48012025` — `feat(orders): convertir pedidos a ventas de forma atómica`. HEAD dev inspeccionado antes de F6, distinto del master de referencia `22c28cd2ebbe156580a281b97f9da3a86bab7fe9`. Checkout limpio al comenzar, sin cambio de rama.
+Last reviewed commit: `530e03bd728be01cf3c42d8131006651ef3a017f` — `feat(orders): agregar checkout de conversión a venta`. HEAD dev inspeccionado antes de F7; checkout limpio, sin cambio de rama. Master del prompt es referencia historica.
 
-Current phase: F6 Order -> Sale frontend implementado, build/lint aplicable y validacion aislada aprobados. Last completed functional phase: F6; QA navegador pendiente por herramientas. Gate F5 real aprobado antes de modificar frontend: 11/11 casos en DB test loopback punto_venta_integration_test. Operador confirma SQL F5 aplicado en local/test/produccion; el agente no verifico produccion ni aplico migraciones. Ver [F5](f05-order-to-sale-backend-validation.md) y [F6](f06-order-to-sale-frontend-validation.md). No hay siguiente fase funcional autorizada; reservas solo si uso real las justifica.
+Current phase: F7 Delivery Providers & Cancellation Hardening implementada con validacion DB-free/estatica. Last completed functional phase: F7 a ese nivel; SQL F7 y suite real pendientes del operador. F0..F6 conservan sus evidencias, incluido gate F5 real 11/11 al iniciar F6. No se ejecuto DB real ni migraciones F7. F8 Returns & Refunds queda futura, sin implementar. Ver [F7 validation](f07-delivery-providers-cancellation-validation.md).
 
 ## Identidad, stack y mapa actual
 
@@ -18,7 +18,7 @@ El catalogo publico vive en `/api/public`, aislado del API administrativo y conf
 
 ## DB y Customers v2
 
-Existe baseline canonico completo, schema 002..005, seeds, procedures, publicaciones legales y generado. Hay cuatro migraciones manuales (001 slugs/sale mode, 002 Customers v2, 003 Orders Core, 004 Order -> Sale; aplicada segun operador); no un runner automatico de migraciones. Operacion y riesgos: [database](database.md).
+Existe baseline canonico completo, schema 002..005, seeds, procedures, publicaciones legales y generado. Hay cinco migraciones manuales (001 slugs/sale mode, 002 Customers v2, 003 Orders Core, 004 Order -> Sale aplicada segun operador, 005 Delivery Providers pendiente de aplicar); no un runner automatico de migraciones. Operacion y riesgos: [database](database.md).
 
 Customers backend y frontend estan implementados: `firstName`, `lastName`, `fullName` derivado, documento opcional y contacto. `Customer.name` fue eliminado. Sales/Tickets y otros consumidores conservan `customerName`/`customer_name` donde corresponde. El formulario, helper de busqueda, tipos y seleccion/detalle de Sales usan el contrato v2. [Guia de entrega](../server/src/db/CUSTOMERS_V2.md).
 
@@ -29,6 +29,8 @@ F1/F2 estan cerradas segun el roadmap aportado, con implementacion corroborada e
 Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pagos y entrega separados. La creacion coordina transaccion en service y procedures, incluyendo detalles/stock. F5 extrae createSaleWithinTransaction sin ownership transaccional para reutilizarlo desde conversion; sales.idOrder nullable y delivery_fee identifican el origen y costo de entrega. Caja y rendicion no equivalen a cobrar una entrega. Consultar implementacion Sales antes de reutilizar ownership transaccional, permisos, errores y calculos.
 
 ## Roadmap y limites conocidos
+
+- F7: providerType null/INTERNAL/THIRD_PARTY explicito en Sale Delivery, con datos externos opcionales y costo informativo distinto del envio cobrado. Cadete exige usuario DELIVERY activo del tenant; tercero no es un usuario. Creacion directa/conversion y asignacion/reasignacion usan el mismo modelo; lista/detalle/timeline lo muestran. Tercero necesita view_all + update_status y no inicia con efectivo pendiente. Anulacion DELIVERY solo PENDING/ASSIGNED/FAILED sin COLLECTED/CONFIRMED ni pagos rendidos; en camino/entregada bloqueados con mensajes claros. Sin cambios de settlements historicos ni reapertura de Order. 142 tests DB-free, builds y baseline aprobados; suite real F7 preparada, no ejecutada.
 
 - Orders F4.1: formulario por secciones y resumen lateral, cliente obligatorio mediante modal buscable, selects Base UI, deposito predeterminado activo solo en nuevos (edicion conserva el existente) y autofill DELIVERY opt-in, editable y sin copiar referencia. Picker/carrito con imagen actual y fallback; hoja de preparacion imprimible desde detalle con orders.view mediante window.print/Guardar PDF del navegador. Backend solo agrega imageUrl/productImageUrl desde products con tenant join, sin snapshot de imagen, schema ni migracion nuevos. Client build/lint Orders, server typecheck/build, 68 tests DB-free y baseline aprobados; 28 comprobaciones ad hoc frontend (sin suite persistente). Herramientas de navegador fallaron al inicializar assets: no se verifico layout/foco/impresion real. Al cierre F4.1 no se aplico SQL; posteriormente el operador confirma orders.sql aplicado y probado en local/test/produccion. [Detalle](f04-1-orders-ui-polish-validation.md).
 
@@ -42,4 +44,4 @@ Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pago
 - Lint global medido en F4: 8 errores y 2 warnings en seis archivos previos fuera de scope; lint F4 limpio. Build exitoso con warnings de bundle grande/imports dinamicos inefectivos. Deuda no corregida fuera de scope.
 - API no tiene envelope uniforme entre contextos; preservar consumidores. Precision decimal y columnas como timestamps deben comprobarse en schema concreto.
 
-Fuera de alcance de F6: cambios backend/SQL, reservas, checkout publico e integracion automatica VITRUNO. Gate F5 real ejecutado al iniciar F6: 11/11 aprobado en DB test local. Operador confirma tambien SQL F5 aplicado; no se verifico produccion. QA navegador/impresion F4.1 sigue pendiente.
+Fuera de alcance F7: devoluciones/reembolsos F8, maestro de proveedores, rendiciones/pagos externos, reservas y VITRUNO/Orders publicos. Gate F5 real ejecutado al iniciar F6: 11/11 aprobado en DB test local. Operador confirma tambien SQL F5 aplicado; no se verifico produccion. QA navegador/impresion F4.1 sigue pendiente.

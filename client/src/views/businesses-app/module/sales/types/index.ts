@@ -1,3 +1,4 @@
+import type { DeliveryProviderInput, DeliveryProviderPayload } from "../../deliveries/helpers/delivery-provider.helpers";
 export type PriceType = "SALE" | "WHOLESALE";
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 
@@ -71,7 +72,7 @@ export interface SaleHeaderInput {
   observation: string;
 }
 
-export interface SaleDeliveryInput {
+export interface SaleDeliveryInput extends DeliveryProviderInput {
   enabled: boolean;
   assignedToUserId: number | null;
   recipientName: string;
@@ -136,7 +137,7 @@ export interface CreateSalePayload {
     reference?: string | null;
     observation?: string | null;
   }[];
-  delivery?: {
+  delivery?: DeliveryProviderPayload & {
     assignedToUserId?: number | null;
     recipientName: string;
     recipientPhone?: string | null;
@@ -231,7 +232,7 @@ export interface SalePaymentResponse {
   cancelledAt: string | null;
 }
 
-export interface SaleDeliveryResponse {
+export interface SaleDeliveryResponse extends DeliveryProviderPayload {
   idSaleDelivery: number;
   idBusiness: number;
   idSale: number;

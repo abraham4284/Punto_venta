@@ -1,3 +1,4 @@
+import type { DeliveryProviderPayload } from "../../deliveries/helpers/delivery-provider.helpers";
 import type { CreateSalePayload, SaleWithDetailsResponse } from "../../sales/types";
 export type OrderStatus = "PENDING" | "CONFIRMED" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";
 export type OrderFulfillmentType = "PICKUP" | "DELIVERY";
@@ -24,7 +25,7 @@ export interface OrderLinkedSale { idSale: number; saleNumber: string; status: "
 export type ConvertOrderPayment = CreateSalePayload["payments"][number];
 export interface ConvertOrderPayload {
   idCashSession: number; payments: ConvertOrderPayment[];
-  delivery?: Pick<NonNullable<CreateSalePayload["delivery"]>, "assignedToUserId" | "scheduledAt" | "observation"> | null;
+  delivery?: DeliveryProviderPayload & Pick<NonNullable<CreateSalePayload["delivery"]>, "scheduledAt" | "observation"> | null;
 }
 export interface ConvertOrderResult { order: Order; sale: SaleWithDetailsResponse }
 export interface Order extends Omit<CreateOrderPayload, "items"> {

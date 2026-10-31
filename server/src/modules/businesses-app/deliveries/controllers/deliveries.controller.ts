@@ -1,3 +1,4 @@
+import { deliveryDomainError } from "../helpers/delivery-errors.helper.js";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -32,7 +33,7 @@ function getZodErrors(error: z.ZodError) {
 
 function getErrorMessage(error: unknown): string {
   const parsed = error as ControllerError;
-  return parsed.sqlMessage || parsed.message || "Error inesperado";
+  return deliveryDomainError(parsed)?.message ?? "No se pudo procesar la entrega.";
 }
 
 function parseStatus(value: unknown): DeliveryStatus | null {
@@ -93,6 +94,8 @@ export async function listDeliveriesController(
     return res.status(400).json({
       status: false,
       message: getErrorMessage(error),
+      code: deliveryDomainError(error)?.code,
+
     });
   }
 }
@@ -132,6 +135,7 @@ export async function getDeliveryByIdController(
     return res.status(400).json({
       status: false,
       message: getErrorMessage(error),
+      code: deliveryDomainError(error)?.code,
     });
   }
 }
@@ -166,6 +170,7 @@ export async function assignDeliveryController(
     return res.status(400).json({
       status: false,
       message: getErrorMessage(error),
+      code: deliveryDomainError(error)?.code,
     });
   }
 }
@@ -205,6 +210,7 @@ export async function changeDeliveryStatusController(
     return res.status(400).json({
       status: false,
       message: getErrorMessage(error),
+      code: deliveryDomainError(error)?.code,
     });
   }
 }
@@ -252,6 +258,7 @@ export async function getDeliveryEventsController(
     return res.status(400).json({
       status: false,
       message: getErrorMessage(error),
+      code: deliveryDomainError(error)?.code,
     });
   }
 }

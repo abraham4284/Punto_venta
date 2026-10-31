@@ -51,6 +51,7 @@ function parseMetadata(metadata: DeliveryEventDbRow["metadata"]): JsonValue | nu
 export function mapDelivery(row: DeliveryDbRow): DeliveryResponse {
   return {
     idSaleDelivery: row.idSaleDelivery,
+    providerType: row.provider_type ?? null, externalProviderName: row.external_provider_name ?? null, externalReference: row.external_reference ?? null, externalContactName: row.external_contact_name ?? null, externalContactPhone: row.external_contact_phone ?? null, externalCost: row.external_cost == null ? null : Number(row.external_cost),
     idBusiness: row.idBusiness,
     idSale: row.idSale,
     saleNumber: row.sale_number,

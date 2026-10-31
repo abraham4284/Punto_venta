@@ -1,3 +1,4 @@
+import { providerPayloadShape, validateProviderPayload } from "../../deliveries/helpers/delivery-provider.helpers";
 import Decimal from "decimal.js";
 import { z } from "zod";
 import { createIdempotencyKey } from "@/helpers/idempotency.helper";
@@ -23,9 +24,9 @@ export const orderConversionPayloadSchema = z.object({
     status: z.enum(["PENDING", "CONFIRMED"]), reference: optionalText(100), observation: optionalText(255),
   }).strict()).min(1).max(5),
   delivery: z.object({
-    assignedToUserId: z.number().int().positive().nullable(),
+    ...providerPayloadShape,
     scheduledAt: z.iso.datetime({ offset: true }).nullable(), observation: optionalText(255),
-  }).strict().nullable(),
+  }).strict().superRefine(validateProviderPayload).nullable(),
 }).strict();
 
 export const conversionErrorMessage = (error: OrderRequestError) => {

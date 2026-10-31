@@ -1,3 +1,4 @@
+import { deliveryProviderShape, validateDeliveryProvider, normalizeDeliveryProvider } from "./delivery-provider.validations.js";
 import { z } from "zod";
 
 const emptyStringToNull = z.literal("").transform(function transformEmptyString() {
@@ -31,9 +32,9 @@ export const deliveryAssignSchema = z
     idBusiness: positiveIntSchema("El negocio"),
     idSaleDelivery: positiveIntSchema("La entrega"),
     idUser: positiveIntSchema("El usuario"),
-    assignedToUserId: positiveIntSchema("El cadete"),
+    ...deliveryProviderShape,
   })
-  .strict();
+  .strict().superRefine(validateDeliveryProvider).refine(function assigned(data) { return (data.providerType ?? (data.assignedToUserId ? "INTERNAL" : null)) != null; }, { message: "Selecciona un proveedor", path: ["providerType"] }).transform(normalizeDeliveryProvider);
 
 export const deliveryStatusActionSchema = z
   .object({

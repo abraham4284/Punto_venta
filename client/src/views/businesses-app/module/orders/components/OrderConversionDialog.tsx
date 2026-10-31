@@ -1,3 +1,4 @@
+import { DeliveryProviderFields } from "../../deliveries/components/DeliveryProviderFields";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import { useOrderConversion } from "../hooks/useOrderConversion";
 import { orderMoney } from "../helpers/orders.helpers";
 import type { ConvertOrderResult, Order } from "../types/orders.types";
 import { OrderErrorNotice, OrderSection } from "./OrderUi";
-import { OrderSelect } from "./OrderSelect";
 
 type Props = { order: Order; depositName: string; onClose: () => void; onSaved: (result: ConvertOrderResult) => void; onRefresh: () => Promise<Order> };
 type Resources = { methods: PaymentMethodResponse[]; users: DeliveryUserOption[]; loading: boolean; error: string | null; usersError: string | null; reload: () => void };
@@ -24,8 +24,6 @@ const OrderConversionCheckout = ({ order, depositName, onClose, onSaved, onRefre
   const canViewCash = useCan("cash.view");
   const disabled = form.saving || form.checking || resources.loading;
   const delivery = order.fulfillmentType === "DELIVERY";
-  const courierOptions = [{ value: "", label: "Sin asignar" }, ...resources.users.map((user) => ({ value: String(user.idUser), label: user.name }))];
-  if (form.metadata.assignedToUserId && !courierOptions.some((option) => option.value === form.metadata.assignedToUserId)) courierOptions.push({ value: form.metadata.assignedToUserId, label: "Cadete seleccionado no disponible" });
   return <>
     <div className="min-h-0 space-y-4 overflow-y-auto px-1 pb-2" aria-busy={disabled}>
       <OrderSection title={`Pedido ${order.orderNumber}`}>
@@ -48,7 +46,7 @@ const OrderConversionCheckout = ({ order, depositName, onClose, onSaved, onRefre
       <p className="text-sm" role="status">Total venta: {orderMoney(form.totals.total)} · Asignado: {orderMoney(form.totals.assigned)} · Restante: {orderMoney(form.totals.pending)}</p>
       {delivery && <OrderSection title="Organización de la entrega (opcional)">
         {resources.usersError && <p role="alert" className="text-sm text-destructive">{resources.usersError} Podés continuar sin asignar cadete.</p>}
-        <OrderSelect id="convert-order-courier" label="Cadete" value={form.metadata.assignedToUserId} error={form.errors["delivery.assignedToUserId"]} disabled={disabled} options={courierOptions} onChange={(value) => form.changeMetadata("assignedToUserId", value)} />
+        <DeliveryProviderFields value={form.metadata} users={resources.users} onChange={form.changeProvider} disabled={disabled} loadingUsers={resources.loading} errors={Object.fromEntries(Object.entries(form.errors).filter(([key]) => key.startsWith("delivery.")).map(([key, value]) => [key.slice(9), value]))} />
         <div className="space-y-2"><label htmlFor="convert-order-date" className="text-sm font-medium">Programación</label><Input id="convert-order-date" type="datetime-local" aria-invalid={Boolean(form.errors["delivery.scheduledAt"])} aria-describedby={form.errors["delivery.scheduledAt"] ? "convert-order-date-error" : undefined} disabled={disabled} value={form.metadata.scheduledAt} onChange={(event) => form.changeMetadata("scheduledAt", event.target.value)} />{form.errors["delivery.scheduledAt"] && <p id="convert-order-date-error" className="text-sm text-destructive">{form.errors["delivery.scheduledAt"]}</p>}</div>
         <div className="space-y-2"><label htmlFor="convert-order-note" className="text-sm font-medium">Observación de entrega</label><Textarea id="convert-order-note" aria-invalid={Boolean(form.errors["delivery.observation"])} aria-describedby={form.errors["delivery.observation"] ? "convert-order-note-error" : undefined} disabled={disabled} value={form.metadata.observation} maxLength={255} onChange={(event) => form.changeMetadata("observation", event.target.value)} />{form.errors["delivery.observation"] && <p id="convert-order-note-error" className="text-sm text-destructive">{form.errors["delivery.observation"]}</p>}</div>
       </OrderSection>}

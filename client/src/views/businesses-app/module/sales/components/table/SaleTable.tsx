@@ -1,3 +1,4 @@
+import { saleCancellationReason } from "../../helpers/sale-cancellation.helpers";
 import { useState } from "react";
 import { Ban, Eye, Printer } from "lucide-react";
 import {
@@ -126,6 +127,7 @@ const SaleActions = ({
   onView: (idSale: number) => void;
 }) => {
   const isCancelled = sale.status === "CANCELLED";
+  const cancellationReason = saleCancellationReason(sale);
   const isCancelingThisSale = cancelingId === sale.idSale;
 
   return (
@@ -146,7 +148,7 @@ const SaleActions = ({
         )}
       </Button>
 
-      {!isCancelled && canCancelSales ? (
+      {!isCancelled && canCancelSales && cancellationReason ? <p className="max-w-xs text-xs text-muted-foreground">{cancellationReason}</p> : !isCancelled && canCancelSales ? (
         <AlertDialog>
           <AlertDialogTrigger
             render={

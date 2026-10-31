@@ -1,3 +1,4 @@
+import { emptyDeliveryProvider, deliveryProviderPayload } from "../../deliveries/helpers/delivery-provider.helpers";
 import { useCallback, useMemo, useRef, useState } from "react";
 import Decimal from "decimal.js";
 import type { AxiosError } from "axios";
@@ -32,6 +33,7 @@ const initialHeader: SaleHeaderInput = {
 
 const initialDelivery: SaleDeliveryInput = {
   enabled: false,
+  ...emptyDeliveryProvider,
   assignedToUserId: null,
   recipientName: "",
   recipientPhone: "",
@@ -546,7 +548,7 @@ export const useSales = () => {
       payments: salePayments,
       delivery: delivery.enabled
         ? {
-            assignedToUserId: delivery.assignedToUserId,
+            ...deliveryProviderPayload(delivery),
             recipientName: delivery.recipientName.trim(),
             recipientPhone: delivery.recipientPhone.trim() || null,
             deliveryAddress: delivery.deliveryAddress.trim(),
