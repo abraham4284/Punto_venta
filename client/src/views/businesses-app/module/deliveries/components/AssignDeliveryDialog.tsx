@@ -1,148 +1,31 @@
-import { useMemo, useState } from "react";
-import { Loader2, UserRoundCheck } from "lucide-react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
-import type { DeliveryResponse, DeliveryUserOption } from "../types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DeliveryProviderFields } from "./DeliveryProviderFields";
+import { deliveryProviderPayload, deliveryProviderSchema, providerInputFrom, providerLabel } from "../helpers/delivery-provider.helpers";
+import type { DeliveryActionBody, DeliveryResponse, DeliveryUserOption } from "../types";
 
-type AssignDeliveryDialogProps = {
-  delivery: DeliveryResponse | null;
-  users: DeliveryUserOption[];
-  loadingUsers: boolean;
-  actionLoading: boolean;
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (idSaleDelivery: number, assignedToUserId: number) => Promise<boolean>;
-};
-
-export const AssignDeliveryDialog = ({
-  delivery,
-  users,
-  loadingUsers,
-  actionLoading,
-  isOpen,
-  onClose,
-  onConfirm,
-}: AssignDeliveryDialogProps) => {
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const selectedUserLabel = useMemo(() => {
-    const selectedUser = users.find((user) => {
-      return user.idUser === Number(selectedUserId);
-    });
-
-    if (!selectedUser) return "Seleccioná un cadete";
-    return `${selectedUser.name} (${selectedUser.username})`;
-  }, [selectedUserId, users]);
-
-  const handleOpenChange = (open: boolean) => {
-    if (!open && !actionLoading) {
-      setSelectedUserId("");
-      onClose();
-    }
+type Props = { delivery: DeliveryResponse | null; users: DeliveryUserOption[]; loadingUsers: boolean; actionLoading: boolean; isOpen: boolean; onClose: () => void; onConfirm: (id: number, body: DeliveryActionBody) => Promise<boolean> };
+const AssignmentForm = ({ delivery, ...props }: Omit<Props, "delivery"> & { delivery: DeliveryResponse }) => {
+  const [value, setValue] = useState(() => providerInputFrom(delivery));
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const locked = useRef(false);
+  const confirm = async () => {
+    if (locked.current || props.actionLoading) return;
+    const parsed = deliveryProviderSchema.safeParse(deliveryProviderPayload(value));
+    if (!parsed.success) { setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [issue.path.join("."), issue.message]))); return; }
+    if (!parsed.data.providerType) { setErrors({ providerType: "Seleccioná cadete propio o servicio tercerizado" }); return; }
+    locked.current = true;
+    try { if (await props.onConfirm(delivery.idSaleDelivery, parsed.data)) props.onClose(); }
+    finally { locked.current = false; }
   };
-
-  const handleConfirm = async () => {
-    if (!delivery || !selectedUserId) return;
-
-    const success = await onConfirm(delivery.idSaleDelivery, Number(selectedUserId));
-
-    if (!success) {
-      return;
-    }
-
-    setSelectedUserId("");
-    onClose();
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {delivery?.assignedToUserId ? "Reasignar entrega" : "Asignar entrega"}
-          </DialogTitle>
-          <DialogDescription>
-            Seleccioná un usuario con rol cadete para operar esta entrega.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-3">
-          <div className="rounded-lg border bg-muted/30 p-3 text-sm">
-            <p className="font-medium">{delivery?.saleNumber ?? "Venta"}</p>
-            <p className="text-muted-foreground">
-              Actual: {delivery?.assignedUserName ?? "Sin asignar"}
-            </p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Cadete</Label>
-            <Select
-              value={selectedUserId}
-              onValueChange={(value: string | null) => {
-                setSelectedUserId(value ?? "");
-              }}
-              disabled={loadingUsers || actionLoading}
-            >
-              <SelectTrigger className="w-full">
-                <span
-                  className={
-                    selectedUserId
-                      ? "flex flex-1 text-left"
-                      : "flex flex-1 text-left text-muted-foreground"
-                  }
-                >
-                  {loadingUsers ? "Cargando cadetes..." : selectedUserLabel}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.idUser} value={String(user.idUser)}>
-                    {user.name} ({user.username})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={actionLoading}
-            onClick={onClose}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            disabled={!selectedUserId || actionLoading}
-            onClick={() => {
-              void handleConfirm();
-            }}
-          >
-            {actionLoading ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : (
-              <UserRoundCheck className="mr-2 size-4" />
-            )}
-            Confirmar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  return <Dialog open onOpenChange={(open) => { if (!open && !locked.current) props.onClose(); }}>
+    <DialogContent showCloseButton={!props.actionLoading} className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+      <DialogHeader><DialogTitle>{delivery.status === "ASSIGNED" ? "Reasignar entrega" : "Asignar entrega"}</DialogTitle><DialogDescription>{delivery.saleNumber} · Actual: {providerLabel(delivery)}</DialogDescription></DialogHeader>
+      <DeliveryProviderFields value={value} onChange={setValue} users={props.users} loadingUsers={props.loadingUsers} disabled={props.actionLoading} allowUnassigned={false} errors={errors} />
+      {errors.providerType && <p role="alert" className="text-destructive">{errors.providerType}</p>}
+      <DialogFooter><Button type="button" variant="outline" disabled={props.actionLoading} onClick={props.onClose}>Cancelar</Button><Button type="button" disabled={props.actionLoading} onClick={() => void confirm()}>{props.actionLoading ? "Asignando…" : "Confirmar asignación"}</Button></DialogFooter>
+    </DialogContent>
+  </Dialog>;
 };
+export const AssignDeliveryDialog = (props: Props) => props.isOpen && props.delivery ? <AssignmentForm key={props.delivery.idSaleDelivery} {...props} delivery={props.delivery} /> : null;

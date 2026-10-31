@@ -79,3 +79,11 @@ Status: Accepted / implemented backend F5. Date: 2026-10-31.
 Decision: sales.idOrder nullable con unicidad/FK por negocio; nunca orders.idSale. READY -> COMPLETED solo tras crear Sale y efectos Sales en la misma conexion/transaccion. createSaleWithinTransaction no posee transaccion; caller directo o conversion controla ownership. Cancelar Sale no reabre Order ni libera el vinculo unico. delivery_fee forma parte del total Sales, default 0 para POS existente.
 
 Consequences: lock Order, permisos orders.convert + sales.create, keys de POS/otro Order son conflicto, no replay. Valores incompatibles con Sales se rechazan sin cambiar precios ni relajar reglas. Observacion larga permanece solo en Order. expectedPaymentMethodId es expectativa; pagos reales son explicitos. Sin reservas, F6 o API publica. [Contrato](contracts.md), [ownership](../server/docs/transactions.md), [evidencias](f05-order-to-sale-backend-validation.md).
+
+## ADR-009 — Proveedor de entrega y limite de anulacion
+
+Status: Accepted / implemented F7, SQL real pendiente. Date: 2026-10-31.
+
+Decision: providerType null (sin asignar), INTERNAL (usuario DELIVERY activo del negocio) o THIRD_PARTY (nombre libre sin usuario). No crear maestro ni users ficticios para Uber u otros. externalCost es informativo y distinto de sales.deliveryFee; no genera caja, cuentas por pagar ni settlement externo. Tercero no puede salir con efectivo pendiente ni participar de cash_settlements de empleados.
+
+Anulacion != devolucion/reembolso: Sales DELIVERY solo se anula en PENDING/ASSIGNED/FAILED, sin pagos cobrados/confirmados/rendidos. En camino se resuelve estado operativo; entregada o cobrada requiere futura F8, no restauracion automatica de stock. Mantener atomicidad de la anulacion y Order COMPLETED aun si Sale se anula. Migration clasifica usuario existente como INTERNAL y ausencia de usuario como NULL, sin inferir terceros. Compatibilidad de requests legacy solo infiere INTERNAL desde user omitido providerType; nuevos clientes usan el modelo explicito. [Contrato](contracts.md), [evidencia](f07-delivery-providers-cancellation-validation.md).

@@ -1,3 +1,4 @@
+import type { DeliveryProvider } from "../../deliveries/validations/delivery-provider.validations.js";
 import type { Request } from "express";
 import type { BusinessRequestUser } from "@/types/auth.types.js";
 
@@ -113,7 +114,7 @@ export interface CreateSalePaymentPayload {
   observation?: string | null;
 }
 
-export interface CreateSaleDeliveryPayload {
+export interface CreateSaleDeliveryPayload extends DeliveryProvider {
   assignedToUserId?: number | null;
   recipientName: string;
   recipientPhone?: string | null;
@@ -275,6 +276,8 @@ export interface SalePaymentResponse {
 }
 
 export interface SaleDeliveryDbRow {
+  provider_type: "INTERNAL" | "THIRD_PARTY" | null;
+  external_provider_name: string | null; external_reference: string | null; external_contact_name: string | null; external_contact_phone: string | null; external_cost: number | string | null;
   idSaleDelivery: number;
   idBusiness: number;
   idSale: number;
@@ -297,7 +300,7 @@ export interface SaleDeliveryDbRow {
   updated_at: Date;
 }
 
-export interface SaleDeliveryResponse {
+export interface SaleDeliveryResponse extends DeliveryProvider {
   idSaleDelivery: number;
   idBusiness: number;
   idSale: number;

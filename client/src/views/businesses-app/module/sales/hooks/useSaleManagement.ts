@@ -1,3 +1,4 @@
+import { saleCancellationError } from "../helpers/sale-cancellation.helpers";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AxiosError } from "axios";
 import { cancelSale, getSalesRequest } from "../api/sales.api";
@@ -146,7 +147,7 @@ export const useSaleManagement = () => {
     } catch (error) {
       const axiosError = error as AxiosError<ApiErrorResponse>;
       setError(
-        axiosError.response?.data?.message || "No se pudo anular la venta",
+        saleCancellationError(axiosError.response?.data?.message),
       );
     } finally {
       setCancelingId(null);

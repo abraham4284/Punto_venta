@@ -1,3 +1,4 @@
+import { deliveryDomainError } from "../../deliveries/helpers/delivery-errors.helper.js";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -139,7 +140,7 @@ export async function createSaleController(
 
     return res.status(getSaleErrorStatus(message)).json({
       status: false,
-      message,
+      message: deliveryDomainError(error)?.message ?? message,
     });
   }
 }
@@ -269,14 +270,12 @@ export async function cancelSaleController(
       });
     }
 
-    const parsedError = toControllerError(error);
-    const message = getControllerMessage(parsedError);
-
-    return res.status(getSaleErrorStatus(message)).json({
-      status: false,
-      message,
-      sqlState: parsedError.sqlState,
-    });
+    const domain = deliveryDomainError(error);
+    if (domain) return res.status(409).json({ status: false, code: domain.code, message: domain.message });
+    const message = getControllerMessage(toControllerError(error));
+    if (message === "Venta no encontrada") return res.status(404).json({ status: false, message: "Venta no encontrada." });
+    if (message === "La venta ya se encuentra anulada") return res.status(409).json({ status: false, message: "La venta ya está anulada. Actualizá el detalle." });
+    return res.status(500).json({ status: false, message: "No se pudo anular la venta. Actualizá su estado antes de reintentar." });
   }
 }
 

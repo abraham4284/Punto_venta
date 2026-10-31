@@ -1,3 +1,4 @@
+import { emptyDeliveryProvider, deliveryProviderPayload, type DeliveryProviderInput } from "../../deliveries/helpers/delivery-provider.helpers";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "@/hooks/useForm";
 import { createIdempotencyKey } from "@/helpers/idempotency.helper";
@@ -12,7 +13,7 @@ import type { ConvertOrderResult, Order } from "../types/orders.types";
 export const useOrderConversion = (order: Order, methods: PaymentMethodOption[], onSaved: (result: ConvertOrderResult) => void, onRefresh: () => Promise<Order>, onProcessing: (busy: boolean) => void) => {
   const cash = useSaleCashSession();
   const [payments, setPayments] = useState(() => initialOrderPayments(order, methods));
-  const { formSate: metadata, setFormSate } = useForm({ assignedToUserId: "", scheduledAt: "", observation: "" });
+  const { formSate: metadata, setFormSate } = useForm({ ...emptyDeliveryProvider, scheduledAt: "", observation: "" });
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
   const [needsRefresh, setNeedsRefresh] = useState(false);
@@ -54,7 +55,7 @@ export const useOrderConversion = (order: Order, methods: PaymentMethodOption[],
     const result = orderConversionPayloadSchema.safeParse({
       idCashSession: cash.currentSession?.idCashSession,
       payments: payments.map((row) => ({ idPaymentMethod: row.idPaymentMethod, amount: row.amount.trim() ? Number(row.amount) : NaN, status: row.status, reference: row.reference || null, observation: row.observation || null })),
-      delivery: order.fulfillmentType === "DELIVERY" ? { assignedToUserId: metadata.assignedToUserId ? Number(metadata.assignedToUserId) : null, scheduledAt: scheduled && !Number.isNaN(scheduled.getTime()) ? scheduled.toISOString() : metadata.scheduledAt || null, observation: metadata.observation || null } : null,
+      delivery: order.fulfillmentType === "DELIVERY" ? { ...deliveryProviderPayload(metadata), scheduledAt: scheduled && !Number.isNaN(scheduled.getTime()) ? scheduled.toISOString() : metadata.scheduledAt || null, observation: metadata.observation || null } : null,
     });
     if (!result.success) { setErrors(mapZodErrors(result.error)); setError("Revisá los datos de pago y entrega indicados."); return; }
     if (order.fulfillmentType === "PICKUP" && result.data.payments.some((row) => row.status !== "CONFIRMED")) { setError("Un retiro solo admite pagos confirmados."); return; }
@@ -69,5 +70,5 @@ export const useOrderConversion = (order: Order, methods: PaymentMethodOption[],
       if (failure.status === 409) await refreshOrder();
     } finally { locked.current = false; setSaving(false); onProcessing(false); }
   };
-  return { cash, payments, totals, metadata, saving, checking, needsRefresh, error, errors, blocked, changePayment, addPayment, removePayment, changeMetadata, submit, refreshOrder };
+  return { cash, payments, totals, metadata, saving, checking, needsRefresh, error, errors, blocked, changePayment, addPayment, removePayment, changeMetadata, submit, refreshOrder, changeProvider: (value: DeliveryProviderInput) => { if (!locked.current) { touch(); setFormSate((current) => ({ ...current, ...value })); } } };
 };

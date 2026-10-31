@@ -1,3 +1,4 @@
+import { deliveryProviderShape, validateDeliveryProvider, normalizeDeliveryProvider } from "../../deliveries/validations/delivery-provider.validations.js";
 import { z } from "zod";
 import { Decimal } from "decimal.js";
 
@@ -147,7 +148,7 @@ export const createSaleSchema = z
 
     delivery: z
       .object({
-        assignedToUserId: nullablePositiveIntSchema,
+        ...deliveryProviderShape,
         recipientName: z
           .string({ error: "El destinatario es obligatorio" })
           .trim()
@@ -182,6 +183,8 @@ export const createSaleSchema = z
           .or(emptyStringToNull),
       })
       .strict()
+      .superRefine(validateDeliveryProvider)
+      .transform(normalizeDeliveryProvider)
       .optional()
       .nullable(),
 

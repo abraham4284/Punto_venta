@@ -75,6 +75,8 @@ export function mapSalePayment(payment: SalePaymentDbRow): SalePaymentResponse {
 export function mapSaleDelivery(delivery: SaleDeliveryDbRow): SaleDeliveryResponse {
   return {
     idSaleDelivery: delivery.idSaleDelivery,
+    providerType: delivery.provider_type ?? null, externalProviderName: delivery.external_provider_name ?? null, externalReference: delivery.external_reference ?? null,
+    externalContactName: delivery.external_contact_name ?? null, externalContactPhone: delivery.external_contact_phone ?? null, externalCost: delivery.external_cost == null ? null : Number(delivery.external_cost),
     idBusiness: delivery.idBusiness,
     idSale: delivery.idSale,
     assignedToUserId: delivery.assigned_to_user_id,

@@ -1,3 +1,4 @@
+import { emptyDeliveryProvider, deliveryProviderPayload, deliveryProviderSchema } from "../../deliveries/helpers/delivery-provider.helpers";
 import { z } from "zod";
 
 const productUnitTypeSchema = z.enum(["UNIT", "KG", "GRAM", "LITER", "METER"]);
@@ -53,12 +54,16 @@ export const createSaleFormSchema = z
     delivery: z
       .object({
         enabled: z.boolean(),
+        providerType: z.enum(["", "INTERNAL", "THIRD_PARTY"]).default(""), assignedToUserId: z.number().nullable().optional(),
+        externalProviderName: z.string().optional(), externalReference: z.string().optional(), externalContactName: z.string().optional(), externalContactPhone: z.string().optional(), externalCost: z.string().optional(),
         recipientName: z.string().trim(),
         deliveryAddress: z.string().trim(),
         deliveryReference: z.string().trim().optional(),
       })
       .superRefine((delivery, ctx) => {
         if (!delivery.enabled) return;
+        const provider = deliveryProviderSchema.safeParse(deliveryProviderPayload({ ...emptyDeliveryProvider, ...delivery, assignedToUserId: delivery.assignedToUserId ?? null }));
+        if (!provider.success) provider.error.issues.forEach((issue) => ctx.addIssue({ code: "custom", path: issue.path, message: issue.message }));
 
         if (delivery.recipientName.length < 2) {
           ctx.addIssue({

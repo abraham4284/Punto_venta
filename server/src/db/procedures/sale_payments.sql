@@ -18,6 +18,7 @@ BEGIN
   DECLARE v_saleTotal DECIMAL(18,2);
   DECLARE v_activePaymentsTotal DECIMAL(18,2);
   DECLARE v_methodActive TINYINT;
+  DECLARE v_methodAffectsCash TINYINT;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   IF p_status NOT IN ('PENDING', 'CONFIRMED') THEN
@@ -41,8 +42,8 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SALE_NOT_FOUND_OR_NOT_ACTIVE';
   END IF;
 
-  SELECT is_active
-  INTO v_methodActive
+  SELECT is_active, affects_cash
+  INTO v_methodActive, v_methodAffectsCash
   FROM payment_methods
   WHERE idBusiness = p_idBusiness
     AND idPaymentMethod = p_idPaymentMethod
@@ -55,6 +56,8 @@ BEGIN
   IF v_methodActive = 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PAYMENT_METHOD_INACTIVE';
   END IF;
+  IF v_methodAffectsCash = 1 AND p_status = 'PENDING' AND EXISTS (SELECT 1 FROM sale_deliveries WHERE idBusiness = p_idBusiness AND idSale = p_idSale AND provider_type = 'THIRD_PARTY' AND status IN ('OUT_FOR_DELIVERY','DELIVERED')) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'THIRD_PARTY_PENDING_CASH_PAYMENT_NOT_ALLOWED'; END IF;
+
 
   IF p_status = 'CONFIRMED' THEN
     IF p_idCashSession IS NULL THEN
@@ -328,6 +331,7 @@ BEGIN
   DECLARE v_previousStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_previousMethod INT;
   DECLARE v_methodActive TINYINT;
+  DECLARE v_methodAffectsCash TINYINT;
 
   SELECT idSale, status, idPaymentMethod
   INTO v_idSale, v_previousStatus, v_previousMethod
@@ -358,8 +362,8 @@ BEGIN
   LIMIT 1
   FOR UPDATE;
 
-  SELECT is_active
-  INTO v_methodActive
+  SELECT is_active, affects_cash
+  INTO v_methodActive, v_methodAffectsCash
   FROM payment_methods
   WHERE idBusiness = p_idBusiness
     AND idPaymentMethod = p_idPaymentMethod
@@ -372,6 +376,8 @@ BEGIN
   IF v_methodActive = 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'PAYMENT_METHOD_INACTIVE';
   END IF;
+  IF v_methodAffectsCash = 1  AND EXISTS (SELECT 1 FROM sale_deliveries WHERE idBusiness = p_idBusiness AND idSale = v_idSale AND provider_type = 'THIRD_PARTY' AND status IN ('OUT_FOR_DELIVERY','DELIVERED')) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'THIRD_PARTY_PENDING_CASH_PAYMENT_NOT_ALLOWED'; END IF;
+
 
   SELECT COALESCE(SUM(amount), 0)
   INTO v_otherPaymentsTotal

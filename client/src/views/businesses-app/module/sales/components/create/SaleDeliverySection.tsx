@@ -1,3 +1,5 @@
+import { DeliveryProviderFields } from "../../../deliveries/components/DeliveryProviderFields";
+import { providerLabel, deliveryProviderPayload } from "../../../deliveries/helpers/delivery-provider.helpers";
 import { Bike, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,12 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { DeliveryUserOption, SaleDeliveryInput } from "../../types";
 import { getFieldError } from "../../helpers/createSale.helpers";
@@ -33,17 +29,6 @@ type Props = {
     field: K,
     value: SaleDeliveryInput[K],
   ) => void;
-};
-
-const getDeliveryUserLabel = (
-  idUser: number | null,
-  deliveryUsers: DeliveryUserOption[],
-): string => {
-  const selectedUser = deliveryUsers.find((user) => user.idUser === idUser);
-
-  if (!selectedUser) return "Sin asignar";
-
-  return `${selectedUser.name} (${selectedUser.username})`;
 };
 
 export const SaleDeliverySection = ({
@@ -88,7 +73,7 @@ export const SaleDeliverySection = ({
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">Cadete</span>
               <span className="font-medium">
-                {getDeliveryUserLabel(delivery.assignedToUserId, deliveryUsers)}
+                {providerLabel({ ...deliveryProviderPayload(delivery), assignedUserName: deliveryUsers.find((user) => user.idUser === delivery.assignedToUserId)?.name })}
               </span>
             </div>
             {delivery.scheduledAt && (
@@ -98,9 +83,7 @@ export const SaleDeliverySection = ({
               </div>
             )}
             <Badge variant="outline" className="w-fit">
-              {delivery.assignedToUserId
-                ? "Aparece en el panel del cadete"
-                : "Pendiente de asignación"}
+              {delivery.providerType ? "Asignada al proveedor" : "Pendiente de asignación"}
             </Badge>
           </div>
         )}
@@ -137,49 +120,10 @@ export const SaleDeliverySection = ({
             </DialogHeader>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="grid gap-2 md:col-span-2">
-                <Label>Cadete asignado</Label>
-                <Select
-                  value={
-                    delivery.assignedToUserId
-                      ? String(delivery.assignedToUserId)
-                      : "none"
-                  }
-                  onValueChange={(value: string | null) => {
-                    onDeliveryChange(
-                      "assignedToUserId",
-                      value && value !== "none" ? Number(value) : null,
-                    );
-                  }}
-                  disabled={disabled || loadingUsers}
-                >
-                  <SelectTrigger className="w-full">
-                    <span
-                      className={
-                        delivery.assignedToUserId
-                          ? "flex flex-1 text-left"
-                          : "flex flex-1 text-left text-muted-foreground"
-                      }
-                    >
-                      {loadingUsers
-                        ? "Cargando cadetes..."
-                        : getDeliveryUserLabel(
-                            delivery.assignedToUserId,
-                            deliveryUsers,
-                          )}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sin asignar por ahora</SelectItem>
-                    {deliveryUsers.map((user) => (
-                      <SelectItem key={user.idUser} value={String(user.idUser)}>
-                        {user.name} ({user.username})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+              <div className="md:col-span-2"><DeliveryProviderFields value={delivery} users={deliveryUsers} disabled={disabled} loadingUsers={loadingUsers} errors={Object.fromEntries(Object.entries(errors).filter(([key]) => key.startsWith("delivery.")).map(([key, value]) => [key.slice(9), value]))} onChange={(value) => {
+                onDeliveryChange("providerType", value.providerType); onDeliveryChange("assignedToUserId", value.assignedToUserId);
+                onDeliveryChange("externalProviderName", value.externalProviderName); onDeliveryChange("externalReference", value.externalReference); onDeliveryChange("externalContactName", value.externalContactName); onDeliveryChange("externalContactPhone", value.externalContactPhone); onDeliveryChange("externalCost", value.externalCost);
+              }} /></div>
               <div className="grid gap-2">
                 <Label>
                   Destinatario <span className="text-destructive">*</span>
