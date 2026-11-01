@@ -524,7 +524,7 @@ CREATE TABLE IF NOT EXISTS `sale_payment_events` (
   `idSalePaymentEvent` bigint NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `idSalePayment` bigint NOT NULL,
-  `event_type` enum('PAYMENT_CREATED','PAYMENT_UPDATED','PAYMENT_METHOD_CHANGED','PAYMENT_COLLECTED','PAYMENT_CONFIRMED','PAYMENT_CANCELLED','PAYMENT_SETTLED','PAYMENT_MIGRATED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `event_type` enum('PAYMENT_CREATED','PAYMENT_UPDATED','PAYMENT_METHOD_CHANGED','PAYMENT_COLLECTED','PAYMENT_CONFIRMED','PAYMENT_CANCELLED','PAYMENT_SETTLED','PAYMENT_MIGRATED','PAYMENT_REFUNDED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `previous_status` enum('PENDING','COLLECTED','CONFIRMED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `new_status` enum('PENDING','COLLECTED','CONFIRMED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `metadata` json DEFAULT NULL,
@@ -653,13 +653,37 @@ CREATE TABLE IF NOT EXISTS `stock_movements` (
   `idBusiness` int NOT NULL,
   `idProduct` int NOT NULL,
   `idUser` int NOT NULL,
-  `movement_type` enum('PURCHASE','SALE','TRANSFER_IN','TRANSFER_OUT','ADJUSTMENT_IN','ADJUSTMENT_OUT') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `movement_type` enum('PURCHASE','SALE','TRANSFER_IN','TRANSFER_OUT','ADJUSTMENT_IN','ADJUSTMENT_OUT','SALE_RETURN') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `idDepositFrom` int DEFAULT NULL,
   `idDepositTo` int DEFAULT NULL,
   `quantity` decimal(18,2) NOT NULL,
-  `reference_type` enum('SALE','PURCHASE','TRANSFER','ADJUSTMENT') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `reference_id` int DEFAULT NULL,
+  `reference_type` enum('SALE','PURCHASE','TRANSFER','ADJUSTMENT','SALE_RETURN') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reference_id` bigint DEFAULT NULL,
   `observation` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`idStockMovement`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- F8: immutable compensatory records; original Sales/Payments remain unchanged.
+CREATE TABLE IF NOT EXISTS sale_returns (
+  idSaleReturn BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  idBusiness INT NOT NULL, idSale INT NOT NULL,
+  return_number VARCHAR(50) NOT NULL, idempotency_key VARCHAR(64) NOT NULL,
+  request_hash CHAR(64) NOT NULL,
+  merchandise_amount DECIMAL(18,2) NOT NULL, delivery_fee_refund DECIMAL(18,2) NOT NULL DEFAULT 0,
+  total_refund DECIMAL(18,2) NOT NULL, reason VARCHAR(500) NOT NULL, observation VARCHAR(500) NULL,
+  created_by_user_id INT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS sale_return_items (
+  idSaleReturnItem BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  idBusiness INT NOT NULL, idSaleReturn BIGINT NOT NULL, idSaleDetail INT NOT NULL, idProduct INT NOT NULL,
+  quantity DECIMAL(18,2) NOT NULL, refund_amount DECIMAL(18,2) NOT NULL, restock TINYINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS sale_refunds (
+  idSaleRefund BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  idBusiness INT NOT NULL, idSaleReturn BIGINT NOT NULL, idSalePayment BIGINT NOT NULL,
+  amount DECIMAL(18,2) NOT NULL, idCashSession BIGINT NULL, idCashMovement BIGINT NULL,
+  reference VARCHAR(150) NULL, observation VARCHAR(500) NULL,
+  created_by_user_id INT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

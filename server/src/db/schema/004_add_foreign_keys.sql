@@ -125,4 +125,16 @@ CALL sp_add_foreign_key_if_not_exists('fk_order_events_actor', 'ALTER TABLE orde
 -- End Orders Core F3
 -- Order to Sale F5
 CALL sp_add_foreign_key_if_not_exists('fk_sales_order', 'ALTER TABLE sales ADD CONSTRAINT fk_sales_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
+-- F8 Returns / Refunds
+CALL sp_add_foreign_key_if_not_exists('fk_return_sale', 'ALTER TABLE `sale_returns` ADD CONSTRAINT `fk_return_sale` FOREIGN KEY (`idBusiness`, `idSale`) REFERENCES `sales` (`idBusiness`, `idSale`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_return_actor', 'ALTER TABLE `sale_returns` ADD CONSTRAINT `fk_return_actor` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`idUser`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_sale_return_items_return', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `fk_sale_return_items_return` FOREIGN KEY (`idBusiness`, `idSaleReturn`) REFERENCES `sale_returns` (`idBusiness`, `idSaleReturn`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_sale_refunds_return', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_sale_refunds_return` FOREIGN KEY (`idBusiness`, `idSaleReturn`) REFERENCES `sale_returns` (`idBusiness`, `idSaleReturn`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_return_item_detail', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `fk_return_item_detail` FOREIGN KEY (`idBusiness`, `idSaleDetail`) REFERENCES `sale_details` (`idBusiness`, `idSaleDetail`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_return_item_product', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `fk_return_item_product` FOREIGN KEY (`idBusiness`, `idProduct`) REFERENCES `products` (`idBusiness`, `idProduct`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_refund_payment', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_refund_payment` FOREIGN KEY (`idBusiness`, `idSalePayment`) REFERENCES `sale_payments` (`idBusiness`, `idSalePayment`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_refund_session', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_refund_session` FOREIGN KEY (`idBusiness`, `idCashSession`) REFERENCES `cash_sessions` (`idBusiness`, `idCashSession`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_refund_movement', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_refund_movement` FOREIGN KEY (`idBusiness`, `idCashMovement`) REFERENCES `cash_movements` (`idBusiness`, `idCashMovement`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_refund_actor', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_refund_actor` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`idUser`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+
 DROP PROCEDURE IF EXISTS sp_add_foreign_key_if_not_exists;

@@ -13,6 +13,7 @@ const messages: Record<string, string> = {
   DELIVERY_CANNOT_FAIL: "Solo puede marcarse fallida una entrega en camino.",
   ONLY_FAILED_DELIVERY_CAN_BE_RESCHEDULED: "Solo se pueden reagendar entregas fallidas.",
   DELIVERY_CANNOT_BE_CANCELLED: "El estado de la entrega no permite anular la venta.",
+  SALE_WITH_RETURNS_CANNOT_BE_CANCELLED: "La venta tiene devoluciones y no puede anularse",
   DELIVERY_SALE_REFUND_REQUIRED: "La venta ya registra pagos cobrados o confirmados. Para revertirla se requiere una devolución/reembolso.",
   DELIVERY_SALE_WITH_PAYMENTS_CANNOT_BE_CANCELLED: "La venta ya registra pagos cobrados o confirmados. Para revertirla se requiere una devolución/reembolso.",
   DELIVERY_IN_TRANSIT_CANNOT_BE_CANCELLED: "La entrega ya está en camino. Resolvé primero su estado operativo.",

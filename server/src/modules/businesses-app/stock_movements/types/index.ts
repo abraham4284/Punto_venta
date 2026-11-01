@@ -18,13 +18,14 @@ export interface StockMovementDbRow {
     | "TRANSFER_IN"
     | "TRANSFER_OUT"
     | "ADJUSTMENT_IN"
-    | "ADJUSTMENT_OUT";
+    | "ADJUSTMENT_OUT"
+    | "SALE_RETURN";
   idDepositFrom: number | null;
   deposit_from_name: string | null;
   idDepositTo: number | null;
   deposit_to_name: string | null;
   quantity: string | number;
-  reference_type: "SALE" | "PURCHASE" | "TRANSFER" | "ADJUSTMENT" | null;
+  reference_type: "SALE" | "PURCHASE" | "TRANSFER" | "ADJUSTMENT" | "SALE_RETURN" | null;
   reference_id: number | null;
   observation: string | null;
   created_at: Date;

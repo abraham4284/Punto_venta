@@ -185,4 +185,17 @@ CALL sp_add_index_if_not_exists('order_events', 'idx_order_events_business_order
 -- End Orders Core F3
 -- Order to Sale F5
 CALL sp_add_index_if_not_exists('sales', 'uq_sales_business_order', 'ALTER TABLE sales ADD UNIQUE KEY uq_sales_business_order (idBusiness, idOrder)');
+-- F8 Returns / Refunds
+CALL sp_add_index_if_not_exists('cash_sessions', 'uq_refund_cash_session_business', 'ALTER TABLE `cash_sessions` ADD UNIQUE KEY `uq_refund_cash_session_business` (`idBusiness`, `idCashSession`)');
+CALL sp_add_index_if_not_exists('sale_returns', 'uq_sale_returns_business_id', 'ALTER TABLE `sale_returns` ADD UNIQUE KEY `uq_sale_returns_business_id` (`idBusiness`, `idSaleReturn`)');
+CALL sp_add_index_if_not_exists('sale_details', 'uq_sale_details_business_id', 'ALTER TABLE `sale_details` ADD UNIQUE KEY `uq_sale_details_business_id` (`idBusiness`, `idSaleDetail`)');
+CALL sp_add_index_if_not_exists('cash_movements', 'uq_cash_movements_business_id', 'ALTER TABLE `cash_movements` ADD UNIQUE KEY `uq_cash_movements_business_id` (`idBusiness`, `idCashMovement`)');
+CALL sp_add_index_if_not_exists('sale_returns', 'uq_returns_key', 'ALTER TABLE `sale_returns` ADD UNIQUE KEY `uq_returns_key` (`idBusiness`, `idempotency_key`)');
+CALL sp_add_index_if_not_exists('sale_returns', 'uq_returns_number', 'ALTER TABLE `sale_returns` ADD UNIQUE KEY `uq_returns_number` (`idBusiness`, `return_number`)');
+CALL sp_add_index_if_not_exists('sale_returns', 'ix_returns_sale', 'ALTER TABLE `sale_returns` ADD KEY `ix_returns_sale` (`idBusiness`, `idSale`, `created_at`)');
+CALL sp_add_index_if_not_exists('sale_return_items', 'uq_return_item', 'ALTER TABLE `sale_return_items` ADD UNIQUE KEY `uq_return_item` (`idBusiness`, `idSaleReturn`, `idSaleDetail`)');
+CALL sp_add_index_if_not_exists('sale_return_items', 'ix_return_item_detail', 'ALTER TABLE `sale_return_items` ADD KEY `ix_return_item_detail` (`idBusiness`, `idSaleDetail`)');
+CALL sp_add_index_if_not_exists('sale_refunds', 'uq_return_refund', 'ALTER TABLE `sale_refunds` ADD UNIQUE KEY `uq_return_refund` (`idBusiness`, `idSaleReturn`, `idSalePayment`)');
+CALL sp_add_index_if_not_exists('sale_refunds', 'ix_refund_payment', 'ALTER TABLE `sale_refunds` ADD KEY `ix_refund_payment` (`idBusiness`, `idSalePayment`)');
+
 DROP PROCEDURE IF EXISTS sp_add_index_if_not_exists;

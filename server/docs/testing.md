@@ -44,4 +44,11 @@ Suite real preparada en [order-to-sale.integration.test.ts](../src/tests/integra
 
 ### F7 providers/cancellation
 
-DB-free: npx vitest run --config vitest.delivery-providers.config.ts (setupFiles vacio, pool mockeado; incluye regresiones Orders/F5 y delivery-providers.test.ts). Integracion preparada: npx vitest run --config vitest.delivery-providers-integration.config.ts, hereda loopback + DB exacta de Orders y fixtures/limpieza UUID propios; no ejecutar hasta SQL F7 y autorizacion expresa. Durante F7 solo se preparo/typecheckeo esa suite; no se ejecuto. [Evidencia](../../docs/f07-delivery-providers-cancellation-validation.md).
+DB-free: npx vitest run --config vitest.delivery-providers.config.ts (setupFiles vacio, pool mockeado; incluye regresiones Orders/F5 y delivery-providers.test.ts). Integracion preparada: npx vitest run --config vitest.delivery-providers-integration.config.ts, hereda loopback + DB exacta de Orders y fixtures/limpieza UUID propios; no ejecutar hasta SQL F7 y autorizacion expresa. En la implementacion inicial F7 solo se preparo/typecheckeo; gate posterior autorizado 15/15 aprobado en test loopback y cleanup correcto, sin pruebas productivas. [Evidencia](../../docs/f07-delivery-providers-cancellation-validation.md).
+
+
+### F8 Returns / Refunds Core
+
+DB-free desde server: `npx vitest run --config vitest.sale-returns.config.ts`. Hereda config F7 sin setup de integracion; incluye dominio/calculo/schema F8, service con pool mockeado, invariantes SQL estaticas y regresiones Orders/F5/F7. 191 tests aprobados (49 F8 + 142 previos). No valida engine/locks reales. Typecheck incluye la suite real preparada sin ejecutarla.
+
+Real preparado: `npx vitest run --config vitest.sale-returns-integration.config.ts`, 24 casos en [suite](../src/tests/integration/sale-returns/sale-returns.integration.test.ts). **No ejecutado F8**. Operador debe aplicar primero manual/006 y procedures sale_returns/sales y autorizar gate. Hereda loopback, DB exacta punto_venta_integration_test y NODE_ENV=test de Orders; preflight tablas F8/helper/plan, fixtures UUID y cleanup transaccional restringido, sin reset ni desactivar FKs. Limpia refunds/items/returns antes de Sales; pagos antes de settlements y Sale antes de Order. Casos de historia rendida/mixed usan fixtures economicos acotados, no cambian datos ajenos. Incluye live/cierre de caja y carrera de keys distintas, ademas del contrato principal. Nunca produccion. [Evidencias/limites](../../docs/f08-returns-refunds-core-validation.md).

@@ -50,6 +50,7 @@ SOURCE procedures/stock_movements.sql;
 SOURCE procedures/sale_payments.sql;
 SOURCE procedures/deliveries.sql;
 SOURCE procedures/sales.sql;
+SOURCE procedures/sale_returns.sql;
 SOURCE procedures/purchases.sql;
 SOURCE procedures/tickets.sql;
 SOURCE procedures/dashboard.sql;

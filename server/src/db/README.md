@@ -191,3 +191,8 @@ Future legal versions should be published deliberately as new publication files,
 - Static audit: `BASELINE_AUDIT.md`
 - Manual validation checklist: `MANUAL_BASELINE_TEST.md`
 - Release candidate notes: `RELEASE_CANDIDATE.md`
+
+
+### F8 Returns / Refunds — actualizacion existente (pendiente del operador)
+
+Aplicar [manual/006_returns_refunds.sql](manual/006_returns_refunds.sql) con backup, ambiente confirmado y escrituras detenidas; importar completos [procedures/sale_returns.sql](procedures/sale_returns.sql) y [procedures/sales.sql](procedures/sales.sql), luego backend compatible. No baseline/install/seed completo sobre datos existentes. DDL tiene commits implicitos; no apagar FKs ni modificar historia economica. Enum SALE_RETURN y reference_id BIGINT, PAYMENT_REFUNDED, tablas/constraints y permisos se incluyen en 006. Helper de items requiere transaccion del service, no invocarlo aisladamente. No se aplico SQL F8 por el agente. Gate real test autorizado debe preceder F9; [evidencias](../../../docs/f08-returns-refunds-core-validation.md).

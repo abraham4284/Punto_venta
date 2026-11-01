@@ -544,7 +544,7 @@ CREATE TABLE IF NOT EXISTS `sale_payment_events` (
   `idSalePaymentEvent` bigint NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `idSalePayment` bigint NOT NULL,
-  `event_type` enum('PAYMENT_CREATED','PAYMENT_UPDATED','PAYMENT_METHOD_CHANGED','PAYMENT_COLLECTED','PAYMENT_CONFIRMED','PAYMENT_CANCELLED','PAYMENT_SETTLED','PAYMENT_MIGRATED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `event_type` enum('PAYMENT_CREATED','PAYMENT_UPDATED','PAYMENT_METHOD_CHANGED','PAYMENT_COLLECTED','PAYMENT_CONFIRMED','PAYMENT_CANCELLED','PAYMENT_SETTLED','PAYMENT_MIGRATED','PAYMENT_REFUNDED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `previous_status` enum('PENDING','COLLECTED','CONFIRMED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `new_status` enum('PENDING','COLLECTED','CONFIRMED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `metadata` json DEFAULT NULL,
@@ -673,15 +673,39 @@ CREATE TABLE IF NOT EXISTS `stock_movements` (
   `idBusiness` int NOT NULL,
   `idProduct` int NOT NULL,
   `idUser` int NOT NULL,
-  `movement_type` enum('PURCHASE','SALE','TRANSFER_IN','TRANSFER_OUT','ADJUSTMENT_IN','ADJUSTMENT_OUT') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `movement_type` enum('PURCHASE','SALE','TRANSFER_IN','TRANSFER_OUT','ADJUSTMENT_IN','ADJUSTMENT_OUT','SALE_RETURN') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `idDepositFrom` int DEFAULT NULL,
   `idDepositTo` int DEFAULT NULL,
   `quantity` decimal(18,2) NOT NULL,
-  `reference_type` enum('SALE','PURCHASE','TRANSFER','ADJUSTMENT') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `reference_id` int DEFAULT NULL,
+  `reference_type` enum('SALE','PURCHASE','TRANSFER','ADJUSTMENT','SALE_RETURN') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reference_id` bigint DEFAULT NULL,
   `observation` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`idStockMovement`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- F8: immutable compensatory records; original Sales/Payments remain unchanged.
+CREATE TABLE IF NOT EXISTS sale_returns (
+  idSaleReturn BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  idBusiness INT NOT NULL, idSale INT NOT NULL,
+  return_number VARCHAR(50) NOT NULL, idempotency_key VARCHAR(64) NOT NULL,
+  request_hash CHAR(64) NOT NULL,
+  merchandise_amount DECIMAL(18,2) NOT NULL, delivery_fee_refund DECIMAL(18,2) NOT NULL DEFAULT 0,
+  total_refund DECIMAL(18,2) NOT NULL, reason VARCHAR(500) NOT NULL, observation VARCHAR(500) NULL,
+  created_by_user_id INT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS sale_return_items (
+  idSaleReturnItem BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  idBusiness INT NOT NULL, idSaleReturn BIGINT NOT NULL, idSaleDetail INT NOT NULL, idProduct INT NOT NULL,
+  quantity DECIMAL(18,2) NOT NULL, refund_amount DECIMAL(18,2) NOT NULL, restock TINYINT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS sale_refunds (
+  idSaleRefund BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  idBusiness INT NOT NULL, idSaleReturn BIGINT NOT NULL, idSalePayment BIGINT NOT NULL,
+  amount DECIMAL(18,2) NOT NULL, idCashSession BIGINT NULL, idCashMovement BIGINT NULL,
+  reference VARCHAR(150) NULL, observation VARCHAR(500) NULL,
+  created_by_user_id INT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /* ============================================================
@@ -879,6 +903,19 @@ CALL sp_add_index_if_not_exists('order_events', 'idx_order_events_business_order
 -- End Orders Core F3
 -- Order to Sale F5
 CALL sp_add_index_if_not_exists('sales', 'uq_sales_business_order', 'ALTER TABLE sales ADD UNIQUE KEY uq_sales_business_order (idBusiness, idOrder)');
+-- F8 Returns / Refunds
+CALL sp_add_index_if_not_exists('cash_sessions', 'uq_refund_cash_session_business', 'ALTER TABLE `cash_sessions` ADD UNIQUE KEY `uq_refund_cash_session_business` (`idBusiness`, `idCashSession`)');
+CALL sp_add_index_if_not_exists('sale_returns', 'uq_sale_returns_business_id', 'ALTER TABLE `sale_returns` ADD UNIQUE KEY `uq_sale_returns_business_id` (`idBusiness`, `idSaleReturn`)');
+CALL sp_add_index_if_not_exists('sale_details', 'uq_sale_details_business_id', 'ALTER TABLE `sale_details` ADD UNIQUE KEY `uq_sale_details_business_id` (`idBusiness`, `idSaleDetail`)');
+CALL sp_add_index_if_not_exists('cash_movements', 'uq_cash_movements_business_id', 'ALTER TABLE `cash_movements` ADD UNIQUE KEY `uq_cash_movements_business_id` (`idBusiness`, `idCashMovement`)');
+CALL sp_add_index_if_not_exists('sale_returns', 'uq_returns_key', 'ALTER TABLE `sale_returns` ADD UNIQUE KEY `uq_returns_key` (`idBusiness`, `idempotency_key`)');
+CALL sp_add_index_if_not_exists('sale_returns', 'uq_returns_number', 'ALTER TABLE `sale_returns` ADD UNIQUE KEY `uq_returns_number` (`idBusiness`, `return_number`)');
+CALL sp_add_index_if_not_exists('sale_returns', 'ix_returns_sale', 'ALTER TABLE `sale_returns` ADD KEY `ix_returns_sale` (`idBusiness`, `idSale`, `created_at`)');
+CALL sp_add_index_if_not_exists('sale_return_items', 'uq_return_item', 'ALTER TABLE `sale_return_items` ADD UNIQUE KEY `uq_return_item` (`idBusiness`, `idSaleReturn`, `idSaleDetail`)');
+CALL sp_add_index_if_not_exists('sale_return_items', 'ix_return_item_detail', 'ALTER TABLE `sale_return_items` ADD KEY `ix_return_item_detail` (`idBusiness`, `idSaleDetail`)');
+CALL sp_add_index_if_not_exists('sale_refunds', 'uq_return_refund', 'ALTER TABLE `sale_refunds` ADD UNIQUE KEY `uq_return_refund` (`idBusiness`, `idSaleReturn`, `idSalePayment`)');
+CALL sp_add_index_if_not_exists('sale_refunds', 'ix_refund_payment', 'ALTER TABLE `sale_refunds` ADD KEY `ix_refund_payment` (`idBusiness`, `idSalePayment`)');
+
 DROP PROCEDURE IF EXISTS sp_add_index_if_not_exists;
 
 /* ============================================================
@@ -1016,6 +1053,18 @@ CALL sp_add_foreign_key_if_not_exists('fk_order_events_actor', 'ALTER TABLE orde
 -- End Orders Core F3
 -- Order to Sale F5
 CALL sp_add_foreign_key_if_not_exists('fk_sales_order', 'ALTER TABLE sales ADD CONSTRAINT fk_sales_order FOREIGN KEY (idBusiness, idOrder) REFERENCES orders (idBusiness, idOrder)');
+-- F8 Returns / Refunds
+CALL sp_add_foreign_key_if_not_exists('fk_return_sale', 'ALTER TABLE `sale_returns` ADD CONSTRAINT `fk_return_sale` FOREIGN KEY (`idBusiness`, `idSale`) REFERENCES `sales` (`idBusiness`, `idSale`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_return_actor', 'ALTER TABLE `sale_returns` ADD CONSTRAINT `fk_return_actor` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`idUser`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_sale_return_items_return', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `fk_sale_return_items_return` FOREIGN KEY (`idBusiness`, `idSaleReturn`) REFERENCES `sale_returns` (`idBusiness`, `idSaleReturn`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_sale_refunds_return', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_sale_refunds_return` FOREIGN KEY (`idBusiness`, `idSaleReturn`) REFERENCES `sale_returns` (`idBusiness`, `idSaleReturn`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_return_item_detail', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `fk_return_item_detail` FOREIGN KEY (`idBusiness`, `idSaleDetail`) REFERENCES `sale_details` (`idBusiness`, `idSaleDetail`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_return_item_product', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `fk_return_item_product` FOREIGN KEY (`idBusiness`, `idProduct`) REFERENCES `products` (`idBusiness`, `idProduct`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_refund_payment', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_refund_payment` FOREIGN KEY (`idBusiness`, `idSalePayment`) REFERENCES `sale_payments` (`idBusiness`, `idSalePayment`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_refund_session', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_refund_session` FOREIGN KEY (`idBusiness`, `idCashSession`) REFERENCES `cash_sessions` (`idBusiness`, `idCashSession`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_refund_movement', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_refund_movement` FOREIGN KEY (`idBusiness`, `idCashMovement`) REFERENCES `cash_movements` (`idBusiness`, `idCashMovement`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+CALL sp_add_foreign_key_if_not_exists('fk_refund_actor', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `fk_refund_actor` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`idUser`) ON DELETE RESTRICT ON UPDATE RESTRICT');
+
 DROP PROCEDURE IF EXISTS sp_add_foreign_key_if_not_exists;
 
 /* ============================================================
@@ -1146,6 +1195,11 @@ CALL sp_add_check_if_not_exists('order_details', 'chk_order_details_math', 'ALTE
 CALL sp_add_check_if_not_exists('sales', 'chk_sales_delivery_fee', 'ALTER TABLE sales ADD CONSTRAINT chk_sales_delivery_fee CHECK (delivery_fee >= 0)');
 CALL sp_add_check_if_not_exists('sales', 'chk_sales_totals', 'ALTER TABLE sales ADD CONSTRAINT chk_sales_totals CHECK (subtotal >= 0 AND discount_total >= 0 AND discount_total <= subtotal AND total = subtotal - discount_total + delivery_fee)');
 CALL sp_add_check_if_not_exists('sale_deliveries', 'chk_delivery_provider', 'ALTER TABLE sale_deliveries ADD CONSTRAINT chk_delivery_provider CHECK (((provider_type IS NULL AND assigned_to_user_id IS NULL AND external_provider_name IS NULL AND external_reference IS NULL AND external_contact_name IS NULL AND external_contact_phone IS NULL AND external_cost IS NULL) OR (provider_type IS NOT NULL AND provider_type = ''INTERNAL'' AND assigned_to_user_id IS NOT NULL AND external_provider_name IS NULL AND external_reference IS NULL AND external_contact_name IS NULL AND external_contact_phone IS NULL AND external_cost IS NULL) OR (provider_type IS NOT NULL AND provider_type = ''THIRD_PARTY'' AND assigned_to_user_id IS NULL AND external_provider_name IS NOT NULL AND CHAR_LENGTH(TRIM(external_provider_name)) > 0 AND (external_cost IS NULL OR external_cost >= 0))))');
+-- F8 Returns / Refunds
+CALL sp_add_check_if_not_exists('sale_returns', 'chk_return_amounts', 'ALTER TABLE `sale_returns` ADD CONSTRAINT `chk_return_amounts` CHECK (merchandise_amount >= 0 AND delivery_fee_refund >= 0 AND total_refund >= 0 AND total_refund = merchandise_amount + delivery_fee_refund)');
+CALL sp_add_check_if_not_exists('sale_return_items', 'chk_return_item', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `chk_return_item` CHECK (quantity > 0 AND refund_amount >= 0 AND restock IN (0,1))');
+CALL sp_add_check_if_not_exists('sale_refunds', 'chk_refund_amount', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `chk_refund_amount` CHECK (amount > 0 AND ((idCashSession IS NULL AND idCashMovement IS NULL) OR (idCashSession IS NOT NULL AND idCashMovement IS NOT NULL)))');
+
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
 DROP PROCEDURE IF EXISTS sp_drop_check_if_exists;
@@ -1362,6 +1416,14 @@ VALUES ('orders.convert','orders','convert','Convertir pedidos a venta','Permite
 ON DUPLICATE KEY UPDATE is_active = VALUES(is_active);
 INSERT IGNORE INTO role_permissions (role, idPermission)
 SELECT 'ADMIN', idPermission FROM permissions WHERE code = 'orders.convert';
+
+-- F8: only ADMIN by default; OWNER uses authenticated shortcut.
+INSERT INTO permissions (code, module, action, name, description, is_active) VALUES
+('sale_returns.view','sale_returns','view','Ver devoluciones','Consultar devoluciones y saldos reembolsables',1),
+('sale_returns.create','sale_returns','create','Crear devoluciones','Registrar devoluciones y reembolsos compensatorios',1)
+ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), is_active = VALUES(is_active);
+INSERT IGNORE INTO role_permissions (role, idPermission)
+SELECT 'ADMIN', idPermission FROM permissions WHERE code IN ('sale_returns.view','sale_returns.create');
 
 /* ============================================================
    END: seeds/002_permissions_and_role_permissions.sql
@@ -11822,6 +11884,7 @@ CREATE PROCEDURE sp_cancel_sale_and_revert_stock(
   IN p_actorUserId INT
 )
 BEGIN
+  DECLARE v_existingReturn BIGINT DEFAULT NULL;
   DECLARE v_done INT DEFAULT 0;
   DECLARE v_idProduct INT;
   DECLARE v_idDeposit INT;
@@ -11867,6 +11930,11 @@ BEGIN
   IF v_status IS NULL THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Venta no encontrada';
+  END IF;
+
+  SELECT idSaleReturn INTO v_existingReturn FROM sale_returns WHERE idBusiness = p_idBusiness AND idSale = p_idSale ORDER BY idSaleReturn LIMIT 1 FOR UPDATE;
+  IF v_existingReturn IS NOT NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SALE_WITH_RETURNS_CANNOT_BE_CANCELLED';
   END IF;
 
   IF v_status = 'CANCELLED' THEN
@@ -12558,6 +12626,45 @@ DELIMITER ;
 
 /* ============================================================
    END: procedures/sales.sql
+   ============================================================ */
+
+/* ============================================================
+   BEGIN: procedures/sale_returns.sql
+   ============================================================ */
+
+-- Caller owns transaction, Sale/Delivery/Payment/Detail locks and monetary plan.
+-- No START TRANSACTION/COMMIT/ROLLBACK: never call independently of the Return service.
+DROP PROCEDURE IF EXISTS sp_sale_return_apply_item;
+DELIMITER $$
+CREATE PROCEDURE sp_sale_return_apply_item(
+ IN p_idBusiness INT, IN p_idSaleReturn BIGINT, IN p_idSaleDetail INT,
+ IN p_quantity DECIMAL(18,2), IN p_refundAmount DECIMAL(18,2), IN p_restock TINYINT, IN p_idUser INT
+)
+BEGIN
+ DECLARE v_idProduct INT; DECLARE v_idDeposit INT; DECLARE v_idSale INT;
+ DECLARE v_sold DECIMAL(18,2); DECLARE v_returned DECIMAL(18,2); DECLARE v_net DECIMAL(18,2); DECLARE v_refunded DECIMAL(18,2);
+ SELECT sd.idProduct, s.idDeposit, s.idSale, sd.quantity, sd.subtotal INTO v_idProduct, v_idDeposit, v_idSale, v_sold, v_net
+ FROM sale_returns r JOIN sales s ON s.idBusiness = r.idBusiness AND s.idSale = r.idSale
+ JOIN sale_details sd ON sd.idBusiness = s.idBusiness AND sd.idSale = s.idSale AND sd.idSaleDetail = p_idSaleDetail
+ WHERE r.idBusiness = p_idBusiness AND r.idSaleReturn = p_idSaleReturn FOR UPDATE;
+ IF v_idProduct IS NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SALE_RETURN_ITEM_NOT_FOUND'; END IF;
+ SELECT COALESCE(SUM(quantity),0), COALESCE(SUM(refund_amount),0) INTO v_returned, v_refunded
+ FROM sale_return_items WHERE idBusiness = p_idBusiness AND idSaleDetail = p_idSaleDetail;
+ IF p_quantity <= 0 OR v_returned + p_quantity > v_sold THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SALE_RETURN_QUANTITY_EXCEEDED'; END IF;
+ IF p_refundAmount < 0 OR v_refunded + p_refundAmount > v_net THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SALE_RETURN_REFUND_TOTAL_MISMATCH'; END IF;
+ INSERT INTO sale_return_items (idBusiness,idSaleReturn,idSaleDetail,idProduct,quantity,refund_amount,restock)
+ VALUES (p_idBusiness,p_idSaleReturn,p_idSaleDetail,v_idProduct,p_quantity,p_refundAmount,p_restock);
+ IF p_restock = 1 THEN
+   INSERT INTO stock (idBusiness,idProduct,idDeposit,quantity,updated_at) VALUES (p_idBusiness,v_idProduct,v_idDeposit,p_quantity,NOW())
+   ON DUPLICATE KEY UPDATE quantity = quantity + p_quantity, updated_at = NOW();
+   INSERT INTO stock_movements (idBusiness,idProduct,idUser,movement_type,idDepositTo,quantity,reference_type,reference_id,observation)
+   VALUES (p_idBusiness,v_idProduct,p_idUser,'SALE_RETURN',v_idDeposit,p_quantity,'SALE_RETURN',p_idSaleReturn,CONCAT('Sale ',v_idSale,' / SaleReturn ',p_idSaleReturn));
+ END IF;
+END$$
+DELIMITER ;
+
+/* ============================================================
+   END: procedures/sale_returns.sql
    ============================================================ */
 
 /* ============================================================
