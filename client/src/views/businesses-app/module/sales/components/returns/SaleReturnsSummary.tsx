@@ -1,0 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/helpers";
+import { refundLabels,returnLabels } from "../../helpers/sale-return.helpers";
+import type { SaleReturnSummary } from "../../types/sale-returns.types";
+export const SaleReturnsSummary = ({summary,originalTotal}:{summary:SaleReturnSummary;originalTotal:number}) => <div className="space-y-3"><div className="flex flex-wrap gap-2"><Badge variant="secondary">{returnLabels[summary.returnStatus]}</Badge><Badge variant="outline">{refundLabels[summary.refundStatus]}</Badge></div><dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-3">{[["Total original",originalTotal],["Devuelto en mercadería",summary.returnedMerchandiseAmount],["Reembolsado en envío",summary.refundedDeliveryFee],["Total reembolsado",summary.refundedTotal],["Neto de la venta",summary.netSaleAmount]].map(([label,value])=><div key={String(label)} className="rounded-lg bg-muted/30 p-3"><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold">{formatCurrency(Number(value))}</dd></div>)}</dl></div>;

@@ -1,0 +1,18 @@
+import { isAxiosError } from "axios";
+import type { ReturnRequestFailure } from "../types/sale-returns.types";
+const messages: Record<string,string> = {
+ SALE_RETURN_SALE_NOT_FOUND:"No se encontró la venta o la devolución en este negocio.", SALE_RETURN_SALE_CANCELLED:"La venta está anulada y no admite devoluciones.", SALE_RETURN_DELIVERY_IN_TRANSIT:"La entrega está en camino. Resolvé primero el estado de la entrega.",
+ SALE_RETURN_PENDING_PAYMENT_MUST_BE_RESOLVED:"Resolvé primero los pagos pendientes.", SALE_RETURN_COLLECTED_PAYMENT_MUST_BE_SETTLED:"Rendí primero los pagos cobrados.", SALE_RETURN_PAYMENT_COVERAGE_REQUIRED:"Los pagos confirmados deben cubrir el total original de la venta.",
+ SALE_RETURN_ITEM_NOT_FOUND:"La línea no está disponible. Actualizá los saldos.", SALE_RETURN_QUANTITY_EXCEEDED:"La cantidad supera el saldo retornable actual.", SALE_RETURN_INVALID_UNIT_QUANTITY:"Los productos por unidad requieren cantidades enteras.", SALE_RETURN_DELIVERY_FEE_EXCEEDED:"El reembolso de envío supera el saldo disponible.",
+ SALE_RETURN_PAYMENT_NOT_FOUND:"No se encontró el pago original.", SALE_RETURN_PAYMENT_NOT_CONFIRMED:"El pago debe estar confirmado para reembolsarlo.", SALE_RETURN_PAYMENT_AMOUNT_EXCEEDED:"El reembolso supera el saldo del pago.", SALE_RETURN_REFUND_TOTAL_MISMATCH:"Los saldos cambiaron o el total asignado no coincide. Revisá la devolución actualizada.",
+ SALE_RETURN_CASH_SESSION_REQUIRED:"Se requiere una caja abierta para reembolsar efectivo.", SALE_RETURN_CASH_SESSION_CLOSED:"La caja debe estar abierta y activa. Actualizá la caja actual.", SALE_RETURN_CASH_SESSION_NOT_ALLOWED:"Un reembolso sin efectivo no debe enviar caja.",
+ SALE_RETURN_CONCURRENT_CHANGE:"La operación cambió concurrentemente. Revisá los saldos antes de reintentar.", IDEMPOTENCY_KEY_CONFLICT:"La clave ya corresponde a otra devolución. Revisá el historial antes de crear otro intento.", SALE_RETURN_ACTOR_INVALID:"Tu usuario no está habilitado para esta operación.",
+};
+export const returnErrorMessage = (code?: string, status?: number) => messages[code ?? ""] ?? (status === 403 ? "No tenés permiso para consultar o registrar devoluciones." : status === 401 ? "La sesión expiró. Volvé a ingresar." : status === 400 ? "Revisá los campos indicados de la devolución." : "No se pudo procesar la devolución. Reintentá conservando los datos.");
+export const returnRequestError = (error: unknown): ReturnRequestFailure => {
+ if (!isAxiosError(error)) return {message:"No se pudo procesar la devolución.",errors:[]};
+ const data = error.response?.data as Partial<ReturnRequestFailure> | undefined;
+ return {status:error.response?.status,code:data?.code,message:error.response ? returnErrorMessage(data?.code,error.response.status) : "No se pudo confirmar el resultado. Reintentá sin cambiar los datos para conservar la misma clave.",errors:Array.isArray(data?.errors)?data.errors.filter((e) => typeof e.field === "string" && typeof e.message === "string"):[]};
+};
+const refreshCodes = new Set(["SALE_RETURN_QUANTITY_EXCEEDED","SALE_RETURN_DELIVERY_FEE_EXCEEDED","SALE_RETURN_PAYMENT_AMOUNT_EXCEEDED","SALE_RETURN_REFUND_TOTAL_MISMATCH","SALE_RETURN_ITEM_NOT_FOUND","SALE_RETURN_PAYMENT_NOT_FOUND","SALE_RETURN_PAYMENT_NOT_CONFIRMED","SALE_RETURN_CONCURRENT_CHANGE","SALE_RETURN_PENDING_PAYMENT_MUST_BE_RESOLVED","SALE_RETURN_COLLECTED_PAYMENT_MUST_BE_SETTLED","SALE_RETURN_PAYMENT_COVERAGE_REQUIRED","SALE_RETURN_DELIVERY_IN_TRANSIT","SALE_RETURN_SALE_CANCELLED","IDEMPOTENCY_KEY_CONFLICT"]);
+export const shouldRefreshReturnBalances = (failure: Pick<ReturnRequestFailure,"status"|"code">) => failure.status === 409 || refreshCodes.has(failure.code ?? "");

@@ -1,6 +1,7 @@
 const MODULE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
   sales: "Ventas",
+  sale_returns: "Devoluciones",
   orders: "Pedidos",
   purchases: "Compras",
   products: "Productos",
@@ -46,6 +47,8 @@ const PERMISSION_LABELS: Record<string, string> = {
   "sales.view": "Ver ventas",
   "sales.create": "Crear ventas",
   "sales.cancel": "Anular ventas",
+  "sale_returns.view": "Ver devoluciones",
+  "sale_returns.create": "Registrar devoluciones",
   "orders.view": "Ver pedidos",
   "orders.create": "Crear pedidos",
   "orders.update": "Editar pedidos",
