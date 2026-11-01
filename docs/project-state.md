@@ -2,9 +2,10 @@
 
 Revisado: 2026-10-31. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `76397c123b789fe3433166e069eaae3f3dd78938` — `feat(deliveries): agregar proveedores y endurecer anulaciones`. HEAD dev inspeccionado para el gate final F7; checkout limpio al iniciar, sin cambio de rama. La referencia a master del prompt no cambia la rama inspeccionada.
+Last reviewed commit: `583f0113fd17a1b147fde8a05aee1cf31a13b3dd` — `docs(f7): registrar gate real de test aprobado`. HEAD dev inspeccionado antes de F8, checkout limpio; sin cambio de rama/staging/commit/push.
 
-Current phase: F7 Delivery Providers & Cancellation Hardening CLOSED. Last completed functional phase: F7, con gate HTTP/DB real 15/15 aprobado en localhost:3306 / punto_venta_integration_test, NODE_ENV=test y cleanup acotado correcto. Operador confirma SQL F7 aplicado en local/test/produccion; el agente no ejecuto migraciones ni pruebas contra produccion. F0..F6 conservan sus evidencias, incluido gate F5 real 11/11 al iniciar F6. F8 Returns & Refunds queda NEXT, sin implementar. QA visual sigue pendiente y no forma parte de este gate DB. Ver [F7 validation](f07-delivery-providers-cancellation-validation.md).
+Current phase: F8 Returns & Refunds Core DB/backend implementada y validada sin DB. Last completed real DB gate: F7, 15/15 en test loopback. F8 tiene 191 tests DB-free/regresion, typecheck/build y baseline aprobados; migracion 006 y suite real de 24 casos preparadas, sin ejecutar SQL ni DB real F8. Operador debe aplicar SQL y autorizar gate. F9 Frontend queda NEXT despues del gate, sin implementar. Sale/Order permanecen COMPLETED; pagos CONFIRMED y settlements historicos intactos; Returns/Refunds compensatorios e inmutables. [Evidencias F8](f08-returns-refunds-core-validation.md). QA visual previa sigue pendiente y queda fuera de F8.
+
 
 ## Identidad, stack y mapa actual
 
@@ -18,7 +19,7 @@ El catalogo publico vive en `/api/public`, aislado del API administrativo y conf
 
 ## DB y Customers v2
 
-Existe baseline canonico completo, schema 002..005, seeds, procedures, publicaciones legales y generado. Hay cinco migraciones manuales (001 slugs/sale mode, 002 Customers v2, 003 Orders Core, 004 Order -> Sale aplicada segun operador, 005 Delivery Providers aplicada en local/test/produccion segun operador); no un runner automatico de migraciones. Operacion y riesgos: [database](database.md).
+Existe baseline canonico completo, schema 002..005, seeds, procedures, publicaciones legales y generado. Hay seis migraciones manuales (001 slugs/sale mode, 002 Customers v2, 003 Orders Core, 004 Order -> Sale aplicada segun operador, 005 Delivery Providers aplicada en local/test/produccion segun operador, 006 Returns/Refunds pendiente); no un runner automatico de migraciones. Operacion y riesgos: [database](database.md).
 
 Customers backend y frontend estan implementados: `firstName`, `lastName`, `fullName` derivado, documento opcional y contacto. `Customer.name` fue eliminado. Sales/Tickets y otros consumidores conservan `customerName`/`customer_name` donde corresponde. El formulario, helper de busqueda, tipos y seleccion/detalle de Sales usan el contrato v2. [Guia de entrega](../server/src/db/CUSTOMERS_V2.md).
 
@@ -29,6 +30,9 @@ F1/F2 estan cerradas segun el roadmap aportado, con implementacion corroborada e
 Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pagos y entrega separados. La creacion coordina transaccion en service y procedures, incluyendo detalles/stock. F5 extrae createSaleWithinTransaction sin ownership transaccional para reutilizarlo desde conversion; sales.idOrder nullable y delivery_fee identifican el origen y costo de entrega. Caja y rendicion no equivalen a cobrar una entrega. Consultar implementacion Sales antes de reutilizar ownership transaccional, permisos, errores y calculos.
 
 ## Roadmap y limites conocidos
+
+- F8 Core: POST /sales/:idSale/returns, GET lista/saldos por Sale y GET detalle Return; permisos sale_returns.view/create (ADMIN inicial, OWNER shortcut). Limites acumulados por linea, pago y envio, Decimal con residual final; reembolso exacto, solo pagos resueltos/confirmados. Stock SALE_RETURN opcional al deposito original; cash crea EXPENSE SALE_REFUND en caja actual abierta/activa, noncash sin movimiento. Full pre-dispatch cancela Delivery/evento; DELIVERED se conserva, OUT bloquea. Anulacion F7 rechaza ventas con Returns antes de mutar. Una conexion/transaccion y lock Sale serializan retornos; replay compara hash canonico de payload. Sales gross/metrics existentes conservados. Detalle en contratos/evidencia F8; motor, rollback real y concurrencia pendientes del gate autorizado.
+
 
 - F7: providerType null/INTERNAL/THIRD_PARTY explicito en Sale Delivery, con datos externos opcionales y costo informativo distinto del envio cobrado. Cadete exige usuario DELIVERY activo del tenant; tercero no es un usuario. Creacion directa/conversion y asignacion/reasignacion usan el mismo modelo; lista/detalle/timeline lo muestran. Tercero necesita view_all + update_status y no inicia con efectivo pendiente. Anulacion DELIVERY solo PENDING/ASSIGNED/FAILED sin COLLECTED/CONFIRMED ni pagos rendidos; en camino/entregada bloqueados con mensajes claros. Sin cambios de settlements historicos ni reapertura de Order. 142 tests DB-free, builds y baseline aprobados; gate real F7 15/15 aprobado en test loopback, con limpieza de tenants/usuarios UUID verificada por afterAll. Sin bugs funcionales detectados; produccion no sometida a la suite.
 
@@ -44,4 +48,4 @@ Ventas tienen numero comercial, cliente opcional, idempotencia por negocio, pago
 - Lint global medido en F4: 8 errores y 2 warnings en seis archivos previos fuera de scope; lint F4 limpio. Build exitoso con warnings de bundle grande/imports dinamicos inefectivos. Deuda no corregida fuera de scope.
 - API no tiene envelope uniforme entre contextos; preservar consumidores. Precision decimal y columnas como timestamps deben comprobarse en schema concreto.
 
-Fuera de alcance F7: devoluciones/reembolsos F8, maestro de proveedores, rendiciones/pagos externos, reservas y VITRUNO/Orders publicos. Gate F5 real ejecutado al iniciar F6: 11/11 aprobado en DB test local. Operador confirma tambien SQL F5 aplicado; no se verifico produccion. QA navegador/impresion F4.1 sigue pendiente.
+Fuera de alcance F8: frontend F9, notas fiscales/ARCA, store credit/exchange, devoluciones de compras, edicion/anulacion/borrado Return, maestro de proveedores, rendiciones/pagos externos, reservas y VITRUNO/Orders publicos. Gate F5 real ejecutado al iniciar F6: 11/11 aprobado en DB test local. Operador confirma tambien SQL F5 aplicado; no se verifico produccion. QA navegador/impresion F4.1 sigue pendiente.

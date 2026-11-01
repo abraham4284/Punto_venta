@@ -161,3 +161,11 @@ VALUES ('orders.convert','orders','convert','Convertir pedidos a venta','Permite
 ON DUPLICATE KEY UPDATE is_active = VALUES(is_active);
 INSERT IGNORE INTO role_permissions (role, idPermission)
 SELECT 'ADMIN', idPermission FROM permissions WHERE code = 'orders.convert';
+
+-- F8: only ADMIN by default; OWNER uses authenticated shortcut.
+INSERT INTO permissions (code, module, action, name, description, is_active) VALUES
+('sale_returns.view','sale_returns','view','Ver devoluciones','Consultar devoluciones y saldos reembolsables',1),
+('sale_returns.create','sale_returns','create','Crear devoluciones','Registrar devoluciones y reembolsos compensatorios',1)
+ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), is_active = VALUES(is_active);
+INSERT IGNORE INTO role_permissions (role, idPermission)
+SELECT 'ADMIN', idPermission FROM permissions WHERE code IN ('sale_returns.view','sale_returns.create');

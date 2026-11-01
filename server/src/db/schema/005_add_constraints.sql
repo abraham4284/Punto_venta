@@ -118,6 +118,11 @@ CALL sp_add_check_if_not_exists('order_details', 'chk_order_details_math', 'ALTE
 CALL sp_add_check_if_not_exists('sales', 'chk_sales_delivery_fee', 'ALTER TABLE sales ADD CONSTRAINT chk_sales_delivery_fee CHECK (delivery_fee >= 0)');
 CALL sp_add_check_if_not_exists('sales', 'chk_sales_totals', 'ALTER TABLE sales ADD CONSTRAINT chk_sales_totals CHECK (subtotal >= 0 AND discount_total >= 0 AND discount_total <= subtotal AND total = subtotal - discount_total + delivery_fee)');
 CALL sp_add_check_if_not_exists('sale_deliveries', 'chk_delivery_provider', 'ALTER TABLE sale_deliveries ADD CONSTRAINT chk_delivery_provider CHECK (((provider_type IS NULL AND assigned_to_user_id IS NULL AND external_provider_name IS NULL AND external_reference IS NULL AND external_contact_name IS NULL AND external_contact_phone IS NULL AND external_cost IS NULL) OR (provider_type IS NOT NULL AND provider_type = ''INTERNAL'' AND assigned_to_user_id IS NOT NULL AND external_provider_name IS NULL AND external_reference IS NULL AND external_contact_name IS NULL AND external_contact_phone IS NULL AND external_cost IS NULL) OR (provider_type IS NOT NULL AND provider_type = ''THIRD_PARTY'' AND assigned_to_user_id IS NULL AND external_provider_name IS NOT NULL AND CHAR_LENGTH(TRIM(external_provider_name)) > 0 AND (external_cost IS NULL OR external_cost >= 0))))');
+-- F8 Returns / Refunds
+CALL sp_add_check_if_not_exists('sale_returns', 'chk_return_amounts', 'ALTER TABLE `sale_returns` ADD CONSTRAINT `chk_return_amounts` CHECK (merchandise_amount >= 0 AND delivery_fee_refund >= 0 AND total_refund >= 0 AND total_refund = merchandise_amount + delivery_fee_refund)');
+CALL sp_add_check_if_not_exists('sale_return_items', 'chk_return_item', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `chk_return_item` CHECK (quantity > 0 AND refund_amount >= 0 AND restock IN (0,1))');
+CALL sp_add_check_if_not_exists('sale_refunds', 'chk_refund_amount', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `chk_refund_amount` CHECK (amount > 0 AND ((idCashSession IS NULL AND idCashMovement IS NULL) OR (idCashSession IS NOT NULL AND idCashMovement IS NOT NULL)))');
+
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
 DROP PROCEDURE IF EXISTS sp_drop_check_if_exists;
