@@ -82,8 +82,17 @@ Consequences: lock Order, permisos orders.convert + sales.create, keys de POS/ot
 
 ## ADR-009 — Proveedor de entrega y limite de anulacion
 
-Status: Accepted / implemented F7, SQL real pendiente. Date: 2026-10-31.
+Status: Accepted / implemented F7, gate real test 15/15 aprobado; SQL local/test/produccion confirmado por operador. Date: 2026-10-31.
 
 Decision: providerType null (sin asignar), INTERNAL (usuario DELIVERY activo del negocio) o THIRD_PARTY (nombre libre sin usuario). No crear maestro ni users ficticios para Uber u otros. externalCost es informativo y distinto de sales.deliveryFee; no genera caja, cuentas por pagar ni settlement externo. Tercero no puede salir con efectivo pendiente ni participar de cash_settlements de empleados.
 
 Anulacion != devolucion/reembolso: Sales DELIVERY solo se anula en PENDING/ASSIGNED/FAILED, sin pagos cobrados/confirmados/rendidos. En camino se resuelve estado operativo; entregada o cobrada requiere futura F8, no restauracion automatica de stock. Mantener atomicidad de la anulacion y Order COMPLETED aun si Sale se anula. Migration clasifica usuario existente como INTERNAL y ausencia de usuario como NULL, sin inferir terceros. Compatibilidad de requests legacy solo infiere INTERNAL desde user omitido providerType; nuevos clientes usan el modelo explicito. [Contrato](contracts.md), [evidencia](f07-delivery-providers-cancellation-validation.md).
+
+
+## ADR-010 — Returns inmutables y reembolsos compensatorios
+
+Status: Accepted / implemented Core F8; SQL/gate real pendientes del operador. Date: 2026-10-31.
+
+Decision: Sale y Order permanecen COMPLETED, Payment CONFIRMED; no agregar estados REFUNDED/RETURNED ni reescribir settlements historicos. Returns, items y refunds se registran separados e inmutables. Se exige resolver PENDING/COLLECTED y cobertura confirmada original. Refund exacto de mercaderia calculada server-side mas envio opcional, contra pagos originales y con limites acumulados. Parciales usan Decimal local de precision 40 y residual exacto al completar linea.
+
+Cash refund es EXPENSE SALE_REFUND en caja actual abierta/activa, aun para pago rendido; noncash solo evidencia sin caja. Restock opcional usa movimiento SALE_RETURN al deposito original. Full pre-dispatch cancela Delivery/evento; delivered se conserva, in-transit bloquea. Anular Sale con Returns bloquea doble reversion. Una conexion/transaccion, lock Sale y lecturas actuales de saldos protegen concurrencia; UNIQUE tenant/key + hash canonico diferencian replay/conflicto. API Returns concentra summary/saldos sin duplicar metricas Sales gross. No guardar snapshots inexistentes de producto en Sale: descripcion desde relaciones vigentes, importes desde linea original. [Contrato](contracts.md), [transacciones](../server/docs/transactions.md), [evidencia](f08-returns-refunds-core-validation.md).

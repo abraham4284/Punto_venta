@@ -11,7 +11,8 @@ export type SalePaymentEventType =
   | "PAYMENT_CONFIRMED"
   | "PAYMENT_CANCELLED"
   | "PAYMENT_SETTLED"
-  | "PAYMENT_MIGRATED";
+  | "PAYMENT_MIGRATED"
+  | "PAYMENT_REFUNDED";
 
 export type JsonValue =
   | null

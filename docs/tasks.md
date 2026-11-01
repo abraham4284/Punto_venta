@@ -12,7 +12,9 @@ Revisado: 2026-10-31. `[x]` indica fase cerrada con el alcance de validacion ind
 - [x] F5 — Order -> Sale backend. Conversion atomica READY -> Sale + COMPLETED, link unico por tenant, deliveryFee y permisos. Typecheck/build/baseline y 115 tests DB-free aprobados. Operador confirma SQL aplicado en local/test/produccion; gate real F5 11/11 aprobado en DB test loopback, sin prueba productiva; [evidencias](f05-order-to-sale-backend-validation.md).
 - [x] F6 — Order -> Sale frontend. Gate F5 real 11/11 aprobado antes de implementar. Checkout reducido, caja/pagos/metadata, key estable y venta vinculada. Build/lint acotado y 35 comprobaciones aisladas aprobados; QA navegador pendiente por entorno. [Evidencias](f06-order-to-sale-frontend-validation.md).
 - [x] F7 — Delivery Providers & Cancellation Hardening. Tres modos de proveedor, costo externo informativo y anulación segura. F7 CLOSED: builds/baseline, 142 tests DB-free y comprobaciones frontend aprobados; gate real 15/15 aprobado en localhost / punto_venta_integration_test, cleanup correcto. SQL local/test/produccion aplicado segun operador; produccion no sometida a suite. [Evidencias](f07-delivery-providers-cancellation-validation.md).
-- [ ] F8 — Returns & Refunds. NEXT; devoluciones/reembolsos, sin implementar.
+- [x] F8 — Returns & Refunds Core DB/backend. Devoluciones inmutables, reingreso opcional, reembolsos contra pagos originales y compensacion de caja; 191 tests DB-free/regresion, typecheck/build y baseline aprobados. [Evidencias](f08-returns-refunds-core-validation.md).
+- [ ] Gate real F8 — pendiente del operador: aplicar SQL F8 y autorizar suite test loopback (24 casos preparados, no ejecutados).
+- [ ] F9 — Returns & Refunds Frontend. NEXT despues del gate real F8; sin implementar.
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.

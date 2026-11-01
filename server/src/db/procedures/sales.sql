@@ -304,6 +304,7 @@ CREATE PROCEDURE sp_cancel_sale_and_revert_stock(
   IN p_actorUserId INT
 )
 BEGIN
+  DECLARE v_existingReturn BIGINT DEFAULT NULL;
   DECLARE v_done INT DEFAULT 0;
   DECLARE v_idProduct INT;
   DECLARE v_idDeposit INT;
@@ -349,6 +350,11 @@ BEGIN
   IF v_status IS NULL THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Venta no encontrada';
+  END IF;
+
+  SELECT idSaleReturn INTO v_existingReturn FROM sale_returns WHERE idBusiness = p_idBusiness AND idSale = p_idSale ORDER BY idSaleReturn LIMIT 1 FOR UPDATE;
+  IF v_existingReturn IS NOT NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SALE_WITH_RETURNS_CANNOT_BE_CANCELLED';
   END IF;
 
   IF v_status = 'CANCELLED' THEN
