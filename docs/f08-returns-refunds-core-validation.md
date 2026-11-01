@@ -2,11 +2,13 @@
 
 Fecha: 2026-10-31. Rama dev, HEAD inicial `583f0113fd17a1b147fde8a05aee1cf31a13b3dd` (gate F7 documentado); checkout limpio. Sin cambio de rama, staging, commit ni push. F7 conserva gate real 15/15; esa autorizacion no se extiende a ejecutar DB/migraciones F8.
 
+Estado vigente: F8 CLOSED por gate 24/24 confirmado por operador al iniciar F9; detalle al final. El registro de implementacion inicial sin DB se conserva como antecedente.
+
 ## Alcance implementado
 
 - [Modulo sale-returns](../server/src/modules/businesses-app/sale-returns/index.ts): POST /sales/:idSale/returns, GET lista/summary/saldos por Sale y GET detalle Return. Sin API publica ni operaciones mutables sobre Returns. BUSINESS y tenant/actor del contexto autenticado, Zod estricto, permisos sale_returns.view/create, ADMIN inicial/OWNER shortcut; SELLER/DELIVERY sin grants iniciales.
 - Tablas sale_returns, sale_return_items, sale_refunds. UNIQUE tenant/UUID, numero/ID, indices por Sale/linea/pago, FKs tenant-safe y CHECKs de importes/cantidades/restock. Request hash para conflicto/replay. Actores FK users, revalidacion activa del negocio en service. Referencias producto/linea/metodo/montos nunca desde cliente como autoridad.
-- [Calculo](../server/src/modules/businesses-app/sale-returns/helpers/sale-returns.helper.ts): parcial/full, multiples devoluciones, UNIT entero y resto dos decimales, subtotal neto original de linea, Decimal local precision 40, redondeo half-up y residual exacto final; limites acumulados de cantidad, importe de linea, pago y envio. Refund exacto del total calculado. Envio solo permitido sin items; linea gratuita puede devolver con refunds vacio y sin caja. Sin store credit/exchange.
+- [Calculo](../server/src/modules/businesses-app/sale-returns/helpers/sale-returns.helper.ts): parcial/full, multiples devoluciones, UNIT entero y resto dos decimales, subtotal neto original de linea, Decimal local precision 40, redondeo half-up y residual exacto final; limites acumulados de cantidad, importe de linea, pago y envio. Refund exacto del total calculado. Envio puede combinarse con items o reembolsarse sin items; linea gratuita puede devolver con refunds vacio y sin caja. Sin store credit/exchange.
 - Solo Sale COMPLETED, pagos sin PENDING/COLLECTED y cobertura original CONFIRMED; asignaciones contra pagos CONFIRMED del mismo tenant/Sale. Cash requiere caja actual OPEN/activa/tenant; EXPENSE SALE_REFUND y IDs enlazados. Noncash sin caja/movimiento, evidencia reference/observation. Pago confirmado/rendido e idCashSettlement/settlement historico no cambian; PAYMENT_REFUNDED conserva previous/new CONFIRMED.
 - restock true llama [helper SQL](../server/src/db/procedures/sale_returns.sql) para item/stock/movimiento SALE_RETURN con idDepositTo original y reference Return; false solo registra item. No ADJUSTMENT_IN. Sale/Order siguen COMPLETED; no modifica order_events. Full por cantidades cancela Delivery PENDING/ASSIGNED/FAILED con evento reason/idReturn; parcial conserva estado; DELIVERED se conserva; OUT_FOR_DELIVERY bloquea. Puede reembolsarse luego envio restante tras full de mercaderia.
 - [Anulacion Sales](../server/src/db/procedures/sales.sql) agrega guarda locking SALE_WITH_RETURNS_CANNOT_BE_CANCELLED antes de mutar; mapper profesional/backend 409. Sin cambios client/**, client/text.txt, dependencias o nuevos estados Sales/Payment. Metrics Sales gross/completedTotal siguen iguales.
@@ -45,3 +47,8 @@ Actualizados tasks/project-state, contracts/database/decisions (ADR-010), backen
 
 Commit sugerido: `feat(sale-returns): agregar devoluciones y reembolsos compensatorios`.
 Descripcion: registrar Returns/Refunds inmutables con stock opcional, caja compensatoria, limites acumulados y replay; proteger anulacion, preparar migracion 006/suite real y documentar contrato F9 y gate pendiente.
+
+
+## Gate real F8 confirmado por operador al iniciar F9
+
+El contexto operativo entregado para F9 confirma SQL 006/procedures F8 aplicados y alineados en local, test y produccion. Informa gate real **24/24 aprobado**, localhost:3306, punto_venta_integration_test, NODE_ENV=test; cleanup OK, FK checks preservados, sin bugs funcionales. Produccion sincronizada segun operador y **no sometida a la suite**. No es una nueva ejecucion del agente: F9 no repite DB, SQL ni migraciones. El alcance estatico inicial de esta evidencia se conserva como antecedente; **F8 CLOSED**; F9 se inicia despues de documentar este gate y su cierre se registra en [validacion F9](f09-returns-refunds-frontend-validation.md). Se corrige una frase documental inicial sobre envio: el contrato F8 permite combinarlo con items o devolver solo envio.
