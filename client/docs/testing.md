@@ -23,3 +23,8 @@ No hay scripts test/E2E en package.json ni suites test/spec encontradas bajo src
 Para cambios visuales, probar teclado/foco, labels, modales, tablas y navegacion con permisos relevantes. [PlatformLayout](../src/views/platform/components/layout/PlatformLayout.tsx) usa clases `lg` para alternar sidebar/menu movil y [AdminLayout](../src/components/layout/AdminLayout.tsx) usa `sm` en acciones; probar a ambos lados de esos cortes y en escritorio/movil. No hay una matriz de breakpoints QA propia formalizada; no inventar pixeles del producto.
 
 Para Markdown basta comprobar enlaces, paths y diff segun AGENTS. No ejecutar build/lint por rutina documental. Registrar solo lo ejecutado en validation doc de fase; no afirmar QA API/navegador ni despliegue por inspeccion de codigo.
+
+
+## F9 — Tests aislados persistentes
+
+`npm run test:sale-returns` ejecuta [scripts/sale-returns.test.mjs](../scripts/sale-returns.test.mjs) con node:test y el compilador TypeScript ya instalado, sin framework/dependencia nuevos. Transpila helpers frontend en memoria, usa dependencias locales y no importa backend ni conecta a DB. Cubre preview/residual, precision UNIT/decimal, allocations mixed/cash, saldos/campos, gratuitos/envio, UUID/fingerprint y errores/refresh. No sustituye lifecycle DOM ni E2E. QA navegador F9 usa fixture aislado temporal y adaptador Axios en memoria, eliminado al terminar; ninguna operacion financiera/DB real. [Evidencias](../../docs/f09-returns-refunds-frontend-validation.md).

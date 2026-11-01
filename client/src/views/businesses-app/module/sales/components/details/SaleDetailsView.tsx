@@ -1,3 +1,6 @@
+import { useSaleReturns } from "../../hooks/useSaleReturns";
+import { SaleReturnsSection } from "../returns/SaleReturnsSection";
+import { saleHasReturnsReason } from "../../helpers/sale-return.helpers";
 import type { ReactNode } from "react";
 import { saleCancellationReason } from "../../helpers/sale-cancellation.helpers";
 import { DeliveryProviderSummary } from "../../../deliveries/components/DeliveryProviderSummary";
@@ -124,7 +127,11 @@ export const SaleDetailsView = ({
   onPaymentChanged,
 }: SaleDetailsViewProps) => {
   const canCancelSales = useCan("sales.cancel");
-  const cancellationReason = saleCancellationReason(sale);
+  const canViewReturns = useCan("sale_returns.view");
+  const canCreateReturns = useCan("sale_returns.create");
+  const returnsState = useSaleReturns(sale.idSale, canViewReturns);
+  const cancellationReason = returnsState.data?.returns.length ? saleHasReturnsReason : saleCancellationReason(sale);
+  const paymentChanged = async () => { try { await onPaymentChanged(); } finally { if (canViewReturns) await returnsState.refresh(); } };
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;
   const customerName =
     customer?.fullName || sale.customerName || "Consumidor final";
@@ -173,7 +180,7 @@ export const SaleDetailsView = ({
                   <Button
                     type="button"
                     variant="destructive"
-                    disabled={canceling}
+                    disabled={canceling || returnsState.loading}
                   />
                 }
               >
@@ -197,7 +204,7 @@ export const SaleDetailsView = ({
                   <AlertDialogCancel disabled={canceling}>
                     Cancelar
                   </AlertDialogCancel>
-                  <AlertDialogAction disabled={canceling} onClick={onCancel}>
+                  <AlertDialogAction disabled={canceling || returnsState.loading} onClick={onCancel}>
                     Confirmar anulación
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -217,9 +224,9 @@ export const SaleDetailsView = ({
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <OperationMetricCard
-          title="Total"
+          title="Total original"
           value={formatCurrency(sale.total)}
-          subtitle="Importe neto"
+          subtitle="Importe histórico de la venta"
           icon={Receipt}
         />
         <OperationMetricCard
@@ -241,6 +248,8 @@ export const SaleDetailsView = ({
           icon={User}
         />
       </section>
+
+      {canViewReturns && <SaleReturnsSection key={sale.idSale} sale={sale} returnsState={returnsState} canCreate={canCreateReturns} onSaleRefresh={onPaymentChanged} />}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
@@ -323,7 +332,7 @@ export const SaleDetailsView = ({
             deliveryStatus={sale.delivery?.status ?? null}
             assignedToUserId={sale.delivery?.assignedToUserId ?? null}
             context="sale-detail"
-            onPaymentChanged={onPaymentChanged}
+            onPaymentChanged={paymentChanged}
           />
 
           {sale.delivery ? (

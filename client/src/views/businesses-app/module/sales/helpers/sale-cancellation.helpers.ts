@@ -15,6 +15,7 @@ export const saleCancellationReason = (sale: Pick<SaleResponse, "status" | "deli
 };
 export const saleCancellationError = (message: string | undefined) => {
   const messages: Record<string, string> = {
+    SALE_WITH_RETURNS_CANNOT_BE_CANCELLED: "Esta venta ya tiene devoluciones registradas y no puede anularse.",
     DELIVERY_SALE_REFUND_REQUIRED: refund, DELIVERY_SALE_WITH_PAYMENTS_CANNOT_BE_CANCELLED: refund,
     DELIVERY_IN_TRANSIT_CANNOT_BE_CANCELLED: transit, DELIVERY_SALE_IN_PROGRESS_CANNOT_BE_CANCELLED: "La entrega está en camino o entregada. Revisá su estado antes de revertir la venta.",
     DELIVERED_SALE_RETURN_REQUIRED: delivered, SALE_PAYMENT_ALREADY_SETTLED: settled,
