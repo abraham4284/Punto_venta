@@ -1,9 +1,13 @@
-import { Package } from "lucide-react";
+import { useState } from "react";
+import { createPortal } from "react-dom";
+import type { ReactNode } from "react";
 import type { BusinessResponse } from "../../../businesses/types";
 import type { Customer } from "../../../customers/types/customers.types";
 import { getCustomerDocumentLabel } from "../../../customers/helpers/customer.helpers";
 import type { SaleWithDetailsResponse } from "../../types";
-import { formatCurrency, formatDate } from "@/helpers";
+import { formatCurrency } from "@/helpers/formatCurrency";
+import { formatDate } from "@/helpers/formatDate";
+import { salePrintStyles } from "./sale-print.styles";
 
 type SalePrintDocumentProps = {
   sale: SaleWithDetailsResponse;
@@ -13,262 +17,120 @@ type SalePrintDocumentProps = {
 };
 
 const businessTypeLabels: Record<string, string> = {
-  MAXIKIOSCO: "Maxikiosco",
-  PRODUCTOS: "Venta de productos",
-  VENTA_PRODUCTOS: "Venta de productos",
-  FINANCIERA: "Financiera",
-  KIOSCO: "Kiosco",
-  ALMACEN: "Almacén / Despensa",
-  MINIMERCADO: "Minimercado",
-  SUPERMERCADO: "Supermercado",
-  FARMACIA: "Farmacia",
-  FERRETERIA: "Ferretería",
-  INDUMENTARIA: "Indumentaria",
-  TECNOLOGIA: "Tecnología",
-  DISTRIBUIDORA: "Distribuidora",
-  GASTRONOMIA: "Gastronomía",
-  LIBRERIA: "Librería",
-  PERFUMERIA: "Perfumería",
-  VETERINARIA: "Veterinaria",
-  OTRO: "Comercio",
+  MAXIKIOSCO: "Maxikiosco", PRODUCTOS: "Venta de productos", VENTA_PRODUCTOS: "Venta de productos",
+  FINANCIERA: "Financiera", KIOSCO: "Kiosco", ALMACEN: "Almacén / Despensa",
+  MINIMERCADO: "Minimercado", SUPERMERCADO: "Supermercado", FARMACIA: "Farmacia",
+  FERRETERIA: "Ferretería", INDUMENTARIA: "Indumentaria", TECNOLOGIA: "Tecnología",
+  DISTRIBUIDORA: "Distribuidora", GASTRONOMIA: "Gastronomía", LIBRERIA: "Librería",
+  PERFUMERIA: "Perfumería", VETERINARIA: "Veterinaria", OTRO: "Comercio",
+};
+const quantityFormatter = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 3 });
+
+const PrintImage = ({ src, label, brand = false }: { src?: string | null; label: string; brand?: boolean }) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className={brand ? "sale-print-logo" : "sale-print-image"}>
+      {src && !failed ? (
+        <img src={src} alt={label} loading="eager" decoding="sync" onError={() => setFailed(true)} />
+      ) : (
+        <span className="sale-print-image-fallback" aria-label={brand ? label : "Sin imagen"}>
+          {brand ? label.slice(0, 1).toUpperCase() : "—"}
+        </span>
+      )}
+    </span>
+  );
 };
 
-const getBusinessTypeLabel = (value: string | null | undefined): string => {
-  if (!value) return "Comercio";
-  return businessTypeLabels[value] ?? value;
-};
+const PrintField = ({ label, children }: { label: string; children: ReactNode }) => (
+  <p className="sale-print-field"><span>{label}:</span> {children}</p>
+);
 
-const formatQuantity = (value: number): string => {
-  return new Intl.NumberFormat("es-AR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 3,
-  }).format(value);
-};
-
-const getPaymentSummary = (sale: SaleWithDetailsResponse): string => {
-  if (sale.paymentDetail?.trim()) return sale.paymentDetail;
-  if (sale.payments.length > 0) {
-    return sale.payments
-      .map((payment) => {
-        return `${payment.paymentMethodName} ${formatCurrency(payment.amount)}`;
-      })
-      .join(" · ");
-  }
-  return sale.paymentMethodName ?? "Sin método informado";
-};
-
-export const SalePrintDocument = ({
-  sale,
-  business,
-  customer,
-  grossSubtotal,
-}: SalePrintDocumentProps) => {
-  const businessName = business?.name || "Cajora";
-  const businessType = getBusinessTypeLabel(business?.businessType);
-  const customerName = customer?.fullName || sale.customerName || "Consumidor Final";
+/** Same content for isolated previews and the body-level print document. */
+export const SalePrintContent = ({ sale, business, customer, grossSubtotal }: SalePrintDocumentProps) => {
+  const businessName = business?.name?.trim() || "Cajora";
+  const businessType = business?.businessType ? businessTypeLabels[business.businessType] ?? business.businessType : null;
+  const customerName = customer?.fullName || sale.customerName || "Consumidor final";
   const saleNumber = sale.saleNumber || `#${sale.idSale}`;
+  const cancelled = sale.status === "CANCELLED";
+  const delivery = sale.delivery;
 
   return (
-    <article className="print-container relative mx-auto min-h-[1120px] w-full max-w-[800px] overflow-hidden bg-white text-slate-950 shadow-2xl print:min-h-screen print:max-w-full print:shadow-none">
-      {sale.status === "CANCELLED" ? (
-        <>
-          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-            <div className="-rotate-12 rounded-xl border-4 border-red-500/30 px-10 py-4 text-6xl font-black uppercase tracking-[0.2em] text-red-500/20 print:text-red-500/25">
-              Anulada
-            </div>
-          </div>
-          <div className="absolute left-10 top-64 z-20 rounded-full border border-red-200 bg-red-50 px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] text-red-700">
-            Venta anulada
-          </div>
-        </>
-      ) : null}
-
-      <header className="relative h-56 overflow-hidden bg-blue-700 text-white print:h-48">
-        <div className="absolute inset-0 bg-blue-800" />
-        <div className="absolute -left-20 top-12 h-40 w-[120%] rotate-[-4deg] rounded-[50%] bg-blue-950/45" />
-        <div className="absolute right-16 top-12 flex items-center gap-4 text-right">
-          <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-blue-100">
-              Comprobante de venta
-            </p>
-            <h1 className="mt-1 text-3xl font-black tracking-wide">
-              {businessName}
-            </h1>
-            <p className="text-sm text-blue-100">{businessType}</p>
-          </div>
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/95 text-2xl font-black text-blue-800 ring-8 ring-white/20">
-            {business?.logoUrl ? (
-              <img
-                src={business.logoUrl}
-                alt={businessName}
-                className="h-16 w-16 rounded-full object-contain"
-              />
-            ) : (
-              businessName.slice(0, 1).toUpperCase()
-            )}
-          </div>
+    <article className="sale-print-document" aria-label={`Comprobante de venta ${saleNumber}`}>
+      <style>{salePrintStyles}</style>
+      <header className="sale-print-header">
+        <div className="sale-print-brand">
+          <PrintImage key={business?.logoUrl || "no-logo"} src={business?.logoUrl} label={businessName} brand />
+          <div><h1>{businessName}</h1>{businessType && <p>{businessType}</p>}</div>
+        </div>
+        <div className="sale-print-identification">
+          <p className="sale-print-eyebrow">Comprobante de venta</p>
+          <p className="sale-print-number">{saleNumber}</p>
+          <p className="sale-print-date">{formatDate(sale.saleDate)}</p>
+          <span className={`sale-print-status${cancelled ? " sale-print-status-cancelled" : ""}`}>
+            {cancelled ? "Cancelada" : "Completada"}
+          </span>
         </div>
       </header>
 
-      <section className="px-14 pt-10 print:px-10 print:pt-8">
-        <div className="grid gap-10 md:grid-cols-2">
-          <section>
-            <h2 className="text-xl font-black uppercase tracking-wide">
-              Datos del cliente
-            </h2>
-            <div className="mt-3 space-y-1 text-[15px] leading-7 text-slate-700">
-              <p>
-                <strong>Nombre:</strong> {customerName}
-              </p>
-              {customer?.documentNumber ? <p><strong>Documento:</strong> {getCustomerDocumentLabel(customer)}</p> : null}
-              {customer?.phone ? (
-                <p>
-                  <strong>Teléfono:</strong> {customer.phone}
-                </p>
-              ) : null}
-              {customer?.address ? (
-                <p>
-                  <strong>Dirección:</strong> {customer.address}
-                </p>
-              ) : null}
-              {customer?.email ? (
-                <p>
-                  <strong>Email:</strong> {customer.email}
-                </p>
-              ) : null}
-            </div>
-          </section>
+      {cancelled && <p className="sale-print-cancellation">Venta cancelada. Se conservan los importes de la operación original.</p>}
 
-          <section className="md:text-right">
-            <h2 className="text-xl font-black uppercase tracking-wide">
-              Datos de la empresa
-            </h2>
-            <div className="mt-3 space-y-1 text-[15px] leading-7 text-slate-700">
-              <p>
-                <strong>Nombre:</strong> {businessName}
-              </p>
-              <p>
-                <strong>Rubro:</strong> {businessType}
-              </p>
-              <p>
-                <strong>Depósito:</strong> {sale.depositName}
-              </p>
-              <p>
-                <strong>Vendedor:</strong> {sale.userName}
-              </p>
-            </div>
-          </section>
+      <section className={`sale-print-parties${delivery ? " sale-print-parties-delivery" : ""}`}>
+        <div>
+          <h2>Cliente</h2>
+          <p className="sale-print-customer-name">{customerName}</p>
+          {customer?.documentNumber && <PrintField label="Documento">{getCustomerDocumentLabel(customer)}</PrintField>}
+          {customer?.phone?.trim() && <PrintField label="Teléfono">{customer.phone}</PrintField>}
+          {customer?.address?.trim() && <PrintField label="Dirección">{customer.address}</PrintField>}
+          {customer?.email?.trim() && <PrintField label="Email">{customer.email}</PrintField>}
         </div>
-
-        <div className="mt-10 flex flex-col justify-between gap-2 md:flex-row md:items-end">
-          <div>
-            <p className="text-lg font-black">
-              Fecha: {formatDate(sale.saleDate)}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              Pagos: {getPaymentSummary(sale)}
-            </p>
+        {delivery && (
+          <div className="sale-print-delivery">
+            <h2>Entrega a domicilio</h2>
+            <PrintField label="Destinatario">{delivery.recipientName}</PrintField>
+            {delivery.recipientPhone?.trim() && <PrintField label="Teléfono">{delivery.recipientPhone}</PrintField>}
+            <PrintField label="Dirección">{delivery.deliveryAddress}</PrintField>
+            {delivery.deliveryReference?.trim() && <PrintField label="Referencia">{delivery.deliveryReference}</PrintField>}
           </div>
-          <div className="rounded-md bg-blue-50 px-4 py-2 text-right">
-            <p className="text-xs uppercase tracking-[0.24em] text-blue-700">
-              N.º de comprobante
-            </p>
-            <p className="text-xl font-black text-blue-950">{saleNumber}</p>
-          </div>
-        </div>
-
-        <section className="mt-6 overflow-x-auto">
-          <div className="grid grid-cols-[1.8fr_0.7fr_0.9fr_0.9fr] gap-1 bg-white text-white">
-            <div className="bg-sky-950 px-4 py-3 text-center font-semibold">
-              Concepto
-            </div>
-            <div className="bg-sky-950 px-4 py-3 text-center font-semibold">
-              Cantidad
-            </div>
-            <div className="bg-sky-950 px-4 py-3 text-center font-semibold">
-              Precio
-            </div>
-            <div className="bg-sky-950 px-4 py-3 text-center font-semibold">
-              Total
-            </div>
-          </div>
-
-          <div className="divide-y divide-slate-300 overflow-x-auto">
-            {sale.items.map((item) => (
-              <div
-                key={item.idSaleDetail}
-                className="grid grid-cols-[1.8fr_0.7fr_0.9fr_0.9fr] items-center gap-1 py-4 text-[15px]"
-              >
-                <div className="px-1">
-                  <div className="flex items-center gap-2">
-                    {item.productImageUrl ? (
-                      <img
-                        src={item.productImageUrl}
-                        alt={item.productName}
-                        className="h-12 w-12 rounded-md object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-slate-100 text-slate-500">
-                        <Package className="h-5 w-5" />
-                      </div>
-                    )}
-                    <p className="font-semibold">{item.productName}</p>
-                  </div>
-                </div>
-                <div className="text-center">{formatQuantity(item.quantity)}</div>
-                <div className="text-center">
-                  {formatCurrency(item.unitPrice)}
-                </div>
-                <div className="text-center font-semibold">
-                  {formatCurrency(item.total)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <footer className="mt-4 grid gap-8 md:grid-cols-[1fr_320px]">
-          <section className="space-y-5 text-[15px] leading-7 text-slate-700">
-            <p>
-              <strong>Observación:</strong>{" "}
-              {sale.observation || "Sin observaciones asociadas."}
-            </p>
-            <div>
-              <strong>Detalle de pagos:</strong>
-              {sale.payments.length > 0 ? (
-                <ul className="mt-1 space-y-1">
-                  {sale.payments.map((payment) => (
-                    <li key={payment.idSalePayment}>
-                      {payment.paymentMethodName}: {formatCurrency(payment.amount)}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <span> Sin pagos registrados.</span>
-              )}
-            </div>
-            <p>
-              <strong>Estado:</strong>{" "}
-              {sale.status === "CANCELLED" ? "Venta anulada" : "Completada"}
-            </p>
-          </section>
-
-          <section className="space-y-3 text-[16px]">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>{formatCurrency(grossSubtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Descuento</span>
-              <span>{formatCurrency(sale.discountTotal)}</span>
-            </div>
-            <div className="flex justify-between border-t-2 border-slate-900 pt-4 text-xl font-black">
-              <span>Total</span>
-              <span>{formatCurrency(sale.total)}</span>
-            </div>
-          </section>
-        </footer>
+        )}
       </section>
+
+      <table className="sale-print-items">
+        <caption>Detalle de productos</caption>
+        <colgroup><col className="sale-print-photo-col" /><col /><col className="sale-print-quantity-col" /><col className="sale-print-price-col" /><col className="sale-print-total-col" /></colgroup>
+        <thead><tr><th scope="col">Foto</th><th scope="col">Producto</th><th scope="col" className="sale-print-numeric">Cant.</th><th scope="col" className="sale-print-numeric">Precio unit.</th><th scope="col" className="sale-print-numeric">Total</th></tr></thead>
+        <tbody>
+          {sale.items.map((item) => (
+            <tr key={item.idSaleDetail}>
+              <td><PrintImage key={item.productImageUrl || "no-image"} src={item.productImageUrl} label={item.productName} /></td>
+              <td className="sale-print-product">
+                <p className="sale-print-product-name">{item.productName}</p>
+                {item.barcode?.trim() && <p className="sale-print-product-code">{item.barcode}</p>}
+                {item.discount > 0 && <p className="sale-print-line-discount">Descuento de línea: {formatCurrency(item.discount)}</p>}
+              </td>
+              <td className="sale-print-numeric sale-print-quantity">{quantityFormatter.format(item.quantity)}</td>
+              <td className="sale-print-numeric">{formatCurrency(item.unitPrice)}</td>
+              <td className="sale-print-numeric sale-print-line-total">{formatCurrency(item.total)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <section className="sale-print-summary">
+        <dl className="sale-print-totals">
+          <div><dt>Subtotal</dt><dd>{formatCurrency(grossSubtotal)}</dd></div>
+          <div><dt>Descuento</dt><dd>{formatCurrency(sale.discountTotal)}</dd></div>
+          <div className="sale-print-grand-total"><dt>TOTAL</dt><dd>{formatCurrency(sale.total)}</dd></div>
+        </dl>
+      </section>
+      {sale.observation?.trim() && <section className="sale-print-notes"><h2>Observaciones</h2><p>{sale.observation}</p></section>}
+      <footer className="sale-print-footer"><p>Gracias por tu compra.</p><p>Comprobante comercial. No válido como factura.</p></footer>
     </article>
   );
+};
+
+export const SalePrintDocument = (props: SalePrintDocumentProps) => {
+  if (typeof document === "undefined") return null;
+  // Outside the application layout: printing cannot inherit clipped containers,
+  // subscription banners, administrative headers or navigation.
+  return createPortal(<div className="sale-print-root"><SalePrintContent {...props} /></div>, document.body);
 };
