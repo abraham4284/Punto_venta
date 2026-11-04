@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-Revisado: 2026-10-31. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+Revisado: 2026-11-04. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
 
 - [x] F0 — Canonical documentation foundation. Validacion documental completada; evidencias en [f00-documentation-validation](f00-documentation-validation.md).
 - [x] F0.1 — Hierarchical documentation by subsystem. Validacion documental completada; [evidencias](f00-1-documentation-hierarchy-validation.md).
@@ -16,6 +16,7 @@ Revisado: 2026-10-31. `[x]` indica fase cerrada con el alcance de validacion ind
 - [x] Gate real F8 — 24/24 aprobado en localhost:3306 / punto_venta_integration_test, NODE_ENV=test, cleanup OK y FKs preservadas, segun confirmacion del operador al iniciar F9. SQL local/test/produccion sincronizado; sin suite productiva. F8 CLOSED.
 - [x] F9 — Returns & Refunds Frontend. CLOSED: detalle Sale con summary/historial, registro y detalle Return, allocations/caja/idempotencia y permisos. Build/lint aplicable y 52 tests aislados aprobados; QA visual con API en memoria en desktop/mobile/tablet, sin DB real. [Evidencias](f09-returns-refunds-frontend-validation.md).
 - [x] Roadmap actual Orders -> Sales -> Delivery -> Returns COMPLETED, con limites de validacion documentados; sin certificar produccion.
+- [x] Rediseño SalePrintDocument — comprobante compacto con branding del negocio y datos operativos; resumen solo subtotal/descuento/total a la derecha, sin pagos ni linea de envio; impresion aislada del layout. Build/lint acotado y 18 tests aprobados; QA A4 escenarios A..G (10 productos en 1 pagina, 25 en 2), desktop/mobile con fixtures, sin backend/DB. [Evidencias](f10-sale-print-document-validation.md).
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.
