@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test:wholesale-pricing": "node --test scripts/wholesale-pricing.test.mjs",
     "test:sale-returns": "node --test scripts/sale-returns.test.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

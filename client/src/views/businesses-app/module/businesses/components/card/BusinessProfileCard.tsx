@@ -1,3 +1,4 @@
+import { formatCurrency } from "@/helpers";
 import { Building2, CalendarDays, ExternalLink, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import type { BusinessResponse } from "../../types";
 
 type Props = {
   business: BusinessResponse;
+  canEdit?: boolean;
   onEdit: () => void;
 };
 
@@ -25,7 +27,7 @@ const formatDate = (value: Date | string | null): string => {
   }).format(new Date(value));
 };
 
-export const BusinessProfileCard = ({ business, onEdit }: Props) => {
+export const BusinessProfileCard = ({ business, onEdit, canEdit = true }: Props) => {
   const businessTypeLabel =
     BUSINESS_TYPE_OPTIONS.find((option) => option.value === business.businessType)
       ?.label ?? business.businessType ?? "Sin tipo";
@@ -56,7 +58,7 @@ export const BusinessProfileCard = ({ business, onEdit }: Props) => {
           </div>
         </div>
 
-        <Button type="button" onClick={onEdit}>
+        <Button type="button" onClick={onEdit} disabled={!canEdit}>
           <Pencil className="mr-2 h-4 w-4" />
           Editar perfil
         </Button>
@@ -86,6 +88,12 @@ export const BusinessProfileCard = ({ business, onEdit }: Props) => {
             {formatDate(business.updatedAt)}
           </div>
         </div>
+        <section className="space-y-2 rounded-lg border p-4 md:col-span-3" aria-label="Precios mayoristas">
+          <h3 className="font-semibold">Precios mayoristas</h3>
+          <Badge variant={business.wholesaleEnabled ? "default" : "secondary"}>{business.wholesaleEnabled ? "Activados" : "Desactivados"}</Badge>
+          {business.wholesaleEnabled && business.wholesaleMinimumAmount != null && <p className="text-sm">Compra mínima inicial: <strong>{formatCurrency(business.wholesaleMinimumAmount)}</strong></p>}
+          <p className="text-sm text-muted-foreground">El mínimo se exige una sola vez al cliente y aplica a todas las categorías.</p>
+        </section>
       </CardContent>
     </Card>
   );

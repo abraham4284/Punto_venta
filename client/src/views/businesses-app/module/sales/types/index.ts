@@ -1,4 +1,5 @@
 import type { DeliveryProviderInput, DeliveryProviderPayload } from "../../deliveries/helpers/delivery-provider.helpers";
+export type SalePricingType = "RETAIL" | "WHOLESALE";
 export type PriceType = "SALE" | "WHOLESALE";
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 
@@ -20,6 +21,7 @@ export interface FieldError {
 }
 
 export interface ApiErrorResponse {
+  code?: string;
   status: boolean;
   message: string;
   errors?: FieldError[];
@@ -123,6 +125,7 @@ export interface ProductSelection {
 }
 
 export interface CreateSalePayload {
+  pricingType: SalePricingType;
   idCustomer: number | null;
   idDeposit: number;
   idCashSession: number;
@@ -150,6 +153,7 @@ export interface CreateSalePayload {
 }
 
 export interface SaleResponse {
+  pricingType: SalePricingType | null;
   idOrder: number | null;
   deliveryFee: number;
   idSale: number;
