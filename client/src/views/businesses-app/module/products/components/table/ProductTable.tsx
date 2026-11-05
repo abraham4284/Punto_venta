@@ -102,7 +102,8 @@ export const ProductTable = ({
           <TableHead>Unidad</TableHead>
           <TableHead>Modalidad</TableHead>
           <TableHead>Costo</TableHead>
-          <TableHead>Precio venta</TableHead>
+          <TableHead className="whitespace-nowrap">Precio minorista</TableHead>
+          <TableHead className="whitespace-nowrap">Precio mayorista</TableHead>
           <TableHead>Stock mínimo</TableHead>
           <TableHead>Estado</TableHead>
           <TableHead className="text-right">Acciones</TableHead>
@@ -146,7 +147,13 @@ export const ProductTable = ({
 
             <TableCell>{formatCurrency(product.priceCost)}</TableCell>
 
-            <TableCell>{formatCurrency(product.priceSale)}</TableCell>
+            <TableCell className="whitespace-nowrap tabular-nums">{formatCurrency(product.priceSale)}</TableCell>
+
+            <TableCell className="whitespace-nowrap tabular-nums">
+              {product.priceWholesale != null && Number.isFinite(product.priceWholesale) && product.priceWholesale > 0
+                ? formatCurrency(product.priceWholesale)
+                : "—"}
+            </TableCell>
 
             <TableCell>
               <Badge
