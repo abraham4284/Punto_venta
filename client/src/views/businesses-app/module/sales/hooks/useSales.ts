@@ -1,3 +1,6 @@
+import type { BusinessResponse } from "../../businesses/types";
+import type { Customer } from "../../customers/types/customers.types";
+import { getWholesalePricing, hasWholesalePrice, priceSaleCart, priceSaleItem, saleItemPayload, salePricingError } from "../helpers/wholesale-pricing.helpers";
 import { emptyDeliveryProvider, deliveryProviderPayload } from "../../deliveries/helpers/delivery-provider.helpers";
 import { useCallback, useMemo, useRef, useState } from "react";
 import Decimal from "decimal.js";
@@ -89,44 +92,8 @@ const normalizeProductUnitType = (
   return unitType ?? "UNIT";
 };
 
-const hasWholesalePrice = (
-  product: ProductWithStockResponse | CartItem,
-): boolean => {
-  return product.priceWholesale !== null && product.priceWholesale > 0;
-};
-
-const getPriceByType = (
-  product: ProductWithStockResponse | CartItem,
-  priceType: PriceType,
-): number => {
-  if (priceType === "WHOLESALE" && product.priceWholesale !== null) {
-    return product.priceWholesale;
-  }
-
-  return product.priceSale;
-};
-
-const calculateItem = (
-  item: CartItem,
-  quantity: number,
-  discountPercent: number,
-  priceType: PriceType,
-): CartItem => {
-  const unitPrice = getPriceByType(item, priceType);
-  const subtotalBeforeDiscount = new Decimal(unitPrice).mul(quantity);
-  const discountAmount = subtotalBeforeDiscount.mul(discountPercent).div(100);
-  const total = Decimal.max(subtotalBeforeDiscount.minus(discountAmount), 0);
-
-  return {
-    ...item,
-    quantity,
-    unitPrice: toMoney(unitPrice),
-    discountPercent,
-    discountAmount: toMoney(discountAmount),
-    subtotalBeforeDiscount: toMoney(subtotalBeforeDiscount),
-    total: toMoney(total),
-  };
-};
+const calculateItem = (item: CartItem, quantity: number, discountPercent: number, priceType: PriceType): CartItem =>
+  priceSaleItem(item, quantity, discountPercent, priceType === "WHOLESALE" ? "WHOLESALE" : "RETAIL");
 
 const mapErrorsToRecord = (errors: FieldError[]): Record<string, string> => {
   return errors.reduce<Record<string, string>>((acc, error) => {
@@ -135,15 +102,17 @@ const mapErrorsToRecord = (errors: FieldError[]): Record<string, string> => {
   }, {});
 };
 
-export const useSales = () => {
+export const useSales = ({ business, customers }: { business: BusinessResponse | null; customers: Customer[] }) => {
   const [header, setHeader] = useState<SaleHeaderInput>(initialHeader);
   const [delivery, setDelivery] = useState<SaleDeliveryInput>(initialDelivery);
   const [payments, setPayments] = useState<SalePaymentInput[]>([
     createPaymentInput(),
   ]);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartDraft, setCart] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<ProductWithStockResponse[]>([]);
-  const [priceType, setPriceTypeState] = useState<PriceType>("SALE");
+  const [pricingNeedsRefresh, setPricingNeedsRefresh] = useState(false);
+  const productsRequestRef = useRef(0);
+  const currentSaleFingerprintRef = useRef<string | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +124,13 @@ export const useSales = () => {
   const submitLockRef = useRef(false);
   const currentSaleIdempotencyKeyRef = useRef<string | null>(null);
 
+  const selectedCustomer = customers.find((customer) => customer.idCustomer === header.idCustomer) ?? null;
+  const pricing = useMemo(() => getWholesalePricing(business, selectedCustomer, cartDraft, header.idCustomer != null), [business, selectedCustomer, cartDraft, header.idCustomer]);
+  const priceType: PriceType = pricing.effectivePricingType === "WHOLESALE" ? "WHOLESALE" : "SALE";
+  const cart = useMemo(() => priceSaleCart(cartDraft, pricing.effectivePricingType), [cartDraft, pricing.effectivePricingType]);
+  const pricingBlockReason = pricingNeedsRefresh ? "Actualizá y revisá la política, el cliente y los productos antes de reintentar."
+    : pricing.blockReason ?? (cart.some((item) => item.quantity > item.stockQuantity || item.stockQuantity <= 0) ? "Hay productos sin stock disponible. Revisá el carrito actualizado." : null);
+
   const totals = useMemo(() => {
     const subtotal = cart.reduce((acc, item) => {
       return acc.plus(item.subtotalBeforeDiscount);
@@ -162,8 +138,8 @@ export const useSales = () => {
     const itemDiscount = cart.reduce((acc, item) => {
       return acc.plus(item.discountAmount);
     }, new Decimal(0));
-    const globalDiscount = subtotal.mul(header.discountPercent).div(100);
-    const discountTotal = itemDiscount.plus(globalDiscount);
+    const discountTotal = cart.reduce((sum, item) => sum.plus(saleItemPayload(item, header.discountPercent).discount), new Decimal(0));
+    const globalDiscount = discountTotal.minus(itemDiscount);
     const total = Decimal.max(subtotal.minus(discountTotal), 0);
 
     return {
@@ -208,15 +184,17 @@ export const useSales = () => {
 
   const handleApiError = useCallback((error: unknown) => {
     const axiosError = error as AxiosError<ApiErrorResponse>;
-    const backendErrors = axiosError.response?.data?.errors ?? [];
-
-    setError(
-      axiosError.response?.data?.message || "No se pudo procesar la venta",
-    );
-
-    if (backendErrors.length > 0) {
-      setFieldErrors(mapErrorsToRecord(backendErrors));
+    const status = axiosError.response?.status;
+    const pricingFailure = salePricingError(axiosError.response?.data?.code);
+    const message = pricingFailure?.message ?? (!axiosError.response ? "No se pudo confirmar la venta. Reintentá con la misma clave."
+      : status === 403 ? "No tenés permiso para realizar esta operación."
+      : status === 400 ? "Revisá los datos de la venta y los errores indicados." : "No se pudo procesar la venta. Intentá nuevamente.");
+    setError(message);
+    if (pricingFailure?.refresh) setPricingNeedsRefresh(true);
+    if (status === 400 && axiosError.response?.data?.errors?.length) {
+      setFieldErrors(mapErrorsToRecord(axiosError.response.data.errors));
     }
+    return { message, refreshPricing: pricingFailure?.refresh ?? false };
   }, []);
 
   const updateHeaderField = useCallback(
@@ -294,8 +272,10 @@ export const useSales = () => {
   }, []);
 
   const clearCart = useCallback(() => {
+    productsRequestRef.current += 1;
     setCart([]);
     setProducts([]);
+    setLoadingProducts(false);
     setHeader((current) => ({
       ...current,
       discountPercent: 0,
@@ -309,9 +289,12 @@ export const useSales = () => {
     setHeader(initialHeader);
     setDelivery(initialDelivery);
     setPayments([createPaymentInput()]);
+    productsRequestRef.current += 1;
     setCart([]);
     setProducts([]);
-    setPriceTypeState("SALE");
+    setLoadingProducts(false);
+    setPricingNeedsRefresh(false);
+    currentSaleFingerprintRef.current = null;
     setError(null);
     setFieldErrors({});
     setNewSaleId(null);
@@ -325,21 +308,26 @@ export const useSales = () => {
 
   const fetchProductsByDeposit = useCallback(
     async (idDeposit: number) => {
+      const request = ++productsRequestRef.current;
       try {
         setLoadingProducts(true);
-        clearErrors();
-
         const response = await getProductsByDepositRequest(idDeposit);
-
-        setProducts(response.data.data ?? []);
+        if (request !== productsRequestRef.current) return;
+        const nextProducts = response.data.data ?? [];
+        setProducts(nextProducts);
+        setCart((current) => current.map((item) => {
+          const latest = nextProducts.find((product) => product.idProduct === item.idProduct);
+          return latest ? { ...item, priceSale: latest.priceSale, priceWholesale: latest.priceWholesale, stockQuantity: latest.stockQuantity, unitType: latest.unitType }
+            : { ...item, priceWholesale: null, stockQuantity: 0 };
+        }));
+        return nextProducts;
       } catch (error) {
-        handleApiError(error);
-        setProducts([]);
+        if (request === productsRequestRef.current) { handleApiError(error); setProducts([]); }
       } finally {
-        setLoadingProducts(false);
+        if (request === productsRequestRef.current) setLoadingProducts(false);
       }
     },
-    [clearErrors, handleApiError],
+    [handleApiError],
   );
 
   const changeDeposit = async (idDeposit: number): Promise<boolean> => {
@@ -360,38 +348,21 @@ export const useSales = () => {
       idDeposit,
     }));
 
+    clearErrors();
     await fetchProductsByDeposit(idDeposit);
 
     return true;
   };
 
-  const setPriceType = (nextPriceType: PriceType) => {
-    setPriceTypeState(nextPriceType);
-    setCart((current) =>
-      current
-        .filter((item) => {
-          return nextPriceType === "SALE" || hasWholesalePrice(item);
-        })
-        .map((item) => {
-          return calculateItem(
-            item,
-            item.quantity,
-            item.discountPercent,
-            nextPriceType,
-          );
-        }),
-    );
-  };
-
   const addToCart = (items: ProductSelection[]) => {
+    if (pricing.requiresWholesalePrice && items.some(({ product }) => !hasWholesalePrice(product))) {
+      setError("Este cliente requiere productos con precio mayorista. No se agregó ningún producto de la selección.");
+      return false;
+    }
     setCart((current) => {
       const nextCart = [...current];
 
       items.forEach(({ product, quantity }) => {
-        if (priceType === "WHOLESALE" && !hasWholesalePrice(product)) {
-          return;
-        }
-
         const existingIndex = nextCart.findIndex(
           (item) => item.idProduct === product.idProduct,
         );
@@ -427,7 +398,7 @@ export const useSales = () => {
           priceWholesale: product.priceWholesale,
           unitType,
           quantity: safeQuantity,
-          unitPrice: getPriceByType(product, priceType),
+          unitPrice: product.priceSale,
           discountPercent: 0,
           discountAmount: 0,
           subtotalBeforeDiscount: 0,
@@ -439,6 +410,7 @@ export const useSales = () => {
 
       return nextCart;
     });
+    return true;
   };
 
   const removeFromCart = (idProduct: number) => {
@@ -487,26 +459,7 @@ export const useSales = () => {
   };
 
   const buildPayload = (cashSessionId?: number): CreateSalePayload => {
-    const payloadItems = cart.map((item) => {
-      const globalDiscountAmount = new Decimal(item.subtotalBeforeDiscount)
-        .mul(header.discountPercent)
-        .div(100);
-      const totalDiscount = new Decimal(item.discountAmount).plus(
-        globalDiscountAmount,
-      );
-      const total = Decimal.max(
-        new Decimal(item.subtotalBeforeDiscount).minus(totalDiscount),
-        0,
-      );
-
-      return {
-        idProduct: item.idProduct,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        discount: toMoney(totalDiscount),
-        total: toMoney(total),
-      };
-    });
+    const payloadItems = cart.map((item) => saleItemPayload(item, header.discountPercent));
     const subtotal = cart.reduce((acc, item) => {
       return acc.plus(item.subtotalBeforeDiscount);
     }, new Decimal(0));
@@ -538,6 +491,7 @@ export const useSales = () => {
           ];
 
     return {
+      pricingType: pricing.effectivePricingType,
       idCustomer: header.idCustomer,
       idDeposit: Number(header.idDeposit),
       idCashSession: Number(cashSessionId ?? header.idCashSession),
@@ -578,9 +532,13 @@ export const useSales = () => {
       };
     }
 
+    if (pricingBlockReason || !paymentTotals.isBalanced || cart.length === 0) {
+      const message = pricingBlockReason ?? "Revisá el carrito y el balance de pagos antes de registrar la venta.";
+      setError(message);
+      return { status: false, message };
+    }
+
     submitLockRef.current = true;
-    currentSaleIdempotencyKeyRef.current =
-      currentSaleIdempotencyKeyRef.current ?? createIdempotencyKey();
 
     try {
       setSaleLifecycle("PROCESSING");
@@ -588,6 +546,11 @@ export const useSales = () => {
       clearErrors();
 
       const payload = buildPayload(cashSessionId);
+      const fingerprint = JSON.stringify(payload);
+      if (!currentSaleIdempotencyKeyRef.current || currentSaleFingerprintRef.current !== fingerprint) {
+        currentSaleIdempotencyKeyRef.current = createIdempotencyKey();
+        currentSaleFingerprintRef.current = fingerprint;
+      }
       const response = await createSaleRequest(
         payload,
         currentSaleIdempotencyKeyRef.current,
@@ -608,10 +571,10 @@ export const useSales = () => {
         data: response.data.data,
       };
     } catch (error) {
-      handleApiError(error);
+      const failure = handleApiError(error);
       const axiosError = error as AxiosError<ApiErrorResponse>;
 
-      if (axiosError.response) {
+      if (axiosError.response && axiosError.response.status < 500 && axiosError.response.data?.code !== "SALE_CONCURRENT_CHANGE") {
         currentSaleIdempotencyKeyRef.current = null;
       }
 
@@ -619,13 +582,15 @@ export const useSales = () => {
 
       return {
         status: false,
-        message: "No se pudo crear la venta",
+        ...failure,
       };
     } finally {
       submitLockRef.current = false;
       setSaving(false);
     }
   };
+
+  const acknowledgePricingRefresh = useCallback(() => setPricingNeedsRefresh(false), []);
 
   return {
     header,
@@ -636,6 +601,10 @@ export const useSales = () => {
     totals,
     paymentTotals,
     priceType,
+    pricing,
+    pricingBlockReason,
+    pricingNeedsRefresh,
+    acknowledgePricingRefresh,
     saleLifecycle,
     loadingProducts,
     saving,
@@ -645,7 +614,6 @@ export const useSales = () => {
     newSaleId,
     newSaleNumber,
     isSaleCompleted: saleLifecycle === "COMPLETED",
-    setPriceType,
     updateHeaderField,
     updateDeliveryField,
     toggleDelivery,

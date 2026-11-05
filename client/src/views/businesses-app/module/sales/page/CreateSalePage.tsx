@@ -1,3 +1,4 @@
+import { useBusinesses } from "../../businesses/hooks/useBusinesses";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -33,6 +34,8 @@ import { createSaleFormSchema } from "../validations/sales.validations";
 export const CreateSalePage = () => {
   const navigate = useNavigate();
   const canViewCash = useCan("cash.view");
+  const { business, getBusiness, loading: businessLoading } = useBusinesses();
+  const [pricingRefreshFailed, setPricingRefreshFailed] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [barcodeSearch, setBarcodeSearch] = useState("");
@@ -41,6 +44,8 @@ export const CreateSalePage = () => {
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [initialViewResolved, setInitialViewResolved] = useState(false);
   const defaultDepositWasSelected = useRef(false);
+  const checkoutLockRef = useRef(false);
+  const [checkingCheckout, setCheckingCheckout] = useState(false);
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
@@ -83,7 +88,11 @@ export const CreateSalePage = () => {
     isOpenSuccessModal,
     newSaleId,
     newSaleNumber,
-    setPriceType,
+    pricing,
+    pricingBlockReason,
+    pricingNeedsRefresh,
+    acknowledgePricingRefresh,
+    fetchProductsByDeposit,
     updateHeaderField,
     updateDeliveryField,
     toggleDelivery,
@@ -99,7 +108,7 @@ export const CreateSalePage = () => {
     submitSale,
     setValidationErrors,
     resetSaleState,
-  } = useSales();
+  } = useSales({ business, customers });
 
   const activeDeposits = useMemo(() => {
     return deposits.filter((deposit) => deposit.isActive);
@@ -124,6 +133,8 @@ export const CreateSalePage = () => {
 
   const disabledReason = useMemo(() => {
     if (isSaleCompleted) return "La venta ya fue registrada.";
+    if (pricingRefreshFailed) return "Actualizá los datos de precios antes de continuar.";
+    if (pricingBlockReason) return pricingBlockReason;
     if (!currentSession || currentSession.status !== "OPEN") {
       return "Debes abrir una caja antes de registrar una venta.";
     }
@@ -142,12 +153,15 @@ export const CreateSalePage = () => {
     header.idDeposit,
     isSaleCompleted,
     paymentTotals.isBalanced,
+    pricingBlockReason,
+    pricingRefreshFailed,
   ]);
 
-  const submitDisabled = saving || Boolean(disabledReason);
+  const submitDisabled = saving || checkingCheckout || Boolean(disabledReason);
   const isPreparingSaleView =
     !initialViewResolved &&
     (!initialDataLoaded ||
+      businessLoading ||
       customersLoading ||
       depositsLoading ||
       paymentMethodsLoading ||
@@ -178,6 +192,7 @@ export const CreateSalePage = () => {
     };
 
     void Promise.allSettled([
+      getBusiness(),
       getCustomers(),
       getDeposits(),
       getPaymentMethods(true),
@@ -194,6 +209,7 @@ export const CreateSalePage = () => {
       resetDeposits();
     };
   }, [
+    getBusiness,
     getCustomers,
     getDeposits,
     getPaymentMethods,
@@ -371,7 +387,7 @@ export const CreateSalePage = () => {
     }
 
     if (
-      priceType === "WHOLESALE" &&
+      pricing.requiresWholesalePrice &&
       (product.priceWholesale === null || product.priceWholesale <= 0)
     ) {
       toast.error("Este producto no tiene precio mayorista cargado");
@@ -390,7 +406,7 @@ export const CreateSalePage = () => {
       return;
     }
 
-    addToCart([{ product, quantity: 1 }]);
+    if (!addToCart([{ product, quantity: 1 }])) return;
     toast.success(`${product.name} agregado al carrito`);
     setBarcodeSearch("");
   }, [
@@ -401,7 +417,7 @@ export const CreateSalePage = () => {
     header.idDeposit,
     isSaleCompleted,
     loadingProducts,
-    priceType,
+    pricing.requiresWholesalePrice,
     products,
   ]);
 
@@ -426,6 +442,16 @@ export const CreateSalePage = () => {
     setIsProductModalOpen(true);
   }, [currentSession, header.idDeposit, isSaleCompleted]);
 
+  const refreshPricingContext = useCallback(async () => {
+    const results = await Promise.allSettled([getBusiness(), getCustomers(), header.idDeposit ? fetchProductsByDeposit(header.idDeposit) : Promise.resolve([])]);
+    const success = results.every((result) => result.status === "fulfilled")
+      && results[0].status === "fulfilled" && Boolean(results[0].value)
+      && results[2].status === "fulfilled" && results[2].value !== undefined;
+    setPricingRefreshFailed(!success);
+    if (success) acknowledgePricingRefresh();
+    return success;
+  }, [getBusiness, getCustomers, header.idDeposit, fetchProductsByDeposit, acknowledgePricingRefresh]);
+
   const handleSubmit = useCallback(async () => {
     if (isSaleCompleted) {
       toast("La venta ya fue registrada. Inicia una nueva venta para continuar.", {
@@ -434,17 +460,24 @@ export const CreateSalePage = () => {
       return;
     }
 
-    const latestSession = await refreshCurrentSession();
-
-    if (!latestSession || latestSession.status !== "OPEN") {
-      updateHeaderField("idCashSession", null);
-      toast.error("Debes abrir una caja antes de registrar una venta.");
+    if (pricingBlockReason || pricingRefreshFailed) {
+      toast.error(pricingBlockReason ?? "Actualizá los datos de precios antes de continuar.");
       return;
     }
-
-    updateHeaderField("idCashSession", latestSession.idCashSession);
-
+    if (checkoutLockRef.current) return;
+    checkoutLockRef.current = true;
+    setCheckingCheckout(true);
     try {
+      const latestSession = await refreshCurrentSession();
+
+      if (!latestSession || latestSession.status !== "OPEN") {
+        updateHeaderField("idCashSession", null);
+        toast.error("Debes abrir una caja antes de registrar una venta.");
+        return;
+      }
+
+      updateHeaderField("idCashSession", latestSession.idCashSession);
+
       createSaleFormSchema.parse({
         idCustomer: header.idCustomer ? header.idCustomer : null,
         idDeposit: header.idDeposit,
@@ -484,15 +517,24 @@ export const CreateSalePage = () => {
         return;
       }
 
-      const { status, message } = await submitSale(latestSession.idCashSession);
-
-      if (!status) {
-        toast.error(message);
+      const result = await submitSale(latestSession.idCashSession);
+      if (!result.status) {
+        toast.error(result.message);
+        if ("refreshPricing" in result && result.refreshPricing) {
+          const refreshed = await refreshPricingContext();
+          toast(refreshed ? "Se actualizaron política, cliente y productos. Revisá el carrito y los pagos antes de confirmar." : "No se pudieron actualizar los datos. Reintentá la carga antes de confirmar.");
+        }
+      } else if ("data" in result && result.data?.pricingType === "WHOLESALE") {
+        try { await getCustomers(); }
+        catch { setPricingRefreshFailed(true); toast.error("La venta se registró. Actualizá Clientes antes de iniciar otra venta."); }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
         setValidationErrors(mapZodErrors(error));
       }
+    } finally {
+      checkoutLockRef.current = false;
+      setCheckingCheckout(false);
     }
   }, [
     cart,
@@ -506,6 +548,10 @@ export const CreateSalePage = () => {
     setValidationErrors,
     submitSale,
     totals.total,
+    pricingBlockReason,
+    pricingRefreshFailed,
+    refreshPricingContext,
+    getCustomers,
     updateHeaderField,
   ]);
 
@@ -515,7 +561,7 @@ export const CreateSalePage = () => {
       void handleSubmit();
     },
     isCartEmpty: cart.length === 0,
-    isLoading: saving,
+    isLoading: saving || checkingCheckout,
     isBlocked: isOpenSuccessModal || isSaleCompleted,
   });
 
@@ -540,7 +586,7 @@ export const CreateSalePage = () => {
           />
         ) : (
           <>
-            {saving && (
+            {(saving || checkingCheckout) && (
               <ViewProcessingOverlay
                 message="Procesando venta..."
                 description="Registrando la operación y actualizando el stock."
@@ -577,6 +623,10 @@ export const CreateSalePage = () => {
               </Card>
             )}
 
+            {(!business || pricingNeedsRefresh || pricingRefreshFailed) && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-300 p-3 text-sm">
+              <p>No se pudo validar la configuración de precios. Actualizá los datos antes de registrar la venta.</p>
+              <Button type="button" variant="outline" disabled={businessLoading || customersLoading || loadingProducts || saving} onClick={() => { void refreshPricingContext(); }}>Actualizar datos de precios</Button>
+            </div>}
             <SaleContextSection
               cashSession={currentSession}
               selectedCustomer={selectedCustomer}
@@ -596,11 +646,14 @@ export const CreateSalePage = () => {
               }}
             />
 
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-              <section className="space-y-5">
+            <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <section className="min-w-0 space-y-5">
                 <ProductEntrySection
                   barcode={barcodeSearch}
-                  priceType={priceType}
+                  pricingType={pricing.effectivePricingType}
+                  pricing={pricing}
+                  business={business}
+                  customer={selectedCustomer}
                   disabled={
                     !header.idDeposit || !currentSession || isSaleCompleted
                   }
@@ -609,7 +662,6 @@ export const CreateSalePage = () => {
                   onBarcodeChange={setBarcodeSearch}
                   onBarcodeSubmit={handleBarcodeSubmit}
                   onOpenProductSearch={handleOpenProductSearch}
-                  onPriceTypeChange={setPriceType}
                 />
 
                 <SaleCartSection
@@ -625,7 +677,7 @@ export const CreateSalePage = () => {
                 />
               </section>
 
-              <section className="space-y-4">
+              <section className="min-w-0 space-y-4">
                 <SaleCheckoutPanel
                   totals={totals}
                   paymentTotals={paymentTotals}
@@ -650,7 +702,7 @@ export const CreateSalePage = () => {
                   paymentMethodsLoading={paymentMethodsLoading}
                   totals={paymentTotals}
                   hasDelivery={delivery.enabled}
-                  disabled={isSaleCompleted || saving}
+                  disabled={isSaleCompleted || saving || checkingCheckout}
                   errors={fieldErrors}
                   onAddPayment={addPaymentRow}
                   onRemovePayment={removePaymentRow}
@@ -661,7 +713,7 @@ export const CreateSalePage = () => {
                   delivery={delivery}
                   deliveryUsers={deliveryUsers}
                   loadingUsers={deliveryUsersLoading}
-                  disabled={isSaleCompleted || saving}
+                  disabled={isSaleCompleted || saving || checkingCheckout}
                   errors={fieldErrors}
                   onToggle={handleDeliveryToggle}
                   onDeliveryChange={updateDeliveryField}
@@ -673,10 +725,11 @@ export const CreateSalePage = () => {
               isOpen={isProductModalOpen}
               products={products}
               priceType={priceType}
+              requireWholesalePrice={pricing.requiresWholesalePrice}
               loading={loadingProducts}
               onClose={() => setIsProductModalOpen(false)}
               onConfirm={(items) => {
-                addToCart(items);
+                if (!addToCart(items)) return;
                 if (items.length === 1) {
                   toast.success(`${items[0].product.name} agregado al carrito`);
                 } else if (items.length > 1) {

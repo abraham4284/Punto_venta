@@ -46,6 +46,7 @@ export const CustomersTable = ({
         <TableHeader>
           <TableRow>
             <TableHead>Cliente</TableHead>
+            <TableHead>Tipo de cliente</TableHead>
             <TableHead>Documento</TableHead>
             <TableHead>Teléfono</TableHead>
             <TableHead>Email</TableHead>
@@ -59,6 +60,10 @@ export const CustomersTable = ({
           {customers.map((customer) => (
             <TableRow key={customer.idCustomer}>
               <TableCell className="font-medium">{customer.fullName}</TableCell>
+              <TableCell>
+                <Badge variant={customer.pricingTier === "WHOLESALE" ? "default" : "secondary"}>{customer.pricingTier === "WHOLESALE" ? "Mayorista" : "Minorista"}</Badge>
+                {customer.pricingTier === "WHOLESALE" && customer.wholesaleSince && <p className="mt-1 whitespace-nowrap text-xs text-muted-foreground">Desde {new Date(customer.wholesaleSince).toLocaleDateString("es-AR")}</p>}
+              </TableCell>
               <TableCell>{getCustomerDocumentLabel(customer)}</TableCell>
               <TableCell>{customer.phone || "-"}</TableCell>
               <TableCell>{customer.email || "-"}</TableCell>

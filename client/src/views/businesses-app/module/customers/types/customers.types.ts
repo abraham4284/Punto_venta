@@ -1,6 +1,10 @@
 export type CustomerDocumentType = "DNI" | "CUIL" | "CUIT" | "PASSPORT" | "OTHER";
 
+export type CustomerPricingTier = "RETAIL" | "WHOLESALE";
+
 export interface Customer {
+  pricingTier: CustomerPricingTier;
+  wholesaleSince: string | null;
   idCustomer: number;
   idBusiness: number;
   firstName: string;

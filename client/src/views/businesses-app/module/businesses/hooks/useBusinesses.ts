@@ -53,8 +53,11 @@ export const useBusinesses = () => {
       const response = await getBusinessRequest();
 
       setBusiness(response.data.data);
+      return response.data.data;
     } catch (error) {
+      setBusiness(null);
       handleApiError(error);
+      return null;
     } finally {
       setLoading(false);
     }

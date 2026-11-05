@@ -57,6 +57,8 @@ export const BUSINESS_TYPE_OPTIONS: { value: BusinessType; label: string }[] = [
 ];
 
 export interface BusinessResponse {
+  wholesaleEnabled: boolean;
+  wholesaleMinimumAmount: number | null;
   idBusiness: number;
   name: string;
   slug: string;
@@ -67,6 +69,8 @@ export interface BusinessResponse {
 }
 
 export interface UpdateBusinessBody {
+  wholesaleEnabled: boolean;
+  wholesaleMinimumAmount: number | null;
   name: string;
   slug: string;
   logoUrl: string | null;
@@ -74,6 +78,8 @@ export interface UpdateBusinessBody {
 }
 
 export interface BusinessFormValues {
+  wholesaleEnabled: boolean;
+  wholesaleMinimumAmount: string;
   name: string;
   slug: string;
   logoUrl: string;
