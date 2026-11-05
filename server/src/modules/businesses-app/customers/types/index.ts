@@ -4,6 +4,8 @@ import type { BusinessRequestUser } from "@/types/auth.types.js";
 export type CustomerDocumentType = "DNI" | "CUIL" | "CUIT" | "PASSPORT" | "OTHER";
 
 export interface CustomerDbRow {
+  pricing_tier: "RETAIL" | "WHOLESALE";
+  wholesale_since: Date | null;
   idCustomer: number;
   idBusiness: number;
   first_name: string;
@@ -20,6 +22,8 @@ export interface CustomerDbRow {
 }
 
 export interface CustomerResponse {
+  pricingTier: "RETAIL" | "WHOLESALE";
+  wholesaleSince: Date | null;
   idCustomer: number;
   idBusiness: number;
   firstName: string;

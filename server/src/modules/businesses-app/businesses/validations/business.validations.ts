@@ -4,6 +4,8 @@ const emptyStringToNull = z.literal("").transform(() => null);
 
 export const updateBusinessSchema = z
   .object({
+    wholesaleEnabled: z.boolean().optional(),
+    wholesaleMinimumAmount: z.number().positive().max(999999999999.99).multipleOf(0.01).nullable().optional(),
     name: z
       .string()
       .trim()
@@ -37,6 +39,14 @@ export const updateBusinessSchema = z
       .optional(),
   })
   .strict()
+  .superRefine(function validateWholesalePolicy(data, ctx) {
+    if ((data.wholesaleEnabled !== undefined) !== (data.wholesaleMinimumAmount !== undefined)) {
+      ctx.addIssue({ code: "custom", path: ["wholesaleMinimumAmount"], message: "Enviar wholesaleEnabled y wholesaleMinimumAmount juntos" });
+    }
+    if (data.wholesaleEnabled === true && data.wholesaleMinimumAmount == null) {
+      ctx.addIssue({ code: "custom", path: ["wholesaleMinimumAmount"], message: "El minimo mayorista habilitado debe ser positivo" });
+    }
+  })
   .refine((data) => Object.keys(data).length > 0, {
     message: "Debes enviar al menos un campo para actualizar",
   });

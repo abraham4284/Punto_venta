@@ -3,6 +3,8 @@ import type { CustomerDbRow, CustomerResponse } from "../types/index.js";
 export function mapCustomer(customer: CustomerDbRow): CustomerResponse {
   return {
     idCustomer: customer.idCustomer,
+    pricingTier: customer.pricing_tier,
+    wholesaleSince: customer.wholesale_since,
     idBusiness: customer.idBusiness,
     firstName: customer.first_name,
     lastName: customer.last_name,

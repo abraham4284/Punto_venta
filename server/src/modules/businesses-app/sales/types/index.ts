@@ -2,6 +2,8 @@ import type { DeliveryProvider } from "../../deliveries/validations/delivery-pro
 import type { Request } from "express";
 import type { BusinessRequestUser } from "@/types/auth.types.js";
 
+export type SalePricingType = "RETAIL" | "WHOLESALE";
+
 export type SaleStatus = "COMPLETED" | "CANCELLED";
 export type ProductUnitType = "UNIT" | "KG" | "GRAM" | "LITER" | "METER";
 export type SalePaymentStatus = "PENDING" | "COLLECTED" | "CONFIRMED" | "CANCELLED";
@@ -19,6 +21,7 @@ export type SaleSettlementFilter =
   | "NO_PENDING_SETTLEMENT";
 
 export interface SaleDbRow {
+  pricing_type: SalePricingType | null;
   idOrder: number | null;
   delivery_fee: string | number;
   idSale: number;
@@ -125,6 +128,7 @@ export interface CreateSaleDeliveryPayload extends DeliveryProvider {
 }
 
 export interface CreateSalePayload {
+  pricingType?: SalePricingType;
   /** Internal only: not accepted by the direct Sales HTTP schema. */
   idOrder?: number | null;
   deliveryFee?: number;
@@ -204,6 +208,7 @@ export interface SalesSummary {
 }
 
 export interface SaleResponse {
+  pricingType: SalePricingType | null;
   idOrder: number | null;
   deliveryFee: number;
   idSale: number;

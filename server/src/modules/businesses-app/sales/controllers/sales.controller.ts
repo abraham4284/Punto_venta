@@ -1,4 +1,5 @@
 import { deliveryDomainError } from "../../deliveries/helpers/delivery-errors.helper.js";
+import { WholesalePricingError } from "../helpers/wholesale-pricing.helper.js";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -114,6 +115,9 @@ export async function createSaleController(
       data: result.sale,
     });
   } catch (error: unknown) {
+    if (error instanceof WholesalePricingError) {
+      return res.status(400).json({ status: false, code: error.code, message: error.message });
+    }
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         status: false,
@@ -130,7 +134,11 @@ export async function createSaleController(
       });
     }
 
-    const message = getControllerMessage(toControllerError(error));
+    const parsed = toControllerError(error);
+    if (parsed.code === "ER_LOCK_DEADLOCK" || parsed.code === "ER_LOCK_WAIT_TIMEOUT" || parsed.errno === 1213 || parsed.errno === 1205) {
+      return res.status(409).json({ status: false, code: "SALE_CONCURRENT_CHANGE", message: "La venta tuvo un conflicto concurrente; reintente con la misma clave" });
+    }
+    const message = getControllerMessage(parsed);
     if (isIdempotencyError(message)) {
       return res.status(400).json({
         status: false,
@@ -138,9 +146,14 @@ export async function createSaleController(
       });
     }
 
+    const deliveryError = deliveryDomainError(error);
+    // Only intentional SQL domain signals may be returned. Engine errors remain private.
+    if (!deliveryError && parsed.sqlState !== "45000" && parsed.errno !== 1644) {
+      return res.status(500).json({ status: false, message: "No se pudo registrar la venta" });
+    }
     return res.status(getSaleErrorStatus(message)).json({
       status: false,
-      message: deliveryDomainError(error)?.message ?? message,
+      message: deliveryError?.message ?? message,
     });
   }
 }

@@ -72,6 +72,7 @@ export const createSaleDetailSchema = z
 
 export const createSaleSchema = z
   .object({
+    pricingType: z.enum(["RETAIL", "WHOLESALE"]).default("RETAIL"),
     idBusiness: z
       .number({ error: "El negocio es obligatorio" })
       .int("El negocio debe ser un numero entero")

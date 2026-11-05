@@ -9,7 +9,9 @@ BEGIN
     b.name,
     b.slug,
     b.logo_url,
-    b.business_type
+    b.business_type,
+    b.wholesale_enabled,
+    b.wholesale_minimum_amount
   FROM businesses b
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
@@ -61,6 +63,7 @@ BEGIN
     p.slug,
     p.description,
     p.price_sale,
+    p.price_wholesale,
     p.image_url,
     p.sale_mode,
     p.availability_note,
@@ -169,6 +172,7 @@ BEGIN
     p.description,
     p.rich_content,
     p.price_sale,
+    p.price_wholesale,
     p.image_url,
     p.sale_mode,
     p.availability_note,

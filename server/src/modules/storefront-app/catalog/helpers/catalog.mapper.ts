@@ -37,6 +37,10 @@ export function mapPublicCatalogBusiness(
     slug: row.slug,
     logoUrl: row.logo_url,
     businessType: row.business_type,
+    pricing: {
+      wholesaleEnabled: Boolean(row.wholesale_enabled),
+      wholesaleMinimumAmount: row.wholesale_minimum_amount == null ? null : Number(row.wholesale_minimum_amount),
+    },
   };
 }
 
@@ -62,6 +66,8 @@ export function mapPublicCatalogProductListItem(
     slug: row.slug,
     description: row.description,
     price: toNumber(row.price_sale),
+    priceSale: toNumber(row.price_sale),
+    priceWholesale: row.price_wholesale == null ? null : toNumber(row.price_wholesale),
     imageUrl: row.image_url,
     category: {
       idProductCategory: row.idProductCategory,
@@ -98,6 +104,8 @@ export function mapPublicCatalogProductDetail(
     slug: base.slug,
     description: base.description,
     price: base.price,
+    priceSale: base.priceSale,
+    priceWholesale: base.priceWholesale,
     imageUrl: base.imageUrl,
     category: base.category,
     saleMode: base.saleMode,

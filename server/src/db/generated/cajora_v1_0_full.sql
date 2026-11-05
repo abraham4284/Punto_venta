@@ -25,6 +25,8 @@
 */
 
 CREATE TABLE IF NOT EXISTS `businesses` (
+  `wholesale_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `wholesale_minimum_amount` decimal(18,2) DEFAULT NULL,
   `idBusiness` int NOT NULL AUTO_INCREMENT,
   `name` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `slug` varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -285,6 +287,8 @@ CREATE TABLE IF NOT EXISTS `notification_recipients` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `customers` (
+  `pricing_tier` enum('RETAIL','WHOLESALE') NOT NULL DEFAULT 'RETAIL',
+  `wholesale_since` datetime DEFAULT NULL,
   `idCustomer` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `first_name` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -484,6 +488,7 @@ CREATE TABLE IF NOT EXISTS `purchase_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `sales` (
+  `pricing_type` enum('RETAIL','WHOLESALE') DEFAULT NULL,
   `idSale` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `idDeposit` int NOT NULL,
@@ -1199,6 +1204,11 @@ CALL sp_add_check_if_not_exists('sale_deliveries', 'chk_delivery_provider', 'ALT
 CALL sp_add_check_if_not_exists('sale_returns', 'chk_return_amounts', 'ALTER TABLE `sale_returns` ADD CONSTRAINT `chk_return_amounts` CHECK (merchandise_amount >= 0 AND delivery_fee_refund >= 0 AND total_refund >= 0 AND total_refund = merchandise_amount + delivery_fee_refund)');
 CALL sp_add_check_if_not_exists('sale_return_items', 'chk_return_item', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `chk_return_item` CHECK (quantity > 0 AND refund_amount >= 0 AND restock IN (0,1))');
 CALL sp_add_check_if_not_exists('sale_refunds', 'chk_refund_amount', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `chk_refund_amount` CHECK (amount > 0 AND ((idCashSession IS NULL AND idCashMovement IS NULL) OR (idCashSession IS NOT NULL AND idCashMovement IS NOT NULL)))');
+
+-- F10.1 Wholesale pricing
+CALL sp_add_check_if_not_exists('businesses', 'chk_business_wholesale', 'ALTER TABLE businesses ADD CONSTRAINT chk_business_wholesale CHECK (wholesale_enabled IN (0,1) AND (wholesale_minimum_amount IS NULL OR wholesale_minimum_amount > 0) AND (wholesale_enabled = 0 OR wholesale_minimum_amount IS NOT NULL))');
+CALL sp_add_check_if_not_exists('customers', 'chk_customer_pricing_tier', 'ALTER TABLE customers ADD CONSTRAINT chk_customer_pricing_tier CHECK ((pricing_tier = ''RETAIL'' AND wholesale_since IS NULL) OR (pricing_tier = ''WHOLESALE'' AND wholesale_since IS NOT NULL))');
+CALL sp_add_check_if_not_exists('sales', 'chk_sale_wholesale_customer', 'ALTER TABLE sales ADD CONSTRAINT chk_sale_wholesale_customer CHECK (pricing_type IS NULL OR pricing_type <> ''WHOLESALE'' OR idCustomer IS NOT NULL)');
 
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
@@ -3508,6 +3518,8 @@ BEGIN
     slug,
     logo_url,
     business_type,
+    wholesale_enabled,
+    wholesale_minimum_amount,
     status,
     is_active,
     created_at,
@@ -3530,7 +3542,9 @@ CREATE PROCEDURE sp_update_business(
   IN p_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_logo_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_logo_url TINYINT,
-  IN p_business_type VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+  IN p_business_type VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_wholesale_enabled TINYINT,
+  IN p_wholesale_minimum_amount DECIMAL(18,2)
 )
 BEGIN
   UPDATE businesses
@@ -3542,6 +3556,8 @@ BEGIN
       ELSE logo_url
     END,
     business_type = COALESCE(p_business_type, business_type),
+    wholesale_enabled = COALESCE(p_wholesale_enabled, wholesale_enabled),
+    wholesale_minimum_amount = CASE WHEN p_wholesale_enabled IS NULL THEN wholesale_minimum_amount ELSE p_wholesale_minimum_amount END,
     updated_at = NOW()
   WHERE idBusiness = p_idBusiness
     AND is_active = 1;
@@ -3552,6 +3568,8 @@ BEGIN
     slug,
     logo_url,
     business_type,
+    wholesale_enabled,
+    wholesale_minimum_amount,
     status,
     is_active,
     created_at,
@@ -8606,7 +8624,9 @@ BEGIN
     b.name,
     b.slug,
     b.logo_url,
-    b.business_type
+    b.business_type,
+    b.wholesale_enabled,
+    b.wholesale_minimum_amount
   FROM businesses b
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
@@ -8658,6 +8678,7 @@ BEGIN
     p.slug,
     p.description,
     p.price_sale,
+    p.price_wholesale,
     p.image_url,
     p.sale_mode,
     p.availability_note,
@@ -8766,6 +8787,7 @@ BEGIN
     p.description,
     p.rich_content,
     p.price_sale,
+    p.price_wholesale,
     p.image_url,
     p.sale_mode,
     p.availability_note,
@@ -8845,7 +8867,7 @@ DELIMITER $$
 CREATE PROCEDURE sp_get_customer_by_id(IN p_idBusiness INT, IN p_idCustomer INT)
 BEGIN
   SELECT idCustomer, idBusiness, first_name, last_name, document_type, document_number,
-    phone, email, address, observation, is_active, created_at, updated_at
+    phone, email, address, observation, is_active, pricing_tier, wholesale_since, created_at, updated_at
   FROM customers
   WHERE idBusiness = p_idBusiness AND idCustomer = p_idCustomer
   LIMIT 1;
@@ -8895,7 +8917,7 @@ BEGIN
   -- Preserve the original text for names/passports; normalize only the numeric alternative.
   SET v_document_search = REGEXP_REPLACE(v_search, '[[:space:].-]', '');
   SELECT idCustomer, idBusiness, first_name, last_name, document_type, document_number,
-    phone, email, address, observation, is_active, created_at, updated_at
+    phone, email, address, observation, is_active, pricing_tier, wholesale_since, created_at, updated_at
   FROM customers
   WHERE idBusiness = p_idBusiness
     AND (
@@ -11599,6 +11621,7 @@ CREATE PROCEDURE sp_create_sale(
 BEGIN
   DECLARE v_idSale INT;
   DECLARE v_existingOrder INT;
+  DECLARE v_customerActive TINYINT;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashRegisterActive TINYINT;
   DECLARE v_existingSaleNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -11685,15 +11708,18 @@ BEGIN
       SET MESSAGE_TEXT = 'El deposito indicado no pertenece al negocio o esta inactivo';
   END IF;
 
-  IF p_idCustomer IS NOT NULL AND NOT EXISTS (
-    SELECT 1
+  -- Lock before the Sales FK takes a shared customer lock. This avoids two concurrent
+  -- inserts later upgrading shared FK locks when the first wholesale purchase promotes.
+  IF p_idCustomer IS NOT NULL THEN
+    SELECT is_active INTO v_customerActive
     FROM customers
     WHERE idCustomer = p_idCustomer
       AND idBusiness = p_idBusiness
-      AND is_active = 1
-  ) THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'El cliente indicado no pertenece al negocio o esta inactivo';
+    LIMIT 1 FOR UPDATE;
+    IF v_customerActive IS NULL OR v_customerActive <> 1 THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El cliente indicado no pertenece al negocio o esta inactivo';
+    END IF;
   END IF;
 
   INSERT INTO sales (
@@ -11703,6 +11729,7 @@ BEGIN
     idempotency_key,
     idCustomer,
     idOrder,
+    pricing_type,
     delivery_fee,
     idDeposit,
     idCashSession,
@@ -11721,6 +11748,7 @@ BEGIN
     p_idempotency_key,
     p_idCustomer,
     p_idOrder,
+    'RETAIL',
     COALESCE(p_delivery_fee, 0),
     p_idDeposit,
     p_idCashSession,
@@ -12152,6 +12180,7 @@ BEGIN
     END AS payment_status,
     s.sale_date,
     s.idOrder,
+    s.pricing_type,
     s.delivery_fee,
     s.subtotal,
     s.discount_total,
@@ -12271,6 +12300,7 @@ BEGIN
     s.idCashSession,
     s.sale_date,
     s.idOrder,
+    s.pricing_type,
     s.delivery_fee,
     s.subtotal,
     s.discount_total,
@@ -12435,6 +12465,7 @@ BEGIN
     END AS payment_status,
     s.sale_date,
     s.idOrder,
+    s.pricing_type,
     s.delivery_fee,
     s.subtotal,
     s.discount_total,
@@ -12478,6 +12509,7 @@ BEGIN
     s.idCashSession,
     s.sale_date,
     s.idOrder,
+    s.pricing_type,
     s.delivery_fee,
     s.subtotal,
     s.discount_total,

@@ -123,6 +123,11 @@ CALL sp_add_check_if_not_exists('sale_returns', 'chk_return_amounts', 'ALTER TAB
 CALL sp_add_check_if_not_exists('sale_return_items', 'chk_return_item', 'ALTER TABLE `sale_return_items` ADD CONSTRAINT `chk_return_item` CHECK (quantity > 0 AND refund_amount >= 0 AND restock IN (0,1))');
 CALL sp_add_check_if_not_exists('sale_refunds', 'chk_refund_amount', 'ALTER TABLE `sale_refunds` ADD CONSTRAINT `chk_refund_amount` CHECK (amount > 0 AND ((idCashSession IS NULL AND idCashMovement IS NULL) OR (idCashSession IS NOT NULL AND idCashMovement IS NOT NULL)))');
 
+-- F10.1 Wholesale pricing
+CALL sp_add_check_if_not_exists('businesses', 'chk_business_wholesale', 'ALTER TABLE businesses ADD CONSTRAINT chk_business_wholesale CHECK (wholesale_enabled IN (0,1) AND (wholesale_minimum_amount IS NULL OR wholesale_minimum_amount > 0) AND (wholesale_enabled = 0 OR wholesale_minimum_amount IS NOT NULL))');
+CALL sp_add_check_if_not_exists('customers', 'chk_customer_pricing_tier', 'ALTER TABLE customers ADD CONSTRAINT chk_customer_pricing_tier CHECK ((pricing_tier = ''RETAIL'' AND wholesale_since IS NULL) OR (pricing_tier = ''WHOLESALE'' AND wholesale_since IS NOT NULL))');
+CALL sp_add_check_if_not_exists('sales', 'chk_sale_wholesale_customer', 'ALTER TABLE sales ADD CONSTRAINT chk_sale_wholesale_customer CHECK (pricing_type IS NULL OR pricing_type <> ''WHOLESALE'' OR idCustomer IS NOT NULL)');
+
 DROP PROCEDURE IF EXISTS sp_add_check_if_not_exists;
 DROP PROCEDURE IF EXISTS sp_rename_column_if_exists;
 DROP PROCEDURE IF EXISTS sp_drop_check_if_exists;
