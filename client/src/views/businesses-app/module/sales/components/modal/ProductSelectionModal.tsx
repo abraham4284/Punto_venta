@@ -15,6 +15,7 @@ type Props = {
   isOpen: boolean;
   products: ProductWithStockResponse[];
   priceType: PriceType;
+  requireWholesalePrice?: boolean;
   loading: boolean;
   onClose: () => void;
   onConfirm: (items: ProductSelection[]) => void;
@@ -46,15 +47,8 @@ const getPrice = (
   return product.priceSale;
 };
 
-const cannotUseWholesale = (
-  product: ProductWithStockResponse,
-  priceType: PriceType,
-): boolean => {
-  return (
-    priceType === "WHOLESALE" &&
-    (product.priceWholesale === null || product.priceWholesale <= 0)
-  );
-};
+const cannotUseWholesale = (product: ProductWithStockResponse, required: boolean): boolean =>
+  required && (product.priceWholesale == null || !Number.isFinite(product.priceWholesale) || product.priceWholesale <= 0);
 
 const getUnitOption = (unitType: ProductUnitType) => {
   return PRODUCT_UNIT_TYPE_OPTIONS.find((option) => {
@@ -91,6 +85,7 @@ export const ProductSelectionModal = ({
   isOpen,
   products,
   priceType,
+  requireWholesalePrice = false,
   loading,
   onClose,
   onConfirm,
@@ -168,14 +163,14 @@ export const ProductSelectionModal = ({
   }, [products, quantities]);
 
   const handleConfirm = useCallback(() => {
-    if (selectedItems.length === 0) return;
+    if (selectedItems.length === 0 || selectedItems.some(({ product }) => cannotUseWholesale(product, requireWholesalePrice))) return;
     onConfirm(selectedItems);
     resetModalState();
-  }, [onConfirm, resetModalState, selectedItems]);
+  }, [onConfirm, resetModalState, selectedItems, requireWholesalePrice]);
 
   const handleQuickAdd = useCallback(
     (product: ProductWithStockResponse) => {
-      const withoutWholesale = cannotUseWholesale(product, priceType);
+      const withoutWholesale = cannotUseWholesale(product, requireWholesalePrice);
       const disabled = product.stockQuantity <= 0 || withoutWholesale;
 
       if (disabled) return;
@@ -187,7 +182,7 @@ export const ProductSelectionModal = ({
       onConfirm([{ product, quantity }]);
       resetModalState();
     },
-    [onConfirm, priceType, resetModalState],
+    [onConfirm, requireWholesalePrice, resetModalState],
   );
 
   const selectedCount = selectedItems.length;
@@ -313,7 +308,7 @@ export const ProductSelectionModal = ({
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredProducts.map((product, index) => {
                 const quantity = quantities[product.idProduct] ?? 0;
-                const withoutWholesale = cannotUseWholesale(product, priceType);
+                const withoutWholesale = cannotUseWholesale(product, requireWholesalePrice);
                 const disabled = product.stockQuantity <= 0 || withoutWholesale;
                 const unitOption = getUnitOption(product.unitType);
                 const quantityStep = getQuantityStep(product.unitType);
@@ -415,7 +410,7 @@ export const ProductSelectionModal = ({
           </Button>
           <Button
             type="button"
-            disabled={selectedCount === 0}
+            disabled={selectedCount === 0 || selectedItems.some(({ product }) => cannotUseWholesale(product, requireWholesalePrice))}
             onClick={handleConfirm}
           >
             Agregar al carrito

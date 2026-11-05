@@ -1,3 +1,4 @@
+import { salePricingLabel } from "../../helpers/wholesale-pricing.helpers";
 import { useSaleReturns } from "../../hooks/useSaleReturns";
 import { SaleReturnsSection } from "../returns/SaleReturnsSection";
 import { saleHasReturnsReason } from "../../helpers/sale-return.helpers";
@@ -248,6 +249,8 @@ export const SaleDetailsView = ({
           icon={User}
         />
       </section>
+
+      <InfoItem label="Tipo de precio" value={salePricingLabel(sale.pricingType)} />
 
       {canViewReturns && <SaleReturnsSection key={sale.idSale} sale={sale} returnsState={returnsState} canCreate={canCreateReturns} onSaleRefresh={onPaymentChanged} />}
 

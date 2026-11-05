@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -46,6 +47,8 @@ type Props = {
 };
 
 const initialForm: BusinessFormValues = {
+  wholesaleEnabled: false,
+  wholesaleMinimumAmount: "",
   name: "",
   slug: "",
   logoUrl: "",
@@ -89,6 +92,8 @@ export const UpdateBusinessModal = ({
     const timeoutId = window.setTimeout(() => {
       if (dataEdit) {
         setFormSate({
+          wholesaleEnabled: dataEdit.wholesaleEnabled,
+          wholesaleMinimumAmount: dataEdit.wholesaleMinimumAmount == null ? "" : String(dataEdit.wholesaleMinimumAmount),
           name: dataEdit.name,
           slug: dataEdit.slug,
           logoUrl: dataEdit.logoUrl ?? "",
@@ -115,7 +120,7 @@ export const UpdateBusinessModal = ({
   }, [backendErrors]);
 
   const handleOpenChange = (open: boolean) => {
-    if (!open) {
+    if (!open && !saving) {
       setErrors({});
       onClose();
     }
@@ -123,6 +128,7 @@ export const UpdateBusinessModal = ({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (saving) return;
 
     const validation = businessFormSchema.safeParse({
       ...formSate,
@@ -149,8 +155,8 @@ export const UpdateBusinessModal = ({
 
     const result = await onSubmit(validation.data);
 
-    if (!result.status && result.errors) {
-      setErrors(mapErrorsToRecord(result.errors));
+    if (!result.status) {
+      setErrors({ ...mapErrorsToRecord(result.errors ?? []), form: result.message });
       return;
     }
 
@@ -160,12 +166,13 @@ export const UpdateBusinessModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Editar perfil del negocio</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="grid gap-4">
+          <fieldset disabled={saving} className="grid min-w-0 gap-4">
           <div className="grid gap-2">
             <Label htmlFor="name">Nombre</Label>
             <Input
@@ -239,6 +246,20 @@ export const UpdateBusinessModal = ({
             )}
           </div>
 
+          <section className="grid gap-3 rounded-lg border p-4" aria-label="Configuración mayorista">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="wholesale-enabled">Habilitar precios mayoristas</Label>
+              <Switch id="wholesale-enabled" checked={formSate.wholesaleEnabled} onCheckedChange={(checked) => setFormSate((current) => ({ ...current, wholesaleEnabled: checked, wholesaleMinimumAmount: checked ? current.wholesaleMinimumAmount : "" }))} />
+            </div>
+            {formSate.wholesaleEnabled && <div className="grid gap-2">
+              <Label htmlFor="wholesale-minimum">Compra mínima inicial (ARS)</Label>
+              <Input id="wholesale-minimum" name="wholesaleMinimumAmount" inputMode="decimal" value={formSate.wholesaleMinimumAmount} onChange={onInputChange} aria-invalid={Boolean(errors.wholesaleMinimumAmount)} aria-describedby="wholesale-minimum-help wholesale-minimum-error" placeholder="Ingresá el mínimo" />
+              <p id="wholesale-minimum-help" className="text-xs text-muted-foreground">Mayor a cero y hasta dos decimales con punto. Se exige solo en la primera compra mayorista.</p>
+              <p id="wholesale-minimum-error" className="text-sm text-destructive" role="alert">{errors.wholesaleMinimumAmount}</p>
+            </div>}
+            {!formSate.wholesaleEnabled && <p className="text-xs text-muted-foreground">Las nuevas ventas usarán precios minoristas. El mínimo se guardará vacío.</p>}
+          </section>
+          {errors.form && <p role="alert" className="text-sm text-destructive">{errors.form}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
@@ -255,6 +276,7 @@ export const UpdateBusinessModal = ({
               {saving ? "Guardando..." : "Guardar cambios"}
             </Button>
           </div>
+          </fieldset>
         </form>
       </DialogContent>
     </Dialog>

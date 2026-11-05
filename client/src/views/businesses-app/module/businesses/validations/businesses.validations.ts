@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { z } from "zod";
 import { BUSINESS_TYPE_VALUES } from "../types";
 
@@ -5,6 +6,8 @@ const emptyStringToNull = z.literal("").transform(() => null);
 
 export const businessFormSchema = z
   .object({
+    wholesaleEnabled: z.boolean(),
+    wholesaleMinimumAmount: z.string().trim(),
     name: z
       .string()
       .trim()
@@ -34,4 +37,12 @@ export const businessFormSchema = z
       error: "El tipo de negocio seleccionado no es valido",
     }),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (!data.wholesaleEnabled) return;
+    const text = data.wholesaleMinimumAmount;
+    if (!/^\d+(?:\.\d{1,2})?$/.test(text) || !new Decimal(text).gt(0) || new Decimal(text).gt("999999999999.99")) {
+      ctx.addIssue({ code: "custom", path: ["wholesaleMinimumAmount"], message: "Ingresá un mínimo mayor a cero, hasta 999999999999.99 y con máximo dos decimales." });
+    }
+  })
+  .transform((data) => ({ ...data, wholesaleMinimumAmount: data.wholesaleEnabled ? new Decimal(data.wholesaleMinimumAmount).toNumber() : null }));

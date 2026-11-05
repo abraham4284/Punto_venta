@@ -99,10 +99,10 @@ Cash refund es EXPENSE SALE_REFUND en caja actual abierta/activa, aun para pago 
 
 ## ADR-011 — Politica mayorista global y promocion comercial persistente
 
-Status: Accepted / implemented F10.1, validado DB-free; gate real pendiente. Date: 2026-11-05.
+Status: Accepted / implemented F10.1; gate real local/test 19/19 aprobado al iniciar F10.2, sin certificacion productiva. Date: 2026-11-05.
 
 Decision: minimo unico configurable por negocio para todas las categorias, sin tablas nuevas ni reglas por categoria/promociones. Mayorista requiere Customer activo del tenant y productos con precio mayorista positivo. Minimo inicial se calcula a precio mayorista DB antes de descuentos/envio. Cliente ya mayorista no repite minimo. Promocion y fecha se confirman en la misma transaccion de Sale; ni replay, cancelacion ni devolucion degradan al Customer o reescriben wholesaleSince. No se habilita edicion manual de tier/fecha en Customers.
 
-Sales guarda pricingType historico; antiguas NULL sin backfill. Requests omitidos usan RETAIL para conservar precios explicitos/manuales y consumidores previos. WHOLESALE es explicito y exige unitPrice de catalogo DB; descuentos existentes se conservan y no contribuyen al candidato minimo. No se infiere una venta mayorista desde su importe. UI actual no envia pricingType; no queda integrada implicitamente por esta fase.
+Sales guarda pricingType historico; antiguas NULL sin backfill. Requests omitidos usan RETAIL para conservar precios explicitos/manuales y consumidores previos. WHOLESALE es explicito y exige unitPrice de catalogo DB; descuentos existentes se conservan y no contribuyen al candidato minimo. No se infiere una venta mayorista desde su importe. La UI previa a F10.2 no enviaba pricingType; la integracion explicita se implementa en F10.2.
 
 Consequences: defaults negocio false/null; settings existentes business.update reciben par enabled/minimum. Cabecera bloquea Customer antes de FK/INSERT y service valida/promueve en misma conexion sin cambiar ownership; persistencia comercial independiente de cancelaciones/refunds. Orders y su conversion quedan sin nuevas reglas (Sales RETAIL), no se agrega orders.pricing_type. Catalogo publico agrega precios/politica del slug configurado y mantiene price alias; sin costos ni login publico Customers. VITRUNO sigue externo, sin cambios en su repo/UX/WhatsApp. [Contratos](contracts.md), [despliegue](database.md), [evidencia](f10-1-wholesale-pricing-core-validation.md).

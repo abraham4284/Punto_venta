@@ -3,37 +3,39 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 import type { RefObject } from "react";
-import type { PriceType } from "../../types";
+import { Badge } from "@/components/ui/badge";
+import { formatSaleMoney } from "../../helpers/createSale.helpers";
+import { salePricingLabel, type getWholesalePricing, type WholesalePolicy } from "../../helpers/wholesale-pricing.helpers";
+import type { Customer } from "../../../customers/types/customers.types";
+import type { SalePricingType } from "../../types";
 
 type Props = {
   barcode: string;
-  priceType: PriceType;
+  pricingType: SalePricingType;
+  pricing: ReturnType<typeof getWholesalePricing>;
+  business: WholesalePolicy | null;
+  customer: Customer | null;
   disabled: boolean;
   loadingProducts: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
   onBarcodeChange: (value: string) => void;
   onBarcodeSubmit: () => void;
   onOpenProductSearch: () => void;
-  onPriceTypeChange: (value: PriceType) => void;
 };
 
 export const ProductEntrySection = ({
   barcode,
-  priceType,
+  pricingType,
+  pricing,
+  business,
+  customer,
   disabled,
   loadingProducts,
   inputRef,
   onBarcodeChange,
   onBarcodeSubmit,
   onOpenProductSearch,
-  onPriceTypeChange,
 }: Props) => {
   return (
     <Card className="border-primary/20 bg-primary/5 shadow-sm">
@@ -87,25 +89,7 @@ export const ProductEntrySection = ({
 
           <div className="grid gap-2">
             <Label>Tipo de precio</Label>
-            <Select
-              value={priceType}
-              onValueChange={(value: string | null) => {
-                if (value === "SALE" || value === "WHOLESALE") {
-                  onPriceTypeChange(value);
-                }
-              }}
-              disabled={disabled || loadingProducts}
-            >
-              <SelectTrigger className="h-12 w-full">
-                <span className="flex flex-1 text-left">
-                  {priceType === "SALE" ? "Precio de venta" : "Mayorista"}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SALE">Precio de venta</SelectItem>
-                <SelectItem value="WHOLESALE">Mayorista</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex h-12 items-center rounded-md border bg-background px-3"><Badge variant={pricingType === "WHOLESALE" ? "default" : "secondary"}>{salePricingLabel(pricingType)}</Badge></div>
           </div>
 
           <Button
@@ -117,6 +101,18 @@ export const ProductEntrySection = ({
           >
             Agregar por código
           </Button>
+        </div>
+        <div aria-live="polite" className="space-y-1 rounded-lg border bg-background p-3 text-sm">
+          {pricing.blockReason ? <p role="alert" className="text-destructive">{pricing.blockReason}</p>
+            : !business?.wholesaleEnabled ? <p>Precios mayoristas desactivados. Precio minorista aplicado.</p>
+            : !customer ? <p>Consumidor final · Precio minorista. Seleccioná un cliente para acceder a precios mayoristas.</p>
+            : customer.pricingTier === "WHOLESALE" ? <p><strong>Cliente mayorista.</strong> Precios mayoristas aplicados, sin mínimo de compra.</p>
+            : pricing.qualifiesForPromotion ? <p className="text-emerald-700"><strong>Esta venta califica como mayorista.</strong> Al completarla, el cliente quedará habilitado como mayorista.</p>
+            : !pricing.allItemsHaveWholesalePrice ? <p>Precio minorista: hay productos sin precio mayorista. El carrito completo no puede calificar.</p>
+            : <>
+              <p>Compra mayorista mínima: <strong>{formatSaleMoney(business.wholesaleMinimumAmount ?? 0)}</strong></p>
+              <p>Acumulado candidato: {formatSaleMoney(pricing.wholesaleCandidate)} · Faltan: <strong>{formatSaleMoney(pricing.amountRemaining ?? 0)}</strong></p>
+            </>}
         </div>
       </CardContent>
     </Card>

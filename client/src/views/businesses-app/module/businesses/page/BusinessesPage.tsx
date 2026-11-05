@@ -1,3 +1,4 @@
+import { useCan } from "@/views/businesses-app/hooks/useCan";
 import { useEffect } from "react";
 import { Building2, Globe2, Settings, ShieldCheck } from "lucide-react";
 import { Meta } from "@/components/Meta";
@@ -16,6 +17,7 @@ import { useBusinesses } from "../hooks/useBusinesses";
 import type { BusinessResponse } from "../types";
 
 export const BusinessesPage = () => {
+  const canUpdate = useCan("business.update");
   const {
     business,
     loading,
@@ -44,7 +46,7 @@ export const BusinessesPage = () => {
   }, [getBusiness, resetBusiness]);
 
   const handleOpenEdit = () => {
-    if (!business) return;
+    if (!business || !canUpdate) return;
 
     addDataEdit(business);
     openModalEdit();
@@ -81,7 +83,7 @@ export const BusinessesPage = () => {
           </p>
         </div>
 
-        <Button type="button" onClick={handleOpenEdit} disabled={!business}>
+        <Button type="button" onClick={handleOpenEdit} disabled={!business || !canUpdate}>
           <Settings className="mr-2 h-4 w-4" />
           Editar configuracion
         </Button>
@@ -139,7 +141,7 @@ export const BusinessesPage = () => {
 
         <section className="space-y-4">
           {business ? (
-            <BusinessProfileCard business={business} onEdit={handleOpenEdit} />
+            <BusinessProfileCard business={business} onEdit={handleOpenEdit} canEdit={canUpdate} />
           ) : (
             <Card>
               <CardContent className="py-10 text-center text-sm text-muted-foreground">

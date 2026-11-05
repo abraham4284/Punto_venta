@@ -121,3 +121,11 @@ Descripcion: agregar politica mayorista por negocio, tier persistente Customers 
 - [server/src/tests/unit/wholesale-pricing.test.ts](../server/src/tests/unit/wholesale-pricing.test.ts)
 - [server/vitest.wholesale-pricing-integration.config.ts](../server/vitest.wholesale-pricing-integration.config.ts)
 - [server/vitest.wholesale-pricing.config.ts](../server/vitest.wholesale-pricing.config.ts)
+
+## Gate real F10.1 al iniciar F10.2 — 2026-11-05
+
+Actualiza el estado previo de esta evidencia: F10.1 CLOSED al alcance local/test. El prompt F10.2 confirma SQL local/test sincronizado por el operador y autoriza explicitamente este gate antes de modificar frontend. No se volvio a pedir confirmacion ni se ejecutaron migraciones/DDL/manual 007. No hay confirmacion ni prueba de produccion.
+
+Se revisaron config, setup, preflight, fixtures y cleanup de la suite existente. Comando ejecutado desde server: `node node_modules/vitest/vitest.mjs run --config vitest.wholesale-pricing-integration.config.ts`. Primer intento sandbox fallo EPERM al renombrar cache; reejecucion autorizada fuera del sandbox, conservando guards de host loopback y DB exacta punto_venta_integration_test, NODE_ENV=test. Resultado: 1 archivo aprobado, **19/19 tests PASS**, duracion informada 8.08 s; hooks/afterAll aprobados, limpieza restringida a tenants/usuarios UUID comprobada por asserts, sin reset ni desactivar FKs. No se requirieron correcciones backend/SQL.
+
+La suite ejecuto SQL real de fixtures, operaciones HTTP/economicas y cleanup en test. No se ejecuto SQL estructural ni se consulto/modifico produccion o configuracion real de VITRUNO. Los apartados anteriores conservan el estado de la entrega original F10.1; esta seccion prevalece para su gate actual. [F10.2 frontend y limites](f10-2-wholesale-pricing-admin-frontend-validation.md).
