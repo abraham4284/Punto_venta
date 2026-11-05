@@ -32,21 +32,6 @@ const formatMoney = (value: number): string => {
   }).format(value);
 };
 
-const getPrice = (
-  product: ProductWithStockResponse,
-  priceType: PriceType,
-): number => {
-  if (
-    priceType === "WHOLESALE" &&
-    product.priceWholesale !== null &&
-    product.priceWholesale > 0
-  ) {
-    return product.priceWholesale;
-  }
-
-  return product.priceSale;
-};
-
 const cannotUseWholesale = (product: ProductWithStockResponse, required: boolean): boolean =>
   required && (product.priceWholesale == null || !Number.isFinite(product.priceWholesale) || product.priceWholesale <= 0);
 
@@ -309,6 +294,7 @@ export const ProductSelectionModal = ({
               {filteredProducts.map((product, index) => {
                 const quantity = quantities[product.idProduct] ?? 0;
                 const withoutWholesale = cannotUseWholesale(product, requireWholesalePrice);
+                const hasWholesalePrice = product.priceWholesale != null && Number.isFinite(product.priceWholesale) && product.priceWholesale > 0;
                 const disabled = product.stockQuantity <= 0 || withoutWholesale;
                 const unitOption = getUnitOption(product.unitType);
                 const quantityStep = getQuantityStep(product.unitType);
@@ -343,11 +329,21 @@ export const ProductSelectionModal = ({
                         <h3 className="line-clamp-2 font-semibold">
                           {product.name}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {withoutWholesale
-                            ? "Sin precio mayorista"
-                            : formatMoney(getPrice(product, priceType))}
-                        </p>
+                        <dl className="mt-2 grid gap-1 text-sm">
+                          <div className="flex flex-wrap justify-between gap-x-2">
+                            <dt className="text-muted-foreground">Minorista</dt>
+                            <dd className="font-medium tabular-nums">{formatMoney(product.priceSale)}</dd>
+                          </div>
+                          <div className="flex flex-wrap justify-between gap-x-2">
+                            <dt className="text-muted-foreground">Mayorista</dt>
+                            <dd className="font-medium tabular-nums">{hasWholesalePrice ? formatMoney(product.priceWholesale!) : "Sin definir"}</dd>
+                          </div>
+                        </dl>
+                        {withoutWholesale ? <p className="mt-2 text-sm text-destructive">Sin precio mayorista</p> : (
+                          <Badge variant="secondary" className="mt-2">
+                            {priceType === "WHOLESALE" && hasWholesalePrice ? "Mayorista aplicado" : "Minorista aplicado"}
+                          </Badge>
+                        )}
                       </div>
 
                       <Badge variant="secondary" className="w-fit">
