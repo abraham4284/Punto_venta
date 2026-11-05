@@ -4,7 +4,7 @@ DELIMITER $$
 CREATE PROCEDURE sp_get_customer_by_id(IN p_idBusiness INT, IN p_idCustomer INT)
 BEGIN
   SELECT idCustomer, idBusiness, first_name, last_name, document_type, document_number,
-    phone, email, address, observation, is_active, created_at, updated_at
+    phone, email, address, observation, is_active, pricing_tier, wholesale_since, created_at, updated_at
   FROM customers
   WHERE idBusiness = p_idBusiness AND idCustomer = p_idCustomer
   LIMIT 1;
@@ -54,7 +54,7 @@ BEGIN
   -- Preserve the original text for names/passports; normalize only the numeric alternative.
   SET v_document_search = REGEXP_REPLACE(v_search, '[[:space:].-]', '');
   SELECT idCustomer, idBusiness, first_name, last_name, document_type, document_number,
-    phone, email, address, observation, is_active, created_at, updated_at
+    phone, email, address, observation, is_active, pricing_tier, wholesale_since, created_at, updated_at
   FROM customers
   WHERE idBusiness = p_idBusiness
     AND (

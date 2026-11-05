@@ -11,6 +11,8 @@ BEGIN
     slug,
     logo_url,
     business_type,
+    wholesale_enabled,
+    wholesale_minimum_amount,
     status,
     is_active,
     created_at,
@@ -33,7 +35,9 @@ CREATE PROCEDURE sp_update_business(
   IN p_slug VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_logo_url VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_logo_url TINYINT,
-  IN p_business_type VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+  IN p_business_type VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_wholesale_enabled TINYINT,
+  IN p_wholesale_minimum_amount DECIMAL(18,2)
 )
 BEGIN
   UPDATE businesses
@@ -45,6 +49,8 @@ BEGIN
       ELSE logo_url
     END,
     business_type = COALESCE(p_business_type, business_type),
+    wholesale_enabled = COALESCE(p_wholesale_enabled, wholesale_enabled),
+    wholesale_minimum_amount = CASE WHEN p_wholesale_enabled IS NULL THEN wholesale_minimum_amount ELSE p_wholesale_minimum_amount END,
     updated_at = NOW()
   WHERE idBusiness = p_idBusiness
     AND is_active = 1;
@@ -55,6 +61,8 @@ BEGIN
     slug,
     logo_url,
     business_type,
+    wholesale_enabled,
+    wholesale_minimum_amount,
     status,
     is_active,
     created_at,

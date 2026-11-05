@@ -5,6 +5,8 @@
 */
 
 CREATE TABLE IF NOT EXISTS `businesses` (
+  `wholesale_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `wholesale_minimum_amount` decimal(18,2) DEFAULT NULL,
   `idBusiness` int NOT NULL AUTO_INCREMENT,
   `name` varchar(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `slug` varchar(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -265,6 +267,8 @@ CREATE TABLE IF NOT EXISTS `notification_recipients` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `customers` (
+  `pricing_tier` enum('RETAIL','WHOLESALE') NOT NULL DEFAULT 'RETAIL',
+  `wholesale_since` datetime DEFAULT NULL,
   `idCustomer` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `first_name` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -464,6 +468,7 @@ CREATE TABLE IF NOT EXISTS `purchase_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `sales` (
+  `pricing_type` enum('RETAIL','WHOLESALE') DEFAULT NULL,
   `idSale` int NOT NULL AUTO_INCREMENT,
   `idBusiness` int NOT NULL,
   `idDeposit` int NOT NULL,
