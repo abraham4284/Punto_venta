@@ -7,6 +7,8 @@ import type {
 } from "@/shared/product-sale-mode.js";
 
 export interface PublicCatalogBusinessDbRow extends RowDataPacket {
+  wholesale_enabled: number;
+  wholesale_minimum_amount: string | number | null;
   name: string;
   slug: string;
   logo_url: string | null;
@@ -14,6 +16,7 @@ export interface PublicCatalogBusinessDbRow extends RowDataPacket {
 }
 
 export interface PublicCatalogBusiness {
+  pricing: { wholesaleEnabled: boolean; wholesaleMinimumAmount: number | null };
   name: string;
   slug: string;
   logoUrl: string | null;
@@ -39,6 +42,7 @@ export interface PublicCatalogProductDbRow extends RowDataPacket {
   description: string | null;
   rich_content?: unknown;
   price_sale: string | number;
+  price_wholesale: string | number | null;
   image_url: string | null;
   sale_mode: ProductSaleModeDb | null;
   availability_note: string | null;
@@ -73,6 +77,8 @@ export interface PublicCatalogProductBase {
   slug: string;
   description: string | null;
   price: number;
+  priceSale: number;
+  priceWholesale: number | null;
   imageUrl: string | null;
   category: PublicCatalogProductCategory;
   saleMode: ProductSaleMode;

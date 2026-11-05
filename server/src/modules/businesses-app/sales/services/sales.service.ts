@@ -1,3 +1,4 @@
+import { applyWholesalePricing, WholesalePricingError } from "../helpers/wholesale-pricing.helper.js";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/db/db.js";
 import { safeEvaluateStockNotification } from "@/modules/notifications/services/notifications.service.js";
@@ -170,8 +171,19 @@ async function callCreateSaleDetailProcedure(
 
 /** Caller owns begin/commit/rollback/release. All economic writes share its connection. */
 export async function createSaleWithinTransaction(connection: PoolConnection, data: CreateSalePayload): Promise<SaleIdDbRow> {
-  const created = await callCreateSaleProcedure(connection, { ...data, saleNumber: generateSaleNumber() });
+  let created: SaleIdDbRow;
+  try {
+    created = await callCreateSaleProcedure(connection, { ...data, saleNumber: generateSaleNumber() });
+  } catch (error) {
+    // The header already checks customer tenancy/activity before any economic write.
+    if (data.pricingType === "WHOLESALE"
+        && (error as { sqlMessage?: string })?.sqlMessage === "El cliente indicado no pertenece al negocio o esta inactivo") {
+      throw new WholesalePricingError("WHOLESALE_CUSTOMER_INVALID");
+    }
+    throw error;
+  }
   if (!created.alreadyProcessed) {
+    await applyWholesalePricing(connection, data, Number(created.idSale));
     await callCreateSaleDetailProcedure(connection, data, Number(created.idSale));
     await callCreateSalePaymentsProcedure(connection, data, Number(created.idSale));
     await callCreateDeliveryProcedure(connection, data, Number(created.idSale));

@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-Revisado: 2026-11-04. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+Revisado: 2026-11-05. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
 
 - [x] F0 — Canonical documentation foundation. Validacion documental completada; evidencias en [f00-documentation-validation](f00-documentation-validation.md).
 - [x] F0.1 — Hierarchical documentation by subsystem. Validacion documental completada; [evidencias](f00-1-documentation-hierarchy-validation.md).
@@ -17,6 +17,8 @@ Revisado: 2026-11-04. `[x]` indica fase cerrada con el alcance de validacion ind
 - [x] F9 — Returns & Refunds Frontend. CLOSED: detalle Sale con summary/historial, registro y detalle Return, allocations/caja/idempotencia y permisos. Build/lint aplicable y 52 tests aislados aprobados; QA visual con API en memoria en desktop/mobile/tablet, sin DB real. [Evidencias](f09-returns-refunds-frontend-validation.md).
 - [x] Roadmap actual Orders -> Sales -> Delivery -> Returns COMPLETED, con limites de validacion documentados; sin certificar produccion.
 - [x] Rediseño SalePrintDocument — comprobante compacto con branding del negocio y datos operativos; resumen solo subtotal/descuento/total a la derecha, sin pagos ni linea de envio; impresion aislada del layout. Build/lint acotado y 18 tests aprobados; QA A4 escenarios A..G (10 productos en 1 pagina, 25 en 2), desktop/mobile con fixtures, sin backend/DB. [Evidencias](f10-sale-print-document-validation.md).
+- [x] F10.1 — Wholesale Pricing Core DB/backend/API publica implementado: politica global por negocio, tier Customer persistente y pricingType historico; migracion manual 007 preparada. Typecheck/build/baseline y 280 tests DB-free aprobados; sin frontend ni SQL ejecutado. [Evidencias](f10-1-wholesale-pricing-core-validation.md).
+- [ ] Gate real F10.1 — suite HTTP/DB de 19 casos preparada, requiere aplicar SQL y autorizacion expresa. Cierre operativo pendiente; no hay verificacion productiva.
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.

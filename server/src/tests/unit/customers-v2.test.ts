@@ -13,6 +13,7 @@ import { createCustomerController, getCustomersController, updateCustomerControl
 
 const base = { idBusiness: 7, firstName: "Juan Carlos", lastName: "De la Vega" };
 const row: CustomerDbRow = {
+  pricing_tier: "RETAIL", wholesale_since: null,
   idCustomer: 3, idBusiness: 7, first_name: base.firstName, last_name: base.lastName,
   document_type: null, document_number: null, phone: null, email: null,
   address: null, observation: null, is_active: 1, created_at: new Date(), updated_at: null,

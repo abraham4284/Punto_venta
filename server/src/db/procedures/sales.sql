@@ -19,6 +19,7 @@ CREATE PROCEDURE sp_create_sale(
 BEGIN
   DECLARE v_idSale INT;
   DECLARE v_existingOrder INT;
+  DECLARE v_customerActive TINYINT;
   DECLARE v_cashSessionStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_cashRegisterActive TINYINT;
   DECLARE v_existingSaleNumber VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -105,15 +106,18 @@ BEGIN
       SET MESSAGE_TEXT = 'El deposito indicado no pertenece al negocio o esta inactivo';
   END IF;
 
-  IF p_idCustomer IS NOT NULL AND NOT EXISTS (
-    SELECT 1
+  -- Lock before the Sales FK takes a shared customer lock. This avoids two concurrent
+  -- inserts later upgrading shared FK locks when the first wholesale purchase promotes.
+  IF p_idCustomer IS NOT NULL THEN
+    SELECT is_active INTO v_customerActive
     FROM customers
     WHERE idCustomer = p_idCustomer
       AND idBusiness = p_idBusiness
-      AND is_active = 1
-  ) THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'El cliente indicado no pertenece al negocio o esta inactivo';
+    LIMIT 1 FOR UPDATE;
+    IF v_customerActive IS NULL OR v_customerActive <> 1 THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El cliente indicado no pertenece al negocio o esta inactivo';
+    END IF;
   END IF;
 
   INSERT INTO sales (
@@ -123,6 +127,7 @@ BEGIN
     idempotency_key,
     idCustomer,
     idOrder,
+    pricing_type,
     delivery_fee,
     idDeposit,
     idCashSession,
@@ -141,6 +146,7 @@ BEGIN
     p_idempotency_key,
     p_idCustomer,
     p_idOrder,
+    'RETAIL',
     COALESCE(p_delivery_fee, 0),
     p_idDeposit,
     p_idCashSession,
@@ -572,6 +578,7 @@ BEGIN
     END AS payment_status,
     s.sale_date,
     s.idOrder,
+    s.pricing_type,
     s.delivery_fee,
     s.subtotal,
     s.discount_total,
@@ -691,6 +698,7 @@ BEGIN
     s.idCashSession,
     s.sale_date,
     s.idOrder,
+    s.pricing_type,
     s.delivery_fee,
     s.subtotal,
     s.discount_total,
@@ -855,6 +863,7 @@ BEGIN
     END AS payment_status,
     s.sale_date,
     s.idOrder,
+    s.pricing_type,
     s.delivery_fee,
     s.subtotal,
     s.discount_total,
@@ -898,6 +907,7 @@ BEGIN
     s.idCashSession,
     s.sale_date,
     s.idOrder,
+    s.pricing_type,
     s.delivery_fee,
     s.subtotal,
     s.discount_total,

@@ -19,6 +19,7 @@ function normalizeUnitType(value: ProductUnitType | null): ProductUnitType {
 export function mapSale(sale: SaleDbRow): SaleResponse {
   return {
     idSale: sale.idSale,
+    pricingType: sale.pricing_type ?? null,
     idOrder: sale.idOrder == null ? null : Number(sale.idOrder),
     deliveryFee: Number(sale.delivery_fee ?? 0),
     saleNumber: sale.sale_number ?? `#${sale.idSale}`,

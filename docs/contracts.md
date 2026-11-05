@@ -161,3 +161,27 @@ Idempotencia por negocio/UUID normalizado a minusculas; hash SHA-256 de Sale y b
 Errores de dominio seguros: SALE_RETURN_SALE_NOT_FOUND 404 (tambien Return ajeno/inexistente), SALE_RETURN_ACTOR_INVALID 403; IDs/campos/formato, ITEM_NOT_FOUND/PAYMENT_NOT_FOUND, INVALID_UNIT_QUANTITY, REFUND_TOTAL_MISMATCH y CASH_SESSION_NOT_ALLOWED 400. Conflictos 409: SALE_RETURN_SALE_CANCELLED, DELIVERY_IN_TRANSIT, PENDING_PAYMENT_MUST_BE_RESOLVED, COLLECTED_PAYMENT_MUST_BE_SETTLED, PAYMENT_COVERAGE_REQUIRED, QUANTITY_EXCEEDED, DELIVERY_FEE_EXCEEDED, PAYMENT_NOT_CONFIRMED, PAYMENT_AMOUNT_EXCEEDED, CASH_SESSION_REQUIRED/CASH_SESSION_CLOSED (todos con prefijo SALE_RETURN_), IDEMPOTENCY_KEY_CONFLICT y SALE_RETURN_CONCURRENT_CHANGE (deadlock/timeout, reintentar). SQL inesperado: 500 generico, sin detalles SQL/stack. Validacion Zod conserva `errors: [{field,message}]`.
 
 Implementacion sin frontend ni SQL ejecutado F8: [evidencias](f08-returns-refunds-core-validation.md).
+
+## F10.1 — Wholesale Pricing Core
+
+Extensiones aditivas, sin nuevos endpoints ni permisos. Fechas JSON son strings/null. [Evidencia y limites](f10-1-wholesale-pricing-core-validation.md).
+
+| Contrato | Extension |
+| --- | --- |
+| GET `/api/businesses` y respuesta PATCH `/api/businesses/me` | wholesaleEnabled boolean y wholesaleMinimumAmount number/null; defaults false/null. |
+| PATCH `/api/businesses/me` | Permiso business.update existente. Enviar ambos campos juntos al cambiar politica. Habilitar requiere minimo positivo, maximo 999999999999.99 y dos decimales. Deshabilitado admite minimo positivo o null. Patches ajenos a la politica la conservan. |
+| Customers GET lista/detalle y respuestas create/update/status | pricingTier RETAIL/WHOLESALE y wholesaleSince string/null. Create sigue RETAIL/null; schemas estrictos rechazan escrituras de tier/fecha. No hay edicion manual del tier en F10.1. |
+| POST `/api/sales` | pricingType opcional RETAIL/WHOLESALE, default RETAIL. BUSINESS, sales.create y key UUID existentes. No admite el valor UI SALE. Tenant/actor vienen de la sesion. |
+| Sales GET lista/detalle y respuestas create/cancel | pricingType RETAIL/WHOLESALE/null. Historia previa NULL, sin inferir desde precios ni tier actual. |
+| GET `/api/public/catalog` | Dentro de data agrega pricing: { wholesaleEnabled, wholesaleMinimumAmount } junto a nombre/slug/logo/tipo. |
+| GET `/api/public/catalog/products` y `/api/public/catalog/products/:slug` | Producto agrega priceSale y priceWholesale number/null. price permanece alias de priceSale. Listado en data.items; detalle en data. |
+
+Ejemplo de configuracion administrativa: `{ "wholesaleEnabled": true, "wholesaleMinimumAmount": 50000 }`. No se aplica globalmente ni se hardcodea en dominio. Catalogo publica politica real del negocio ACTIVE seleccionado por PUBLIC_CATALOG_BUSINESS_SLUG; no acepta tenant arbitrario del visitante. Proyecciones y mappers propios publicos excluyen costos, margenes, proveedores y datos privados de Customers.
+
+WHOLESALE exige negocio habilitado, Customer activo del mismo tenant y cada producto activo del tenant con price_wholesale positivo. Backend compara cada unitPrice con precio mayorista DB vigente; no corrige silenciosamente ni hace fallback minorista. Candidato = suma de round-half-up(cantidad * precio mayorista DB, 2), antes de descuentos y sin envio. Cantidad positiva con maximo dos decimales, UNIT entero. Customer RETAIL debe alcanzar minimo global; WHOLESALE no lo repite. Descuentos/pagos/totales conservan reglas Sales existentes.
+
+RETAIL conserva precios explicitos/manuales del contrato previo y presupuestos convertidos desde Orders. La UI Sales calcula precios desde su selector SALE/WHOLESALE pero hoy no envia pricingType: F10.1 no modifica ese cliente ni infiere WHOLESALE por coincidencia de importes. Para validacion/promocion nueva el consumidor debe enviar pricingType WHOLESALE. Precios manuales permanecen disponibles en RETAIL; WHOLESALE requiere precio de catalogo y conserva descuentos explicitos. No hay un motor nuevo de overrides.
+
+Primera venta WHOLESALE valida promueve Customer en la misma transaccion; wholesaleSince se asigna una sola vez. Cancelacion/devolucion parcial o total no degrada ni reescribe esa fecha. Replay conserva politica Sales previa: devuelve venta existente sin hash de payload y sin recalcular politica/precios/promocion/fecha; forma del request validada antes de replay. Orders no recibe campos/endpoints ni reglas nuevas; su conversion mantiene RETAIL. No hay login publico Customers, checkout ni Orders publicos.
+
+Errores nuevos HTTP 400 `{ status: false, code, message }`: WHOLESALE_DISABLED, WHOLESALE_CUSTOMER_REQUIRED, WHOLESALE_CUSTOMER_INVALID (cabecera rechaza referencia ajena/inactiva), WHOLESALE_CUSTOMER_NOT_FOUND, WHOLESALE_CUSTOMER_INACTIVE (revalidacion bajo lock), WHOLESALE_MINIMUM_NOT_REACHED, WHOLESALE_PRICE_MISSING (incluye producto ajeno/inactivo), WHOLESALE_PRICE_MISMATCH y WHOLESALE_INVALID_QUANTITY. No se revela identidad de otro tenant. Deadlock/timeout create devuelve 409 SALE_CONCURRENT_CHANGE: reintentar misma key. SQL inesperado en create devuelve 500 generico sin SQL/stack; Zod conserva errores por campo y reglas previas de idempotencia.

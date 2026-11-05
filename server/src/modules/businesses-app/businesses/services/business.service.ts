@@ -8,6 +8,8 @@ import type {
 
 const mapBusiness = (business: BusinessDbRow): BusinessResponse => ({
   idBusiness: business.idBusiness,
+  wholesaleEnabled: Boolean(business.wholesale_enabled),
+  wholesaleMinimumAmount: business.wholesale_minimum_amount == null ? null : Number(business.wholesale_minimum_amount),
   name: business.name,
   slug: business.slug,
   logoUrl: business.logo_url,
@@ -42,7 +44,7 @@ export const updateBusinessService = async (
 ): Promise<BusinessResponse> => {
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
-      "CALL sp_update_business(?, ?, ?, ?, ?, ?)",
+      "CALL sp_update_business(?, ?, ?, ?, ?, ?, ?, ?)",
       [
         idBusiness,
         data.name ?? null,
@@ -50,6 +52,8 @@ export const updateBusinessService = async (
         data.logoUrl ?? null,
         Object.hasOwn(data, "logoUrl") ? 1 : 0,
         data.businessType ?? null,
+        data.wholesaleEnabled === undefined ? null : Number(data.wholesaleEnabled),
+        data.wholesaleMinimumAmount ?? null,
       ],
     );
 

@@ -33,7 +33,7 @@ Son operaciones de archivos. El builder regenera el SQL completo; el validator c
 
 Para instalaciones nuevas, actualizar schema/procedures/seeds segun corresponda y regenerar baseline por tooling. Si cambian archivos de entrada, mantener manifest e instalador alineados. Para bases existentes, preparar ademas migracion aditiva/manual revisada; no reemplazarla con el instalador limpio ni recrear carpetas historicas `fixed`/`tables`.
 
-Actualmente existen manual/001, manual/002, [manual/003_orders_core.sql](../server/src/db/manual/003_orders_core.sql) [manual/004_order_to_sale.sql](../server/src/db/manual/004_order_to_sale.sql) y [manual/005_delivery_providers.sql](../server/src/db/manual/005_delivery_providers.sql). Orders 003 es aditiva para un baseline existente compatible con Customers v2: crea tablas/indices/FKs/checks Orders y agrega sus permisos sin resetear grants ajenos. Luego importar [procedures/orders.sql](../server/src/db/procedures/orders.sql) completo antes de desplegar backend. Backup, DB seleccionada y revision del operador obligatorios; no ejecutar install ni el seed completo para esta actualizacion. No se aplico SQL real durante F3.
+Actualmente existen manual/001 y 002, [003 Orders](../server/src/db/manual/003_orders_core.sql), [004 Order -> Sale](../server/src/db/manual/004_order_to_sale.sql), [005 Delivery](../server/src/db/manual/005_delivery_providers.sql), [006 Returns](../server/src/db/manual/006_returns_refunds.sql) y [007 Wholesale](../server/src/db/manual/007_wholesale_pricing.sql). 007 esta preparada y NO aplicada; el historial de las anteriores figura por fase. Orders 003 es aditiva para un baseline existente compatible con Customers v2: crea tablas/indices/FKs/checks Orders y agrega sus permisos sin resetear grants ajenos. Luego importar [procedures/orders.sql](../server/src/db/procedures/orders.sql) completo antes de desplegar backend. Backup, DB seleccionada y revision del operador obligatorios; no ejecutar install ni el seed completo para esta actualizacion. No se aplico SQL real durante F3.
 
 Actualizacion posterior a la entrega inicial: el operador confirma SQL F3 aplicado/sincronizado en local, test y produccion. La [validacion real F3](f03-orders-core-validation.md) comprobo HTTP/procedures en MySQL 8.0.33 test local; el agente no ejecuto migraciones ni consulto produccion. No equivale a validar MariaDB/hosting remoto ni a reinstalar el baseline.
 
@@ -94,3 +94,27 @@ stock_movements agrega SALE_RETURN en movement_type/reference_type; reference_id
 Despliegue pendiente del operador: backup/DB confirmada, detener escrituras y aplicar [manual/006_returns_refunds.sql](../server/src/db/manual/006_returns_refunds.sql) (siguiente numero libre verificado), luego importar completos [procedures/sale_returns.sql](../server/src/db/procedures/sale_returns.sql) y [procedures/sales.sql](../server/src/db/procedures/sales.sql), y desplegar backend compatible antes de reanudar. 006 crea estructura/indices/FKs/checks, amplia enums/reference_id y agrega permisos/grant ADMIN sin resetear grants ajenos. DDL tiene commits implicitos; es retomable por existencia de tablas/objetos, sin reparar estructuras divergentes. No importar seeds/baseline/install completos sobre DB existente ni desactivar FKs. No requiere reimportar procedures Payments/Delivery/Cash/Orders por F8.
 
 Schema 002..005, seeds, manifest/install y baseline generados reflejan el mismo modelo. Helper sp_sale_return_apply_item participa en la transaccion del service: no invocarlo aislado. No hay migraciones, SQL ni suites reales F8 ejecutados por el agente. Despues de aplicar SQL y autorizar el gate: suite F8 en DB exacta test loopback, antes de F9. [Validacion](f08-returns-refunds-core-validation.md).
+
+## F10.1 — Politica mayorista y despliegue pendiente
+
+Nueva [manual/007_wholesale_pricing.sql](../server/src/db/manual/007_wholesale_pricing.sql), numero libre verificado tras 001..006. Preparada, NO ejecutada. No crea tablas, indices, FKs ni permisos; schema 003/004 y manifest/install mantienen orden. Baseline regenerado con tooling oficial; no sustituye la migracion.
+
+| Tabla | Columnas nuevas |
+| --- | --- |
+| businesses | wholesale_enabled TINYINT(1) NOT NULL DEFAULT 0; wholesale_minimum_amount DECIMAL(18,2) NULL |
+| customers | pricing_tier ENUM(RETAIL,WHOLESALE) NOT NULL DEFAULT RETAIL; wholesale_since DATETIME NULL |
+| sales | pricing_type ENUM(RETAIL,WHOLESALE) NULL sin backfill. sp_create_sale inserta RETAIL para nuevas cabeceras; service valida/persiste WHOLESALE en la misma transaccion. |
+
+Checks en schema 005/manual 007: enabled 0/1, minimo null o positivo y obligatorio al habilitar; RETAIL exige since null y WHOLESALE exige fecha; Sale WHOLESALE exige Customer. ENUM limita valores. Historia Sales mantiene NULL; Customers existentes comienzan RETAIL/null. No se infiere clasificacion desde ventas previas. SQL directo fuera del backend no reemplaza validacion mayorista del service.
+
+Orden para DB existente compatible con 001..006:
+
+1. Operador confirma host, ambiente y DB seleccionada, toma backup y detiene escrituras/coordina ventana.
+2. Revisar/aplicar manual 007 completo. DDL tiene commits implicitos; reejecucion omite columnas/checks existentes, no repara definiciones discrepantes. Revisar incompatibilidades sin cambios silenciosos ni desactivar FKs.
+3. Reimportar completos [businesses.sql](../server/src/db/procedures/businesses.sql), [customers.sql](../server/src/db/procedures/customers.sql), [sales.sql](../server/src/db/procedures/sales.sql) y [storefront_catalog.sql](../server/src/db/procedures/storefront_catalog.sql), respetando DELIMITER. sp_update_business cambia 6 -> 8 argumentos; Sales/Customers mantienen firmas.
+4. Desplegar backend F10.1 compatible antes de reanudar escrituras. No aplicar install/baseline/seed completos sobre esa DB.
+5. Autorizar/ejecutar gate real en DB test loopback, nunca produccion. Config y 19 casos: [evidencia](f10-1-wholesale-pricing-core-validation.md). Luego confirmar despliegue por ambiente.
+
+VITRUNO no se activa desde la migracion. Con business.update, PATCH /businesses/me permite true/50000 en el tenant autenticado. Alternativa separada [configure_wholesale_business.example.sql](../server/src/db/manual/configure_wholesale_business.example.sql): slug inicial NULL, UPDATE por slug unico activo, revision de fila y ROLLBACK por defecto. Requiere configurar/revisar manualmente; no se ejecuta automaticamente ni figura en manifest/install. No se verifico ni modifico configuracion real de VITRUNO.
+
+Cabecera Sales bloquea Customer por tenant despues de caja y antes de INSERT/FK; evita upgrades concurrentes de locks FK al promover desde cajas diferentes. Service reutiliza conexion, lee politica con lock compartido y productos ordenados FOR UPDATE. Fallos economicos revierten promocion y fecha. Cancelar/devolver no degrada. [Decision](decisions.md), [contrato](contracts.md).
