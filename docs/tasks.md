@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-Revisado: 2026-11-05. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+Revisado: 2026-11-07. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
 
 - [x] F0 — Canonical documentation foundation. Validacion documental completada; evidencias en [f00-documentation-validation](f00-documentation-validation.md).
 - [x] F0.1 — Hierarchical documentation by subsystem. Validacion documental completada; [evidencias](f00-1-documentation-hierarchy-validation.md).
@@ -21,6 +21,7 @@ Revisado: 2026-11-05. `[x]` indica fase cerrada con el alcance de validacion ind
 - [x] Gate real F10.1 — 19/19 HTTP/DB aprobados al iniciar F10.2 en loopback / punto_venta_integration_test, cleanup UUID verificado. SQL local/test sincronizado segun operador; sin migraciones ejecutadas por el agente ni suite productiva. [Evidencia actualizada](f10-1-wholesale-pricing-core-validation.md).
 - [x] F10.2 — Wholesale Pricing Admin Frontend CLOSED: Mi Empresa configura politica, Clientes muestra tier/fecha de solo lectura, POS deriva precios y envia pricingType, detalle muestra historico. 71 tests nuevos + 70 regresiones, build/lint acotado y QA local 32/32 desktop/tablet/mobile aprobados; [evidencia](f10-2-wholesale-pricing-admin-frontend-validation.md).
 - [x] F10.2.1 — Wholesale Price Visibility Polish CLOSED: modal de Nueva Venta muestra ambos precios y badge aplicado; Productos distingue costo/minorista/mayorista. Ausencia clara, bloqueo mayorista y pricing preservados. 91 tests, build/lint acotado y QA local 15/15 aprobados; [evidencias](f10-2-1-wholesale-price-visibility-validation.md).
+- [ ] Buscador publico por producto/categoria/relevancia — implementado en SP canonico y baseline; 305 tests DB-free, typecheck/build y baseline aprobados. Gate HTTP/DB preparado (20 casos), pendiente de autorizacion/aplicacion del SP en test; no CLOSED ni despliegue certificado. [Evidencias](storefront-catalog-search-category-validation.md).
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.

@@ -119,13 +119,29 @@ BEGIN
       OR p_search = ''
       OR p.name LIKE CONCAT('%', p_search, '%')
       OR p.description LIKE CONCAT('%', p_search, '%')
+      OR pc.name LIKE CONCAT('%', p_search, '%')
+      OR pc.slug LIKE CONCAT('%', p_search, '%')
     )
     AND (
       p_category_slug IS NULL
       OR p_category_slug = ''
       OR pc.slug = p_category_slug
     )
-  ORDER BY p.name ASC, p.idProduct ASC
+  ORDER BY
+    CASE
+      WHEN p_search IS NULL OR p_search = '' THEN 100
+      WHEN p.name = p_search THEN 1
+      WHEN pc.name = p_search THEN 2
+      WHEN p.name LIKE CONCAT(p_search, '%') THEN 3
+      WHEN pc.name LIKE CONCAT(p_search, '%') THEN 4
+      WHEN p.name LIKE CONCAT('%', p_search, '%') THEN 5
+      WHEN pc.name LIKE CONCAT('%', p_search, '%') THEN 6
+      WHEN p.description LIKE CONCAT('%', p_search, '%') THEN 7
+      WHEN pc.slug LIKE CONCAT('%', p_search, '%') THEN 8
+      ELSE 100
+    END,
+    p.name ASC,
+    p.idProduct ASC
   LIMIT p_limit OFFSET p_offset;
 
   SELECT COUNT(DISTINCT p.idProduct) AS totalRecords
@@ -145,6 +161,8 @@ BEGIN
       OR p_search = ''
       OR p.name LIKE CONCAT('%', p_search, '%')
       OR p.description LIKE CONCAT('%', p_search, '%')
+      OR pc.name LIKE CONCAT('%', p_search, '%')
+      OR pc.slug LIKE CONCAT('%', p_search, '%')
     )
     AND (
       p_category_slug IS NULL
