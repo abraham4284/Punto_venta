@@ -50,6 +50,8 @@ Tambien existen 413/429 por limites y 500 para fallos inesperados. No todos los 
 
 Catalogo: GET `/api/public/catalog`, `/categories`, `/products`, `/products/:slug` (los ultimos tres relativos a `/api/public/catalog`). Negocio seleccionado por `PUBLIC_CATALOG_BUSINESS_SLUG`; stock publico del deposito predeterminado activo y campos publicos sin costos. Los consumidores publicos/VITRUNO no deben consumir endpoints administrativos.
 
+Catalog search: `GET /api/public/catalog/products` conserva `page`, `limit`, `search` y `categorySlug`, sin parametros ni campos nuevos. La busqueda ahora incluye nombre/descripcion del producto y nombre/slug de su categoria. `search` y `categorySlug` se intersectan (AND). El SP ordena antes de LIMIT/OFFSET: producto exacto, categoria exacta, prefijo producto, prefijo categoria, substring producto, substring categoria, descripcion y slug categoria; desempata por nombre e ID. Sin search conserva orden alfabetico. SELECT y COUNT comparten filtros; DTO, aliases de paginacion y minimo totalPages=1 permanecen vigentes. Requiere aplicar el procedure actualizado por ambiente; [evidencia y gate pendiente](storefront-catalog-search-category-validation.md).
+
 No hay Orders publicos. F5 implementa conversion administrativa a Sale, con frontend de conversion aun pendiente. WhatsApp/sin Orders automaticos es acuerdo de integracion externa: [ADR-007](decisions.md).
 
 ## Orders Core F3 — API administrativa implementada

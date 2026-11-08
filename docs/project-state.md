@@ -1,10 +1,12 @@
 # Estado vigente de Cajora
 
-Revisado: 2026-11-05. Rama inspeccionada: `dev`.
+Revisado: 2026-11-07. Rama inspeccionada: `dev`.
 
-Last reviewed commit: `5c5354d73509815d458033801cc8a5a47beb6848` — `feat(pricing): integrar precios mayoristas en el panel administrativo`. HEAD dev inspeccionado al iniciar F10.2.1, checkout limpio; no se cambio de rama.
+Last reviewed commit: `a4719dfeb36ab8a008f11892342251d5119e379e` — `fix(pricing): mostrar precios minoristas y mayoristas en productos`. HEAD dev inspeccionado al iniciar la mejora del buscador publico, checkout limpio; no se cambio de rama.
 
-Current phase: F10.2.1 Wholesale Price Visibility Polish CLOSED. Nueva Venta muestra Minorista/Mayorista y el precio aplicado; Productos conserva Costo y agrega Precio mayorista junto a Precio minorista. Ausencia mayorista explicita, sin $0 sustituto; bloqueo y logica F10.2 preservados. 20 tests nuevos + 71 regresiones, build/lint acotado y QA local headless 15/15 desktop/tablet/mobile aprobados. Frontend visual solamente; sin API/DB real, backend, VITRUNO ni Git writes. [Evidencias F10.2.1](f10-2-1-wholesale-price-visibility-validation.md).
+Current phase: mejora del buscador publico IMPLEMENTED / DB GATE PENDING. sp_storefront_get_products busca producto (nombre/descripcion) y categoria (nombre/slug), ordena por relevancia antes de paginar y conserva filtros identicos en SELECT/COUNT y search AND categorySlug. Contrato HTTP/DTO, tenant, activos y collation sin cambios. 305 tests DB-free, typecheck/build y baseline aprobados; gate real de 20 casos preparado y typecheckeado, no ejecutado. Ningun SP aplicado ni DB consultada; local/test, QA y produccion pendientes de confirmacion/autorizacion. No CLOSED hasta gate y alineacion canonico/instalado. [Evidencias](storefront-catalog-search-category-validation.md).
+
+F10.2.1 Wholesale Price Visibility Polish CLOSED. Nueva Venta muestra Minorista/Mayorista y el precio aplicado; Productos conserva Costo y agrega Precio mayorista junto a Precio minorista. Ausencia mayorista explicita, sin $0 sustituto; bloqueo y logica F10.2 preservados. 20 tests nuevos + 71 regresiones, build/lint acotado y QA local headless 15/15 desktop/tablet/mobile aprobados. Frontend visual solamente; sin API/DB real, backend, VITRUNO ni Git writes. [Evidencias F10.2.1](f10-2-1-wholesale-price-visibility-validation.md).
 
 F10.2 Wholesale Pricing Admin Frontend CLOSED con el alcance validado. Mi Empresa lee/configura enabled + minimum con business.update; Clientes muestra tier/fecha sin edicion manual; Nueva Venta deriva RETAIL/WHOLESALE de politica/cliente/carrito y envia pricingType explicito, recalcula precios/descuentos, conserva pagos manuales y refresca Customers tras promocion. Detalle preserva tipo historico y NULL = No registrado. 71 tests nuevos + 70 regresiones aprobados, build y lint de 15 fuentes aprobados; QA local headless 32/32 con fixtures/API en memoria en desktop/tablet/mobile 390x844. No es E2E frontend contra API real. [Evidencias F10.2](f10-2-wholesale-pricing-admin-frontend-validation.md).
 
