@@ -18,17 +18,48 @@ function getStringFromEnv(name: string, fallback: string): string {
   return process.env[name] || fallback;
 }
 
-function getOptionalOrigin(value: string | undefined): string | null {
+function getOptionalOrigin(
+  value: string | undefined,
+  errorMessage = "Las URLs de frontend deben tener formato valido",
+): string | null {
   if (!value) return null;
 
   const validation = z.string().url().safeParse(value);
 
   if (!validation.success) {
-    throw new Error("Las URLs de frontend deben tener formato valido");
+    throw new Error(errorMessage);
   }
 
   return validation.data;
 }
+
+function getStorefrontOrigins(value: string | undefined): string[] {
+  const origins: string[] = [];
+  for (const entry of (value ?? "").split(",")) {
+    const origin = getOptionalOrigin(entry.trim(), "STOREFRONT_URLS: URL con formato invalido");
+    if (origin === null) continue;
+
+    const url = new URL(origin);
+    if (
+      (url.protocol !== "http:" && url.protocol !== "https:") ||
+      url.origin !== origin ||
+      url.hostname.includes("*")
+    ) {
+      throw new Error("STOREFRONT_URLS: se esperan origenes HTTP(S) exactos");
+    }
+    origins.push(origin);
+  }
+  return origins;
+}
+
+const frontendOrigins = [
+  getOptionalOrigin(process.env.FRONTEND_URL),
+  getOptionalOrigin(process.env.FRONTEND_URL_LOCAL),
+  getOptionalOrigin(process.env.STOREFRONT_URL),
+  ...getStorefrontOrigins(process.env.STOREFRONT_URLS),
+].filter(function filterOrigin(origin): origin is string {
+  return Boolean(origin);
+});
 
 export const securityConfig = {
   isProduction: process.env.NODE_ENV === "production",
@@ -39,11 +70,5 @@ export const securityConfig = {
   importMaxRows: getPositiveNumberFromEnv("IMPORT_MAX_ROWS", 1000),
   importMaxColumns: getPositiveNumberFromEnv("IMPORT_MAX_COLUMNS", 40),
   importMaxCellLength: getPositiveNumberFromEnv("IMPORT_MAX_CELL_LENGTH", 500),
-  frontendOrigins: [
-    getOptionalOrigin(process.env.FRONTEND_URL),
-    getOptionalOrigin(process.env.FRONTEND_URL_LOCAL),
-    getOptionalOrigin(process.env.STOREFRONT_URL),
-  ].filter(function filterOrigin(origin): origin is string {
-    return Boolean(origin);
-  }),
+  frontendOrigins: [...new Set(frontendOrigins)],
 };

@@ -1,6 +1,8 @@
 # Estado vigente de Cajora
 
-Revisado: 2026-11-07. Rama inspeccionada: `dev`.
+Revisado: 2026-11-10. Rama inspeccionada: `dev`.
+
+CORS multi-storefront implementado sobre `26efdbf371668332367590b7225f7c579613d899`. La API carga la lista opcional `STOREFRONT_URLS` por ambiente y combina sus orígenes HTTP(S) con la configuración previa. 25 pruebas aisladas, typecheck y build aprobados. Configuración de los despliegues a cargo del operador. [Evidencias](storefront-cors-validation.md).
 
 Last reviewed commit: `a4719dfeb36ab8a008f11892342251d5119e379e` — `fix(pricing): mostrar precios minoristas y mayoristas en productos`. HEAD dev inspeccionado al iniciar la mejora del buscador publico, checkout limpio; no se cambio de rama.
 

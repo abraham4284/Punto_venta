@@ -2,6 +2,35 @@
 
 Esta etapa implementa una primera capa de hardening en la API Express. No incluye CSRF, cambios de JWT, separacion de cookies, Redis, WAF, Cloudflare, captcha ni 2FA.
 
+## CORS de storefronts
+
+La allowlist compara cada `Origin` por igualdad exacta y habilita credenciales
+para los orígenes autorizados. Combina `FRONTEND_URL`, `FRONTEND_URL_LOCAL`,
+`STOREFRONT_URL` y la lista opcional `STOREFRONT_URLS`.
+
+Ejemplo para la API de producción durante la migración:
+
+```dotenv
+STOREFRONT_URL=https://vitruno.com.ar
+STOREFRONT_URLS=https://vitruno.onrender.com,https://vitruno-production.up.railway.app
+```
+
+Usar los orígenes efectivos de cada despliegue, con esquema HTTP(S), host y
+puerto cuando corresponda. La lista separa por comas, recorta espacios,
+omite entradas vacías y elimina duplicados entre todas las variables.
+Una entrada inválida detiene la carga de configuración. Usar la forma
+canónica del header `Origin`, sin barra final, rutas, credenciales ni
+comodines. Retirar el origen de Render de la lista y reiniciar la API
+cuando termine la migración.
+
+Configurar cada entorno por separado. VITRUNO producción consume la API y
+DB de producción. VITRUNO QA consume la API y DB de QA, con su propia
+`STOREFRONT_URLS` (por ejemplo, `https://vitruno-qa.up.railway.app`).
+
+CORS omite los headers de autorización para orígenes ajenos. La allowlist
+también se usa al validar el origen en CSRF y sigue siendo obligatorio
+`X-CSRF-Protection: 1` en las mutaciones sujetas a ese middleware.
+
 ## Helmet
 
 La API usa `helmet()` globalmente para agregar cabeceras de seguridad HTTP. Como el backend sirve principalmente JSON, no se configuro una CSP compleja para frontend en esta etapa.
