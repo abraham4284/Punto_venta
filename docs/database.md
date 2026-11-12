@@ -126,3 +126,21 @@ Cabecera Sales bloquea Customer por tenant despues de caja y antes de INSERT/FK;
 Para DB existentes, operador debe confirmar host/ambiente/DB, backup y ventana de actualizacion, y revisar/importar completo ese archivo respetando DELIMITER. Contiene DROP/CREATE de procedures y un DROP legacy ya existente; DDL no tiene rollback transaccional integral. No usar install/baseline/seed completos sobre DB con datos. Repetir por ambiente: local/test -> QA -> produccion; cada aplicacion requiere autorizacion y verificacion de definicion instalada. Guardar la definicion previa para recuperacion revisada si falla el import.
 
 El agente solo edito archivos y genero/valido baseline; no aplico ni consulto DB. El [gate HTTP/DB preparado](../server/vitest.storefront-catalog-integration.config.ts) admite solo loopback y punto_venta_integration_test, comprueba que SHOW CREATE PROCEDURE coincida con el cuerpo canonico antes de crear fixtures UUID y limpia solo esos fixtures sin desactivar FKs. No instala SP ni prepara schema. Aplicacion local/test, QA y produccion pendientes; [evidencias y limites](storefront-catalog-search-category-validation.md).
+
+## T1 — Actualización de procedures de stock
+
+Para una DB existente, aplicar [stock_movements.sql](../server/src/db/procedures/stock_movements.sql) completo respetando `DELIMITER`, con ambiente confirmado y autorización del operador según el procedimiento de despliegue. Coordinar la actualización antes de habilitar el backend batch. El archivo define el helper `sp_apply_stock_transfer_item` y el wrapper individual de seis entradas. El baseline generado incorpora ambos para instalaciones limpias.
+
+T1 reutiliza `uk_stock_product_deposit` y las FKs por negocio. El ID autoincremental del primer movimiento de salida agrupa el lote en el `reference_id` existente. El cambio requiere solo reemplazar procedures y el gate de test preparado. [Validación T1](stock-batch-transfer-backend-validation.md).
+
+## T2.2 — Índice y búsqueda de referencias de transferencia
+
+El índice `idx_stock_movements_business_reference` cubre `(idBusiness, reference_type, reference_id)`. Figura en [schema canónico](../server/src/db/schema/003_add_indexes.sql) y en el baseline regenerado. Las FKs de movimientos conservan los IDs de producto, depósitos y usuario. El endpoint histórico usa joins por negocio para producto y depósitos, con lectura del usuario por su ID persistido. El grupo se consulta en un SELECT parametrizado, sin locks.
+
+Para bases existentes, con autorización y destino confirmado, aplicar [manual/008_stock_transfer_reference_lookup.sql](../server/src/db/manual/008_stock_transfer_reference_lookup.sql) y reimportar completo [procedures/stock_movements.sql](../server/src/db/procedures/stock_movements.sql) para activar la búsqueda por referencia. La migración agrega el índice por nombre de forma idempotente y preserva las filas. La firma del procedure de listado sigue vigente. Promover local/test, QA y producción por ambiente según el flujo del operador. SQL preparado en archivos y pendiente de aplicación. [Validación T2.2](stock-transfer-history-reprint-validation.md).
+
+## T3 — Stock público global
+
+`sp_storefront_get_products` y `sp_storefront_get_product_by_slug` suman cantidades positivas por negocio y producto en todos los depósitos activos. Ambos enlazan depósito por negocio e ID y el agregado por negocio y producto. El baseline generado incluye estas definiciones para instalaciones limpias.
+
+Para bases existentes, el operador autorizado debe reimportar completo [storefront_catalog.sql](../server/src/db/procedures/storefront_catalog.sql) respetando `DELIMITER` y verificar la definición instalada de ambos procedures. El archivo incluye la mejora de búsqueda. T3 conserva schema, índices, firmas e instalación y no requiere una migración. Aplicación pendiente en local/test, QA y producción. El [gate combinado de búsqueda y stock](storefront-global-stock-validation.md) verifica ambos cuerpos antes de crear fixtures y se ejecuta únicamente en la base de integración autorizada.

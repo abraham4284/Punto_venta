@@ -146,11 +146,10 @@ export const QuickStockAdjustmentModal = ({
     selectedQuantity > 0 &&
     Boolean(stock) &&
     selectedQuantity > Number(stock?.quantity ?? 0);
-  const destinationBlocked =
-    operation === "TRANSFER" &&
-    Boolean(idDepositTo) &&
-    Boolean(destinationBalance) &&
-    !destinationBalance?.exists;
+  const selectedDestinationBalance =
+    destinationBalance?.idDeposit === Number(idDepositTo) &&
+    destinationBalance?.idProduct === stock?.idProduct ? destinationBalance : null;
+  const destinationWillBeCreated = selectedDestinationBalance?.exists === false;
 
   const resetForm = () => {
     setOperation("ADJUSTMENT_IN");
@@ -219,14 +218,6 @@ export const QuickStockAdjustmentModal = ({
     if (exceedsOriginStock) {
       setErrors({
         quantity: "La cantidad no puede superar el stock disponible en origen",
-      });
-      return false;
-    }
-
-    if (destinationBlocked) {
-      setErrors({
-        idDepositTo:
-          "Primero debe dar de alta el stock del producto en el deposito al que desea transferir",
       });
       return false;
     }
@@ -376,16 +367,15 @@ export const QuickStockAdjustmentModal = ({
                   Verificando stock en destino...
                 </p>
               )}
-              {destinationBlocked && (
-                <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  Primero debe dar de alta el stock del producto en el deposito
-                  al que desea transferir
+              {destinationWillBeCreated && (
+                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  El stock de este producto en el depósito destino se creará al transferir.
                 </p>
               )}
-              {destinationBalance?.exists && (
+              {selectedDestinationBalance?.exists && (
                 <p className="text-sm text-muted-foreground">
                   Stock actual en destino:{" "}
-                  {formatNumber(destinationBalance.quantity)}{" "}
+                  {formatNumber(selectedDestinationBalance.quantity)}{" "}
                   {unitOption?.shortLabel ?? "u."}
                 </p>
               )}
@@ -450,7 +440,7 @@ export const QuickStockAdjustmentModal = ({
           </Button>
           <Button
             type="button"
-            disabled={submitting || loadingBalance || destinationBlocked}
+            disabled={submitting || loadingBalance}
             onClick={handleSubmit}
           >
             {submitting && <Spinner className="mr-2 h-4 w-4" />}

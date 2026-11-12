@@ -153,6 +153,44 @@ export interface ProcessStockTransferPayload {
   observation?: string | null;
 }
 
+export interface ProcessStockTransfersPayload {
+  idDepositFrom: number;
+  idDepositTo: number;
+  observation?: string | null;
+  items: { idProduct: number; quantity: number }[];
+}
+
+export interface StockTransferBatchResponse {
+  referenceId: number;
+  idDepositFrom: number;
+  idDepositTo: number;
+  idUser: number;
+  createdAt: string;
+  observation: string | null;
+  items: {
+    idProduct: number;
+    productName: string;
+    unitType: ProductUnitType;
+    quantity: number;
+  }[];
+  totalQuantity: number;
+  movementCount: number;
+}
+
+export interface StockTransferHistoryResponse {
+  referenceId: number;
+  idDepositFrom: number;
+  depositFromName: string;
+  idDepositTo: number;
+  depositToName: string;
+  idUser: number;
+  userName: string;
+  createdAt: string;
+  observation: string | null;
+  items: { idProduct: number; productName: string; unitType: string; quantity: number }[];
+  movementCount: number;
+}
+
 export interface StockMovementResponse {
   idStockMovement: number;
   idBusiness: number;
@@ -169,13 +207,14 @@ export interface StockMovementResponse {
     | "TRANSFER_IN"
     | "TRANSFER_OUT"
     | "ADJUSTMENT_IN"
-    | "ADJUSTMENT_OUT";
+    | "ADJUSTMENT_OUT"
+    | "SALE_RETURN";
   idDepositFrom: number | null;
   depositFromName: string | null;
   idDepositTo: number | null;
   depositToName: string | null;
   quantity: number;
-  referenceType: "SALE" | "PURCHASE" | "TRANSFER" | "ADJUSTMENT" | null;
+  referenceType: "SALE" | "PURCHASE" | "TRANSFER" | "ADJUSTMENT" | "SALE_RETURN" | null;
   referenceId: number | null;
   observation: string | null;
   createdAt: Date;

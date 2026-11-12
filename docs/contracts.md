@@ -46,9 +46,35 @@ BUSINESS suele responder `{ status: true, message, data }`; platform usa `succes
 
 Tambien existen 413/429 por limites y 500 para fallos inesperados. No todos los controllers mapean iguales casos igual. Filosofia: mensajes seguros y errores de campo utiles, sin exponer SQL/secretos; mantener compatibilidad y revisar mapeo real del modulo.
 
+## T1 — Transferencia múltiple de stock
+
+`POST /api/stock-movements/transfers` requiere contexto BUSINESS y el permiso `stock.transfer`. El body admite `idDepositFrom`, `idDepositTo`, `observation` opcional/nula de hasta 255 caracteres e `items` de 1 a 100 entradas `{ idProduct, quantity }`. Los IDs son enteros positivos, los depósitos son distintos y cada producto aparece una sola vez. La API rechaza campos adicionales en el body y cada ítem. El negocio y el actor provienen de la sesión.
+
+La cantidad es un número positivo de hasta dos decimales. `UNIT` exige enteros. Producto y depósitos deben estar activos y pertenecer al negocio. El origen debe tener stock registrado y suficiente. Si falta la fila de destino, se crea dentro de la transferencia.
+
+HTTP 200 devuelve el envelope BUSINESS `{ status: true, message, data }`. El campo `data` incluye `referenceId`, `idDepositFrom`, `idDepositTo`, `idUser`, `createdAt` (fecha del primer movimiento en formato ISO), `observation`, `items` ordenados por `idProduct` con `{ idProduct, productName, unitType, quantity }`, `totalQuantity` y `movementCount`. El total es la suma numérica de las cantidades, incluso si las unidades difieren. Cada producto genera dos movimientos y todo el lote comparte `reference_type = 'TRANSFER'` y `reference_id` igual al ID del primer `TRANSFER_OUT`.
+
+HTTP 400 devuelve errores de validación o reglas de dominio. Autenticación y permisos conservan los estados 401/403 del middleware. Un deadlock o timeout de lock devuelve 409 con `STOCK_TRANSFER_CONCURRENT_CHANGE`. Un fallo inesperado devuelve 500 con mensaje seguro. La referencia agrupa movimientos. Repetir una solicitud confirmada ejecuta otra transferencia si hay saldo suficiente.
+
+`POST /api/stock-movements/transfer` conserva su payload, la posibilidad de mover existencias de productos inactivos y la respuesta 200 con el listado reciente de movimientos. El procedure compartido permite crear la fila destino también en la operación individual. Ambos endpoints comparten el mapeo de errores.
+
+## T2.2 — Consulta histórica de transferencias
+
+`GET /api/stock-movements/transfers/:referenceId` requiere sesión BUSINESS y `stock.view_movements`. La consulta deriva el negocio de la sesión y recupera el grupo completo `TRANSFER` por referencia. La referencia del path debe ser un entero positivo seguro en JavaScript.
+
+HTTP 200 devuelve `{ status: true, message, data }`. `data` incluye `referenceId`, `idDepositFrom`, `depositFromName`, `idDepositTo`, `depositToName`, `idUser`, `userName`, `createdAt` en ISO, `observation`, `movementCount` e `items: [{ idProduct, productName, unitType, quantity }]`. Cada ítem toma la cantidad del `TRANSFER_OUT` tras validar su par `TRANSFER_IN`. La fecha corresponde al primer movimiento de salida. El conteo refleja las filas encontradas.
+
+Los IDs, cantidades, ruta, actor, fecha y observación se reconstruyen de los movimientos persistidos. Los nombres y la unidad se leen de las entidades actuales, aunque estén inactivas. El comprobante toma el nombre y logo actuales del negocio de la sesión. Un cambio posterior en estos datos de presentación se refleja al reimprimir.
+
+HTTP 400 indica referencia inválida. Los estados 401/403 corresponden a autenticación y permisos. Una referencia ausente, de otro negocio o de otro tipo devuelve el mismo 404, `Transferencia no encontrada`. Un grupo inconsistente o fallo inesperado devuelve 500, `No se pudo obtener la transferencia`.
+
+El listado `GET /api/stock-movements` mantiene el filtro `TRANSFER` y acepta `search=123` o `search=%23123` para buscar una referencia exacta, además de la búsqueda existente por producto o usuario. La página conserva los movimientos individuales y la paginación del servidor.
+
 ## Publico frente a administracion
 
-Catalogo: GET `/api/public/catalog`, `/categories`, `/products`, `/products/:slug` (los ultimos tres relativos a `/api/public/catalog`). Negocio seleccionado por `PUBLIC_CATALOG_BUSINESS_SLUG`; stock publico del deposito predeterminado activo y campos publicos sin costos. Los consumidores publicos/VITRUNO no deben consumir endpoints administrativos.
+Catalogo: GET `/api/public/catalog`, `/categories`, `/products`, `/products/:slug` (los ultimos tres relativos a `/api/public/catalog`). El negocio se selecciona por `PUBLIC_CATALOG_BUSINESS_SLUG`. Listado y detalle exponen en `stockAvailable` la misma suma por producto de cantidades positivas en depósitos activos de ese negocio, incluidos los no predeterminados. Sin cantidades positivas elegibles, el valor es `0`. La respuesta pública expone el agregado sin desglose por depósito ni costos. Los consumidores publicos/VITRUNO no deben consumir endpoints administrativos.
+
+`availabilityStatus` devuelve `on_order` si el producto está marcado por pedido, `in_stock` si tiene stock positivo y `out_of_stock` en los demás casos. Con 2 unidades en el depósito predeterminado activo, 5 en otro activo y 10 en uno inactivo, `stockAvailable` es `7`. [Validación T3](storefront-global-stock-validation.md).
 
 Catalog search: `GET /api/public/catalog/products` conserva `page`, `limit`, `search` y `categorySlug`, sin parametros ni campos nuevos. La busqueda ahora incluye nombre/descripcion del producto y nombre/slug de su categoria. `search` y `categorySlug` se intersectan (AND). El SP ordena antes de LIMIT/OFFSET: producto exacto, categoria exacta, prefijo producto, prefijo categoria, substring producto, substring categoria, descripcion y slug categoria; desempata por nombre e ID. Sin search conserva orden alfabetico. SELECT y COUNT comparten filtros; DTO, aliases de paginacion y minimo totalPages=1 permanecen vigentes. Requiere aplicar el procedure actualizado por ambiente; [evidencia y gate pendiente](storefront-catalog-search-category-validation.md).
 

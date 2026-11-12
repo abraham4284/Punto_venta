@@ -22,6 +22,11 @@ import type { ProductResponse } from "../../products/types/products.types";
 import type { PurchaseCartItem } from "../../purchases/types";
 import { usePurchaseCartStore } from "../../purchases/store/purchaseCart.store";
 import { useStock } from "../hooks/useStock";
+import { BatchStockTransferDialog } from "../components/transfer/BatchStockTransferDialog";
+import { StockTransferReceiptDialog } from "../components/transfer/StockTransferReceiptDialog";
+import { buildStockTransferReceipt } from "../helpers/stock-transfer-receipt.helper";
+import type { StockTransferReceiptData } from "../helpers/stock-transfer-receipt.helper";
+import { useAuthStore } from "../../auth/store/auth.store";
 import type { StockResponse } from "../types/stock.types";
 
 const mapStockToPurchaseProduct = (stock: StockResponse): ProductResponse => {
@@ -55,6 +60,14 @@ export const StockPage = () => {
   const navigate = useNavigate();
   const canCreatePurchase = useCan("purchases.create");
   const canAdjustStock = useCan("stock.adjust");
+  const canTransferStock = useCan("stock.transfer");
+  const canViewMovements = useCan("stock.view_movements");
+  const session = useAuthStore((state) => state.user);
+  const [lastReceipt, setLastReceipt] = useState<{
+    receipt: StockTransferReceiptData;
+    inventoryRefreshFailed: boolean;
+  } | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const cart = usePurchaseCartStore((state) => state.cart);
   const addPurchaseItem = usePurchaseCartStore((state) => state.addItem);
   const removePurchaseItem = usePurchaseCartStore((state) => state.removeItem);
@@ -153,6 +166,32 @@ export const StockPage = () => {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
+          {lastReceipt && (
+            <StockTransferReceiptDialog
+              receipt={lastReceipt.receipt}
+              open={receiptOpen}
+              onOpenChange={setReceiptOpen}
+              inventoryRefreshFailed={lastReceipt.inventoryRefreshFailed}
+            />
+          )}
+          {canTransferStock && (
+            <BatchStockTransferDialog
+              deposits={deposits}
+              canViewMovements={canViewMovements}
+              onSuccess={async (transfer) => {
+                setLastReceipt({
+                  receipt: buildStockTransferReceipt(transfer, deposits, session),
+                  inventoryRefreshFailed: false,
+                });
+                setReceiptOpen(true);
+                if (!await refreshStock()) {
+                  setLastReceipt((current) => current?.receipt.referenceId === transfer.referenceId
+                    ? { ...current, inventoryRefreshFailed: true }
+                    : current);
+                }
+              }}
+            />
+          )}
           {canCreatePurchase && (
             <Button
               type="button"
@@ -200,7 +239,7 @@ export const StockPage = () => {
         isOpen={isOpen}
         onClose={closeModal}
         deposits={deposits}
-        onSuccess={refreshStock}
+        onSuccess={async () => { await refreshStock(); }}
       />
       <QuickStockAdjustmentModal
         isOpen={isOpenQuickAdjust}

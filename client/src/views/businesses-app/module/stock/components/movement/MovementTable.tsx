@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
@@ -9,10 +10,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { StockMovementResponse, StockMovementType } from "../../types";
+import { getStockTransferReceiptReference } from "../../helpers/stock-transfer-receipt.helper";
 
 type Props = {
   movements: StockMovementResponse[];
   loading: boolean;
+  loadingReference: number | null;
+  onViewReceipt: (referenceId: number) => void;
 };
 
 type MovementStyle = {
@@ -59,6 +63,12 @@ const movementStyles: Record<StockMovementType, MovementStyle> = {
     quantityClassName: "text-red-700",
     sign: "-",
   },
+  SALE_RETURN: {
+    label: "Devolución de venta",
+    badgeClassName: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    quantityClassName: "text-emerald-700",
+    sign: "+",
+  },
 };
 
 const formatDate = (value: Date | string): string => {
@@ -91,7 +101,7 @@ const getDepositLabel = (movement: StockMovementResponse): string => {
   return movement.depositToName ?? movement.depositFromName ?? "Sin deposito";
 };
 
-export const MovementTable = ({ movements, loading }: Props) => {
+export const MovementTable = ({ movements, loading, loadingReference, onViewReceipt }: Props) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -113,6 +123,7 @@ export const MovementTable = ({ movements, loading }: Props) => {
       <TableHeader>
         <TableRow>
           <TableHead>Fecha</TableHead>
+          <TableHead>Referencia</TableHead>
           <TableHead>Producto</TableHead>
           <TableHead>Operacion</TableHead>
           <TableHead>Cantidad</TableHead>
@@ -126,10 +137,25 @@ export const MovementTable = ({ movements, loading }: Props) => {
         {movements.map((movement) => {
           const style = movementStyles[movement.movementType];
           const imageUrl = movement.productImageUrl ?? movement.imageUrl;
+          const referenceId = getStockTransferReceiptReference(movement);
 
           return (
             <TableRow key={movement.idStockMovement}>
               <TableCell>{formatDate(movement.createdAt)}</TableCell>
+              <TableCell>
+                {referenceId === null ? "—" : (
+                  <div className="space-y-1">
+                    <span className="block font-medium">#{referenceId}</span>
+                    <Button type="button" variant="outline" size="sm"
+                      disabled={loadingReference === referenceId}
+                      aria-label={`Ver comprobante de transferencia #${referenceId}`}
+                      onClick={() => onViewReceipt(referenceId)}
+                    >
+                      {loadingReference === referenceId ? "Cargando…" : "Ver comprobante"}
+                    </Button>
+                  </div>
+                )}
+              </TableCell>
               <TableCell>
                 <div className="flex min-w-56 items-center gap-2">
                   {imageUrl ? (

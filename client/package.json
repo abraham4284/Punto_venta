@@ -7,6 +7,8 @@
     "dev": "vite",
     "test:wholesale-pricing": "node --test scripts/wholesale-pricing.test.mjs",
     "test:sale-returns": "node --test scripts/sale-returns.test.mjs",
+    "test:stock-batch-transfer": "node --test scripts/stock-batch-transfer.test.mjs",
+    "test:stock-transfer-receipt": "node --test scripts/stock-transfer-receipt.test.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
