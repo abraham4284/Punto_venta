@@ -69,12 +69,13 @@ export const refreshTransferLines = (
 export const getStockTransferFailure = (
   status?: number,
   body?: ApiErrorResponse & { code?: string },
-): { message: string; errors: FieldError[]; requiresRefresh: boolean } => {
+): { message: string; errors: FieldError[]; requiresRefresh: boolean; requiresReview: boolean } => {
   if (status === 409 && body?.code === "STOCK_TRANSFER_CONCURRENT_CHANGE") {
     return {
       message: "El stock cambió mientras se procesaba la transferencia. Actualizá los saldos antes de confirmar.",
       errors: [],
       requiresRefresh: true,
+      requiresReview: false,
     };
   }
   if (status === 400) {
@@ -82,11 +83,21 @@ export const getStockTransferFailure = (
       message: body?.message || "Revisá los datos de la transferencia.",
       errors: Array.isArray(body?.errors) ? body.errors : [],
       requiresRefresh: false,
+      requiresReview: false,
+    };
+  }
+  if (status === 401 || status === 402 || status === 403) {
+    return {
+      message: "No se pudo autorizar la transferencia.",
+      errors: [],
+      requiresRefresh: false,
+      requiresReview: false,
     };
   }
   return {
     message: "No se pudo confirmar el resultado. Revisá los movimientos antes de volver a enviar.",
     errors: [],
     requiresRefresh: false,
+    requiresReview: true,
   };
 };

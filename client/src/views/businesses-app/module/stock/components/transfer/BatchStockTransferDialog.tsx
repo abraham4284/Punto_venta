@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { isAxiosError } from "axios";
+import { Link } from "react-router-dom";
 import { ArrowRightLeft, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -18,17 +19,19 @@ import {
   getTransferQuantityError, MAX_TRANSFER_ITEMS, refreshTransferLines,
 } from "../../helpers/stock-transfer.helper";
 import type { StockTransferLine } from "../../helpers/stock-transfer.helper";
+import { isConfirmedStockTransfer } from "../../helpers/stock-transfer-receipt.helper";
 import type { AdvancedStockInventoryItem, ApiErrorResponse, StockTransferBatchResponse } from "../../types/stock.types";
 import { StockTransferProductPicker } from "./StockTransferProductPicker";
 
 interface Props {
   deposits: DepositResponse[];
+  canViewMovements: boolean;
   onSuccess: (transfer: StockTransferBatchResponse) => void | Promise<void>;
 }
 
 const formatQuantity = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 
-export const BatchStockTransferDialog = ({ deposits, onSuccess }: Props) => {
+export const BatchStockTransferDialog = ({ deposits, canViewMovements, onSuccess }: Props) => {
   const [open, setOpen] = useState(false);
   const [origin, setOrigin] = useState(0);
   const [destination, setDestination] = useState(0);
@@ -45,7 +48,8 @@ export const BatchStockTransferDialog = ({ deposits, onSuccess }: Props) => {
   const to = activeDeposits.find((deposit) => deposit.idDeposit === destination);
   const payload = from && to ? buildStockTransferPayload(origin, destination, observation, lines) : null;
   const addedIds = new Set(lines.map(({ product }) => product.idProduct));
-  const disabled = operation !== null;
+  const requiresReview = failure?.requiresReview === true;
+  const disabled = operation !== null || requiresReview;
 
   const reset = () => {
     setOrigin(0);
@@ -59,7 +63,7 @@ export const BatchStockTransferDialog = ({ deposits, onSuccess }: Props) => {
 
   const changeOpen = (next: boolean) => {
     if (busy.current) return;
-    if (next) reset();
+    if (next && !requiresReview) reset();
     setOpen(next);
   };
 
@@ -83,7 +87,7 @@ export const BatchStockTransferDialog = ({ deposits, onSuccess }: Props) => {
   };
 
   const refresh = async () => {
-    if (busy.current || !from || !lines.length) return;
+    if (busy.current || requiresReview || !from || !lines.length) return;
     busy.current = true;
     setOperation("refresh");
     setRefreshMessage("");
@@ -118,15 +122,15 @@ export const BatchStockTransferDialog = ({ deposits, onSuccess }: Props) => {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (busy.current || needsRefresh || !payload) return;
+    if (busy.current || needsRefresh || requiresReview || !payload) return;
     busy.current = true;
     setOperation("submit");
     setFailure(null);
     setRefreshMessage("");
     let transfer: StockTransferBatchResponse;
     try {
-      const { data } = await processStockTransfersRequest(payload);
-      if (data.status !== true || !data.data?.referenceId) throw new Error("Respuesta de transferencia incompleta");
+      const { data, status } = await processStockTransfersRequest(payload);
+      if (!isConfirmedStockTransfer(status, data)) throw new Error("Respuesta de transferencia incompleta");
       transfer = data.data;
     } catch (error) {
       const response = isAxiosError<ApiErrorResponse & { code?: string }>(error) ? error.response : undefined;
@@ -162,8 +166,21 @@ export const BatchStockTransferDialog = ({ deposits, onSuccess }: Props) => {
           <DialogTitle>Transferir stock</DialogTitle>
           <DialogDescription>Mové varios productos entre dos depósitos en una sola operación.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit} noValidate className="flex min-h-0 flex-col gap-4" aria-busy={disabled}>
+        <form onSubmit={submit} noValidate className="flex min-h-0 flex-col gap-4" aria-busy={operation !== null}>
           <div className="min-h-0 space-y-5 overflow-y-auto p-1">
+            {requiresReview && (
+              <div className="space-y-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <p role="alert" className="text-destructive">{failure.message}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {canViewMovements && (
+                    <Link to="/admin/stock/movements" target="_blank" rel="noopener" className="underline underline-offset-4">
+                      Ver movimientos
+                    </Link>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={reset}>Descartar borrador</Button>
+                </div>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="transfer-origin">Depósito origen</Label>
@@ -274,12 +291,14 @@ export const BatchStockTransferDialog = ({ deposits, onSuccess }: Props) => {
             <div className="min-w-0 space-y-1">
               <p className="break-words font-medium">{from?.name || "Origen"} → {to?.name || "Destino"}</p>
               <p className="text-xs text-muted-foreground">{lines.length} {lines.length === 1 ? "producto" : "productos"}</p>
-              {failure && <p role="alert" className="text-sm text-destructive">{failure.message}</p>}
+              {failure && !requiresReview && <p role="alert" className="text-sm text-destructive">{failure.message}</p>}
               {refreshMessage && <p role="status" className="text-sm">{refreshMessage}</p>}
               {needsRefresh && !failure && !refreshMessage && <p role="status">Actualizá los saldos antes de confirmar.</p>}
             </div>
             <div className="flex flex-wrap justify-end gap-2">
-              <DialogClose render={<Button type="button" variant="outline" disabled={disabled} />}>Cancelar</DialogClose>
+              <DialogClose render={<Button type="button" variant="outline" disabled={operation !== null} />}>
+                {requiresReview ? "Cerrar" : "Cancelar"}
+              </DialogClose>
               <Button type="submit" disabled={!payload || needsRefresh || disabled}>
                 {operation === "submit" ? "Transfiriendo…" : "Confirmar transferencia"}
               </Button>

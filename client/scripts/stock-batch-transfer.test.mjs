@@ -79,13 +79,14 @@ test("refresh preserves quantities and blocks reduced or missing stock", () => {
 test("409 requires stock refresh rather than confirming a transfer", () => {
   const failure = h.getStockTransferFailure(409, { code: "STOCK_TRANSFER_CONCURRENT_CHANGE" });
   assert.equal(failure.requiresRefresh, true);
+  assert.equal(failure.requiresReview, false);
   assert.match(failure.message, /Actualizá los saldos/);
 });
 
 test("400 retains field errors, 500 omits internal messages", () => {
   const errors = [{ field: "items.1.quantity", message: "Cantidad inválida" }];
   assert.deepEqual(h.getStockTransferFailure(400, { message: "Stock insuficiente", errors }), {
-    message: "Stock insuficiente", errors, requiresRefresh: false,
+    message: "Stock insuficiente", errors, requiresRefresh: false, requiresReview: false,
   });
   assert.doesNotMatch(h.getStockTransferFailure(500, { message: "SQL interno" }).message, /SQL interno/);
 });
