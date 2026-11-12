@@ -1,5 +1,13 @@
 # Ownership transaccional e idempotencia
 
+## T1 — Transferencias de stock
+
+El service batch abre una transacción en una conexión, llama a `sp_apply_stock_transfer_item` por producto en orden ascendente y confirma una vez. El helper participa en la transacción de su caller. En el endpoint individual, `sp_process_stock_transfer` controla la transacción y devuelve el listado histórico de movimientos después del commit.
+
+Cada aplicación valida y toma locks compartidos sobre los depósitos activos en orden de ID. Luego bloquea el producto y valida su unidad. El lote exige producto activo y la operación individual conserva el traslado de stock de productos inactivos. Lee las filas de stock con `FOR UPDATE` en orden de ID de depósito, independientemente de la dirección de la transferencia, y valida la disponibilidad bajo lock. Si falta el destino, inserta con la clave única por negocio/producto/depósito y relee el saldo bajo lock ante una alta concurrente. El primer `TRANSFER_OUT` define la referencia que reutilizan todos los movimientos del lote.
+
+El service revierte ante un error, libera la conexión y evalúa notificaciones por producto y depósito después de confirmar. Los conflictos de locks se reportan como 409. La verificación en el motor queda pendiente del [gate T1](../../docs/stock-batch-transfer-backend-validation.md).
+
 La [ADR-002](../../docs/decisions.md) conserva procedures y coordinacion en services cuando el flujo lo requiere. El owner real varia: inspeccionar service y procedure completos antes de reutilizar un patron.
 
 ## Sales: creacion coordinada por service

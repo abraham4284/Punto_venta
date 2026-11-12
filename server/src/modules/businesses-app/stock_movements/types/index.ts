@@ -100,3 +100,31 @@ export interface ProcessStockTransferPayload {
 export interface StockMovementAuthenticatedRequest extends Request {
   user: BusinessRequestUser;
 }
+
+export interface ProcessStockTransfersPayload {
+  idBusiness: number;
+  idUser: number;
+  idDepositFrom: number;
+  idDepositTo: number;
+  observation?: string | null;
+  items: { idProduct: number; quantity: number }[];
+}
+
+export interface StockTransferItemResponse {
+  idProduct: number;
+  productName: string;
+  unitType: string;
+  quantity: number;
+}
+
+export interface StockTransferBatchResponse {
+  referenceId: number;
+  idDepositFrom: number;
+  idDepositTo: number;
+  idUser: number;
+  createdAt: Date;
+  observation: string | null;
+  items: StockTransferItemResponse[];
+  totalQuantity: number;
+  movementCount: number;
+}

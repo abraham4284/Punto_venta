@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Decimal } from "decimal.js";
 
 const emptyStringToNull = z.literal("").transform(function transformEmptyString() {
   return null;
@@ -11,6 +12,40 @@ const observationSchema = z
   .optional()
   .nullable()
   .or(emptyStringToNull);
+
+const transferId = z.number().int().positive().max(2_147_483_647);
+
+export const processStockTransfersSchema = z.object({
+  idDepositFrom: transferId,
+  idDepositTo: transferId,
+  observation: observationSchema,
+  items: z.array(z.object({
+    idProduct: transferId,
+    quantity: z.number().positive().lt(1e16).refine(
+      function fitsStockScale(quantity) { return new Decimal(quantity).decimalPlaces() <= 2; },
+      "La cantidad admite hasta dos decimales",
+    ),
+  }).strict()).min(1).max(100),
+}).strict().superRefine(function validateTransfer(data, context) {
+  if (data.idDepositFrom === data.idDepositTo) {
+    context.addIssue({
+      code: "custom",
+      path: ["idDepositTo"],
+      message: "El deposito origen y destino deben ser diferentes",
+    });
+  }
+  const products = new Set<number>();
+  data.items.forEach(function validateItem(item, index) {
+    if (products.has(item.idProduct)) {
+      context.addIssue({
+        code: "custom",
+        path: ["items", index, "idProduct"],
+        message: "El producto ya esta incluido en la transferencia",
+      });
+    }
+    products.add(item.idProduct);
+  });
+});
 
 export const processStockAdjustmentSchema = z
   .object({
