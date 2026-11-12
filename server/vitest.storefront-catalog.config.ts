@@ -5,6 +5,7 @@ import base from "./vitest.wholesale-pricing.config.js";
 export default defineConfig({
   ...base,
   test: { ...base.test, setupFiles: [], include: [...base.test!.include!,
-    "src/tests/unit/storefront-catalog.search.test.ts"],
+    "src/tests/unit/storefront-catalog.search.test.ts",
+    "src/tests/unit/storefront-catalog.stock.test.ts"],
   },
 });

@@ -2,6 +2,8 @@
 
 Revisado: 2026-11-11. Rama inspeccionada: `dev`.
 
+T3 stock público global implementado sobre `e02cb42aced97451a776599dbc7271943f3ef6d4`. Listado y detalle suman cantidades positivas de todos los depósitos activos del negocio. Pasaron 315 pruebas sin DB, typecheck, build y validación del baseline. La instalación de procedures está pendiente por ambiente y el gate combinado con búsqueda (29 casos HTTP/MySQL) espera ejecución autorizada en test. La siguiente fase es T4 QA VITRUNO. [Evidencias](storefront-global-stock-validation.md).
+
 T2.2 historial durable y reimpresión implementados sobre `80cf73d9ac4145bc7be5b90c4b9149aca5806882`. Movimientos busca por referencia y recupera el grupo completo de `stock_movements` con el permiso de lectura del historial. Reutiliza el comprobante A4 de T2.1. Se validó con 45 pruebas backend DB-free, 52 frontend y 19 comprobaciones de navegador con fixtures. Índice 008 y procedure de búsqueda preparados, con aplicación y gate HTTP/MySQL pendientes. [Evidencias](stock-transfer-history-reprint-validation.md).
 
 T2.1 comprobante provisional implementado sobre `fb229096a22ebf817132f2c5ab70935257fa63dd`. Abre con los datos de la respuesta confirmada y queda disponible durante la visita a Stock, incluso si falla el refresco del inventario. Impresión A4 aislada y bloqueo de reenvío del borrador ante resultado incierto. 46 pruebas aisladas y de regresión y 25 comprobaciones de navegador e impresión con fixtures aprobadas. [Evidencias](stock-transfer-receipt-frontend-validation.md).
@@ -14,7 +16,7 @@ CORS multi-storefront implementado sobre `26efdbf371668332367590b7225f7c579613d8
 
 Last reviewed commit: `a4719dfeb36ab8a008f11892342251d5119e379e` — `fix(pricing): mostrar precios minoristas y mayoristas en productos`. HEAD dev inspeccionado al iniciar la mejora del buscador publico, checkout limpio; no se cambio de rama.
 
-Current phase: mejora del buscador publico IMPLEMENTED / DB GATE PENDING. sp_storefront_get_products busca producto (nombre/descripcion) y categoria (nombre/slug), ordena por relevancia antes de paginar y conserva filtros identicos en SELECT/COUNT y search AND categorySlug. Contrato HTTP/DTO, tenant, activos y collation sin cambios. 305 tests DB-free, typecheck/build y baseline aprobados; gate real de 20 casos preparado y typecheckeado, no ejecutado. Ningun SP aplicado ni DB consultada; local/test, QA y produccion pendientes de confirmacion/autorizacion. No CLOSED hasta gate y alineacion canonico/instalado. [Evidencias](storefront-catalog-search-category-validation.md).
+Mejora del buscador público implementada con gate real pendiente. `sp_storefront_get_products` busca producto (nombre/descripción) y categoría (nombre/slug), ordena por relevancia antes de paginar y conserva filtros idénticos en SELECT/COUNT y `search AND categorySlug`. Los 20 casos HTTP/MySQL de búsqueda se ejecutarán junto con los de T3 sobre las definiciones canónicas vigentes. [Evidencias](storefront-catalog-search-category-validation.md).
 
 F10.2.1 Wholesale Price Visibility Polish CLOSED. Nueva Venta muestra Minorista/Mayorista y el precio aplicado; Productos conserva Costo y agrega Precio mayorista junto a Precio minorista. Ausencia mayorista explicita, sin $0 sustituto; bloqueo y logica F10.2 preservados. 20 tests nuevos + 71 regresiones, build/lint acotado y QA local headless 15/15 desktop/tablet/mobile aprobados. Frontend visual solamente; sin API/DB real, backend, VITRUNO ni Git writes. [Evidencias F10.2.1](f10-2-1-wholesale-price-visibility-validation.md).
 

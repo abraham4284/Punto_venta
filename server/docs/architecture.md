@@ -26,7 +26,7 @@ Seguridad y orden exacto de middleware BUSINESS: [security-tenancy](security-ten
 
 ## Catalogo y futuras fases
 
-[Catalog routes](../src/modules/storefront-app/catalog/routes/catalog.routes.ts) expone GET de negocio/catalogo, categorias, productos y detalle por slug. Los procedures y mappers publicos usan stock del deposito predeterminado activo y campos publicos sin costos. API publica y administrativa son contratos distintos; no reutilizar respuestas privadas.
+[Catalog routes](../src/modules/storefront-app/catalog/routes/catalog.routes.ts) expone GET de negocio/catalogo, categorias, productos y detalle por slug. Listado y detalle usan un agregado SQL por negocio y producto que suma cantidades positivas de todos sus depósitos activos. Los mappers públicos exponen el total y el estado de disponibilidad sin desglose por depósito ni costos. API publica y administrativa son contratos distintos; no reutilizar respuestas privadas.
 
 [Orders](../src/modules/businesses-app/orders/index.ts) implementa pedidos internos DB/backend, montados en BUSINESS despues de sus controles operativos. Create/update/status/cancel usan transacciones del service y procedures Orders; no escriben stock ni entidades economicas. API en [contracts](../../docs/contracts.md), ownership en [transactions](transactions.md) y evidencias en [F3](../../docs/f03-orders-core-validation.md). Frontend Orders F4/F4.1 implementado. F5 incorpora conversion backend READY -> Sale/COMPLETED reutilizando Sales en una transaccion. Frontend de conversion F6 implementado; reservas pendientes.
 
