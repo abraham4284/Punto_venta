@@ -9,6 +9,7 @@ import type {
   StockMovementsPaginatedResponse,
   StockMovementResponse,
   StockTransferBatchResponse,
+  StockTransferHistoryResponse,
 } from "../types/stock.types";
 
 export const getStockMovementsRequest = (
@@ -45,3 +46,9 @@ export const processStockTransfersRequest = (
 ): Promise<AxiosResponse<ApiResponse<StockTransferBatchResponse>>> => {
   return axios.post("/stock-movements/transfers", payload);
 };
+
+export const getStockTransferByReferenceRequest = (
+  referenceId: number,
+  signal?: AbortSignal,
+): Promise<AxiosResponse<ApiResponse<StockTransferHistoryResponse>>> =>
+  axios.get(`/stock-movements/transfers/${referenceId}`, { signal });

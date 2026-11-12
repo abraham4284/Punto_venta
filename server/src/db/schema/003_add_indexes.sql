@@ -170,6 +170,7 @@ CALL sp_add_index_if_not_exists('cash_settlements', 'idx_cash_settlements_cash_s
 CALL sp_add_index_if_not_exists('cash_settlements', 'idx_cash_settlements_settled_at', 'ALTER TABLE `cash_settlements` ADD KEY `idx_cash_settlements_settled_at` (`settled_at`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'idx_stock_movements_business_product', 'ALTER TABLE `stock_movements` ADD KEY `idx_stock_movements_business_product` (`idBusiness`,`idProduct`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'idx_stock_movements_business_date', 'ALTER TABLE `stock_movements` ADD KEY `idx_stock_movements_business_date` (`idBusiness`,`created_at`)');
+CALL sp_add_index_if_not_exists('stock_movements', 'idx_stock_movements_business_reference', 'ALTER TABLE `stock_movements` ADD KEY `idx_stock_movements_business_reference` (`idBusiness`,`reference_type`,`reference_id`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_user', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_user` (`idUser`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_deposit_from', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_deposit_from` (`idBusiness`,`idDepositFrom`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_deposit_to', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_deposit_to` (`idBusiness`,`idDepositTo`)');

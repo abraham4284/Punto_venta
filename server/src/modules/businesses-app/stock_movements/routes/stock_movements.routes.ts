@@ -3,12 +3,20 @@ import { requireAuth } from "@/middlewares/requireAuth.js";
 import { requirePermission } from "@/middlewares/requirePermission.middleware.js";
 import {
   getStockMovementsController,
+  getStockTransferByReferenceController,
   processStockAdjustmentController,
   processStockTransferController,
   processStockTransfersController,
 } from "../controllers/stock_movements.controller.js";
 
 const router = Router();
+
+router.get(
+  "/stock-movements/transfers/:referenceId",
+  requireAuth,
+  requirePermission("stock.view_movements"),
+  getStockTransferByReferenceController,
+);
 
 router.get(
   "/stock-movements",

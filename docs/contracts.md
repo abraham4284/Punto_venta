@@ -58,6 +58,18 @@ HTTP 400 devuelve errores de validación o reglas de dominio. Autenticación y p
 
 `POST /api/stock-movements/transfer` conserva su payload, la posibilidad de mover existencias de productos inactivos y la respuesta 200 con el listado reciente de movimientos. El procedure compartido permite crear la fila destino también en la operación individual. Ambos endpoints comparten el mapeo de errores.
 
+## T2.2 — Consulta histórica de transferencias
+
+`GET /api/stock-movements/transfers/:referenceId` requiere sesión BUSINESS y `stock.view_movements`. La consulta deriva el negocio de la sesión y recupera el grupo completo `TRANSFER` por referencia. La referencia del path debe ser un entero positivo seguro en JavaScript.
+
+HTTP 200 devuelve `{ status: true, message, data }`. `data` incluye `referenceId`, `idDepositFrom`, `depositFromName`, `idDepositTo`, `depositToName`, `idUser`, `userName`, `createdAt` en ISO, `observation`, `movementCount` e `items: [{ idProduct, productName, unitType, quantity }]`. Cada ítem toma la cantidad del `TRANSFER_OUT` tras validar su par `TRANSFER_IN`. La fecha corresponde al primer movimiento de salida. El conteo refleja las filas encontradas.
+
+Los IDs, cantidades, ruta, actor, fecha y observación se reconstruyen de los movimientos persistidos. Los nombres y la unidad se leen de las entidades actuales, aunque estén inactivas. El comprobante toma el nombre y logo actuales del negocio de la sesión. Un cambio posterior en estos datos de presentación se refleja al reimprimir.
+
+HTTP 400 indica referencia inválida. Los estados 401/403 corresponden a autenticación y permisos. Una referencia ausente, de otro negocio o de otro tipo devuelve el mismo 404, `Transferencia no encontrada`. Un grupo inconsistente o fallo inesperado devuelve 500, `No se pudo obtener la transferencia`.
+
+El listado `GET /api/stock-movements` mantiene el filtro `TRANSFER` y acepta `search=123` o `search=%23123` para buscar una referencia exacta, además de la búsqueda existente por producto o usuario. La página conserva los movimientos individuales y la paginación del servidor.
+
 ## Publico frente a administracion
 
 Catalogo: GET `/api/public/catalog`, `/categories`, `/products`, `/products/:slug` (los ultimos tres relativos a `/api/public/catalog`). Negocio seleccionado por `PUBLIC_CATALOG_BUSINESS_SLUG`; stock publico del deposito predeterminado activo y campos publicos sin costos. Los consumidores publicos/VITRUNO no deben consumir endpoints administrativos.

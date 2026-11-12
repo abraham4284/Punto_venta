@@ -9,14 +9,15 @@ interface Props {
   receipt: StockTransferReceiptData;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  inventoryRefreshFailed: boolean;
+  inventoryRefreshFailed?: boolean;
+  showTrigger?: boolean;
 }
 
-export const StockTransferReceiptDialog = ({ receipt, open, onOpenChange, inventoryRefreshFailed }: Props) => (
+export const StockTransferReceiptDialog = ({ receipt, open, onOpenChange, inventoryRefreshFailed, showTrigger = true }: Props) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogTrigger render={<Button type="button" variant="ghost" />}>
-      Último comprobante
-    </DialogTrigger>
+    {showTrigger && (
+      <DialogTrigger render={<Button type="button" variant="ghost" />}>Último comprobante</DialogTrigger>
+    )}
     <DialogContent showCloseButton={false} className="flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] flex-col sm:max-w-3xl">
       <DialogHeader>
         <DialogTitle>Comprobante de transferencia</DialogTitle>

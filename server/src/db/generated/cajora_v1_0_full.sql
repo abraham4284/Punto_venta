@@ -893,6 +893,7 @@ CALL sp_add_index_if_not_exists('cash_settlements', 'idx_cash_settlements_cash_s
 CALL sp_add_index_if_not_exists('cash_settlements', 'idx_cash_settlements_settled_at', 'ALTER TABLE `cash_settlements` ADD KEY `idx_cash_settlements_settled_at` (`settled_at`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'idx_stock_movements_business_product', 'ALTER TABLE `stock_movements` ADD KEY `idx_stock_movements_business_product` (`idBusiness`,`idProduct`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'idx_stock_movements_business_date', 'ALTER TABLE `stock_movements` ADD KEY `idx_stock_movements_business_date` (`idBusiness`,`created_at`)');
+CALL sp_add_index_if_not_exists('stock_movements', 'idx_stock_movements_business_reference', 'ALTER TABLE `stock_movements` ADD KEY `idx_stock_movements_business_reference` (`idBusiness`,`reference_type`,`reference_id`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_user', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_user` (`idUser`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_deposit_from', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_deposit_from` (`idBusiness`,`idDepositFrom`)');
 CALL sp_add_index_if_not_exists('stock_movements', 'fk_stock_movements_deposit_to', 'ALTER TABLE `stock_movements` ADD KEY `fk_stock_movements_deposit_to` (`idBusiness`,`idDepositTo`)');
@@ -10202,6 +10203,14 @@ CREATE PROCEDURE sp_get_stock_movements(
   IN p_search VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
+  DECLARE v_transfer_reference BIGINT DEFAULT NULL;
+  IF p_search REGEXP '^#?[0-9]{1,16}$' THEN
+    SET v_transfer_reference = CAST(TRIM(LEADING '#' FROM p_search) AS UNSIGNED);
+    IF v_transfer_reference = 0 OR v_transfer_reference > 9007199254740991 THEN
+      SET v_transfer_reference = NULL;
+    END IF;
+  END IF;
+
   SELECT
     sm.idStockMovement,
     sm.idBusiness,
@@ -10259,6 +10268,7 @@ BEGIN
       OR p_search = ''
       OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
       OR u.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR (sm.reference_type = 'TRANSFER' AND sm.reference_id = v_transfer_reference)
     )
   ORDER BY sm.created_at DESC, sm.idStockMovement DESC
   LIMIT p_limit OFFSET p_offset;
@@ -10295,6 +10305,7 @@ BEGIN
       OR p_search = ''
       OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
       OR u.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR (sm.reference_type = 'TRANSFER' AND sm.reference_id = v_transfer_reference)
     );
 END$$
 

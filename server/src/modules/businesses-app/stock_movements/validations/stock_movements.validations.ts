@@ -1,4 +1,7 @@
 import { z } from "zod";
+
+export const stockTransferReferenceSchema = z.string().regex(/^\d{1,16}$/)
+  .transform(Number).pipe(z.number().int().positive());
 import { Decimal } from "decimal.js";
 
 const emptyStringToNull = z.literal("").transform(function transformEmptyString() {

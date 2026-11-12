@@ -10,6 +10,7 @@ import ts from "typescript";
 const root = fileURLToPath(new URL("../src/", import.meta.url));
 const stock = resolve(root, "views/businesses-app/module/stock");
 const modules = new Map();
+const axiosStub = `data:text/javascript,${encodeURIComponent("export default { get: (url, options) => Promise.resolve({ url, options }) };")}`;
 const compile = (file) => {
   if (modules.has(file)) return modules.get(file);
   const { outputText } = ts.transpileModule(readFileSync(file, "utf8"), {
@@ -17,6 +18,7 @@ const compile = (file) => {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   });
   const code = outputText.replace(/from ["']([^"']+)["']/g, (_, specifier) => {
+    if (specifier === "@/api/axios.config") return `from ${JSON.stringify(axiosStub)}`;
     if (!specifier.startsWith("@/") && !specifier.startsWith(".")) return `from ${JSON.stringify(import.meta.resolve(specifier))}`;
     const base = specifier.startsWith("@/") ? resolve(root, specifier.slice(2)) : resolve(dirname(file), specifier);
     const dependency = [base, `${base}.ts`, `${base}.tsx`].find((path) => existsSync(path) && statSync(path).isFile());
@@ -32,6 +34,10 @@ const { buildStockTransferReceipt, isConfirmedStockTransfer } = await import(com
 const { getStockTransferFailure } = await import(compile(resolve(stock, "helpers/stock-transfer.helper.ts")));
 const { StockTransferReceiptContent } = await import(compile(resolve(stock, "components/transfer/StockTransferReceiptContent.tsx")));
 const { formatDate } = await import(compile(resolve(root, "helpers/formatDate.ts")));
+const {
+  buildStockTransferReceiptFromHistory, getStockTransferHistoryError, getStockTransferReceiptReference, readStockTransferHistory,
+} = await import(compile(resolve(stock, "helpers/stock-transfer-receipt.helper.ts")));
+const { getStockTransferByReferenceRequest } = await import(compile(resolve(stock, "api/stock.movement.api.ts")));
 const transfer = {
   referenceId: 123, idDepositFrom: 1, idDepositTo: 3, idUser: 8,
   createdAt: "2026-11-11T12:00:00.000Z", observation: "Mercadería\ntrasladada",
@@ -111,4 +117,62 @@ test("distinguishes results requiring review from validation or stock revalidati
   const conflict = getStockTransferFailure(409, { code: "STOCK_TRANSFER_CONCURRENT_CHANGE" });
   assert.equal(conflict.requiresReview, false);
   assert.equal(conflict.requiresRefresh, true);
+});
+
+const history = {
+  ...transfer, depositFromName: "Origen actual", depositToName: "Destino actual", userName: "Operador histórico",
+};
+
+test("maps history into the same printable content with persisted quantities and operator", () => {
+  const data = readStockTransferHistory({ status: true, data: history }, 123);
+  const receipt = buildStockTransferReceiptFromHistory(data, { ...session, idUser: 99 });
+  const html = render(receipt);
+  for (const value of ["Transferencia #123", formatDate(transfer.createdAt), "Origen actual", "Destino actual",
+    "Operador histórico", "2 u.", "1,25 l", "Entregado por", "Recibido por", "No válido como factura"]) {
+    assert.ok(html.includes(value), value);
+  }
+  assert.equal(receipt.items.length, 2);
+  assert.ok(!html.includes("3,25"));
+});
+
+test("historical presentation falls back to names by ID and session brand", () => {
+  const receipt = buildStockTransferReceiptFromHistory({ ...history, depositFromName: "", depositToName: "", userName: "" }, null);
+  assert.equal(receipt.businessName, "Cajora");
+  assert.equal(receipt.logoUrl, null);
+  assert.equal(receipt.originName, "Depósito #1");
+  assert.equal(receipt.destinationName, "Depósito #3");
+  assert.equal(receipt.actorName, "Usuario #8");
+});
+
+test("validates reference and complete historical response before opening", () => {
+  assert.equal(readStockTransferHistory({ status: true, data: history }, 999), null);
+  assert.equal(readStockTransferHistory({ status: true, data: { ...history, items: [history.items[0]] } }, 123), null);
+  assert.equal(readStockTransferHistory({ status: true, data: { ...history, userName: undefined } }, 123), null);
+  assert.equal(readStockTransferHistory({ status: false, data: history }, 123), null);
+});
+
+test("shows receipt actions only for transfer movements with safe references", () => {
+  const row = { referenceType: "TRANSFER", referenceId: 123, movementType: "TRANSFER_IN" };
+  assert.equal(getStockTransferReceiptReference(row), 123);
+  assert.equal(getStockTransferReceiptReference({ ...row, movementType: "TRANSFER_OUT" }), 123);
+  for (const referenceType of ["SALE", "PURCHASE", "ADJUSTMENT", "SALE_RETURN"]) {
+    assert.equal(getStockTransferReceiptReference({ ...row, referenceType }), null);
+  }
+  for (const referenceId of [null, 0, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.equal(getStockTransferReceiptReference({ ...row, referenceId }), null);
+  }
+});
+
+test("uses the history URL and passes cancellation to the existing Axios instance", async () => {
+  const { signal } = new AbortController();
+  assert.deepEqual(await getStockTransferByReferenceRequest(123, signal), {
+    url: "/stock-movements/transfers/123", options: { signal },
+  });
+});
+
+test("gives distinct safe messages for missing history and server or network failure", () => {
+  assert.equal(getStockTransferHistoryError(404), "No se encontró la transferencia.");
+  for (const status of [500, undefined]) {
+    assert.equal(getStockTransferHistoryError(status), "No se pudo cargar el comprobante de transferencia.");
+  }
 });

@@ -200,3 +200,91 @@ it("keeps SQL ownership at the caller and locks stock before checking availabili
   expect(item).toContain("IF v_unit_type = 'UNIT' AND p_quantity <> FLOOR(p_quantity)");
   expect(wrapper).toMatch(/START TRANSACTION;\s+CALL sp_apply_stock_transfer_item\([\s\S]*COMMIT;[\s\S]*CALL sp_get_stock_movements/);
 });
+
+describe("T2.2 transfer history", function history() {
+  function row(idStockMovement: number, movement_type: string, idProduct = 11) {
+    return {
+      idStockMovement, movement_type, idProduct, idUser: 8, idDepositFrom: 3, idDepositTo: 2,
+      quantity: "2.25", observation: "Envio", created_at: createdAt,
+      product_name: "Producto", unit_type: "KG", deposit_from_name: "Origen", deposit_to_name: "Destino",
+      user_name: "Operador", product_is_active: 0, deposit_is_active: 0, user_is_active: 0,
+      price_cost: "PRIVATE", price_sale: "PRIVATE",
+    };
+  }
+  const get = (reference: string, auth = "owner") =>
+    request(app).get(`${path}/${reference}`).set("Authorization", auth);
+
+  it("requires auth and movement-read permission", async function permissions() {
+    await request(app).get(`${path}/100`).expect(401);
+    await get("100", "denied").expect(403);
+    expect(mocks.permission).toHaveBeenCalledWith("stock.view_movements");
+    expect(mocks.poolQuery).not.toHaveBeenCalled();
+  });
+
+  it.each(["0", "-1", "1.5", "texto", "9007199254740992", "1e2"])("rejects invalid reference %s before query", async function invalid(value) {
+    await get(value).expect(400);
+    expect(mocks.poolQuery).not.toHaveBeenCalled();
+  });
+
+  it("reads an individual using session tenant, parametrized joins and no active filters", async function individual() {
+    mocks.poolQuery.mockResolvedValue([[row(100, "TRANSFER_OUT"), row(101, "TRANSFER_IN")]]);
+    const response = await get("100").query({ idBusiness: 99 }).expect(200);
+    const [sql, parameters] = mocks.poolQuery.mock.calls[0];
+    expect(parameters).toEqual([7, 100]);
+    expect(sql).toContain("sm.idBusiness = ? AND sm.reference_type = 'TRANSFER' AND sm.reference_id = ?");
+    for (const alias of ["p", "df", "dt"]) expect(sql).toContain(`${alias}.idBusiness = sm.idBusiness`);
+    expect(sql).not.toMatch(/is_active|FOR UPDATE|price_sale|price_cost/);
+    expect(response.body.data).toMatchObject({
+      referenceId: 100, idDepositFrom: 3, idDepositTo: 2, idUser: 8,
+      depositFromName: "Origen", depositToName: "Destino", userName: "Operador",
+      observation: "Envio", createdAt: createdAt.toISOString(), movementCount: 2,
+      items: [{ idProduct: 11, productName: "Producto", unitType: "KG", quantity: 2.25 }],
+    });
+    expect(response.text).not.toContain("PRIVATE");
+    expect(mocks.getConnection).not.toHaveBeenCalled();
+  });
+
+  it("reconstructs the complete batch with one quantity per OUT and decorative fallbacks", async function batch() {
+    const first = { ...row(100, "TRANSFER_OUT"), product_name: null, unit_type: null, user_name: null, deposit_from_name: null };
+    mocks.poolQuery.mockResolvedValue([[first, row(101, "TRANSFER_IN"), row(102, "TRANSFER_OUT", 22), row(103, "TRANSFER_IN", 22)]]);
+    const response = await get("100").expect(200);
+    expect(response.body.data).toMatchObject({
+      movementCount: 4, userName: "Usuario #8", depositFromName: "Depósito #3",
+      items: [{ idProduct: 11, quantity: 2.25, productName: "Producto #11", unitType: "—" }, { idProduct: 22, quantity: 2.25 }],
+    });
+  });
+
+  it.each(["missing", "foreign tenant", "not TRANSFER"])("returns the same 404 for %s filtered by SQL", async function missing() {
+    mocks.poolQuery.mockResolvedValue([[]]);
+    const response = await get("100").expect(404);
+    expect(response.body).toEqual({ status: false, message: "Transferencia no encontrada" });
+  });
+
+  it.each([
+    { quantity: "2.26" }, { idUser: 9 }, { idDepositTo: 5 }, { observation: null },
+    { movement_type: "TRANSFER_OUT" }, { movement_type: "ADJUSTMENT_IN" }, { idProduct: 99 },
+  ])("rejects inconsistent pair %# with a safe error", async function badPair(override) {
+    mocks.poolQuery.mockResolvedValue([[row(100, "TRANSFER_OUT"), { ...row(101, "TRANSFER_IN"), ...override }]]);
+    const response = await get("100").expect(500);
+    expect(response.body).toEqual({ status: false, message: "No se pudo obtener la transferencia" });
+  });
+
+  it("omits internal SQL errors", async function sqlFailure() {
+    mocks.poolQuery.mockRejectedValue(new Error("internal SQL secret"));
+    const response = await get("100").expect(500);
+    expect(response.text).not.toContain("secret");
+  });
+
+  it("keeps SELECT and COUNT reference filters aligned and migrates the composite index", function sqlSearch() {
+    const sql = readFileSync(new URL("../../db/procedures/stock_movements.sql", import.meta.url), "utf8");
+    const listing = sql.split("CREATE PROCEDURE sp_get_stock_movements(")[1];
+    expect(listing).toContain("p_search REGEXP '^#?[0-9]{1,16}$'");
+    const filters = [...listing.matchAll(/WHERE sm\.idBusiness = p_idBusiness[\s\S]*?(?=\n  ORDER BY|;)/g)];
+    expect(filters).toHaveLength(2);
+    expect(filters[0][0].trim()).toEqual(filters[1][0].trim());
+    expect(filters[0][0]).toContain("sm.reference_type = 'TRANSFER' AND sm.reference_id = v_transfer_reference");
+    const migration = readFileSync(new URL("../../db/manual/008_stock_transfer_reference_lookup.sql", import.meta.url), "utf8");
+    expect(migration).toContain("IF NOT EXISTS");
+    expect(migration).toContain("idx_stock_movements_business_reference (idBusiness, reference_type, reference_id)");
+  });
+});
