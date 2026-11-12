@@ -2,7 +2,7 @@ import type { ProcedureCallPacket, RowDataPacket } from "mysql2";
 import { Decimal } from "decimal.js";
 import { pool } from "@/db/db.js";
 import { safeEvaluateStockNotification } from "@/modules/notifications/services/notifications.service.js";
-import { mapStockMovement } from "../helpers/stock-movement.mapper.js";
+import { mapStockMovement, mapStockTransferHistory } from "../helpers/stock-movement.mapper.js";
 import type {
   GetStockMovementsParams,
   ProcessStockAdjustmentPayload,
@@ -14,6 +14,8 @@ import type {
   StockMovementResponse,
   StockTransferBatchResponse,
   StockTransferItemResponse,
+  StockTransferHistoryRow,
+  StockTransferHistoryResponse,
 } from "../types/index.js";
 
 interface AppliedTransferItemRow extends RowDataPacket {
@@ -21,6 +23,28 @@ interface AppliedTransferItemRow extends RowDataPacket {
   createdAt: Date;
   productName: string;
   unitType: string;
+}
+
+export async function getStockTransferByReferenceService(
+  idBusiness: number,
+  referenceId: number,
+): Promise<StockTransferHistoryResponse | null> {
+  const [rows] = await pool.query<StockTransferHistoryRow[]>(
+    `SELECT sm.idStockMovement, sm.idProduct, sm.idUser, sm.idDepositFrom, sm.idDepositTo,
+       sm.movement_type, sm.quantity, sm.observation, sm.created_at,
+       p.name AS product_name, p.unit_type, u.name AS user_name,
+       df.name AS deposit_from_name, dt.name AS deposit_to_name
+     FROM stock_movements sm
+     LEFT JOIN products p ON p.idBusiness = sm.idBusiness AND p.idProduct = sm.idProduct
+     LEFT JOIN deposits df ON df.idBusiness = sm.idBusiness AND df.idDeposit = sm.idDepositFrom
+     LEFT JOIN deposits dt ON dt.idBusiness = sm.idBusiness AND dt.idDeposit = sm.idDepositTo
+     LEFT JOIN users u ON u.idUser = sm.idUser
+     WHERE sm.idBusiness = ? AND sm.reference_type = 'TRANSFER' AND sm.reference_id = ?
+     ORDER BY sm.idStockMovement
+     LIMIT 201`,
+    [idBusiness, referenceId],
+  );
+  return mapStockTransferHistory(referenceId, rows);
 }
 
 export async function getStockMovementsService(

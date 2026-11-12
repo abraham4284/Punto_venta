@@ -322,6 +322,14 @@ CREATE PROCEDURE sp_get_stock_movements(
   IN p_search VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
 )
 BEGIN
+  DECLARE v_transfer_reference BIGINT DEFAULT NULL;
+  IF p_search REGEXP '^#?[0-9]{1,16}$' THEN
+    SET v_transfer_reference = CAST(TRIM(LEADING '#' FROM p_search) AS UNSIGNED);
+    IF v_transfer_reference = 0 OR v_transfer_reference > 9007199254740991 THEN
+      SET v_transfer_reference = NULL;
+    END IF;
+  END IF;
+
   SELECT
     sm.idStockMovement,
     sm.idBusiness,
@@ -379,6 +387,7 @@ BEGIN
       OR p_search = ''
       OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
       OR u.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR (sm.reference_type = 'TRANSFER' AND sm.reference_id = v_transfer_reference)
     )
   ORDER BY sm.created_at DESC, sm.idStockMovement DESC
   LIMIT p_limit OFFSET p_offset;
@@ -415,6 +424,7 @@ BEGIN
       OR p_search = ''
       OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
       OR u.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR (sm.reference_type = 'TRANSFER' AND sm.reference_id = v_transfer_reference)
     );
 END$$
 

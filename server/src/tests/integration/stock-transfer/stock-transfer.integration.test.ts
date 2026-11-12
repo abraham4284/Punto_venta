@@ -123,6 +123,57 @@ describe("T1 stock transfers on real HTTP and MySQL", function suite() {
   });
   afterAll(cleanup);
 
+  describe("T2.2 durable transfer history", function history() {
+    beforeAll(async function preflight() {
+      const [index] = await pool.query<RowDataPacket[]>(
+        "SELECT COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stock_movements' AND INDEX_NAME = 'idx_stock_movements_business_reference' ORDER BY SEQ_IN_INDEX",
+      );
+      expect(index.map(function column(row) { return row.COLUMN_NAME; })).toEqual(["idBusiness", "reference_type", "reference_id"]);
+      const listing = await querySingleRow<RowDataPacket>("SHOW CREATE PROCEDURE sp_get_stock_movements");
+      expect(listing?.["Create Procedure"]).toContain("v_transfer_reference");
+    });
+
+    function historyRequest(referenceId: number, cookies = a.cookies) {
+      return request(getTestApp()).get(`/api/stock-movements/transfers/${referenceId}`).set("Cookie", cookies);
+    }
+
+    it("reconstructs the whole batch and searches both reference formats across pagination", async function batchHistory() {
+      const first = await a.product(10);
+      const second = await a.product(8);
+      const sent = await batch([{ idProduct: second, quantity: 2 }, { idProduct: first, quantity: 3 }]).expect(200);
+      const { referenceId, createdAt } = sent.body.data;
+      const response = await historyRequest(referenceId).expect(200);
+      expect(response.body.data).toMatchObject({
+        referenceId, createdAt, idUser: a.idUser, idDepositFrom: a.from, idDepositTo: a.to, movementCount: 4,
+        items: [{ idProduct: first, quantity: 3 }, { idProduct: second, quantity: 2 }],
+      });
+      for (const search of [String(referenceId), `#${referenceId}`]) {
+        const list = await request(getTestApp()).get("/api/stock-movements").set("Cookie", a.cookies)
+          .query({ movementType: "TRANSFER", search, limit: 1 }).expect(200);
+        expect(list.body.data.pagination.totalRecords).toBe(4);
+        expect(list.body.data.movements).toHaveLength(1);
+        expect(Number(list.body.data.movements[0].referenceId)).toBe(referenceId);
+      }
+      const foreign = await historyRequest(referenceId, b.cookies).expect(404);
+      const absent = await historyRequest(Number.MAX_SAFE_INTEGER).expect(404);
+      expect(foreign.body).toEqual(absent.body);
+    });
+
+    it("reprints individual stock movements after the product and destination are deactivated", async function individualHistory() {
+      const idProduct = await a.product(10);
+      const target = await createDepositFixture(a.idBusiness);
+      await request(getTestApp()).post("/api/stock-movements/transfer").set("Cookie", a.cookies)
+        .send({ idProduct, idDepositFrom: a.from, idDepositTo: target.idDeposit, quantity: 2, observation: "Histórico" }).expect(200);
+      const [out] = await getStockMovementRows({ idBusiness: a.idBusiness, idProduct, referenceType: "TRANSFER" });
+      await executeMutation("UPDATE products SET is_active=0 WHERE idBusiness=? AND idProduct=?", [a.idBusiness, idProduct]);
+      await executeMutation("UPDATE deposits SET is_active=0 WHERE idBusiness=? AND idDeposit=?", [a.idBusiness, target.idDeposit]);
+      const response = await historyRequest(Number(out.reference_id)).expect(200);
+      expect(response.body.data).toMatchObject({
+        movementCount: 2, observation: "Histórico", depositToName: target.name, items: [{ idProduct, quantity: 2 }],
+      });
+    });
+  });
+
   it("moves two products, conserves balances and groups both movement pairs", async function success() {
     const first = await a.product(10, 1);
     const second = await a.product(8, 2);

@@ -2,6 +2,8 @@
 
 Revisado: 2026-11-11. Rama inspeccionada: `dev`.
 
+T2.2 historial durable y reimpresión implementados sobre `80cf73d9ac4145bc7be5b90c4b9149aca5806882`. Movimientos busca por referencia y recupera el grupo completo de `stock_movements` con el permiso de lectura del historial. Reutiliza el comprobante A4 de T2.1. Se validó con 45 pruebas backend DB-free, 52 frontend y 19 comprobaciones de navegador con fixtures. Índice 008 y procedure de búsqueda preparados, con aplicación y gate HTTP/MySQL pendientes. [Evidencias](stock-transfer-history-reprint-validation.md).
+
 T2.1 comprobante provisional implementado sobre `fb229096a22ebf817132f2c5ab70935257fa63dd`. Abre con los datos de la respuesta confirmada y queda disponible durante la visita a Stock, incluso si falla el refresco del inventario. Impresión A4 aislada y bloqueo de reenvío del borrador ante resultado incierto. 46 pruebas aisladas y de regresión y 25 comprobaciones de navegador e impresión con fixtures aprobadas. [Evidencias](stock-transfer-receipt-frontend-validation.md).
 
 T2 frontend implementado sobre `c985449d2bda40e8d97ff1754c09206c1e5f0d0a`. Stock ofrece transferencia de hasta 100 productos con `stock.transfer`, búsqueda y revalidación de inventario por origen y un POST batch. Ajuste individual muestra el alta automática del destino. 22 pruebas aisladas, build, lint acotado y 29 comprobaciones de navegador con Axios simulado aprobados. Validación HTTP/MySQL de T1 pendiente. [Evidencias](stock-batch-transfer-frontend-validation.md).

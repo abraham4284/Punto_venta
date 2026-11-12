@@ -53,13 +53,13 @@ export const MovementFilter = ({
   };
 
   return (
-    <div className="grid gap-3 md:grid-cols-[minmax(240px,1fr)_220px_220px]">
+    <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
       <div className="relative w-full">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Buscar por producto o usuario"
+          placeholder="Buscar por producto, usuario o referencia"
           className="pl-9"
         />
       </div>

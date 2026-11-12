@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import {
   getStockMovementsService,
+  getStockTransferByReferenceService,
   processStockAdjustmentService,
   processStockTransferService,
   processStockTransfersService,
@@ -10,6 +11,7 @@ import {
   processStockAdjustmentSchema,
   processStockTransferSchema,
   processStockTransfersSchema,
+  stockTransferReferenceSchema,
 } from "../validations/stock_movements.validations.js";
 
 function getZodErrors(error: z.ZodError) {
@@ -54,6 +56,20 @@ function sendTransferError(error: unknown, res: Response): Response {
     return res.status(400).json({ status: false, message: db.sqlMessage });
   }
   return res.status(500).json({ status: false, message: "No se pudo procesar la transferencia de stock" });
+}
+
+export async function getStockTransferByReferenceController(req: Request, res: Response): Promise<Response> {
+  const reference = stockTransferReferenceSchema.safeParse(req.params.referenceId);
+  if (!reference.success) {
+    return res.status(400).json({ status: false, message: "Referencia de transferencia inválida" });
+  }
+  try {
+    const transfer = await getStockTransferByReferenceService(req.user!.idBusiness, reference.data);
+    if (!transfer) return res.status(404).json({ status: false, message: "Transferencia no encontrada" });
+    return res.status(200).json({ status: true, message: "Transferencia obtenida correctamente", data: transfer });
+  } catch {
+    return res.status(500).json({ status: false, message: "No se pudo obtener la transferencia" });
+  }
 }
 
 export async function getStockMovementsController(
