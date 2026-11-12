@@ -24,6 +24,7 @@ Revisado: 2026-11-07. `[x]` indica fase cerrada con el alcance de validacion ind
 - [ ] Buscador publico por producto/categoria/relevancia — implementado en SP canonico y baseline; 305 tests DB-free, typecheck/build y baseline aprobados. Gate HTTP/DB preparado (20 casos), pendiente de autorizacion/aplicacion del SP en test; no CLOSED ni despliegue certificado. [Evidencias](storefront-catalog-search-category-validation.md).
 - [x] CORS multi-storefront — allowlist exacta con `STOREFRONT_URLS`, compatible con las tres variables previas. 25 pruebas aisladas, typecheck y build aprobados. [Evidencias](storefront-cors-validation.md).
 - [ ] T1 — Transferencia múltiple de stock backend implementada. 24 pruebas DB-free, typecheck, build y baseline aprobados. Gate HTTP/MySQL preparado y pendiente de aplicar el procedure en la DB de test y contar con autorización. [Evidencias](stock-batch-transfer-backend-validation.md).
+- [x] T2 — Transferencia múltiple de stock frontend. Acción con permiso `stock.transfer`, selector por origen y borrador local con revalidación tras 409. Ajuste individual admite destino sin fila. 22 pruebas aisladas, build, lint acotado y 29 comprobaciones de navegador con fixtures aprobados. El gate HTTP/MySQL de T1 sigue pendiente. [Evidencias](stock-batch-transfer-frontend-validation.md).
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.

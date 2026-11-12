@@ -22,6 +22,7 @@ import type { ProductResponse } from "../../products/types/products.types";
 import type { PurchaseCartItem } from "../../purchases/types";
 import { usePurchaseCartStore } from "../../purchases/store/purchaseCart.store";
 import { useStock } from "../hooks/useStock";
+import { BatchStockTransferDialog } from "../components/transfer/BatchStockTransferDialog";
 import type { StockResponse } from "../types/stock.types";
 
 const mapStockToPurchaseProduct = (stock: StockResponse): ProductResponse => {
@@ -55,6 +56,7 @@ export const StockPage = () => {
   const navigate = useNavigate();
   const canCreatePurchase = useCan("purchases.create");
   const canAdjustStock = useCan("stock.adjust");
+  const canTransferStock = useCan("stock.transfer");
   const cart = usePurchaseCartStore((state) => state.cart);
   const addPurchaseItem = usePurchaseCartStore((state) => state.addItem);
   const removePurchaseItem = usePurchaseCartStore((state) => state.removeItem);
@@ -153,6 +155,15 @@ export const StockPage = () => {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
+          {canTransferStock && (
+            <BatchStockTransferDialog
+              deposits={deposits}
+              onSuccess={async (transfer) => {
+                toast.success(`Transferencia #${transfer.referenceId} realizada correctamente`);
+                await refreshStock();
+              }}
+            />
+          )}
           {canCreatePurchase && (
             <Button
               type="button"
