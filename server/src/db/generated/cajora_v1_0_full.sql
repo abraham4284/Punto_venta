@@ -8698,7 +8698,7 @@ BEGIN
     pc.idProductCategory,
     pc.slug AS product_category_slug,
     pc.name AS product_category_name,
-    COALESCE(default_stock.stock_available, 0) AS stock_available
+    COALESCE(active_stock.stock_available, 0) AS stock_available
   FROM businesses b
   INNER JOIN products p
     ON p.idBusiness = b.idBusiness
@@ -8719,12 +8719,11 @@ BEGIN
     INNER JOIN deposits d
       ON d.idBusiness = s.idBusiness
       AND d.idDeposit = s.idDeposit
-      AND d.is_default = 1
       AND d.is_active = 1
     GROUP BY s.idBusiness, s.idProduct
-  ) default_stock
-    ON default_stock.idBusiness = b.idBusiness
-    AND default_stock.idProduct = p.idProduct
+  ) active_stock
+    ON active_stock.idBusiness = b.idBusiness
+    AND active_stock.idProduct = p.idProduct
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
     AND b.status = 'ACTIVE'
@@ -8813,7 +8812,7 @@ BEGIN
     pc.idProductCategory,
     pc.slug AS product_category_slug,
     pc.name AS product_category_name,
-    COALESCE(default_stock.stock_available, 0) AS stock_available
+    COALESCE(active_stock.stock_available, 0) AS stock_available
   FROM businesses b
   INNER JOIN products p
     ON p.idBusiness = b.idBusiness
@@ -8834,12 +8833,11 @@ BEGIN
     INNER JOIN deposits d
       ON d.idBusiness = s.idBusiness
       AND d.idDeposit = s.idDeposit
-      AND d.is_default = 1
       AND d.is_active = 1
     GROUP BY s.idBusiness, s.idProduct
-  ) default_stock
-    ON default_stock.idBusiness = b.idBusiness
-    AND default_stock.idProduct = p.idProduct
+  ) active_stock
+    ON active_stock.idBusiness = b.idBusiness
+    AND active_stock.idProduct = p.idProduct
   WHERE b.slug = p_business_slug
     AND b.is_active = 1
     AND b.status = 'ACTIVE'

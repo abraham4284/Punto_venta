@@ -26,7 +26,7 @@ function createProductRow(
 }
 
 describe("public catalog product mapper", function publicCatalogMapperSuite() {
-  it("maps stock products with positive main deposit stock as in stock", function testPositiveStock() {
+  it("maps stock products with positive aggregate stock as in stock", function testPositiveStock() {
     const product = mapPublicCatalogProductListItem(createProductRow("2.50"));
 
     expect(product.slug).toBe("producto-publico");
@@ -36,7 +36,7 @@ describe("public catalog product mapper", function publicCatalogMapperSuite() {
     expect(product.availabilityStatus).toBe("in_stock");
   });
 
-  it("maps stock products with zero main deposit stock as out of stock", function testZeroStock() {
+  it("maps stock products with zero aggregate stock as out of stock", function testZeroStock() {
     const product = mapPublicCatalogProductListItem(createProductRow("0.00"));
 
     expect(product.stockAvailable).toBe(0);

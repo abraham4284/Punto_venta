@@ -72,7 +72,9 @@ El listado `GET /api/stock-movements` mantiene el filtro `TRANSFER` y acepta `se
 
 ## Publico frente a administracion
 
-Catalogo: GET `/api/public/catalog`, `/categories`, `/products`, `/products/:slug` (los ultimos tres relativos a `/api/public/catalog`). Negocio seleccionado por `PUBLIC_CATALOG_BUSINESS_SLUG`; stock publico del deposito predeterminado activo y campos publicos sin costos. Los consumidores publicos/VITRUNO no deben consumir endpoints administrativos.
+Catalogo: GET `/api/public/catalog`, `/categories`, `/products`, `/products/:slug` (los ultimos tres relativos a `/api/public/catalog`). El negocio se selecciona por `PUBLIC_CATALOG_BUSINESS_SLUG`. Listado y detalle exponen en `stockAvailable` la misma suma por producto de cantidades positivas en depósitos activos de ese negocio, incluidos los no predeterminados. Sin cantidades positivas elegibles, el valor es `0`. La respuesta pública expone el agregado sin desglose por depósito ni costos. Los consumidores publicos/VITRUNO no deben consumir endpoints administrativos.
+
+`availabilityStatus` devuelve `on_order` si el producto está marcado por pedido, `in_stock` si tiene stock positivo y `out_of_stock` en los demás casos. Con 2 unidades en el depósito predeterminado activo, 5 en otro activo y 10 en uno inactivo, `stockAvailable` es `7`. [Validación T3](storefront-global-stock-validation.md).
 
 Catalog search: `GET /api/public/catalog/products` conserva `page`, `limit`, `search` y `categorySlug`, sin parametros ni campos nuevos. La busqueda ahora incluye nombre/descripcion del producto y nombre/slug de su categoria. `search` y `categorySlug` se intersectan (AND). El SP ordena antes de LIMIT/OFFSET: producto exacto, categoria exacta, prefijo producto, prefijo categoria, substring producto, substring categoria, descripcion y slug categoria; desempata por nombre e ID. Sin search conserva orden alfabetico. SELECT y COUNT comparten filtros; DTO, aliases de paginacion y minimo totalPages=1 permanecen vigentes. Requiere aplicar el procedure actualizado por ambiente; [evidencia y gate pendiente](storefront-catalog-search-category-validation.md).
 
