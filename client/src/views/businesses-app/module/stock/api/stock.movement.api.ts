@@ -4,9 +4,11 @@ import type { AxiosResponse } from "axios";
 import type {
   ProcessStockAdjustmentPayload,
   ProcessStockTransferPayload,
+  ProcessStockTransfersPayload,
   StockMovementQueryParams,
   StockMovementsPaginatedResponse,
   StockMovementResponse,
+  StockTransferBatchResponse,
 } from "../types/stock.types";
 
 export const getStockMovementsRequest = (
@@ -36,4 +38,10 @@ export const processStockTransferRequest = (
   payload: ProcessStockTransferPayload,
 ): Promise<AxiosResponse<ApiResponse<StockMovementResponse[]>>> => {
   return axios.post("/stock-movements/transfer", payload);
+};
+
+export const processStockTransfersRequest = (
+  payload: ProcessStockTransfersPayload,
+): Promise<AxiosResponse<ApiResponse<StockTransferBatchResponse>>> => {
+  return axios.post("/stock-movements/transfers", payload);
 };

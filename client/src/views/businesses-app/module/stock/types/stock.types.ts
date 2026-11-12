@@ -153,6 +153,30 @@ export interface ProcessStockTransferPayload {
   observation?: string | null;
 }
 
+export interface ProcessStockTransfersPayload {
+  idDepositFrom: number;
+  idDepositTo: number;
+  observation?: string | null;
+  items: { idProduct: number; quantity: number }[];
+}
+
+export interface StockTransferBatchResponse {
+  referenceId: number;
+  idDepositFrom: number;
+  idDepositTo: number;
+  idUser: number;
+  createdAt: string;
+  observation: string | null;
+  items: {
+    idProduct: number;
+    productName: string;
+    unitType: ProductUnitType;
+    quantity: number;
+  }[];
+  totalQuantity: number;
+  movementCount: number;
+}
+
 export interface StockMovementResponse {
   idStockMovement: number;
   idBusiness: number;
