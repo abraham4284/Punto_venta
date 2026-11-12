@@ -126,3 +126,9 @@ Cabecera Sales bloquea Customer por tenant despues de caja y antes de INSERT/FK;
 Para DB existentes, operador debe confirmar host/ambiente/DB, backup y ventana de actualizacion, y revisar/importar completo ese archivo respetando DELIMITER. Contiene DROP/CREATE de procedures y un DROP legacy ya existente; DDL no tiene rollback transaccional integral. No usar install/baseline/seed completos sobre DB con datos. Repetir por ambiente: local/test -> QA -> produccion; cada aplicacion requiere autorizacion y verificacion de definicion instalada. Guardar la definicion previa para recuperacion revisada si falla el import.
 
 El agente solo edito archivos y genero/valido baseline; no aplico ni consulto DB. El [gate HTTP/DB preparado](../server/vitest.storefront-catalog-integration.config.ts) admite solo loopback y punto_venta_integration_test, comprueba que SHOW CREATE PROCEDURE coincida con el cuerpo canonico antes de crear fixtures UUID y limpia solo esos fixtures sin desactivar FKs. No instala SP ni prepara schema. Aplicacion local/test, QA y produccion pendientes; [evidencias y limites](storefront-catalog-search-category-validation.md).
+
+## T1 — Actualización de procedures de stock
+
+Para una DB existente, aplicar [stock_movements.sql](../server/src/db/procedures/stock_movements.sql) completo respetando `DELIMITER`, con ambiente confirmado y autorización del operador según el procedimiento de despliegue. Coordinar la actualización antes de habilitar el backend batch. El archivo define el helper `sp_apply_stock_transfer_item` y el wrapper individual de seis entradas. El baseline generado incorpora ambos para instalaciones limpias.
+
+T1 reutiliza `uk_stock_product_deposit` y las FKs por negocio. El ID autoincremental del primer movimiento de salida agrupa el lote en el `reference_id` existente. El cambio requiere solo reemplazar procedures y el gate de test preparado. [Validación T1](stock-batch-transfer-backend-validation.md).

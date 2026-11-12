@@ -5,6 +5,7 @@ import {
   getStockMovementsController,
   processStockAdjustmentController,
   processStockTransferController,
+  processStockTransfersController,
 } from "../controllers/stock_movements.controller.js";
 
 const router = Router();
@@ -26,6 +27,12 @@ router.post(
   requireAuth,
   requirePermission("stock.transfer"),
   processStockTransferController,
+);
+router.post(
+  "/stock-movements/transfers",
+  requireAuth,
+  requirePermission("stock.transfer"),
+  processStockTransfersController,
 );
 
 export default router;

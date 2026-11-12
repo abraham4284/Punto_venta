@@ -1,6 +1,8 @@
 # Estado vigente de Cajora
 
-Revisado: 2026-11-10. Rama inspeccionada: `dev`.
+Revisado: 2026-11-11. Rama inspeccionada: `dev`.
+
+T1 transferencia múltiple de stock implementada sobre `b4707500b1c26ed9fc1788d0b16f03a5e5af2885`. POST /api/stock-movements/transfers agrupa 1 a 100 productos entre dos depósitos mediante una conexión y transacción. El endpoint individual usa el mismo procedure por ítem. 24 pruebas DB-free, typecheck, build y baseline aprobados. Gate MySQL pendiente de aplicación del procedure y autorización de test. [Evidencias](stock-batch-transfer-backend-validation.md).
 
 CORS multi-storefront implementado sobre `26efdbf371668332367590b7225f7c579613d899`. La API carga la lista opcional `STOREFRONT_URLS` por ambiente y combina sus orígenes HTTP(S) con la configuración previa. 25 pruebas aisladas, typecheck y build aprobados. Configuración de los despliegues a cargo del operador. [Evidencias](storefront-cors-validation.md).
 
