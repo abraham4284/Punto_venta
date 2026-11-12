@@ -115,7 +115,7 @@ export const useStock = () => {
     async (
       filters: AdvancedStockFilters,
       notifyWhenEmpty: boolean,
-    ): Promise<void> => {
+    ): Promise<boolean> => {
       try {
         setLoading(true);
         clearErrors();
@@ -137,8 +137,10 @@ export const useStock = () => {
             "No se encontraron productos en el inventario con los filtros seleccionados",
           );
         }
+        return true;
       } catch (error) {
         handleApiError(error);
+        return false;
       } finally {
         setLoading(false);
       }
@@ -152,7 +154,7 @@ export const useStock = () => {
   }, [fetchStockInventory]);
 
   const refreshStock = useCallback(async () => {
-    await fetchStockInventory(activeFilters, false);
+    return fetchStockInventory(activeFilters, false);
   }, [activeFilters, fetchStockInventory]);
 
   const applyStockFilters = useCallback(
