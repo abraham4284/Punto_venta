@@ -22,6 +22,8 @@ import type { ProductResponse } from "../../products/types/products.types";
 import type { PurchaseCartItem } from "../../purchases/types";
 import { usePurchaseCartStore } from "../../purchases/store/purchaseCart.store";
 import { useStock } from "../hooks/useStock";
+import { useStockCategoryOptions } from "../hooks/useStockCategoryOptions";
+import { StockInventoryPrintDialog } from "../components/inventory/StockInventoryPrintDialog";
 import { BatchStockTransferDialog } from "../components/transfer/BatchStockTransferDialog";
 import { StockTransferReceiptDialog } from "../components/transfer/StockTransferReceiptDialog";
 import { buildStockTransferReceipt } from "../helpers/stock-transfer-receipt.helper";
@@ -58,6 +60,8 @@ const mapStockToPurchaseProduct = (stock: StockResponse): ProductResponse => {
 
 export const StockPage = () => {
   const navigate = useNavigate();
+  const canViewStock = useCan("stock.view");
+  const categories = useStockCategoryOptions(canViewStock);
   const canCreatePurchase = useCan("purchases.create");
   const canAdjustStock = useCan("stock.adjust");
   const canTransferStock = useCan("stock.transfer");
@@ -165,7 +169,15 @@ export const StockPage = () => {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap md:justify-end">
+          {canViewStock && (
+            <StockInventoryPrintDialog
+              activeFilters={activeFilters}
+              categoryOptions={categories.options}
+              deposits={deposits}
+              businessName={session?.businessName?.trim() || "Cajora"}
+            />
+          )}
           {lastReceipt && (
             <StockTransferReceiptDialog
               receipt={lastReceipt.receipt}
@@ -219,6 +231,7 @@ export const StockPage = () => {
             filters={activeFilters}
             deposits={deposits}
             loading={loading}
+            categories={categories}
             onApply={applyStockFilters}
           />
 

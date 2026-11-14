@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-Revisado: 2026-11-11. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+Revisado: 2026-11-14. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
 
 - [x] F0 — Canonical documentation foundation. Validacion documental completada; evidencias en [f00-documentation-validation](f00-documentation-validation.md).
 - [x] F0.1 — Hierarchical documentation by subsystem. Validacion documental completada; [evidencias](f00-1-documentation-hierarchy-validation.md).
@@ -28,6 +28,8 @@ Revisado: 2026-11-11. `[x]` indica fase cerrada con el alcance de validacion ind
 - [x] T2.1 — Comprobante provisional de transferencia. Abre con respuesta confirmada y permite imprimir en A4 o reabrir durante la visita a Stock. Protege el borrador ante resultado incierto. 46 pruebas aisladas y de regresión, build, lint acotado y 25 comprobaciones de navegador e impresión con fixtures aprobados. [Evidencias](stock-transfer-receipt-frontend-validation.md).
 - [x] T2.2 — Historial y reimpresión desde Movimientos implementados y validados con pruebas aisladas y fixtures. 45 pruebas backend DB-free, 52 frontend y 19 comprobaciones de navegador. Migración 008, procedure de búsqueda y gate HTTP/MySQL pendientes de aplicación y ejecución autorizadas. [Evidencias](stock-transfer-history-reprint-validation.md).
 - [ ] T3 — Stock público global implementado en listado y detalle. 315 pruebas sin DB, typecheck, build y baseline aprobados. Aplicación de procedures pendiente por ambiente y gate combinado HTTP/MySQL de 29 casos preparado para test autorizado. La siguiente fase es T4 QA VITRUNO. [Evidencias](storefront-global-stock-validation.md).
+- [ ] INV-CAT-P1 — Filtro administrativo multicategoría, exportación de datos de inventario y opciones de categorías implementados. Pendiente aplicación coordinada de procedures y backend, validación en MySQL/QA y plan de consulta. [Evidencias](inv-cat-p1-validation.md).
+- [ ] INV-CAT-P2 — Selector multicategoría y planilla A4 con fotos implementados en Stock. Pendiente smoke autenticado e impresión con imágenes reales de QA. [Evidencias](inv-cat-p2-validation.md).
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.

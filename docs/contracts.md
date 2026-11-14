@@ -46,6 +46,18 @@ BUSINESS suele responder `{ status: true, message, data }`; platform usa `succes
 
 Tambien existen 413/429 por limites y 500 para fallos inesperados. No todos los controllers mapean iguales casos igual. Filosofia: mensajes seguros y errores de campo utiles, sin exponer SQL/secretos; mantener compatibilidad y revisar mapeo real del modulo.
 
+## INV-CAT-P1 — Inventario administrativo
+
+Estas rutas requieren sesión BUSINESS y `stock.view`. El negocio proviene de la sesión. `GET /api/stock/advanced-search` conserva `data: { stock, pagination }`, con `page` por defecto 1 y `limit` por defecto 15 (máximo 100).
+
+Listado y `GET /api/stock/export-data` aceptan `search` (nombre o código), `idDeposit`, `quantity`, `minQuantity`, `maxQuantity`, `alertStatus` (`OK`, `LOW` o `ZERO`) y el nuevo `categoryIds`. Por ejemplo, `GET /api/stock/export-data?categoryIds=2,5,8&idDeposit=4&alertStatus=LOW`. `categoryIds` es un único valor CSV de 1 a 30 enteros positivos seguros de JavaScript, en decimal sin ceros iniciales, espacios ni repetidos. Omitirlo selecciona todas las categorías. Los IDs se combinan con OR y el resto de los filtros con AND. Una lista vacía o inválida, un parámetro desconocido o `page`/`limit` en exportación devuelve 400 con el envelope de validación vigente.
+
+Exportación devuelve `{ status: true, message, data: { stock, totalRecords } }`. Hasta 2.000 coincidencias, `totalRecords` coincide con el largo de `stock` (incluido 0). Con más de 2.000 devuelve 422, `code: "STOCK_EXPORT_LIMIT_EXCEEDED"` y `data: { maxRecords: 2000 }`. Cada fila contiene `idStock`, `idProduct`, `productName`, `categoryName`, `barcode`, `imageUrl`, `unitType`, `isActive`, `idDeposit`, `depositName`, `quantity`, `stockMin` y `alertStatus`. `categoryName`, `barcode` e `imageUrl` admiten `null`. Los importes quedan en el DTO existente del listado.
+
+Ambas rutas ordenan por nombre de producto, nombre de depósito e `idStock`. Devuelven una fila por existencia registrada, incluyendo cantidades cero y productos o depósitos inactivos si pasan los demás filtros. Omitir `idDeposit` incluye todos los depósitos del negocio con existencias registradas.
+
+`GET /api/stock/category-options` acepta la query vacía y devuelve `{ status: true, message, data: [{ idProductCategory, name }] }`, incluidas categorías inactivas del negocio para filtrar existencias históricas. `SELLER` tiene `stock.view` en el seed y carece de `categories.view`. La ruta de opciones usa el permiso efectivo de Stock y la matriz de permisos permanece intacta. [Validación INV-CAT-P1](inv-cat-p1-validation.md).
+
 ## T1 — Transferencia múltiple de stock
 
 `POST /api/stock-movements/transfers` requiere contexto BUSINESS y el permiso `stock.transfer`. El body admite `idDepositFrom`, `idDepositTo`, `observation` opcional/nula de hasta 255 caracteres e `items` de 1 a 100 entradas `{ idProduct, quantity }`. Los IDs son enteros positivos, los depósitos son distintos y cada producto aparece una sola vez. La API rechaza campos adicionales en el body y cada ítem. El negocio y el actor provienen de la sesión.

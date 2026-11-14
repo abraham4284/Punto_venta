@@ -44,11 +44,24 @@ export interface AdvancedStockFilters {
   minQuantity: number | null;
   maxQuantity: number | null;
   alertStatus: AdvancedStockAlertStatus | null;
+  categoryIds?: number[];
   page: number;
   limit: number;
 }
 
-export interface AdvancedStockInventoryItem {
+export type StockInventoryFilters = Omit<AdvancedStockFilters, "page" | "limit">;
+
+export interface StockCategoryOption {
+  idProductCategory: number;
+  name: string;
+}
+
+export interface StockInventoryExport {
+  stock: StockInventoryItem[];
+  totalRecords: number;
+}
+
+export interface StockInventoryItem {
   idStock: number;
   idProduct: number;
   productName: string;
@@ -57,13 +70,16 @@ export interface AdvancedStockInventoryItem {
   imageUrl: string | null;
   unitType: ProductUnitType;
   isActive: boolean;
-  priceCost: number;
-  priceSale: number;
   idDeposit: number;
   depositName: string;
   quantity: number;
   stockMin: number;
   alertStatus: AdvancedStockAlertStatus;
+}
+
+export interface AdvancedStockInventoryItem extends StockInventoryItem {
+  priceCost: number;
+  priceSale: number;
 }
 
 export interface AdvancedStockPagination {
