@@ -1,0 +1,96 @@
+.inventory-print-root {
+  display: none;
+}
+
+@media print {
+  body:has(> .inventory-print-root[data-ready="true"]) {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  body:has(> .inventory-print-root[data-ready="true"]) > :not(.inventory-print-root) {
+    display: none !important;
+  }
+
+  .inventory-print-root[data-ready="true"] {
+    display: block !important;
+  }
+
+  .inventory-sheet {
+    color: #111;
+    background: #fff;
+    font: 9pt/1.25 Arial, sans-serif;
+    overflow-wrap: anywhere;
+  }
+
+  .inventory-sheet-header {
+    margin-bottom: 3mm;
+  }
+
+  .inventory-sheet-header h1 {
+    margin: 0 0 1mm;
+    font-size: 17pt;
+    font-weight: 700;
+  }
+
+  .inventory-sheet-header p {
+    margin: 0 0 0.8mm;
+  }
+
+  .inventory-business {
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .inventory-sheet table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .inventory-sheet thead {
+    display: table-header-group;
+  }
+
+  .inventory-sheet tr,
+  .inventory-observations {
+    break-inside: avoid;
+  }
+
+  .inventory-sheet th,
+  .inventory-sheet td {
+    border: 0.25mm solid #666;
+    padding: 1mm;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .inventory-sheet th {
+    background: #eee;
+    font-weight: 700;
+  }
+
+  .inventory-sheet img,
+  .inventory-no-image {
+    display: block;
+    width: 17mm;
+    height: 17mm;
+    margin-inline: auto;
+    object-fit: contain;
+  }
+
+  .inventory-no-image {
+    display: grid;
+    align-items: center;
+    color: #444;
+    font-size: 7.5pt;
+    text-align: center;
+  }
+
+  .inventory-sheet .inventory-write-line {
+    min-height: 7mm;
+    margin-top: 2mm;
+    border-bottom: 0.25mm solid #777;
+  }
+}

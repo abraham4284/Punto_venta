@@ -45,7 +45,8 @@ const hasActiveStockFilters = (filters: AdvancedStockFilters): boolean => {
       filters.quantity !== null ||
       filters.minQuantity !== null ||
       filters.maxQuantity !== null ||
-      filters.alertStatus,
+      filters.alertStatus ||
+      filters.categoryIds?.length,
   );
 };
 

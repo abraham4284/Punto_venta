@@ -13,6 +13,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DepositResponse } from "../../../deposits/types/deposits.types";
+import type { useStockCategoryOptions } from "../../hooks/useStockCategoryOptions";
+import { stockAlertLabels } from "../../helpers/stock-inventory.helper";
+import { StockCategoryPicker } from "./StockCategoryPicker";
 import type {
   AdvancedStockAlertStatus,
   AdvancedStockFilters,
@@ -24,6 +27,7 @@ type Props = {
   filters: AdvancedStockFilters;
   deposits: DepositResponse[];
   loading: boolean;
+  categories: ReturnType<typeof useStockCategoryOptions>;
   onApply: (filters: ApplicableFilters) => void;
 };
 
@@ -34,6 +38,7 @@ type FilterFormState = {
   quantity: string;
   minQuantity: string;
   maxQuantity: string;
+  categoryIds: number[];
 };
 
 const initialForm: FilterFormState = {
@@ -43,13 +48,12 @@ const initialForm: FilterFormState = {
   quantity: "",
   minQuantity: "",
   maxQuantity: "",
+  categoryIds: [],
 };
 
 const alertStatusLabels: Record<FilterFormState["alertStatus"], string> = {
   ALL: "Todos",
-  OK: "Stock optimo",
-  LOW: "Bajo stock",
-  ZERO: "Sin stock",
+  ...stockAlertLabels,
 };
 
 const numberOrNull = (value: string): number | null => {
@@ -62,6 +66,7 @@ const numberOrNull = (value: string): number | null => {
 const mapFiltersToForm = (filters: AdvancedStockFilters): FilterFormState => {
   return {
     search: filters.search,
+    categoryIds: filters.categoryIds ?? [],
     idDeposit: filters.idDeposit ? String(filters.idDeposit) : "ALL",
     alertStatus: filters.alertStatus ?? "ALL",
     quantity: filters.quantity === null ? "" : String(filters.quantity),
@@ -76,6 +81,7 @@ export const StockFilter = ({
   filters,
   deposits,
   loading,
+  categories,
   onApply,
 }: Props) => {
   const [formState, setFormState] = useState<FilterFormState>(() =>
@@ -99,6 +105,7 @@ export const StockFilter = ({
   const handleApply = () => {
     onApply({
       search: formState.search.trim(),
+      categoryIds: formState.categoryIds,
       idDeposit:
         formState.idDeposit === "ALL" ? null : Number(formState.idDeposit),
       quantity: numberOrNull(formState.quantity),
@@ -123,7 +130,7 @@ export const StockFilter = ({
 
   return (
     <Card className="border-dashed bg-muted/20 shadow-none">
-      <CardContent className="grid gap-4 p-4 lg:grid-cols-[1.4fr_1fr_1fr_0.8fr_0.8fr_auto] lg:items-end">
+      <CardContent className="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3 xl:items-end">
         <div className="grid gap-2">
           <Label htmlFor="stock-search">Producto o codigo</Label>
           <Input
@@ -138,6 +145,9 @@ export const StockFilter = ({
             placeholder="Buscar por nombre o codigo..."
           />
         </div>
+
+        <StockCategoryPicker value={formState.categoryIds} categories={categories}
+          onChange={(categoryIds) => setFormState((current) => ({ ...current, categoryIds }))} />
 
         <div className="grid gap-2">
           <Label>Deposito</Label>
@@ -232,7 +242,7 @@ export const StockFilter = ({
           />
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+        <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row xl:col-span-3 xl:justify-end">
           <Button type="button" disabled={loading} onClick={handleApply}>
             <Filter className="mr-2 h-4 w-4" />
             Aplicar Filtros

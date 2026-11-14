@@ -2,7 +2,9 @@
 
 Revisado: 2026-11-14. Rama inspeccionada: `dev`.
 
-INV-CAT-P1 implementada sobre `fffadfd`. La búsqueda avanzada administrativa acepta hasta 30 categorías. La exportación JSON devuelve todas las coincidencias de hasta 2.000 filas y las opciones de categorías usan `stock.view`. El despliegue coordinado de procedures y backend y la verificación en MySQL/QA siguen pendientes. INV-CAT-P2 consumirá este contrato para imprimir la planilla A4. [Evidencias](inv-cat-p1-validation.md).
+INV-CAT-P2 implementada sobre `32372cb`. Stock permite aplicar un filtro multicategoría y preparar una planilla A4 con fotos y espacio de conteo físico para todas las filas coincidentes por depósito. Smoke autenticado e impresión con imágenes reales de QA pendientes. [Evidencias](inv-cat-p2-validation.md).
+
+INV-CAT-P1 incorporada en `32372cb`. Acepta hasta 30 categorías y devuelve hasta 2.000 filas completas de exportación. El operador informa DB sincronizada en local, test/QA y producción. El smoke de los endpoints y el plan de consulta siguen pendientes de verificación directa. [Evidencias](inv-cat-p1-validation.md).
 
 T3 stock público global implementado sobre `e02cb42aced97451a776599dbc7271943f3ef6d4`. Listado y detalle suman cantidades positivas de todos los depósitos activos del negocio. Pasaron 315 pruebas sin DB, typecheck, build y validación del baseline. La instalación de procedures está pendiente por ambiente y el gate combinado con búsqueda (29 casos HTTP/MySQL) espera ejecución autorizada en test. La siguiente fase es T4 QA VITRUNO. [Evidencias](storefront-global-stock-validation.md).
 
