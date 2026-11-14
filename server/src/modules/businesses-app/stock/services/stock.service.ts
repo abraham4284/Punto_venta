@@ -1,6 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
-import { mapStock } from "../helpers/stock.mapper.js";
+import { mapStock, mapStockInventory } from "../helpers/stock.mapper.js";
 import type {
   AdvancedStockCountRow,
   AdvancedStockFilters,
@@ -12,8 +12,12 @@ import type {
   CriticalStockReportRow,
   StockBalanceDbRow,
   StockBalanceResponse,
+  StockCategoryOption,
   StockCountRow,
   StockDbRow,
+  StockInventoryExportResponse,
+  StockInventoryFilters,
+  StockInventoryRow,
   StockPaginatedResponse,
   StockPaginationFilters,
   StockProductSearchFilters,
@@ -326,18 +330,8 @@ export async function getAdvancedStockInventoryService(
   const offset = (currentPage - 1) * limit;
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_advanced_stock_inventory(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [
-      idBusiness,
-      filters.search ?? null,
-      filters.idDeposit ?? null,
-      filters.quantity ?? null,
-      filters.minQuantity ?? null,
-      filters.maxQuantity ?? null,
-      filters.alertStatus ?? null,
-      limit,
-      offset,
-    ],
+    "CALL sp_get_advanced_stock_inventory(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [...inventoryFilterParams(idBusiness, filters), limit, offset],
   );
 
   const result = rows as unknown as [
@@ -349,21 +343,9 @@ export async function getAdvancedStockInventoryService(
   return {
     stock: (result[0] ?? []).map(function mapAdvancedStock(row) {
       return {
-        idStock: row.idStock,
-        idProduct: row.idProduct,
-        productName: row.productName,
-        categoryName: row.categoryName,
-        barcode: row.barcode,
-        imageUrl: row.imageUrl,
-        unitType: row.unitType,
-        isActive: Boolean(row.isActive),
+        ...mapStockInventory(row),
         priceCost: Number(row.priceCost),
         priceSale: Number(row.priceSale),
-        idDeposit: row.idDeposit,
-        depositName: row.depositName,
-        quantity: Number(row.quantity),
-        stockMin: Number(row.stockMin),
-        alertStatus: row.alertStatus,
       };
     }),
     pagination: {
@@ -373,4 +355,45 @@ export async function getAdvancedStockInventoryService(
       limit,
     },
   };
+}
+
+function inventoryFilterParams(idBusiness: number, filters: StockInventoryFilters) {
+  return [
+    idBusiness,
+    filters.search ?? null,
+    filters.idDeposit ?? null,
+    filters.quantity ?? null,
+    filters.minQuantity ?? null,
+    filters.maxQuantity ?? null,
+    filters.alertStatus ?? null,
+    filters.categoryIds ? JSON.stringify(filters.categoryIds) : null,
+  ];
+}
+
+export const STOCK_INVENTORY_EXPORT_LIMIT = 2000;
+
+export async function getStockInventoryExportService(
+  idBusiness: number,
+  filters: StockInventoryFilters,
+): Promise<StockInventoryExportResponse | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    "CALL sp_get_stock_inventory_export(?, ?, ?, ?, ?, ?, ?, ?)",
+    inventoryFilterParams(idBusiness, filters),
+  );
+  const [stock] = rows as unknown as [StockInventoryRow[]];
+
+  if (stock.length > STOCK_INVENTORY_EXPORT_LIMIT) return null;
+
+  return { stock: stock.map(mapStockInventory), totalRecords: stock.length };
+}
+
+export async function getStockCategoryOptionsService(idBusiness: number): Promise<StockCategoryOption[]> {
+  const [rows] = await pool.query<(RowDataPacket & StockCategoryOption)[]>(
+    `SELECT idProductCategory, name
+     FROM product_categories
+     WHERE idBusiness = ?
+     ORDER BY name ASC, idProductCategory ASC`,
+    [idBusiness],
+  );
+  return rows;
 }

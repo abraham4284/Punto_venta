@@ -142,6 +142,7 @@ CREATE PROCEDURE sp_get_advanced_stock_inventory(
   IN p_minQuantity DECIMAL(18,2),
   IN p_maxQuantity DECIMAL(18,2),
   IN p_alertStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_categoryIds JSON,
   IN p_limit INT,
   IN p_offset INT
 )
@@ -177,6 +178,14 @@ BEGIN
     ON pc.idProductCategory = p.idProductCategory
     AND pc.idBusiness = p.idBusiness
   WHERE s.idBusiness = p_idBusiness
+    AND (
+      p_categoryIds IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM JSON_TABLE(COALESCE(p_categoryIds, JSON_ARRAY()), '$[*]' COLUMNS (id BIGINT PATH '$')) AS selected_category
+        WHERE selected_category.id = pc.idProductCategory
+      )
+    )
     AND (
       p_search IS NULL
       OR p_search = ''
@@ -215,6 +224,14 @@ BEGIN
     AND pc.idBusiness = p.idBusiness
   WHERE s.idBusiness = p_idBusiness
     AND (
+      p_categoryIds IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM JSON_TABLE(COALESCE(p_categoryIds, JSON_ARRAY()), '$[*]' COLUMNS (id BIGINT PATH '$')) AS selected_category
+        WHERE selected_category.id = pc.idProductCategory
+      )
+    )
+    AND (
       p_search IS NULL
       OR p_search = ''
       OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
@@ -235,6 +252,86 @@ BEGIN
         END
       ) COLLATE utf8mb4_unicode_ci = p_alertStatus COLLATE utf8mb4_unicode_ci
     );
+END$$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS sp_get_stock_inventory_export;
+DELIMITER $$
+
+CREATE PROCEDURE sp_get_stock_inventory_export(
+  IN p_idBusiness INT,
+  IN p_search VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_idDeposit INT,
+  IN p_quantity DECIMAL(18,2),
+  IN p_minQuantity DECIMAL(18,2),
+  IN p_maxQuantity DECIMAL(18,2),
+  IN p_alertStatus VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_categoryIds JSON
+)
+BEGIN
+  SELECT
+    s.idStock,
+    s.idProduct,
+    p.name AS productName,
+    pc.name AS categoryName,
+    p.barcode,
+    p.image_url AS imageUrl,
+    p.unit_type AS unitType,
+    p.is_active AS isActive,
+    s.idDeposit,
+    d.name AS depositName,
+    s.quantity,
+    p.stock_min AS stockMin,
+    CASE
+      WHEN s.quantity = 0 THEN 'ZERO'
+      WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
+      ELSE 'OK'
+    END AS alertStatus
+  FROM stock s
+  INNER JOIN products p
+    ON p.idProduct = s.idProduct
+    AND p.idBusiness = s.idBusiness
+  INNER JOIN deposits d
+    ON d.idDeposit = s.idDeposit
+    AND d.idBusiness = s.idBusiness
+  LEFT JOIN product_categories pc
+    ON pc.idProductCategory = p.idProductCategory
+    AND pc.idBusiness = p.idBusiness
+  WHERE s.idBusiness = p_idBusiness
+    AND (
+      p_categoryIds IS NULL
+      OR EXISTS (
+        SELECT 1
+        FROM JSON_TABLE(COALESCE(p_categoryIds, JSON_ARRAY()), '$[*]' COLUMNS (id BIGINT PATH '$')) AS selected_category
+        WHERE selected_category.id = pc.idProductCategory
+      )
+    )
+    AND (
+      p_search IS NULL
+      OR p_search = ''
+      OR p.name COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+      OR p.barcode COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_search COLLATE utf8mb4_unicode_ci, '%')
+    )
+    AND (p_idDeposit IS NULL OR s.idDeposit = p_idDeposit)
+    AND (p_quantity IS NULL OR s.quantity = p_quantity)
+    AND (p_minQuantity IS NULL OR s.quantity >= p_minQuantity)
+    AND (p_maxQuantity IS NULL OR s.quantity <= p_maxQuantity)
+    AND (
+      p_alertStatus IS NULL
+      OR p_alertStatus = ''
+      OR (
+        CASE
+          WHEN s.quantity = 0 THEN 'ZERO'
+          WHEN s.quantity > 0 AND s.quantity <= p.stock_min THEN 'LOW'
+          ELSE 'OK'
+        END
+      ) COLLATE utf8mb4_unicode_ci = p_alertStatus COLLATE utf8mb4_unicode_ci
+    )
+  ORDER BY p.name ASC, d.name ASC, s.idStock ASC
+  -- One extra row detects overflow without materializing an unbounded result.
+  LIMIT 2001;
 END$$
 
 DELIMITER ;

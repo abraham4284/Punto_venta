@@ -7,7 +7,9 @@ import {
   getCriticalStockReportController,
   getStockBalanceController,
   getStockByIdController,
+  getStockCategoryOptionsController,
   getStockController,
+  getStockInventoryExportController,
   searchProductsForStockController,
 } from "../controllers/stock.controller.js";
 
@@ -20,6 +22,8 @@ router.get(
   requirePermission("stock.view"),
   getAdvancedStockInventoryController,
 );
+router.get("/stock/export-data", requireAuth, requirePermission("stock.view"), getStockInventoryExportController);
+router.get("/stock/category-options", requireAuth, requirePermission("stock.view"), getStockCategoryOptionsController);
 router.get(
   "/stock/report/critical",
   requireAuth,
