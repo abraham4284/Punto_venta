@@ -179,18 +179,22 @@ export interface CriticalStockReportFilters {
   alertStatus?: CriticalStockAlertStatus | null;
 }
 
-export interface AdvancedStockFilters {
+export interface StockInventoryFilters {
   search?: string | null;
   idDeposit?: number | null;
   quantity?: number | null;
   minQuantity?: number | null;
   maxQuantity?: number | null;
   alertStatus?: AdvancedStockAlertStatus | null;
+  categoryIds?: number[];
+}
+
+export interface AdvancedStockFilters extends StockInventoryFilters {
   page: number;
   limit: number;
 }
 
-export interface AdvancedStockInventoryRow {
+export interface StockInventoryRow {
   idStock: number;
   idProduct: number;
   productName: string;
@@ -199,8 +203,6 @@ export interface AdvancedStockInventoryRow {
   imageUrl: string | null;
   unitType: ProductUnitType;
   isActive: number | boolean;
-  priceCost: string | number;
-  priceSale: string | number;
   idDeposit: number;
   depositName: string;
   quantity: string | number;
@@ -208,7 +210,12 @@ export interface AdvancedStockInventoryRow {
   alertStatus: AdvancedStockAlertStatus;
 }
 
-export interface AdvancedStockInventoryItem {
+export interface AdvancedStockInventoryRow extends StockInventoryRow {
+  priceCost: string | number;
+  priceSale: string | number;
+}
+
+export interface StockInventoryItem {
   idStock: number;
   idProduct: number;
   productName: string;
@@ -217,13 +224,26 @@ export interface AdvancedStockInventoryItem {
   imageUrl: string | null;
   unitType: ProductUnitType;
   isActive: boolean;
-  priceCost: number;
-  priceSale: number;
   idDeposit: number;
   depositName: string;
   quantity: number;
   stockMin: number;
   alertStatus: AdvancedStockAlertStatus;
+}
+
+export interface AdvancedStockInventoryItem extends StockInventoryItem {
+  priceCost: number;
+  priceSale: number;
+}
+
+export interface StockInventoryExportResponse {
+  stock: StockInventoryItem[];
+  totalRecords: number;
+}
+
+export interface StockCategoryOption {
+  idProductCategory: number;
+  name: string;
 }
 
 export interface AdvancedStockPagination {

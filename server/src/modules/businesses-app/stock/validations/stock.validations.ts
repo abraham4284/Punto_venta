@@ -105,7 +105,27 @@ export const stockProductSearchQuerySchema = z
   })
   .strict();
 
-export const advancedStockQuerySchema = z
+const maxCategoryIds = 30;
+const maxCategoryIdLength = String(Number.MAX_SAFE_INTEGER).length;
+
+const categoryIdsSchema = z.string()
+  .max(maxCategoryIds * (maxCategoryIdLength + 1) - 1, "La lista de categorias es demasiado larga")
+  .regex(/^[1-9][0-9]*(?:,[1-9][0-9]*)*$/, "Usa IDs positivos separados por comas")
+  .transform(function parseCategoryIds(value) {
+    return value.split(",").map(Number);
+  })
+  .refine(function hasValidCategoryCount(ids) {
+    return ids.length <= maxCategoryIds;
+  }, "Selecciona hasta 30 categorias")
+  .refine(function hasSafeCategoryIds(ids) {
+    return ids.every(Number.isSafeInteger);
+  }, "Los IDs de categoria superan el rango permitido")
+  .refine(function hasUniqueCategoryIds(ids) {
+    return new Set(ids).size === ids.length;
+  }, "No se permiten categorias repetidas")
+  .optional();
+
+const stockInventoryFiltersSchema = z
   .object({
     search: z.preprocess(
       emptyToUndefined,
@@ -121,23 +141,7 @@ export const advancedStockQuerySchema = z
         error: "El estado de alerta debe ser OK, LOW o ZERO",
       }).optional(),
     ),
-    page: z.preprocess(
-      emptyToUndefined,
-      z.coerce
-        .number({ error: "La pagina debe ser un numero" })
-        .int("La pagina debe ser un numero entero")
-        .positive("La pagina debe ser mayor a cero")
-        .default(1),
-    ),
-    limit: z.preprocess(
-      emptyToUndefined,
-      z.coerce
-        .number({ error: "El limite debe ser un numero" })
-        .int("El limite debe ser un numero entero")
-        .positive("El limite debe ser mayor a cero")
-        .max(100, "El limite no puede superar 100 registros")
-        .default(15),
-    ),
+    categoryIds: categoryIdsSchema,
   })
   .strict()
   .refine(
@@ -153,6 +157,11 @@ export const advancedStockQuerySchema = z
       message: "La cantidad minima no puede ser mayor a la cantidad maxima",
     },
   );
+
+export const stockExportQuerySchema = stockInventoryFiltersSchema;
+export const advancedStockQuerySchema = stockInventoryFiltersSchema.safeExtend(
+  stockPaginationQuerySchema.shape,
+);
 
 export const criticalStockReportQuerySchema = z
   .object({

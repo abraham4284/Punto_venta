@@ -6,13 +6,17 @@ import {
   getCriticalStockReportService,
   getStockBalanceService,
   getStockByIdService,
+  getStockCategoryOptionsService,
   getStockService,
+  getStockInventoryExportService,
   searchProductsForStockService,
+  STOCK_INVENTORY_EXPORT_LIMIT,
 } from "../services/stock.service.js";
 import {
   advancedStockQuerySchema,
   createInitialStockSchema,
   criticalStockReportQuerySchema,
+  stockExportQuerySchema,
   stockProductSearchQuerySchema,
   stockPaginationQuerySchema,
 } from "../validations/stock.validations.js";
@@ -239,37 +243,67 @@ export async function getAdvancedStockInventoryController(
 ): Promise<Response> {
   try {
     const filters = advancedStockQuerySchema.parse(req.query);
-    const result = await getAdvancedStockInventoryService(
-      req.user!.idBusiness,
-      {
-        search: filters.search ?? null,
-        idDeposit: filters.idDeposit ?? null,
-        quantity: filters.quantity ?? null,
-        minQuantity: filters.minQuantity ?? null,
-        maxQuantity: filters.maxQuantity ?? null,
-        alertStatus: filters.alertStatus ?? null,
-        page: filters.page,
-        limit: filters.limit,
-      },
-    );
+    const result = await getAdvancedStockInventoryService(req.user!.idBusiness, filters);
 
     return res.status(200).json({
       status: true,
       message: "Inventario avanzado obtenido correctamente",
       data: result,
     });
-  } catch (error: any) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
+  } catch (error: unknown) {
+    return handleStockInventoryError(res, error);
+  }
+}
+
+export async function getStockInventoryExportController(req: Request, res: Response): Promise<Response> {
+  try {
+    const filters = stockExportQuerySchema.parse(req.query);
+    const result = await getStockInventoryExportService(req.user!.idBusiness, filters);
+
+    if (!result) {
+      return res.status(422).json({
         status: false,
-        message: "Error de validacion",
-        errors: getZodErrors(error),
+        code: "STOCK_EXPORT_LIMIT_EXCEEDED",
+        message: "Acota los filtros para exportar el inventario.",
+        data: { maxRecords: STOCK_INVENTORY_EXPORT_LIMIT },
       });
     }
 
+    return res.status(200).json({
+      status: true,
+      message: "Datos de inventario obtenidos correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
+    return handleStockInventoryError(res, error);
+  }
+}
+
+export async function getStockCategoryOptionsController(req: Request, res: Response): Promise<Response> {
+  try {
+    z.strictObject({}).parse(req.query);
+    const result = await getStockCategoryOptionsService(req.user!.idBusiness);
+    return res.status(200).json({
+      status: true,
+      message: "Categorias de inventario obtenidas correctamente",
+      data: result,
+    });
+  } catch (error: unknown) {
+    return handleStockInventoryError(res, error);
+  }
+}
+
+function handleStockInventoryError(res: Response, error: unknown): Response {
+  if (error instanceof z.ZodError) {
     return res.status(400).json({
       status: false,
-      message: error.sqlMessage || error.message,
+      message: "Error de validacion",
+      errors: getZodErrors(error),
     });
   }
+
+  return res.status(500).json({
+    status: false,
+    message: "No se pudo consultar el inventario",
+  });
 }
