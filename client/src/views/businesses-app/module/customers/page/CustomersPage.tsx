@@ -76,11 +76,12 @@ export const CustomersPage = () => {
       await updateCustomer({
         idCustomer: dataEdit.idCustomer,
         ...payload,
+        ...(values.pricingTier !== dataEdit.pricingTier ? { pricingTier: values.pricingTier } : {}),
       });
       return;
     }
 
-    await createCustomer(payload);
+    await createCustomer({ ...payload, pricingTier: values.pricingTier });
   };
 
   const handleToggleStatus = async (customer: Customer) => {

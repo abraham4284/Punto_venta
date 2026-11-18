@@ -6,6 +6,7 @@ import type { Customer, CustomerDocumentType, CustomerFormValues } from "../../t
 import { CUSTOMER_DOCUMENT_TYPE_LABELS } from "../../helpers/customer.helpers";
 import { useForm } from "@/hooks/useForm";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,7 @@ const textFields = [
 // Mount a fresh form for each opening/customer, avoiding effect-driven resets while typing.
 const CustomerFormContent = ({ customerEdit, onClose, onSubmit, submittingRef }: Omit<Props, "isOpen"> & { submittingRef: RefObject<boolean> }) => {
   const initialForm: CustomerFormValues = {
+    pricingTier: customerEdit?.pricingTier ?? "RETAIL",
     firstName: customerEdit?.firstName ?? "",
     lastName: customerEdit?.lastName ?? "",
     documentType: customerEdit?.documentType ?? "",
@@ -46,6 +48,7 @@ const CustomerFormContent = ({ customerEdit, onClose, onSubmit, submittingRef }:
   const { formSate, onInputChange, setFormSate } = useForm<CustomerFormValues>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [pendingDowngrade, setPendingDowngrade] = useState<CustomerFormValues | null>(null);
 
   const handleDocumentType = (value: string | null) => {
     if (value === null) return;
@@ -56,7 +59,7 @@ const CustomerFormContent = ({ customerEdit, onClose, onSubmit, submittingRef }:
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (submittingRef.current) return;
+    if (submittingRef.current || pendingDowngrade) return;
     const result = customerFormSchema.safeParse(formSate);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -66,11 +69,21 @@ const CustomerFormContent = ({ customerEdit, onClose, onSubmit, submittingRef }:
       setErrors(fieldErrors);
       return;
     }
+    const values = { ...formSate, ...result.data };
+    if (customerEdit?.pricingTier === "WHOLESALE" && values.pricingTier === "RETAIL") {
+      setPendingDowngrade(values);
+      return;
+    }
+    await saveCustomer(values);
+  };
+
+  const saveCustomer = async (values: CustomerFormValues) => {
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setSaving(true);
     setErrors({});
     try {
-      await onSubmit({ ...formSate, ...result.data });
+      await onSubmit(values);
       onClose();
     } catch (error: unknown) {
       const response = isAxiosError<CustomerErrorResponse>(error) ? error.response?.data : undefined;
@@ -108,6 +121,25 @@ const CustomerFormContent = ({ customerEdit, onClose, onSubmit, submittingRef }:
               {fieldError(field.name)}
             </div>
           ))}
+          <div className="grid min-w-0 gap-2 sm:col-span-2">
+            <Label htmlFor="customer-pricingTier">Condición comercial</Label>
+            <Select value={formSate.pricingTier} disabled={saving} onValueChange={(value) => {
+              if (value !== "RETAIL" && value !== "WHOLESALE") return;
+              setFormSate((current) => ({ ...current, pricingTier: value }));
+              setErrors((current) => ({ ...current, pricingTier: "" }));
+            }}>
+              <SelectTrigger id="customer-pricingTier" className="w-full"
+                aria-invalid={Boolean(errors.pricingTier)}
+                aria-describedby={errors.pricingTier ? "customer-pricingTier-error" : undefined}>
+                <SelectValue>{formSate.pricingTier === "WHOLESALE" ? "Mayorista" : "Minorista"}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="RETAIL">Minorista</SelectItem>
+                <SelectItem value="WHOLESALE">Mayorista</SelectItem>
+              </SelectContent>
+            </Select>
+            {fieldError("pricingTier")}
+          </div>
           <div className="grid min-w-0 gap-2">
             <Label htmlFor="customer-documentType">Tipo de documento</Label>
             <Select value={formSate.documentType || "NONE"} onValueChange={handleDocumentType} disabled={saving}>
@@ -162,6 +194,26 @@ const CustomerFormContent = ({ customerEdit, onClose, onSubmit, submittingRef }:
           </Button>
         </div>
       </form>
+      <AlertDialog open={pendingDowngrade !== null} onOpenChange={(open) => {
+        if (!open) setPendingDowngrade(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cambiar a Minorista?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este cliente perderá su condición mayorista. Para volver a acceder al precio mayorista deberá cumplir el mínimo requerido en una futura compra.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <Button type="button" variant="destructive" onClick={() => {
+              if (!pendingDowngrade) return;
+              setPendingDowngrade(null);
+              void saveCustomer(pendingDowngrade);
+            }}>Confirmar cambio</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DialogContent>
   );
 };

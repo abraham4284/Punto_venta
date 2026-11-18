@@ -17,6 +17,7 @@ import type { SaleWithDetailsResponse } from "@/modules/businesses-app/sales/typ
 const runTag = `f10test_${randomUUID().replaceAll("-", "").slice(0, 12)}`;
 type Scenario = Awaited<ReturnType<typeof scenario>>;
 let a: Scenario, b: Scenario;
+let fixturesStarted = false;
 async function assertTestConnection() {
   validateTestDatabaseEnvironment();
   if (process.env.NODE_ENV !== "test" || !["localhost", "127.0.0.1", "::1"].includes(process.env.DB_HOST ?? "")) throw new Error("F10.1 test loopback exclusively");
@@ -35,7 +36,7 @@ async function scenario(label: string) {
   const cash = await createCashSessionFixture({ idBusiness, idCashRegister: business.defaultCashRegister.idCashRegister, idUser: business.owner.idUser });
   return { business, customer, product, noWholesale, below, cash };
 }
-function api(method: "post" | "get" | "patch", path: string, cookies = a.business.auth.cookies) {
+function api(method: "post" | "get" | "patch" | "put", path: string, cookies = a.business.auth.cookies) {
   return request(getTestApp())[method](`/api${path}`).set("Cookie", cookies).set("X-CSRF-Protection", "1");
 }
 function body(quantity = 5, idCustomer: number | null = a.customer.idCustomer, pricingType = "WHOLESALE", idProduct = a.product.idProduct, unitPrice = 10000) {
@@ -48,6 +49,11 @@ function body(quantity = 5, idCustomer: number | null = a.customer.idCustomer, p
 function postSale(data = body(), key = randomUUID()) { return api("post", "/sales").set("Idempotency-Key", key).send(data); }
 async function tier(id = a.customer.idCustomer) { return querySingleRow<RowDataPacket>("SELECT pricing_tier, wholesale_since FROM customers WHERE idBusiness=? AND idCustomer=?", [a.business.business.idBusiness, id]); }
 async function freshCustomer() { return createCustomerFixture(a.business.business.idBusiness); }
+async function createCustomer(pricingTier?: "RETAIL" | "WHOLESALE") {
+  const result = await api("post", "/customers").send({ firstName: "Cliente", lastName: "Prueba", pricingTier });
+  expect(result.status, result.text).toBe(201);
+  return result.body.data as { idCustomer: number; pricingTier: string; wholesaleSince: string | null };
+}
 async function promotedSale() {
   const customer = await freshCustomer(); const result = await postSale(body(5, customer.idCustomer));
   expect(result.status, result.text).toBe(201); return { customer, sale: result.body.data as SaleWithDetailsResponse };
@@ -60,6 +66,18 @@ async function preflight() {
   }
   const [parameters] = await pool.query<RowDataPacket[]>("SELECT PARAMETER_NAME FROM information_schema.PARAMETERS WHERE SPECIFIC_SCHEMA=DATABASE() AND SPECIFIC_NAME='sp_update_business' AND PARAMETER_MODE='IN'");
   if (parameters.length !== 8) throw new Error("Import F10.1 businesses.sql first");
+  for (const [name, expectedCount, expectedTail] of [
+    ["sp_create_customer", 10, ["p_pricing_tier"]],
+    ["sp_update_customer", 17, ["p_pricing_tier", "p_update_pricing_tier"]],
+  ] as const) {
+    const [params] = await pool.query<RowDataPacket[]>(
+      "SELECT PARAMETER_NAME FROM information_schema.PARAMETERS WHERE SPECIFIC_SCHEMA=DATABASE() AND SPECIFIC_NAME=? AND PARAMETER_MODE='IN' ORDER BY ORDINAL_POSITION",
+      [name],
+    );
+    if (params.length !== expectedCount || params.slice(-expectedTail.length).some((param, index) => param.PARAMETER_NAME !== expectedTail[index])) {
+      throw new Error("Import the current customers.sql before the manual tier gate");
+    }
+  }
 }
 async function cleanupOwnFixtures(): Promise<void> {
     await assertTestConnection();
@@ -102,12 +120,61 @@ async function cleanupOwnFixtures(): Promise<void> {
 
 describe("F10.1 real HTTP/DB gate — operator authorization required", function suite() {
   beforeAll(async function setup() {
-    await preflight(); a = await scenario("a"); b = await scenario("b");
+    await preflight();
+    fixturesStarted = true;
+    a = await scenario("a"); b = await scenario("b");
     const config = await api("patch", "/businesses/me").send({ wholesaleEnabled: true, wholesaleMinimumAmount: 50000 });
     expect(config.status, config.text).toBe(200);
     expect(config.body.data).toMatchObject({ wholesaleEnabled: true, wholesaleMinimumAmount: 50000 });
   });
-  afterAll(async function cleanup() { await cleanupOwnFixtures(); });
+  afterAll(async function cleanup() { if (fixturesStarted) await cleanupOwnFixtures(); });
+
+  it("creates existing and explicit tiers through HTTP and applies the initial minimum only to RETAIL", async function manualCreate() {
+    const legacy = await createCustomer();
+    expect(legacy).toMatchObject({ pricingTier: "RETAIL", wholesaleSince: null });
+    const retail = await createCustomer("RETAIL");
+    expect(retail).toMatchObject({ pricingTier: "RETAIL", wholesaleSince: null });
+    const blocked = await postSale(body(1, retail.idCustomer));
+    expect(blocked.status, blocked.text).toBe(400);
+    expect(blocked.body.code).toBe("WHOLESALE_MINIMUM_NOT_REACHED");
+    const qualifying = await postSale(body(5, retail.idCustomer));
+    expect(qualifying.status, qualifying.text).toBe(201);
+    expect(await tier(retail.idCustomer)).toMatchObject({ pricing_tier: "WHOLESALE", wholesale_since: expect.anything() });
+
+    const wholesale = await createCustomer("WHOLESALE");
+    expect(wholesale).toMatchObject({ pricingTier: "WHOLESALE", wholesaleSince: expect.any(String) });
+    expect(await tier(wholesale.idCustomer)).toMatchObject({ pricing_tier: "WHOLESALE", wholesale_since: expect.anything() });
+    const sale = await postSale(body(1, wholesale.idCustomer));
+    expect(sale.status, sale.text).toBe(201);
+  });
+
+  it("preserves a current date and history, clears the date on downgrade and restores eligibility on upgrade", async function manualUpdate() {
+    const { customer, sale } = await promotedSale();
+    const path = `/customers/${customer.idCustomer}`;
+    await executeMutation("UPDATE customers SET wholesale_since='2001-01-01 12:00:00' WHERE idBusiness=? AND idCustomer=?", [a.business.business.idBusiness, customer.idCustomer]);
+    const before = await tier(customer.idCustomer);
+    for (const payload of [{ pricingTier: "WHOLESALE" }, { observation: "Edición común" }]) {
+      const response = await api("put", path).send(payload);
+      expect(response.status, response.text).toBe(200);
+      expect(await tier(customer.idCustomer)).toEqual(before);
+    }
+    const foreign = await api("put", path, b.business.auth.cookies).send({ pricingTier: "RETAIL" });
+    expect(foreign.status, foreign.text).toBe(404);
+    expect(await tier(customer.idCustomer)).toEqual(before);
+    const downgrade = await api("put", path).send({ pricingTier: "RETAIL" });
+    expect(downgrade.status, downgrade.text).toBe(200);
+    expect(downgrade.body.data).toMatchObject({ pricingTier: "RETAIL", wholesaleSince: null });
+    expect(await tier(customer.idCustomer)).toMatchObject({ pricing_tier: "RETAIL", wholesale_since: null });
+    const blocked = await postSale(body(1, customer.idCustomer));
+    expect(blocked.body.code, blocked.text).toBe("WHOLESALE_MINIMUM_NOT_REACHED");
+    expect((await api("get", `/sales/${sale.idSale}`)).body.data.pricingType).toBe("WHOLESALE");
+    const upgrade = await api("put", path).send({ pricingTier: "WHOLESALE" });
+    expect(upgrade.status, upgrade.text).toBe(200);
+    expect(upgrade.body.data).toMatchObject({ pricingTier: "WHOLESALE", wholesaleSince: expect.any(String) });
+    expect((await tier(customer.idCustomer))?.wholesale_since).not.toEqual(before?.wholesale_since);
+    const allowed = await postSale(body(1, customer.idCustomer));
+    expect(allowed.status, allowed.text).toBe(201);
+  });
 
   it("business wholesale defaults disabled and NULL; no global activation", async function disabled() {
     const business = await api("get", "/businesses", b.business.auth.cookies);

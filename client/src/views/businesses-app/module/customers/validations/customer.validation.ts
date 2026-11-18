@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const customerFormSchema = z.object({
+  pricingTier: z.enum(["RETAIL", "WHOLESALE"], { error: "Seleccioná una condición comercial válida" }),
   firstName: z
     .string()
     .trim()

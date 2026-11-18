@@ -2,9 +2,10 @@ import type { Request } from "express";
 import type { BusinessRequestUser } from "@/types/auth.types.js";
 
 export type CustomerDocumentType = "DNI" | "CUIL" | "CUIT" | "PASSPORT" | "OTHER";
+export type CustomerPricingTier = "RETAIL" | "WHOLESALE";
 
 export interface CustomerDbRow {
-  pricing_tier: "RETAIL" | "WHOLESALE";
+  pricing_tier: CustomerPricingTier;
   wholesale_since: Date | null;
   idCustomer: number;
   idBusiness: number;
@@ -22,7 +23,7 @@ export interface CustomerDbRow {
 }
 
 export interface CustomerResponse {
-  pricingTier: "RETAIL" | "WHOLESALE";
+  pricingTier: CustomerPricingTier;
   wholesaleSince: Date | null;
   idCustomer: number;
   idBusiness: number;
@@ -42,6 +43,7 @@ export interface CustomerResponse {
 
 export interface CreateCustomerPayload {
   idBusiness: number;
+  pricingTier?: CustomerPricingTier;
   firstName: string;
   lastName: string;
   documentType?: CustomerDocumentType | null;
@@ -55,6 +57,7 @@ export interface CreateCustomerPayload {
 export interface UpdateCustomerPayload {
   idBusiness: number;
   idCustomer: number;
+  pricingTier?: CustomerPricingTier;
   firstName?: string;
   lastName?: string;
   documentType?: CustomerDocumentType | null;

@@ -13,7 +13,7 @@ export async function createCustomerService(
   data: CreateCustomerPayload,
 ): Promise<CustomerResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.firstName,
@@ -24,6 +24,7 @@ export async function createCustomerService(
       data.email ?? null,
       data.address ?? null,
       data.observation ?? null,
+      data.pricingTier ?? "RETAIL",
     ],
   );
 
@@ -73,7 +74,7 @@ export async function updateCustomerService(
   data: UpdateCustomerPayload,
 ): Promise<CustomerResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.idBusiness,
       data.idCustomer,
@@ -90,6 +91,8 @@ export async function updateCustomerService(
       Object.hasOwn(data, "address") ? 1 : 0,
       data.observation ?? null,
       Object.hasOwn(data, "observation") ? 1 : 0,
+      data.pricingTier ?? null,
+      data.pricingTier === undefined ? 0 : 1,
     ],
   );
 

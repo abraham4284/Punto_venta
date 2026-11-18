@@ -1,5 +1,7 @@
 # Estado vigente de Cajora
 
+Al 2026-11-18, gestión manual de condición comercial en Clientes implementada sobre `dbb1a31` en `dev`. Minorista sigue siendo el default y el paso de Mayorista a Minorista requiere confirmación en la UI. Sales conserva el mínimo inicial y la promoción automática. Reimportación de procedures y gate MySQL/HTTP pendientes. [Evidencias](customer-manual-pricing-tier-validation.md).
+
 Revisado: 2026-11-14. Rama inspeccionada: `dev`.
 
 INV-CAT-P2 implementada sobre `32372cb`. Stock permite aplicar un filtro multicategoría y preparar una planilla A4 con fotos y espacio de conteo físico para todas las filas coincidentes por depósito. Smoke autenticado e impresión con imágenes reales de QA pendientes. [Evidencias](inv-cat-p2-validation.md).
@@ -24,7 +26,7 @@ Mejora del buscador público implementada con gate real pendiente. `sp_storefron
 
 F10.2.1 Wholesale Price Visibility Polish CLOSED. Nueva Venta muestra Minorista/Mayorista y el precio aplicado; Productos conserva Costo y agrega Precio mayorista junto a Precio minorista. Ausencia mayorista explicita, sin $0 sustituto; bloqueo y logica F10.2 preservados. 20 tests nuevos + 71 regresiones, build/lint acotado y QA local headless 15/15 desktop/tablet/mobile aprobados. Frontend visual solamente; sin API/DB real, backend, VITRUNO ni Git writes. [Evidencias F10.2.1](f10-2-1-wholesale-price-visibility-validation.md).
 
-F10.2 Wholesale Pricing Admin Frontend CLOSED con el alcance validado. Mi Empresa lee/configura enabled + minimum con business.update; Clientes muestra tier/fecha sin edicion manual; Nueva Venta deriva RETAIL/WHOLESALE de politica/cliente/carrito y envia pricingType explicito, recalcula precios/descuentos, conserva pagos manuales y refresca Customers tras promocion. Detalle preserva tipo historico y NULL = No registrado. 71 tests nuevos + 70 regresiones aprobados, build y lint de 15 fuentes aprobados; QA local headless 32/32 con fixtures/API en memoria en desktop/tablet/mobile 390x844. No es E2E frontend contra API real. [Evidencias F10.2](f10-2-wholesale-pricing-admin-frontend-validation.md).
+F10.2 Wholesale Pricing Admin Frontend CLOSED con el alcance validado. Mi Empresa lee/configura enabled + minimum con business.update; Clientes muestra tier/fecha; Nueva Venta deriva RETAIL/WHOLESALE de politica/cliente/carrito y envia pricingType explicito, recalcula precios/descuentos, conserva pagos manuales y refresca Customers tras promocion. Detalle preserva tipo historico y NULL = No registrado. 71 tests nuevos + 70 regresiones aprobados, build y lint de 15 fuentes aprobados; QA local headless 32/32 con fixtures/API en memoria en desktop/tablet/mobile 390x844. No es E2E frontend contra API real. [Evidencias F10.2](f10-2-wholesale-pricing-admin-frontend-validation.md).
 
 Gate real F10.1 aprobado al iniciar F10.2: 19/19 HTTP/DB en entorno loopback / punto_venta_integration_test, NODE_ENV=test; afterAll/cleanup UUID aprobado con FKs preservadas. SQL local/test F10.1 sincronizado segun operador. El agente ejecuto solo suite/fixtures/cleanup, sin migraciones, DDL ni configuracion VITRUNO; produccion no sometida a suite ni modificada. Backend/SQL de produccion sin cambios F10.2. [Evidencia F10.1](f10-1-wholesale-pricing-core-validation.md).
 
