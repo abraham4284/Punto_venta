@@ -95,14 +95,61 @@ describe("Customers v2 DB-free", function suite() {
 
   it("mapea todos los argumentos de create", async function test() {
     await createCustomerService({ ...base, documentType: "DNI", documentNumber: "123" });
-    expect(query).toHaveBeenCalledWith("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?, ?, ?)", [7, base.firstName, base.lastName, "DNI", "123", null, null, null, null]);
+    expect(query).toHaveBeenCalledWith("CALL sp_create_customer(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [7, base.firstName, base.lastName, "DNI", "123", null, null, null, null, "RETAIL"]);
   });
 
   it("update usa flags para conservar o limpiar sin lectura previa", async function test() {
     await updateCustomerService({ idBusiness: 7, idCustomer: 3, firstName: "Maria" });
-    expect(query.mock.calls[0]?.[1]).toEqual([7, 3, "Maria", null, null, null, 0, null, 0, null, 0, null, 0, null, 0]);
+    expect(query.mock.calls[0]?.[1]).toEqual([7, 3, "Maria", null, null, null, 0, null, 0, null, 0, null, 0, null, 0, null, 0]);
     await updateCustomerService({ idBusiness: 7, idCustomer: 3, documentType: null, documentNumber: null, phone: null });
-    expect(query.mock.calls[1]?.[1]).toEqual([7, 3, null, null, null, null, 1, null, 1, null, 0, null, 0, null, 0]);
+    expect(query.mock.calls[1]?.[1]).toEqual([7, 3, null, null, null, null, 1, null, 1, null, 0, null, 0, null, 0, null, 0]);
+  });
+
+  it.each(["RETAIL", "WHOLESALE"] as const)("accepts explicit %s on create and tier-only update", async function tier(pricingTier) {
+    const since = pricingTier === "WHOLESALE" ? new Date("2026-11-18T12:00:00Z") : null;
+    query.mockResolvedValue([[[{ ...row, pricing_tier: pricingTier, wholesale_since: since }]]]);
+    const post = responseMock();
+    await createCustomerController({ body: { firstName: base.firstName, lastName: base.lastName, pricingTier }, user: { idBusiness: 7 } } as Request, post as unknown as Response);
+    expect(post.status).toHaveBeenCalledWith(201);
+    expect(query.mock.calls[0]?.[1]?.at(-1)).toBe(pricingTier);
+    expect(post.json).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ pricingTier, wholesaleSince: since }) }));
+    const put = responseMock();
+    await updateCustomerController({ body: { pricingTier, idBusiness: 999, idCustomer: 999 }, params: { id: "3" }, user: { idBusiness: 7 } } as unknown as Request, put as unknown as Response);
+    expect(put.status).toHaveBeenCalledWith(200);
+    expect(query).toHaveBeenLastCalledWith(
+      "CALL sp_update_customer(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [7, 3, null, null, null, null, 0, null, 0, null, 0, null, 0, null, 0, pricingTier, 1],
+    );
+    expect(put.json).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ pricingTier, wholesaleSince: since }) }));
+  });
+
+  it.each([{ pricingTier: "VIP" }, { pricingTier: "MAYORISTA" }, { pricingTier: "" }, { pricingTier: null }, { wholesaleSince: null }])("rejects invalid writes %j before DB", async function invalid(body) {
+    const req = { body: { firstName: base.firstName, lastName: base.lastName, ...body }, params: { id: "3" }, user: { idBusiness: 7 } } as unknown as Request;
+    for (const handler of [createCustomerController, updateCustomerController]) {
+      const res = responseMock();
+      await handler(req, res as unknown as Response);
+      expect(res.status).toHaveBeenCalledWith(400);
+    }
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the authenticated tenant's update returns no row", async function missing() {
+    query.mockResolvedValue([[[]]]);
+    const res = responseMock();
+    await updateCustomerController({ body: { pricingTier: "WHOLESALE" }, params: { id: "8" }, user: { idBusiness: 7 } } as unknown as Request, res as unknown as Response);
+    expect(query.mock.calls[0]?.[1]?.slice(0, 2)).toEqual([7, 8]);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("updates condition/date atomically and retains tenant and route guards", function contract() {
+    const sql = readFileSync(new URL("../../db/procedures/customers.sql", import.meta.url), "utf8");
+    const update = sql.split("CREATE PROCEDURE sp_update_customer(")[1].split("END$$")[0];
+    expect(update).toMatch(/wholesale_since = CASE[\s\S]*THEN wholesale_since[\s\S]*WHEN p_pricing_tier = 'RETAIL' THEN NULL[\s\S]*WHEN pricing_tier = 'WHOLESALE' THEN COALESCE\(wholesale_since, NOW\(\)\)[\s\S]*ELSE NOW\(\)[\s\S]*pricing_tier = CASE/);
+    expect(update).toContain("WHERE idBusiness = p_idBusiness AND idCustomer = p_idCustomer");
+    expect(sql).toContain("CASE WHEN p_pricing_tier = 'WHOLESALE' THEN NOW() ELSE NULL END");
+    const routes = readFileSync(new URL("../../modules/businesses-app/customers/routes/customers.routes.ts", import.meta.url), "utf8");
+    expect(routes).toMatch(/router\.post\(\s*"\/customers",\s*requireAuth,\s*requirePermission\("customers.create"\)/);
+    expect(routes).toMatch(/router\.put\(\s*"\/customers\/:id",\s*requireAuth,\s*requirePermission\("customers.update"\)/);
   });
 
   it("pasa search al procedure y null cuando se omite", async function test() {

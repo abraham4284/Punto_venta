@@ -210,7 +210,7 @@ Extensiones aditivas, sin nuevos endpoints ni permisos. Fechas JSON son strings/
 | --- | --- |
 | GET `/api/businesses` y respuesta PATCH `/api/businesses/me` | wholesaleEnabled boolean y wholesaleMinimumAmount number/null; defaults false/null. |
 | PATCH `/api/businesses/me` | Permiso business.update existente. Enviar ambos campos juntos al cambiar politica. Habilitar requiere minimo positivo, maximo 999999999999.99 y dos decimales. Deshabilitado admite minimo positivo o null. Patches ajenos a la politica la conservan. |
-| Customers GET lista/detalle y respuestas create/update/status | pricingTier RETAIL/WHOLESALE y wholesaleSince string/null. Create sigue RETAIL/null; schemas estrictos rechazan escrituras de tier/fecha. No hay edicion manual del tier en F10.1. |
+| Customers GET lista/detalle y respuestas create/update/status | `pricingTier` (`RETAIL` o `WHOLESALE`) y `wholesaleSince` (fecha ISO o `null`). |
 | POST `/api/sales` | pricingType opcional RETAIL/WHOLESALE, default RETAIL. BUSINESS, sales.create y key UUID existentes. No admite el valor UI SALE. Tenant/actor vienen de la sesion. |
 | Sales GET lista/detalle y respuestas create/cancel | pricingType RETAIL/WHOLESALE/null. Historia previa NULL, sin inferir desde precios ni tier actual. |
 | GET `/api/public/catalog` | Dentro de data agrega pricing: { wholesaleEnabled, wholesaleMinimumAmount } junto a nombre/slug/logo/tipo. |
@@ -228,7 +228,11 @@ Errores nuevos HTTP 400 `{ status: false, code, message }`: WHOLESALE_DISABLED, 
 
 ## F10.2 — Consumo administrativo mayorista
 
-Mi Empresa usa el PATCH existente con par wholesaleEnabled/wholesaleMinimumAmount; al deshabilitar envia false/null. Campos del minimo se validan como texto decimal antes de convertirlos a number. Customers muestra tier/fecha de solo lectura sin ampliar create/update.
+Mi Empresa usa el PATCH existente con par wholesaleEnabled/wholesaleMinimumAmount; al deshabilitar envia false/null. Campos del minimo se validan como texto decimal antes de convertirlos a number.
+
+`POST /api/customers` (`customers.create`) acepta `pricingTier` opcional. Por ejemplo, `{"firstName":"Juan","lastName":"Pérez","pricingTier":"WHOLESALE"}` crea un cliente mayorista. Omitir el campo crea `RETAIL`. `PUT /api/customers/:id` (`customers.update`) acepta `{"pricingTier":"RETAIL"}` como cambio único y preserva condición y fecha si se omite. Ambos toman el negocio de la sesión BUSINESS y rechazan con 400 un tier distinto de `RETAIL` o `WHOLESALE` y la fecha enviada por el cliente. Conservan `{ status, message, data }`. Un PUT fuera del negocio devuelve 404.
+
+La base asigna la fecha al ingresar en `WHOLESALE`, la conserva al seguir en ese tier y la limpia al pasar a `RETAIL`. Si un mayorista legado carece de fecha, reenviar explícitamente `WHOLESALE` la completa. El formulario confirma el descenso a Minorista. Cambiar el tier tiene efecto en ventas futuras y es independiente del estado activo. [Validación](customer-manual-pricing-tier-validation.md).
 
 POS usa RETAIL si negocio deshabilitado o sin cliente. Customer RETAIL con todas las lineas compatibles y candidato mayorista >= minimo usa WHOLESALE; Customer WHOLESALE habilitado no repite minimo. Candidato Decimal half-up por linea antes de descuentos/envio. Cambio de cliente/cantidad/productos/politica recalcula todo en el mismo render. Precio mayorista faltante impide promover al minorista; con cliente ya mayorista bloquea agregar ese producto, o conserva y explica una incompatibilidad preexistente al cambiar cliente. No elimina lineas silenciosamente.
 

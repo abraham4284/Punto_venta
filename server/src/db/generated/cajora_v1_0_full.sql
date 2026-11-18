@@ -8902,9 +8902,13 @@ CREATE PROCEDURE sp_create_customer(
   IN p_phone VARCHAR(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_email VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+  IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  IN p_pricing_tier VARCHAR(20)
 )
 BEGIN
+  IF p_pricing_tier IS NULL OR CAST(p_pricing_tier AS BINARY) NOT IN ('RETAIL', 'WHOLESALE') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La condicion comercial no es valida';
+  END IF;
   IF (p_document_type IS NULL) <> (p_document_number IS NULL)
      OR (p_document_number IS NOT NULL AND TRIM(p_document_number) = '')
      OR (p_document_type IS NOT NULL AND p_document_type NOT IN ('DNI', 'CUIL', 'CUIT', 'PASSPORT', 'OTHER')) THEN
@@ -8912,10 +8916,11 @@ BEGIN
   END IF;
   INSERT INTO customers (
     idBusiness, first_name, last_name, document_type, document_number,
-    phone, email, address, observation, is_active, created_at, updated_at
+    phone, email, address, observation, is_active, pricing_tier, wholesale_since, created_at, updated_at
   ) VALUES (
     p_idBusiness, p_first_name, p_last_name, p_document_type, p_document_number,
-    p_phone, p_email, p_address, p_observation, 1, NOW(), NOW()
+    p_phone, p_email, p_address, p_observation, 1, p_pricing_tier,
+    CASE WHEN p_pricing_tier = 'WHOLESALE' THEN NOW() ELSE NULL END, NOW(), NOW()
   );
   CALL sp_get_customer_by_id(p_idBusiness, LAST_INSERT_ID());
 END$$
@@ -8970,9 +8975,16 @@ CREATE PROCEDURE sp_update_customer(
   IN p_address VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   IN p_update_address TINYINT,
   IN p_observation VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-  IN p_update_observation TINYINT
+  IN p_update_observation TINYINT,
+  IN p_pricing_tier VARCHAR(20),
+  IN p_update_pricing_tier TINYINT
 )
 BEGIN
+  IF p_update_pricing_tier = 1 AND (
+    p_pricing_tier IS NULL OR CAST(p_pricing_tier AS BINARY) NOT IN ('RETAIL', 'WHOLESALE')
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La condicion comercial no es valida';
+  END IF;
   IF (p_document_type IS NULL) <> (p_document_number IS NULL)
      OR (p_document_number IS NOT NULL AND TRIM(p_document_number) = '')
      OR (p_document_type IS NOT NULL AND p_document_type NOT IN ('DNI', 'CUIL', 'CUIT', 'PASSPORT', 'OTHER')) THEN
@@ -8987,6 +8999,14 @@ BEGIN
     email = CASE WHEN p_update_email = 1 THEN p_email ELSE email END,
     address = CASE WHEN p_update_address = 1 THEN p_address ELSE address END,
     observation = CASE WHEN p_update_observation = 1 THEN p_observation ELSE observation END,
+    -- Read the current tier before assigning the new one in this UPDATE.
+    wholesale_since = CASE
+      WHEN p_update_pricing_tier <> 1 OR p_update_pricing_tier IS NULL THEN wholesale_since
+      WHEN p_pricing_tier = 'RETAIL' THEN NULL
+      WHEN pricing_tier = 'WHOLESALE' THEN COALESCE(wholesale_since, NOW())
+      ELSE NOW()
+    END,
+    pricing_tier = CASE WHEN p_update_pricing_tier = 1 THEN p_pricing_tier ELSE pricing_tier END,
     updated_at = NOW()
   WHERE idBusiness = p_idBusiness AND idCustomer = p_idCustomer;
   CALL sp_get_customer_by_id(p_idBusiness, p_idCustomer);

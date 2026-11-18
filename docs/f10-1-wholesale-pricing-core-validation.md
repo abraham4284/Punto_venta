@@ -10,7 +10,7 @@ Politica global por negocio false/null inicial; minimo positivo al habilitar. WH
 
 Analisis de precios previos: Sales schema/procedure aceptan unitPrice explicito sin un contrato separado de overrides; la UI useSales calcula desde precio seleccionado, CartTable muestra ese unitPrice, y Orders permite presupuestos manuales. Se conserva todo ese flujo RETAIL/manual y descuentos existentes. WHOLESALE nuevo requiere precio catalogo DB, sin override silencioso. UI actual no envia pricingType: sigue RETAIL hasta integracion posterior, aunque el selector visual diga WHOLESALE. No se reinterpretan requests ni historia por coincidencia de importes.
 
-Customers expone tier/fecha en sus lecturas/respuestas mediante procedures/mappers. Se decide dejar promocion automatica por Sale, sin edicion manual de tier/fecha: schemas estrictos los rechazan. Business settings reutiliza PATCH /businesses/me y business.update, sin permisos nuevos; politica se envia como par enabled/minimum para cambios atomicos. Patches antiguos conservan politica. Tenant/actor autenticados, queries/locks/updates por negocio.
+En el alcance original de F10.1, Customers expuso tier/fecha en sus lecturas/respuestas mediante procedures/mappers y el tier se asignaba por promoción automática en Sales. El contrato vigente incorpora la [gestión manual del tier](customer-manual-pricing-tier-validation.md). Business settings reutiliza PATCH /businesses/me y business.update, sin permisos nuevos; politica se envia como par enabled/minimum para cambios atomicos. Patches antiguos conservan politica. Tenant/actor autenticados, queries/locks/updates por negocio.
 
 ## DB y despliegue
 
