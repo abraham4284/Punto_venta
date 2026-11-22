@@ -136,3 +136,14 @@ export interface ToggleProductStatusPayload {
 export interface ProductAuthenticatedRequest extends Request {
   user: BusinessRequestUser;
 }
+export const PRODUCT_PRICE_LABEL_EXPORT_LIMIT = 2000;
+
+export interface ProductPriceLabel {
+  idProduct: number;
+  name: string;
+  barcode: string | null;
+  categoryName: string;
+  priceSale: number;
+  priceWholesale: number | null;
+  isActive: boolean;
+}

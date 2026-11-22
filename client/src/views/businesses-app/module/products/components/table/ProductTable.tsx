@@ -23,6 +23,9 @@ type Props = {
   loading: boolean;
   addDataEdit: (product: ProductResponse | null) => void;
   toggleModal: () => void;
+  selectedIds?: ReadonlySet<number>;
+  onSelectProduct?: (idProduct: number, checked: boolean) => void;
+  onSelectPage?: (checked: boolean) => void;
   onOpenGallery: (product: ProductResponse) => void;
   onOpenRichContent: (product: ProductResponse) => void;
   onOpenPricesModal: (product: ProductResponse) => void;
@@ -59,6 +62,9 @@ export const ProductTable = ({
   loading,
   addDataEdit,
   toggleModal,
+  selectedIds,
+  onSelectProduct,
+  onSelectPage,
   onOpenGallery,
   onOpenRichContent,
   onOpenPricesModal,
@@ -95,6 +101,16 @@ export const ProductTable = ({
     <Table>
       <TableHeader>
         <TableRow>
+          {selectedIds && <TableHead className="w-10">
+            <input type="checkbox" aria-label="Seleccionar productos de esta página"
+              checked={data.length > 0 && data.every((product) => selectedIds.has(product.idProduct))}
+              ref={(element) => {
+                if (element) element.indeterminate = data.some((product) => selectedIds.has(product.idProduct)) &&
+                  !data.every((product) => selectedIds.has(product.idProduct));
+              }}
+              disabled={!data.length}
+              onChange={(event) => onSelectPage?.(event.target.checked)} />
+          </TableHead>}
           <TableHead>Imagen</TableHead>
           <TableHead>Código</TableHead>
           <TableHead>Nombre</TableHead>
@@ -113,6 +129,11 @@ export const ProductTable = ({
       <TableBody>
         {data.map((product) => (
           <TableRow key={product.idProduct}>
+            {selectedIds && <TableCell>
+              <input type="checkbox" aria-label={`Seleccionar ${product.name}`}
+                checked={selectedIds.has(product.idProduct)}
+                onChange={(event) => onSelectProduct?.(product.idProduct, event.target.checked)} />
+            </TableCell>}
             <TableCell>
               {product.imageUrl ? (
                 <img

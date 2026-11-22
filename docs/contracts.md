@@ -46,6 +46,14 @@ BUSINESS suele responder `{ status: true, message, data }`; platform usa `succes
 
 Tambien existen 413/429 por limites y 500 para fallos inesperados. No todos los controllers mapean iguales casos igual. Filosofia: mensajes seguros y errores de campo utiles, sin exponer SQL/secretos; mantener compatibilidad y revisar mapeo real del modulo.
 
+## Etiquetas de precios de productos
+
+`GET /api/products/price-labels` requiere sesión BUSINESS y `products.view`. El negocio proviene de la sesión. Acepta `search` opcional (hasta 150 caracteres, nombre/código/descripción), `idProductCategory` (entero positivo seguro), `isActive=true|false` y `ids` como CSV de 1 a 2.000 IDs positivos seguros, decimales sin ceros iniciales ni espacios. Los duplicados se deduplican y los filtros se intersectan con AND. Omitir `isActive` incluye activos e inactivos. Los campos desconocidos, el tenant enviado por query, IDs vacíos/malformados y paginación producen 400 con errores por campo.
+
+La respuesta es `{ status: true, message: "Productos para etiquetas obtenidos correctamente", data: { items, totalRecords } }`. Cada ítem contiene exclusivamente `idProduct, name, barcode, categoryName, priceSale, priceWholesale, isActive`. Barcode y mayorista admiten `null`. Se ordena por categoría, producto e ID. Entre 0 y 2.000 coincidencias devuelve la colección completa. Sobre el límite responde 422 con `code: "PRODUCT_PRICE_LABEL_EXPORT_LIMIT_EXCEEDED"` y `data: { maxRecords: 2000 }`. La consulta usa binds y lee como máximo 2.001 filas.
+
+En Productos, imprimir seleccionados usa únicamente `ids`. Imprimir todos los filtrados usa búsqueda, categoría y estado, sin paginación. El documento conserva los precios recibidos al preparar, con marca textual del negocio y 21 etiquetas por hoja A4. [Validación](product-price-labels-validation.md).
+
 ## INV-CAT-P1 — Inventario administrativo
 
 Estas rutas requieren sesión BUSINESS y `stock.view`. El negocio proviene de la sesión. `GET /api/stock/advanced-search` conserva `data: { stock, pagination }`, con `page` por defecto 1 y `limit` por defecto 15 (máximo 100).

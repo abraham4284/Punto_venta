@@ -5,6 +5,10 @@ import { Meta } from "@/components/Meta";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUtilsState } from "@/hooks/useUtilsState";
+import { useCan } from "@/views/businesses-app/hooks/useCan";
+import { useAuthStore } from "../../auth/store/auth.store";
+import { ProductPriceLabelsDialog } from "../components/price-labels/ProductPriceLabelsDialog";
+import { togglePriceLabelPage } from "../helpers/product-price-labels.helper";
 
 import {
   ProductFilter,
@@ -27,6 +31,9 @@ import { useDeposits } from "../../deposits/hooks/useDeposits";
 import { useBusinessSubscriptionStore } from "../../subscription/store/businessSubscription.store";
 
 export const ProductsPage = () => {
+  const canViewProducts = useCan("products.view");
+  const businessName = useAuthStore((state) => state.user?.businessName?.trim() || "Cajora");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
   const [isOpenImportModal, setIsOpenImportModal] = useState(false);
   const [isOpenGalleryModal, setIsOpenGalleryModal] = useState(false);
   const [galleryProduct, setGalleryProduct] = useState<ProductResponse | null>(
@@ -261,7 +268,12 @@ export const ProductsPage = () => {
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap md:justify-end">
+          {canViewProducts && <ProductPriceLabelsDialog
+            selectedIds={selectedIds}
+            filters={{ search: debouncedSearch, idProductCategory, isActive }}
+            businessName={businessName}
+          />}
           <Button
             type="button"
             variant="outline"
@@ -306,7 +318,14 @@ export const ProductsPage = () => {
             onStatusChange={handleStatusChange}
           />
 
+          {selectedIds.size > 0 && <div className="flex flex-wrap items-center gap-2">
+            <p role="status" className="text-sm">{selectedIds.size} seleccionados</p>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>Limpiar selección</Button>
+          </div>}
           <ProductTable
+            selectedIds={canViewProducts ? selectedIds : undefined}
+            onSelectProduct={(id, checked) => setSelectedIds((current) => togglePriceLabelPage(current, [id], checked))}
+            onSelectPage={(checked) => setSelectedIds((current) => togglePriceLabelPage(current, products.map(({ idProduct }) => idProduct), checked))}
             data={products}
             loading={loadingProducts || loading}
             addDataEdit={addDataEdit}
