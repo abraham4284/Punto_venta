@@ -12,7 +12,7 @@ En Productos, un Set local conserva la selección durante la visita y entre pág
 
 Cada etiqueta mide 63 × 38 mm, con borde recortable de 0,25 mm y barra superior de 0,8 mm. Una hoja A4 vertical usa márgenes de 8 mm y una grilla de 3 × 7 con separación de 2 mm. Cada página se agrupa explícitamente en 21 productos. El portal se monta directamente en body y aísla la impresión de la UI administrativa.
 
-La marca textual viene de `businessName`. La paleta usa oscuro `#242038`, morado `#6547BE`, lavanda `#EAE6F7`, gris `#FAFAFC` y blanco. El fondo dominante es blanco. El nombre ocupa hasta dos líneas y el tamaño del precio minorista se reduce para importes largos. El bloque mayorista se oculta si el valor es nulo, no finito o no positivo. Barcode textual y categoría son opcionales. Los productos inactivos llevan su marca. [Documento](../client/src/views/businesses-app/module/products/components/price-labels/ProductPriceLabelsPrintDocument.tsx) · [Estilos](../client/src/views/businesses-app/module/products/components/price-labels/product-price-labels-print.css).
+La marca textual viene de `businessName`. El fondo dominante es blanco. El nombre usa 11 pt y hasta dos líneas. Los bloques Minorista/Mayorista ocupan 50/50 y sus importes comparten tamaño adaptable y peso, con texto `#242038`. Mayorista usa borde y título `#6547BE` sobre fondo `#EAE6F7`. El bloque se oculta si el valor es nulo, no finito o no positivo y Minorista ocupa todo el ancho. Barcode textual y categoría son opcionales. Los productos inactivos llevan su marca. [Documento](../client/src/views/businesses-app/module/products/components/price-labels/ProductPriceLabelsPrintDocument.tsx) · [Estilos](../client/src/views/businesses-app/module/products/components/price-labels/product-price-labels-print.css).
 
 ## Verificaciones ejecutadas
 
@@ -38,6 +38,14 @@ La salida de 21 etiquetas y el salto a la segunda hoja del caso de 22 se renderi
 
 Microsoft Edge headless repitió el flujo a 1440 px, los errores y la cancelación. Su motor PDF produjo A4 y la misma secuencia de páginas para los nueve tamaños. La primera hoja de 21 se renderizó y revisó visualmente. También se inspeccionó la tercera hoja de 43 en Chrome para comprobar el salto. Las pruebas interceptan `window.print()` y usan CDP para obtener la salida del motor, sin impresora física.
 
-## Pendientes operativos
+## Ajuste de etiquetas y consulta rápida F8
 
-Desplegar backend y frontend compatibles y hacer smoke autenticado en QA con productos reales. Verificar impresión física a escala 100%, con encabezados/pies del navegador desactivados para aprovechar los márgenes. No se consultó DB real ni se aplicó SQL en esta fase.
+Implementado sobre `dfa31f9` en `dev`, con árbol inicial limpio. La tarjeta de F8 usa los mismos colores e importes con notoriedad equivalente, apilados en móvil y en dos columnas desde 640 px. Reutiliza el formato ARS de las etiquetas, omitiendo decimales cero y conservando centavos reales. Mayorista se muestra solo si existe, es finito y positivo. El render de la tarjeta se separó del modal para comprobarlo mediante SSR. [Tarjeta F8](../client/src/components/global/PriceCheckerProductCard.tsx).
+
+Validación desde `client/`: `node --test --test-reporter=dot scripts/product-price-labels.test.mjs scripts/wholesale-price-visibility.test.mjs` aprobó 59 tests (9 nuevos). Build y ESLint acotado a ambos componentes de F8 y la suite aprobados, con los avisos de bundle/imports ya informados. Lint global no ejecutado.
+
+Chrome headless con componentes reales y Axios en memoria verificó 320/375/768/1440 px, F8, autofocus, búsqueda con `limit=6`/`isActive=true`, barcode exacto prioritario, Escape y reapertura. Comprobó importes de $990, $12.500 y $1.250.000 sin overflow, igualdad de tamaño/peso, mayoristas nulos/cero/no finitos, centavos y metadata. Capturas de móvil y desktop inspeccionadas. La impresión de 1/21/22 etiquetas mantuvo 1/1/2 páginas A4 según `pdfinfo`. La hoja de 21 se renderizó con `pdftoppm` e inspeccionó visualmente. El listener, el store, la búsqueda, backend, DB, schema, procedures y contratos API conservan su implementación. Smoke contra API real e impresora física pendientes.
+
+## Pendientes de despliegue
+
+Para el ajuste visual y F8, desplegar el frontend y hacer smoke autenticado en QA con productos reales. Verificar impresión física a escala 100%, con encabezados/pies del navegador desactivados para aprovechar los márgenes. No se consultó DB real ni se aplicó SQL en esta fase.

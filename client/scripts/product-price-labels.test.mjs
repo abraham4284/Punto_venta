@@ -39,6 +39,45 @@ const item = { idProduct: 1, name: "Auricular", categoryName: "Audio", barcode: 
   priceWholesale: 19900, isActive: true, priceCost: "SECRET_COST" };
 const snapshot = { items: [item], businessName: "Negocio", content: defaultPriceLabelContent };
 const render = (value) => renderToStaticMarkup(createElement(ProductPriceLabelsSheets, { snapshot: value }));
+const { PriceCheckerProductCard } = await import(compile(resolve(root, "components/global/PriceCheckerProductCard.tsx")));
+
+test("labels use two equal price columns and one column when wholesale is unavailable", () => {
+  const dual = render(snapshot);
+  assert.match(dual, /data-columns="2"/);
+  assert.match(dual, /price-label-price price-label-wholesale/);
+  assert.match(dual, /<small>MINORISTA<\/small>/);
+  assert.match(dual, /<small>MAYORISTA<\/small>/);
+  const single = render({ ...snapshot, items: [{ ...item, priceWholesale: null }] });
+  assert.match(single, /data-columns="1"/);
+  assert.doesNotMatch(single, /price-label-wholesale/);
+});
+
+const checkerProduct = {
+  ...item, stock: 2, productCategoryName: "Auriculares", imageUrl: null,
+};
+const renderChecker = (product) => renderToStaticMarkup(createElement(PriceCheckerProductCard, { product }));
+
+test("F8 displays both persisted prices with stock, barcode, category and active state", () => {
+  const html = renderChecker(checkerProduct);
+  for (const value of ["MINORISTA", "MAYORISTA", labelCurrency(25900), labelCurrency(19900),
+    "Stock actual: 2", "ABC-123", "Auriculares", "Activo"]) assert.ok(html.includes(value), value);
+  assert.doesNotMatch(html, /SECRET_COST|emerald|,00/);
+});
+
+for (const priceWholesale of [null, undefined, 0, -1, NaN, Infinity]) {
+  test(`F8 hides unavailable wholesale ${priceWholesale}`, () => {
+    const html = renderChecker({ ...checkerProduct, priceWholesale });
+    assert.match(html, /MINORISTA/);
+    assert.doesNotMatch(html, /MAYORISTA/);
+  });
+}
+
+test("F8 preserves actual cents and handles an inactive product without an image", () => {
+  const html = renderChecker({ ...checkerProduct, isActive: false, priceSale: 10900.25, priceWholesale: 8900.5 });
+  assert.ok(html.includes(labelCurrency(10900.25)));
+  assert.ok(html.includes(labelCurrency(8900.5)));
+  assert.match(html, /Inactivo/);
+});
 
 test("requests selected IDs and all filtered products with no screen pagination", async () => {
   const response = await getProductPriceLabelsRequest({ ids: [10, 15, 10] }, signal);
