@@ -62,11 +62,13 @@
   min-height: 12mm;
   padding: 1mm 0.5mm;
   border: 0.2mm solid #242038;
+  color: #242038;
+  background: #ffffff;
   text-align: center;
 }
 .price-label-price small { display: block; font-size: 6.5pt; line-height: 1; font-weight: 700; letter-spacing: 0.2pt; }
 .price-label-price strong { display: block; font-size: inherit; line-height: 1.05; white-space: nowrap; font-weight: 800; font-variant-numeric: tabular-nums; }
-.price-label-metadata { display: flex; justify-content: space-between; gap: 1mm; color: #242038; background: #fafafc; font-size: 5.5pt; }
+.price-label-metadata { display: flex; justify-content: space-between; gap: 1mm; color: #242038; background: #ffffff; font-size: 5.5pt; }
 .price-label-metadata span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 @media print {

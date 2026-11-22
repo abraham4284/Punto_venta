@@ -32,6 +32,7 @@ Revisado: 2026-11-22. `[x]` indica fase cerrada con el alcance de validacion ind
 - [ ] INV-CAT-P1 — Filtro administrativo multicategoría, exportación de datos de inventario y opciones de categorías implementados. Pendiente aplicación coordinada de procedures y backend, validación en MySQL/QA y plan de consulta. [Evidencias](inv-cat-p1-validation.md).
 - [ ] INV-CAT-P2 — Selector multicategoría y planilla A4 con fotos implementados en Stock. Pendiente smoke autenticado e impresión con imágenes reales de QA. [Evidencias](inv-cat-p2-validation.md).
 - [ ] Etiquetas de precios — Endpoint de lectura con `products.view`, selección entre páginas, impresión de todos los filtrados y planilla A4 de 21 etiquetas implementados. Pendiente smoke con API de QA y prueba física de impresión. [Evidencias](product-price-labels-validation.md).
+- [x] Pulido de etiquetas y F8 — Paleta VITRUNO y precios minorista/mayorista equivalentes. 59 tests, build, lint acotado y QA con fixtures a 320/375/768/1440 px aprobados. [Evidencias](product-price-labels-validation.md).
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.
