@@ -192,8 +192,8 @@ describe("F10.1 contracts and SQL invariants, DB-free", function contracts() {
     expect(mapCustomer({ first_name: "Ana", last_name: "Perez", pricing_tier, wholesale_since: since } as CustomerDbRow))
       .toMatchObject({ pricingTier: pricing_tier, wholesaleSince: since });
   });
-  it("Customers does not allow clients to forge tier or activation date", function tierWrite() {
-    expect(createCustomerSchema.safeParse({ idBusiness: 7, firstName: "Ana", lastName: "Perez", pricingTier: "WHOLESALE" }).success).toBe(false);
+  it("Customers can write the tier but cannot forge the activation date", function tierWrite() {
+    expect(createCustomerSchema.safeParse({ idBusiness: 7, firstName: "Ana", lastName: "Perez", pricingTier: "WHOLESALE" }).success).toBe(true);
     expect(updateCustomerSchema.safeParse({ idBusiness: 7, idCustomer: 3, wholesaleSince: new Date() }).success).toBe(false);
   });
   it.each([{ wholesaleEnabled: false, wholesaleMinimumAmount: null }, { wholesaleEnabled: true, wholesaleMinimumAmount: 50000 }])("accepts paired policy %j", function valid(data) {

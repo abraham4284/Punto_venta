@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-Revisado: 2026-11-14. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+Revisado: 2026-11-22. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
 
 - [x] F0 — Canonical documentation foundation. Validacion documental completada; evidencias en [f00-documentation-validation](f00-documentation-validation.md).
 - [x] F0.1 — Hierarchical documentation by subsystem. Validacion documental completada; [evidencias](f00-1-documentation-hierarchy-validation.md).
@@ -19,7 +19,8 @@ Revisado: 2026-11-14. `[x]` indica fase cerrada con el alcance de validacion ind
 - [x] Rediseño SalePrintDocument — comprobante compacto con branding del negocio y datos operativos; resumen solo subtotal/descuento/total a la derecha, sin pagos ni linea de envio; impresion aislada del layout. Build/lint acotado y 18 tests aprobados; QA A4 escenarios A..G (10 productos en 1 pagina, 25 en 2), desktop/mobile con fixtures, sin backend/DB. [Evidencias](f10-sale-print-document-validation.md).
 - [x] F10.1 — Wholesale Pricing Core DB/backend/API publica implementado: politica global por negocio, tier Customer persistente y pricingType historico; migracion manual 007 preparada. Typecheck/build/baseline y 280 tests DB-free aprobados; sin frontend ni SQL ejecutado. [Evidencias](f10-1-wholesale-pricing-core-validation.md).
 - [x] Gate real F10.1 — 19/19 HTTP/DB aprobados al iniciar F10.2 en loopback / punto_venta_integration_test, cleanup UUID verificado. SQL local/test sincronizado segun operador; sin migraciones ejecutadas por el agente ni suite productiva. [Evidencia actualizada](f10-1-wholesale-pricing-core-validation.md).
-- [x] F10.2 — Wholesale Pricing Admin Frontend CLOSED: Mi Empresa configura politica, Clientes muestra tier/fecha de solo lectura, POS deriva precios y envia pricingType, detalle muestra historico. 71 tests nuevos + 70 regresiones, build/lint acotado y QA local 32/32 desktop/tablet/mobile aprobados; [evidencia](f10-2-wholesale-pricing-admin-frontend-validation.md).
+- [x] F10.2 — Wholesale Pricing Admin Frontend CLOSED: Mi Empresa configura politica, Clientes muestra tier/fecha, POS deriva precios y envia pricingType, detalle muestra historico. 71 tests nuevos + 70 regresiones, build/lint acotado y QA local 32/32 desktop/tablet/mobile aprobados; [evidencia](f10-2-wholesale-pricing-admin-frontend-validation.md).
+- [ ] Gestión manual de condición comercial en Clientes implementada. Pendiente reimportar procedures y ejecutar el gate MySQL/HTTP autorizado. [Evidencias](customer-manual-pricing-tier-validation.md).
 - [x] F10.2.1 — Wholesale Price Visibility Polish CLOSED: modal de Nueva Venta muestra ambos precios y badge aplicado; Productos distingue costo/minorista/mayorista. Ausencia clara, bloqueo mayorista y pricing preservados. 91 tests, build/lint acotado y QA local 15/15 aprobados; [evidencias](f10-2-1-wholesale-price-visibility-validation.md).
 - [ ] Buscador publico por producto/categoria/relevancia — implementado en SP canonico y baseline. Los 20 casos HTTP/MySQL de búsqueda se conservan en el gate combinado con T3, pendiente de aplicación en test y ejecución autorizada. [Evidencias](storefront-catalog-search-category-validation.md).
 - [x] CORS multi-storefront — allowlist exacta con `STOREFRONT_URLS`, compatible con las tres variables previas. 25 pruebas aisladas, typecheck y build aprobados. [Evidencias](storefront-cors-validation.md).
@@ -30,6 +31,7 @@ Revisado: 2026-11-14. `[x]` indica fase cerrada con el alcance de validacion ind
 - [ ] T3 — Stock público global implementado en listado y detalle. 315 pruebas sin DB, typecheck, build y baseline aprobados. Aplicación de procedures pendiente por ambiente y gate combinado HTTP/MySQL de 29 casos preparado para test autorizado. La siguiente fase es T4 QA VITRUNO. [Evidencias](storefront-global-stock-validation.md).
 - [ ] INV-CAT-P1 — Filtro administrativo multicategoría, exportación de datos de inventario y opciones de categorías implementados. Pendiente aplicación coordinada de procedures y backend, validación en MySQL/QA y plan de consulta. [Evidencias](inv-cat-p1-validation.md).
 - [ ] INV-CAT-P2 — Selector multicategoría y planilla A4 con fotos implementados en Stock. Pendiente smoke autenticado e impresión con imágenes reales de QA. [Evidencias](inv-cat-p2-validation.md).
+- [ ] Etiquetas de precios — Endpoint de lectura con `products.view`, selección entre páginas, impresión de todos los filtrados y planilla A4 de 21 etiquetas implementados. Pendiente smoke con API de QA y prueba física de impresión. [Evidencias](product-price-labels-validation.md).
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.

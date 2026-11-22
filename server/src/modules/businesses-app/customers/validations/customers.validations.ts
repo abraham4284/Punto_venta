@@ -15,6 +15,7 @@ const customerId = z.number().int().positive("El cliente debe ser valido");
 const firstName = z.string({ error: "El nombre es obligatorio" }).trim().min(2, "El nombre debe tener al menos 2 caracteres").max(120, "El nombre no puede superar 120 caracteres");
 const lastName = z.string({ error: "El apellido es obligatorio" }).trim().min(2, "El apellido debe tener al menos 2 caracteres").max(120, "El apellido no puede superar 120 caracteres");
 const optionalFields = {
+  pricingTier: z.enum(["RETAIL", "WHOLESALE"], { error: "La condición comercial no es válida" }).optional(),
   documentType: z.preprocess(emptyStringToNull, z.enum(["DNI", "CUIL", "CUIT", "PASSPORT", "OTHER"], { error: "El tipo de documento no es valido" }).nullable().optional()),
   documentNumber: z.preprocess(emptyStringToNull, z.string().nullable().optional()),
   phone: optionalString(80, "El telefono"),

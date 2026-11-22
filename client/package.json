@@ -10,6 +10,7 @@
     "test:stock-batch-transfer": "node --test scripts/stock-batch-transfer.test.mjs",
     "test:stock-transfer-receipt": "node --test scripts/stock-transfer-receipt.test.mjs",
     "test:stock-inventory": "node --test scripts/stock-inventory.test.mjs",
+    "test:product-price-labels": "node --test scripts/product-price-labels.test.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

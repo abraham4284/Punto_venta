@@ -22,6 +22,7 @@ export interface Customer {
 }
 
 export interface CreateCustomerPayload {
+  pricingTier?: CustomerPricingTier;
   firstName: string;
   lastName: string;
   documentType?: CustomerDocumentType | null;
@@ -33,6 +34,7 @@ export interface CreateCustomerPayload {
 }
 
 export interface UpdateCustomerPayload {
+  pricingTier?: CustomerPricingTier;
   idCustomer: number;
   firstName?: string;
   lastName?: string;
@@ -50,6 +52,7 @@ export interface ToggleCustomerStatusPayload {
 }
 
 export interface CustomerFormValues {
+  pricingTier: CustomerPricingTier;
   firstName: string;
   lastName: string;
   documentType: CustomerDocumentType | "";

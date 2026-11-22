@@ -119,6 +119,12 @@ VITRUNO no se activa desde la migracion. Con business.update, PATCH /businesses/
 
 Cabecera Sales bloquea Customer por tenant despues de caja y antes de INSERT/FK; evita upgrades concurrentes de locks FK al promover desde cajas diferentes. Service reutiliza conexion, lee politica con lock compartido y productos ordenados FOR UPDATE. Fallos economicos revierten promocion y fecha. Cancelar/devolver no degrada. [Decision](decisions.md), [contrato](contracts.md).
 
+## Gestión manual de condición comercial de Clientes
+
+El [SQL canónico](../server/src/db/procedures/customers.sql) usa las columnas de F10.1. `sp_create_customer` pasa de 9 a 10 entradas al agregar `p_pricing_tier` al final. `sp_update_customer` pasa de 15 a 17 al agregar `p_pricing_tier, p_update_pricing_tier` al final. En UPDATE un flag de 0 preserva los campos. Con flag de 1 se calcula `wholesale_since` desde el valor actual dentro del mismo UPDATE por negocio e ID. No hay cambio de esquema ni nueva migración estructural.
+
+Con destino confirmado y autorización, respaldar las definiciones instaladas, coordinar una ventana de actualización, reimportar `customers.sql` completo respetando `DELIMITER` y desplegar la versión compatible del backend antes de reabrir tráfico. Las firmas anteriores no aceptan las llamadas nuevas. Para revertir, restaurar las definiciones previas y el backend anterior coordinadamente. Los roles y datos guardados conservan su estructura. Aplicación y [gate autorizado de test](customer-manual-pricing-tier-validation.md) pendientes. El baseline corresponde a instalaciones limpias.
+
 ## Buscador publico — actualizacion exclusiva de procedure
 
 [storefront_catalog.sql](../server/src/db/procedures/storefront_catalog.sql) amplia search a nombre/slug de categoria y agrega ranking antes de LIMIT/OFFSET en sp_storefront_get_products. Firma, DTO, schema, indices y collation no cambian. El baseline generado refleja el cambio para instalaciones limpias; no se agrega migracion de tablas ni se cambia manifest/install.

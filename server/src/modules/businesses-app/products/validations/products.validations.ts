@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRODUCT_PRICE_LABEL_EXPORT_LIMIT } from "../types/index.js";
 import { productRichContentSchema } from "@/shared/product-rich-content.js";
 
 const emptyStringToNull = z.literal("").transform(function transformEmptyString() {
@@ -320,3 +321,15 @@ export const toggleProductStatusSchema = z
     isActive: z.boolean({ error: "El estado activo/inactivo es obligatorio" }),
   })
   .strict();
+export const productPriceLabelsQuerySchema = z.object({
+  search: z.string().trim().max(150).optional(),
+  idProductCategory: z.string().regex(/^[1-9][0-9]*$/).transform(Number).pipe(z.number().int().positive()).optional(),
+  isActive: z.enum(["true", "false"]).transform(function booleanValue(value) {
+    return value === "true";
+  }).optional(),
+  ids: z.string().max(PRODUCT_PRICE_LABEL_EXPORT_LIMIT * 17 - 1)
+    .regex(/^[1-9][0-9]*(?:,[1-9][0-9]*)*$/)
+    .transform(function ids(value) { return value.split(",").map(Number); })
+    .pipe(z.array(z.number().int().positive()).max(PRODUCT_PRICE_LABEL_EXPORT_LIMIT))
+    .transform(function uniqueIds(ids) { return [...new Set(ids)]; }).optional(),
+}).strict();
