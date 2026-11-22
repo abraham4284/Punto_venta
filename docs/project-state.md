@@ -1,8 +1,10 @@
 # Estado vigente de Cajora
 
+Al 2026-11-22, etiquetas de precios implementadas sobre `c9d7926` en `dev`. Productos permite selección manual entre páginas o el conjunto filtrado completo. El endpoint propio limita la lectura a 2.000 productos y la salida A4 usa 21 etiquetas por hoja con precios persistidos. Smoke con API de QA y prueba física pendientes. [Evidencias](product-price-labels-validation.md).
+
 Al 2026-11-18, gestión manual de condición comercial en Clientes implementada sobre `dbb1a31` en `dev`. Minorista sigue siendo el default y el paso de Mayorista a Minorista requiere confirmación en la UI. Sales conserva el mínimo inicial y la promoción automática. Reimportación de procedures y gate MySQL/HTTP pendientes. [Evidencias](customer-manual-pricing-tier-validation.md).
 
-Revisado: 2026-11-14. Rama inspeccionada: `dev`.
+Revisado: 2026-11-22. Rama inspeccionada: `dev`.
 
 INV-CAT-P2 implementada sobre `32372cb`. Stock permite aplicar un filtro multicategoría y preparar una planilla A4 con fotos y espacio de conteo físico para todas las filas coincidentes por depósito. Smoke autenticado e impresión con imágenes reales de QA pendientes. [Evidencias](inv-cat-p2-validation.md).
 

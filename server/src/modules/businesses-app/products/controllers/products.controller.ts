@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { PRODUCT_PRICE_LABEL_EXPORT_LIMIT } from "../types/index.js";
+import { productPriceLabelsQuerySchema } from "../validations/products.validations.js";
+import { getProductPriceLabelsService } from "../services/products.service.js";
 import {
   createProductService,
   getProductByIdService,
@@ -27,6 +30,26 @@ function getZodErrors(error: z.ZodError) {
       message: issue.message,
     };
   });
+}
+
+export async function getProductPriceLabelsController(req: Request, res: Response): Promise<Response> {
+  try {
+    const filters = productPriceLabelsQuerySchema.parse(req.query);
+    const data = await getProductPriceLabelsService(req.user!.idBusiness, filters);
+    if (!data) {
+      return res.status(422).json({
+        status: false, code: "PRODUCT_PRICE_LABEL_EXPORT_LIMIT_EXCEEDED",
+        message: "Hay más de 2.000 productos. Aplicá filtros más específicos.",
+        data: { maxRecords: PRODUCT_PRICE_LABEL_EXPORT_LIMIT },
+      });
+    }
+    return res.status(200).json({ status: true, message: "Productos para etiquetas obtenidos correctamente", data });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ status: false, message: "Error de validación", errors: getZodErrors(error) });
+    }
+    return res.status(500).json({ status: false, message: "No se pudieron obtener los productos para etiquetas" });
+  }
 }
 
 interface ControllerError {

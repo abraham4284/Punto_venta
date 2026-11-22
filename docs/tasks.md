@@ -1,6 +1,6 @@
 # Roadmap operativo
 
-Revisado: 2026-11-14. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+Revisado: 2026-11-22. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
 
 - [x] F0 — Canonical documentation foundation. Validacion documental completada; evidencias en [f00-documentation-validation](f00-documentation-validation.md).
 - [x] F0.1 — Hierarchical documentation by subsystem. Validacion documental completada; [evidencias](f00-1-documentation-hierarchy-validation.md).
@@ -31,6 +31,7 @@ Revisado: 2026-11-14. `[x]` indica fase cerrada con el alcance de validacion ind
 - [ ] T3 — Stock público global implementado en listado y detalle. 315 pruebas sin DB, typecheck, build y baseline aprobados. Aplicación de procedures pendiente por ambiente y gate combinado HTTP/MySQL de 29 casos preparado para test autorizado. La siguiente fase es T4 QA VITRUNO. [Evidencias](storefront-global-stock-validation.md).
 - [ ] INV-CAT-P1 — Filtro administrativo multicategoría, exportación de datos de inventario y opciones de categorías implementados. Pendiente aplicación coordinada de procedures y backend, validación en MySQL/QA y plan de consulta. [Evidencias](inv-cat-p1-validation.md).
 - [ ] INV-CAT-P2 — Selector multicategoría y planilla A4 con fotos implementados en Stock. Pendiente smoke autenticado e impresión con imágenes reales de QA. [Evidencias](inv-cat-p2-validation.md).
+- [ ] Etiquetas de precios — Endpoint de lectura con `products.view`, selección entre páginas, impresión de todos los filtrados y planilla A4 de 21 etiquetas implementados. Pendiente smoke con API de QA y prueba física de impresión. [Evidencias](product-price-labels-validation.md).
 - [ ] Future — Stock reservations. Solo si el uso real justifica una fase especifica.
 
 Fuera de alcance actual: creacion automatica de Orders desde VITRUNO, checkout publico e integracion automatica de pedidos.

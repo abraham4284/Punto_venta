@@ -7,6 +7,7 @@ import {
   createProductController,
   getProductByIdController,
   getProductsController,
+  getProductPriceLabelsController,
   toggleProductStatusController,
   updateProductPricesController,
   updateProductController,
@@ -28,6 +29,7 @@ router.get(
   requirePermission("products.view"),
   getProductsController,
 );
+router.get("/products/price-labels", requireAuth, requirePermission("products.view"), getProductPriceLabelsController);
 router.get(
   "/products/:id",
   requireAuth,

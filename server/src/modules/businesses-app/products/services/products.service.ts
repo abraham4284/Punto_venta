@@ -1,4 +1,8 @@
 import type { RowDataPacket } from "mysql2";
+import { PRODUCT_PRICE_LABEL_EXPORT_LIMIT } from "../types/index.js";
+import type { ProductPriceLabel } from "../types/index.js";
+import type { z } from "zod";
+import type { productPriceLabelsQuerySchema } from "../validations/products.validations.js";
 import { pool } from "@/db/db.js";
 import { assertSubscriptionResourceAvailable } from "@/modules/businesses-app/subscription/services/subscription-limits.service.js";
 import { serializeProductRichContent } from "@/shared/product-rich-content.js";
@@ -20,6 +24,65 @@ import type {
 
 interface ProductTotalDbRow extends RowDataPacket {
   totalRecords: number;
+}
+
+interface ProductPriceLabelRow extends RowDataPacket {
+  idProduct: number;
+  name: string;
+  barcode: string | null;
+  category_name: string;
+  price_sale: string | number;
+  price_wholesale: string | number | null;
+  is_active: number;
+}
+
+export async function getProductPriceLabelsService(
+  idBusiness: number,
+  filters: z.infer<typeof productPriceLabelsQuerySchema>,
+): Promise<{ items: ProductPriceLabel[]; totalRecords: number } | null> {
+  const conditions = ["p.idBusiness = ?"];
+  const params: (string | number)[] = [idBusiness];
+  if (filters.search) {
+    conditions.push("(p.name LIKE ? OR p.barcode LIKE ? OR p.description LIKE ?)");
+    const search = `%${filters.search}%`;
+    params.push(search, search, search);
+  }
+  if (filters.idProductCategory !== undefined) {
+    conditions.push("p.idProductCategory = ?");
+    params.push(filters.idProductCategory);
+  }
+  if (filters.isActive !== undefined) {
+    conditions.push("p.is_active = ?");
+    params.push(filters.isActive ? 1 : 0);
+  }
+  if (filters.ids) {
+    conditions.push(`p.idProduct IN (${filters.ids.map(function placeholder() { return "?"; }).join(", ")})`);
+    params.push(...filters.ids);
+  }
+  params.push(PRODUCT_PRICE_LABEL_EXPORT_LIMIT + 1);
+  const [rows] = await pool.query<ProductPriceLabelRow[]>(
+    `SELECT p.idProduct, p.name, p.barcode, pc.name AS category_name,
+       p.price_sale, p.price_wholesale, p.is_active
+     FROM products p
+     INNER JOIN product_categories pc
+       ON pc.idBusiness = p.idBusiness AND pc.idProductCategory = p.idProductCategory
+     WHERE ${conditions.join(" AND ")}
+     ORDER BY pc.name ASC, p.name ASC, p.idProduct ASC
+     LIMIT ?`,
+    params,
+  );
+  if (rows.length > PRODUCT_PRICE_LABEL_EXPORT_LIMIT) return null;
+  return {
+    items: rows.map(function mapLabel(row) {
+      return {
+        idProduct: row.idProduct, name: row.name, barcode: row.barcode,
+        categoryName: row.category_name, priceSale: Number(row.price_sale),
+        priceWholesale: row.price_wholesale === null ? null : Number(row.price_wholesale),
+        isActive: Boolean(row.is_active),
+      };
+    }),
+    totalRecords: rows.length,
+  };
 }
 
 interface ProductSlugRow extends RowDataPacket {

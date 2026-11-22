@@ -189,3 +189,21 @@ export interface ProductMetrics {
   active: number;
   inactive: number;
 }
+export interface ProductPriceLabel {
+  idProduct: number;
+  name: string;
+  barcode: string | null;
+  categoryName: string;
+  priceSale: number;
+  priceWholesale: number | null;
+  isActive: boolean;
+}
+
+export interface ProductPriceLabelsData {
+  items: ProductPriceLabel[];
+  totalRecords: number;
+}
+
+export type ProductPriceLabelsQuery = Pick<ProductsQueryParams, "search" | "idProductCategory" | "isActive"> & {
+  ids?: number[];
+};
