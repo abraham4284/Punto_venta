@@ -11,6 +11,7 @@
     "test:stock-transfer-receipt": "node --test scripts/stock-transfer-receipt.test.mjs",
     "test:stock-inventory": "node --test scripts/stock-inventory.test.mjs",
     "test:product-price-labels": "node --test scripts/product-price-labels.test.mjs",
+    "test:business-date": "node --test scripts/business-date.test.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

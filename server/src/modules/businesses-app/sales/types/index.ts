@@ -171,8 +171,8 @@ export interface GetSalesFilters {
   idPaymentMethod?: number | null;
   status?: SaleStatus | null;
   saleNumberSearch?: string | null;
-  startDate?: Date | null;
-  endDate?: Date | null;
+  startDate?: string | null;
+  endDate?: string | null;
   paymentStatus?: SalePaymentAggregateStatus | null;
   deliveryStatus?: SaleDeliveryFilter | null;
   settlementStatus?: SaleSettlementFilter | null;

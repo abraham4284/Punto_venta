@@ -1,3 +1,4 @@
+import { formatBusinessDate as formatDate } from "@/helpers/businessDate";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
@@ -6,7 +7,7 @@ import type { Customer } from "../../../customers/types/customers.types";
 import { getCustomerDocumentLabel } from "../../../customers/helpers/customer.helpers";
 import type { SaleWithDetailsResponse } from "../../types";
 import { formatCurrency } from "@/helpers/formatCurrency";
-import { formatDate } from "@/helpers/formatDate";
+
 import { salePrintStyles } from "./sale-print.styles";
 
 type SalePrintDocumentProps = {

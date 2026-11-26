@@ -1,3 +1,5 @@
+import { businessPeriods } from "@/helpers/business-time.helper.js";
+import { businessDateTimeQuery } from "@/helpers/business-datetime-query.helper.js";
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
 import type {
@@ -21,107 +23,16 @@ function toNumber(value: string | number | null | undefined): number {
   return Number(value ?? 0);
 }
 
-function getCurrentDateParts(): {
-  todayDate: string;
-  currentYear: number;
-  currentMonth: number;
-} {
-  const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth() + 1;
-  const month = String(currentMonth).padStart(2, "0");
-  const day = String(now.getUTCDate()).padStart(2, "0");
-
-  return {
-    todayDate: `${currentYear}-${month}-${day}`,
-    currentYear,
-    currentMonth,
-  };
-}
-
-async function getPurchaseMetricsFallback(
-  idBusiness: number,
-): Promise<Pick<
-  DashboardMetrics,
-  | "todayPurchasesTotal"
-  | "monthPurchasesTotal"
-  | "todayPurchasesCount"
-  | "monthAveragePurchase"
->> {
-  const currentDate = getCurrentDateParts();
-
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT
-      COALESCE(SUM(CASE
-        WHEN DATE(p.purchase_date) = ? THEN p.total
-        ELSE 0
-      END), 0) AS todayPurchasesTotal,
-      COALESCE(SUM(CASE
-        WHEN YEAR(p.purchase_date) = ?
-         AND MONTH(p.purchase_date) = ? THEN p.total
-        ELSE 0
-      END), 0) AS monthPurchasesTotal,
-      COALESCE(SUM(CASE
-        WHEN DATE(p.purchase_date) = ? THEN 1
-        ELSE 0
-      END), 0) AS todayPurchasesCount,
-      COALESCE(
-        SUM(CASE
-          WHEN YEAR(p.purchase_date) = ?
-           AND MONTH(p.purchase_date) = ? THEN p.total
-          ELSE 0
-        END)
-        / NULLIF(SUM(CASE
-          WHEN YEAR(p.purchase_date) = ?
-           AND MONTH(p.purchase_date) = ? THEN 1
-          ELSE 0
-        END), 0),
-        0
-      ) AS monthAveragePurchase
-     FROM purchases p
-     WHERE p.idBusiness = ?
-       AND p.status = 'COMPLETED'`,
-    [
-      currentDate.todayDate,
-      currentDate.currentYear,
-      currentDate.currentMonth,
-      currentDate.todayDate,
-      currentDate.currentYear,
-      currentDate.currentMonth,
-      currentDate.currentYear,
-      currentDate.currentMonth,
-      idBusiness,
-    ],
-  );
-  const row = rows[0] as DashboardMetricsRow | undefined;
-
-  return {
-    todayPurchasesTotal: toNumber(row?.todayPurchasesTotal),
-    monthPurchasesTotal: toNumber(row?.monthPurchasesTotal),
-    todayPurchasesCount: toNumber(row?.todayPurchasesCount),
-    monthAveragePurchase: toNumber(row?.monthAveragePurchase),
-  };
-}
-
-function mapMetrics(
-  row: DashboardMetricsRow | undefined,
-  purchaseFallback: Pick<
-    DashboardMetrics,
-    | "todayPurchasesTotal"
-    | "monthPurchasesTotal"
-    | "todayPurchasesCount"
-    | "monthAveragePurchase"
-  >,
-): DashboardMetrics {
+function mapMetrics(row: DashboardMetricsRow | undefined): DashboardMetrics {
   return {
     todaySalesTotal: toNumber(row?.todaySalesTotal),
     monthSalesTotal: toNumber(row?.monthSalesTotal),
     todaySalesCount: toNumber(row?.todaySalesCount),
     monthAverageTicket: toNumber(row?.monthAverageTicket),
-    todayPurchasesTotal: purchaseFallback.todayPurchasesTotal,
-    monthPurchasesTotal: purchaseFallback.monthPurchasesTotal,
-    todayPurchasesCount: purchaseFallback.todayPurchasesCount,
-    monthAveragePurchase: purchaseFallback.monthAveragePurchase,
+    todayPurchasesTotal: toNumber(row?.todayPurchasesTotal),
+    monthPurchasesTotal: toNumber(row?.monthPurchasesTotal),
+    todayPurchasesCount: toNumber(row?.todayPurchasesCount),
+    monthAveragePurchase: toNumber(row?.monthAveragePurchase),
     lowStockProducts: toNumber(row?.lowStockProducts),
     outOfStockProducts: toNumber(row?.outOfStockProducts),
     activeProducts: toNumber(row?.activeProducts),
@@ -181,15 +92,18 @@ function mapMonthlySales(row: MonthlySalesRow): MonthlySales {
 
 export async function getDashboardDataService(
   idBusiness: number,
-  year: number,
+  year?: number,
+  now = new Date(),
 ): Promise<DashboardData> {
+  const periods = businessPeriods(now);
+  const selectedYear = year ?? periods.currentYear;
   const [metricsRows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_dashboard_metrics(?)",
-    [idBusiness],
+    "CALL sp_get_dashboard_metrics(?, ?, ?, ?, ?)",
+    [idBusiness, periods.todayStart, periods.tomorrowStart, periods.monthStart, periods.nextMonthStart],
   );
   const [chartsRows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_dashboard_charts_and_lists(?, ?)",
-    [idBusiness, year],
+    businessDateTimeQuery("CALL sp_get_dashboard_charts_and_lists(?, ?, ?, ?, ?)"),
+    [idBusiness, selectedYear, periods.monthStart, periods.nextMonthStart, periods.currentYear],
   );
 
   const metricsResult = metricsRows as unknown as DashboardMetricsRow[][];
@@ -202,16 +116,14 @@ export async function getDashboardDataService(
     AvailableDashboardYearRow[],
   ];
 
-  const purchaseFallback = await getPurchaseMetricsFallback(idBusiness);
-
   return {
-    metrics: mapMetrics(metricsResult[0]?.[0], purchaseFallback),
+    metrics: mapMetrics(metricsResult[0]?.[0]),
     recentSales: (chartsResult[0] ?? []).map(mapRecentSale),
     topProducts: (chartsResult[1] ?? []).map(mapTopProduct),
     salesByPaymentMethod: (chartsResult[2] ?? []).map(mapSalesByPaymentMethod),
     criticalStock: (chartsResult[3] ?? []).map(mapCriticalStock),
     monthlySales: (chartsResult[4] ?? []).map(mapMonthlySales),
-    selectedYear: year,
+    selectedYear,
     availableYears: (chartsResult[5] ?? []).map(function mapAvailableYear(row) {
       return toNumber(row.year);
     }),

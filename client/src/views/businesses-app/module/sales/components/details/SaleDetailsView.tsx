@@ -1,3 +1,5 @@
+import { formatBusinessDate as formatDate } from "@/helpers/businessDate";
+import { formatDate as formatScheduledDate } from "@/helpers/formatDate";
 import { salePricingLabel } from "../../helpers/wholesale-pricing.helpers";
 import { useSaleReturns } from "../../hooks/useSaleReturns";
 import { SaleReturnsSection } from "../returns/SaleReturnsSection";
@@ -43,7 +45,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatCurrency, formatDate } from "@/helpers";
+import { formatCurrency } from "@/helpers";
 import {
   OperationMetricCard,
   OperationTotals,
@@ -367,7 +369,7 @@ export const SaleDetailsView = ({
                 />
                 <InfoItem
                   label="Programada"
-                  value={sale.delivery.scheduledAt ? formatDate(sale.delivery.scheduledAt) : "Sin fecha"}
+                  value={sale.delivery.scheduledAt ? formatScheduledDate(sale.delivery.scheduledAt) : "Sin fecha"}
                 />
               </CardContent>
             </Card>

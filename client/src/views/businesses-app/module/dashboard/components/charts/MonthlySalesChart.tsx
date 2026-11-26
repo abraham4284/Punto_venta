@@ -1,3 +1,4 @@
+import { currentBusinessCalendar } from "@/helpers/businessDate";
 import { CalendarRange, TrendingUp } from "lucide-react";
 import {
   Bar,
@@ -75,11 +76,9 @@ const chartConfig = {
 const getVisibleData = (
   data: MonthlySales[],
   selectedYear: number,
+  calendar: ReturnType<typeof currentBusinessCalendar>,
 ): ChartDataItem[] => {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth() + 1;
-  const maxMonth = selectedYear === currentYear ? currentMonth : 12;
+  const maxMonth = selectedYear === calendar.year ? calendar.month : 12;
 
   return data
     .filter((item) => item.monthNumber <= maxMonth)
@@ -95,7 +94,8 @@ export const MonthlySalesChart = ({
   onYearChange,
   availableYears,
 }: Props) => {
-  const chartData = getVisibleData(data, selectedYear);
+  const calendar = currentBusinessCalendar();
+  const chartData = getVisibleData(data, selectedYear, calendar);
   const yearTotal = chartData.reduce(
     (total, item) => total + item.totalAmount,
     0,
@@ -112,7 +112,7 @@ export const MonthlySalesChart = ({
     return selected;
   }, null);
   const periodLabel =
-    selectedYear === new Date().getFullYear()
+    selectedYear === calendar.year
       ? `Enero - ${chartData.at(-1)?.monthName || "mes actual"} ${selectedYear}`
       : `Enero - Diciembre ${selectedYear}`;
 

@@ -1,3 +1,4 @@
+import { businessDateTimeQuery } from "@/helpers/business-datetime-query.helper.js";
 import { applyWholesalePricing, WholesalePricingError } from "../helpers/wholesale-pricing.helper.js";
 import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/db/db.js";
@@ -277,7 +278,7 @@ export async function getSalesService(
   filters: GetSalesFilters,
 ): Promise<PaginatedSalesResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    businessDateTimeQuery("CALL sp_get_sales(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
     [
       filters.idBusiness,
       filters.limit,
@@ -327,7 +328,7 @@ export async function getSaleByIdService(
   idSale: number,
 ): Promise<SaleWithDetailsResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_sale_by_id(?, ?)",
+    businessDateTimeQuery("CALL sp_get_sale_by_id(?, ?)"),
     [idBusiness, idSale],
   );
 
@@ -355,7 +356,7 @@ export async function cancelSaleService(
   data: CancelSalePayload,
 ): Promise<SaleWithDetailsResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_cancel_sale_and_revert_stock(?, ?, ?)",
+    businessDateTimeQuery("CALL sp_cancel_sale_and_revert_stock(?, ?, ?)"),
     [data.idSale, data.idBusiness, data.idUser],
   );
 

@@ -1,3 +1,4 @@
+import { formatBusinessDate as formatDate } from "@/helpers/businessDate";
 import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,12 +28,6 @@ type Props = {
   onPageChange: (page: number) => void;
 };
 
-const formatDate = (value: Date | string): string => {
-  return new Intl.DateTimeFormat("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
-};
 
 const formatMoney = (value: number): string => {
   return new Intl.NumberFormat("es-AR", {

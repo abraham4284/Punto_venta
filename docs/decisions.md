@@ -106,3 +106,9 @@ Decision: minimo unico configurable por negocio para todas las categorias, sin t
 Sales guarda pricingType historico; antiguas NULL sin backfill. Requests omitidos usan RETAIL para conservar precios explicitos/manuales y consumidores previos. WHOLESALE es explicito y exige unitPrice de catalogo DB; descuentos existentes se conservan y no contribuyen al candidato minimo. No se infiere una venta mayorista desde su importe. La UI previa a F10.2 no enviaba pricingType; la integracion explicita se implementa en F10.2.
 
 Consequences: defaults negocio false/null; settings existentes business.update reciben par enabled/minimum. Cabecera bloquea Customer antes de FK/INSERT y service valida/promueve en misma conexion sin cambiar ownership; persistencia comercial independiente de cancelaciones/refunds. Orders y su conversion quedan sin nuevas reglas (Sales RETAIL), no se agrega orders.pricing_type. Catalogo publico agrega precios/politica del slug configurado y mantiene price alias; sin costos ni login publico Customers. VITRUNO sigue externo, sin cambios en su repo/UX/WhatsApp. [Contratos](contracts.md), [despliegue](database.md), [evidencia](f10-1-wholesale-pricing-core-validation.md).
+
+## ADR-012 — Calendario comercial y DATETIME argentino
+
+Estado implementado en código, con aplicación SQL y gate real pendientes. Fecha 2026-11-25.
+
+El operador confirmó que Sales/Purchases guardan el reloj argentino en DATETIME. La zona comercial canónica es America/Argentina/Tucuman. Los filtros de días se validan como calendario y producen límites SQL inclusivo/exclusivo en ese mismo marco. Dashboard calcula una vez el período y lo pasa a SQL, sin usar el reloj de la sesión para definir hoy/mes. Los reads afectados convierten explícitamente DATETIME a instantes ISO y el frontend los representa en la zona comercial. El pool y los writes existentes conservan su configuración. [Contrato](contracts.md) · [Validación](sales-dashboard-business-date-validation.md).

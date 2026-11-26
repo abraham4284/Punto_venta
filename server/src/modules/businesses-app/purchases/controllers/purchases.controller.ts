@@ -1,3 +1,4 @@
+import { businessDateRange } from "@/helpers/business-time.helper.js";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import {
@@ -56,26 +57,6 @@ function parseNullableText(value: unknown): string | null {
 
   const parsed = value.trim();
   return parsed ? parsed : null;
-}
-
-function parseNullableDate(value: unknown, endOfDay: boolean): Date | null {
-  if (typeof value !== "string" || !value.trim()) {
-    return null;
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  if (endOfDay) {
-    date.setHours(23, 59, 59, 999);
-  } else {
-    date.setHours(0, 0, 0, 0);
-  }
-
-  return date;
 }
 
 function parsePurchaseStatus(value: unknown): PurchaseStatus | null {
@@ -162,8 +143,7 @@ export async function getPurchasesController(
       idSupplier: parseNullablePositiveInteger(req.query.idSupplier),
       idDeposit: parseNullablePositiveInteger(req.query.idDeposit),
       purchaseNumberSearch: parseNullableText(req.query.purchaseNumber),
-      startDate: parseNullableDate(req.query.startDate, false),
-      endDate: parseNullableDate(req.query.endDate, true),
+      ...businessDateRange(req.query.startDate, req.query.endDate),
     });
 
     return res.status(200).json({

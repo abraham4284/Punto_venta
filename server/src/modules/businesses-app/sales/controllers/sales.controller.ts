@@ -1,3 +1,4 @@
+import { businessDateRange } from "@/helpers/business-time.helper.js";
 import { deliveryDomainError } from "../../deliveries/helpers/delivery-errors.helper.js";
 import { WholesalePricingError } from "../helpers/wholesale-pricing.helper.js";
 import type { Request, Response } from "express";
@@ -20,7 +21,6 @@ import {
   saleIdParamSchema,
 } from "../validations/sales.validations.js";
 import {
-  parseNullableDate,
   parseNullablePositiveInteger,
   parseSaleDeliveryStatusFilter,
   parseSalePaymentStatus,
@@ -166,6 +166,7 @@ export async function getSalesController(
     const page = parsePositiveInteger(req.query.page, 1);
     const limit = parsePositiveInteger(req.query.limit, 15);
     const offset = (page - 1) * limit;
+    const dates = businessDateRange(req.query.startDate, req.query.endDate);
     const result = await getSalesService({
       idBusiness: req.user!.idBusiness,
       page,
@@ -175,8 +176,7 @@ export async function getSalesController(
       idPaymentMethod: parseNullablePositiveInteger(req.query.idPaymentMethod),
       status: parseSaleStatus(req.query.status),
       saleNumberSearch: parseNullableText(req.query.saleNumber),
-      startDate: parseNullableDate(req.query.startDate, false),
-      endDate: parseNullableDate(req.query.endDate, true),
+      ...dates,
       paymentStatus: parseSalePaymentStatus(req.query.paymentStatus),
       deliveryStatus: parseSaleDeliveryStatusFilter(req.query.deliveryStatus),
       settlementStatus: parseSaleSettlementStatus(req.query.settlementStatus),
