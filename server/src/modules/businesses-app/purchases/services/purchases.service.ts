@@ -1,3 +1,4 @@
+import { businessDateTimeQuery } from "@/helpers/business-datetime-query.helper.js";
 import type { RowDataPacket } from "mysql2";
 import { pool } from "@/db/db.js";
 import { safeEvaluateStockNotification } from "@/modules/notifications/services/notifications.service.js";
@@ -186,7 +187,7 @@ export async function getPurchasesService(
   filters: GetPurchasesFilters,
 ): Promise<PaginatedPurchasesResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_purchases_by_business(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    businessDateTimeQuery("CALL sp_get_purchases_by_business(?, ?, ?, ?, ?, ?, ?, ?, ?)"),
     [
       filters.idBusiness,
       filters.limit,
@@ -237,7 +238,7 @@ export async function getPurchaseByIdService(
   idPurchase: number,
 ): Promise<PurchaseWithDetailsResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_get_purchase_by_id(?, ?)",
+    businessDateTimeQuery("CALL sp_get_purchase_by_id(?, ?)"),
     [idBusiness, idPurchase],
   );
 
@@ -255,7 +256,7 @@ export async function cancelPurchaseService(
   data: CancelPurchaseInput,
 ): Promise<PurchaseWithDetailsResponse> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    "CALL sp_cancel_purchase(?, ?)",
+    businessDateTimeQuery("CALL sp_cancel_purchase(?, ?)"),
     [data.idPurchase, data.idBusiness],
   );
 

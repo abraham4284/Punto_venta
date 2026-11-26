@@ -1,3 +1,4 @@
+import { formatBusinessDate as formatDate } from "@/helpers/businessDate";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -21,14 +22,6 @@ const formatMoney = (value: number): string => {
   }).format(value);
 };
 
-const formatDate = (value: Date | string): string => {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-};
 
 export const RecentSalesTable = ({ sales }: Props) => {
   return (

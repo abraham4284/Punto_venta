@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { AxiosError } from "axios";
 import { getDashboardMetrics } from "../api/dashboard.api";
 import type { DashboardData } from "../types";
+import { currentBusinessYear } from "@/helpers/businessDate";
 
 type ApiErrorResponse = {
   status: boolean;
@@ -12,7 +13,7 @@ export const useDashboard = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(
     null,
   );
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(currentBusinessYear);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

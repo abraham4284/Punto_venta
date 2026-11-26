@@ -1,5 +1,13 @@
 # Base de datos canonica
 
+## Calendario comercial de Ventas y Dashboard
+
+El operador confirmó DATETIME guardados en hora argentina. Sales/Purchases usan NOW() y el pool no declara timezone. La corrección mantiene los writes y aplica conversión explícita solo en lecturas afectadas. Los límites se pasan como strings SQL argentinos, con inicio inclusivo y fin exclusivo.
+
+Con autorización y destino confirmado, respaldar definiciones y coordinar una ventana para reimportar completos [sales.sql](../server/src/db/procedures/sales.sql), [purchases.sql](../server/src/db/procedures/purchases.sql) y [dashboard.sql](../server/src/db/procedures/dashboard.sql) y desplegar backend/frontend compatibles. `sp_get_sales` y `sp_get_purchases_by_business` conservan sus 12 y 9 entradas, pero `p_endDate` pasa a ser exclusivo. `sp_get_dashboard_metrics` pasa de 1 a 5 entradas (negocio, inicio de hoy, mañana, mes y mes siguiente). `sp_get_dashboard_charts_and_lists` pasa de 2 a 5 (negocio, año seleccionado, inicio del mes, mes siguiente y año comercial actual).
+
+Verificar las definiciones instaladas y ejecutar el gate autorizado de test antes de promover local/test → QA → producción. Para revertir, restaurar procedures y backend/frontend previos en la misma ventana. El DDL de procedures tiene commits implícitos. El baseline regenerado corresponde a instalaciones limpias. No se necesita migración estructural ni actualización de históricos. SQL pendiente de aplicación por ambiente. [Validación](sales-dashboard-business-date-validation.md).
+
 ## Fuentes y operacion
 
 La fuente SQL vigente esta en [server/src/db](../server/src/db/README.md). El detalle de instalacion permanece alli; [BASELINE_AUDIT](../server/src/db/BASELINE_AUDIT.md) conserva auditoria historica, no sustituye el schema actual.

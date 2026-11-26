@@ -1,12 +1,14 @@
 # Estado vigente de Cajora
 
+Al 2026-11-25, calendario comercial corregido sobre `2644ce6` en `dev`. El operador confirma DATETIME en hora argentina. Historial de Ventas/Compras usa fin exclusivo y Dashboard comparte límites comerciales. Lecturas y presentación afectadas usan `America/Argentina/Tucuman`. 347 tests backend, 29 frontend, builds/typecheck y baseline aprobados. SQL y gate real pendientes. [Evidencias](sales-dashboard-business-date-validation.md).
+
 Pulido visual sobre `dfa31f9` en `dev`. Etiquetas y consulta F8 muestran Minorista/Mayorista con jerarquía equivalente y acentos VITRUNO. F8 oculta precios mayoristas ausentes y comparte el formato ARS de las etiquetas. 59 pruebas, build, lint acotado y QA con fixtures responsive aprobados. [Evidencias](product-price-labels-validation.md).
 
 Al 2026-11-22, etiquetas de precios implementadas sobre `c9d7926` en `dev`. Productos permite selección manual entre páginas o el conjunto filtrado completo. El endpoint propio limita la lectura a 2.000 productos y la salida A4 usa 21 etiquetas por hoja con precios persistidos. Smoke con API de QA y prueba física pendientes. [Evidencias](product-price-labels-validation.md).
 
 Al 2026-11-18, gestión manual de condición comercial en Clientes implementada sobre `dbb1a31` en `dev`. Minorista sigue siendo el default y el paso de Mayorista a Minorista requiere confirmación en la UI. Sales conserva el mínimo inicial y la promoción automática. Reimportación de procedures y gate MySQL/HTTP pendientes. [Evidencias](customer-manual-pricing-tier-validation.md).
 
-Revisado: 2026-11-22. Rama inspeccionada: `dev`.
+Revisado: 2026-11-25. Rama inspeccionada: `dev`.
 
 INV-CAT-P2 implementada sobre `32372cb`. Stock permite aplicar un filtro multicategoría y preparar una planilla A4 con fotos y espacio de conteo físico para todas las filas coincidentes por depósito. Smoke autenticado e impresión con imágenes reales de QA pendientes. [Evidencias](inv-cat-p2-validation.md).
 

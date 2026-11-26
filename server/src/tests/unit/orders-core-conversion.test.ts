@@ -31,7 +31,8 @@ beforeEach(function reset() {
   order = { idOrder: 9, ...actor, idCustomer: 3, idDeposit: 2, expected_payment_method_id: 88, order_number: "PED-test", status: "READY", fulfillment_type: "PICKUP", customer_snapshot: { fullName: "Ana historica" }, subtotal: "10", discount_total: "1", delivery_fee: "0", total: "9", observation: null } as unknown as OrderDbRow;
   details = [{ idOrderDetail: 1, idOrder: 9, idProduct: 5, product_name: "Historico", barcode: "001", unit_type: "UNIT", sale_mode: "ON_ORDER", quantity: "2", unit_price: "5", discount: "1", total: "9" } as OrderDetailDbRow];
   mocks.getConnection.mockResolvedValue({ query: mocks.query, beginTransaction: mocks.begin, commit: mocks.commit, rollback: mocks.rollback, release: mocks.release });
-  mocks.poolQuery.mockImplementation(async function read(sql: string) {
+  mocks.poolQuery.mockImplementation(async function read(input: string | { sql: string }) {
+    const sql = typeof input === "string" ? input : input.sql;
     if (sql.includes("sp_get_sale_by_id")) return sets([{ idSale: 20, idOrder: sales[0]?.idOrder ?? null, sale_number: "VEN-test", delivery_fee: order.delivery_fee, subtotal: 10, discount_total: 1, total: order.total, status: saleStatus }], [], [], []);
     return [[]];
   });

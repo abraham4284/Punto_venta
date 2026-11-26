@@ -1,6 +1,8 @@
 # Roadmap operativo
 
-Revisado: 2026-11-22. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+Revisado: 2026-11-25. `[x]` indica fase cerrada con el alcance de validacion indicado, no certificacion de produccion. Estado tecnico y limites: [project-state](project-state.md).
+
+- [ ] Calendario comercial de Ventas, Compras y Dashboard implementado y validado sin DB. Pendiente reimportar los tres archivos de procedures y ejecutar el gate HTTP/MySQL autorizado. [Evidencias](sales-dashboard-business-date-validation.md).
 
 - [x] F0 — Canonical documentation foundation. Validacion documental completada; evidencias en [f00-documentation-validation](f00-documentation-validation.md).
 - [x] F0.1 — Hierarchical documentation by subsystem. Validacion documental completada; [evidencias](f00-1-documentation-hierarchy-validation.md).
