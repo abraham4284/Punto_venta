@@ -47,8 +47,8 @@ export interface GetPurchasesFilters {
   idSupplier?: number | null;
   idDeposit?: number | null;
   purchaseNumberSearch?: string | null;
-  startDate?: Date | null;
-  endDate?: Date | null;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 export interface PurchaseDbRow {

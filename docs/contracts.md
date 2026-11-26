@@ -46,6 +46,12 @@ BUSINESS suele responder `{ status: true, message, data }`; platform usa `succes
 
 Tambien existen 413/429 por limites y 500 para fallos inesperados. No todos los controllers mapean iguales casos igual. Filosofia: mensajes seguros y errores de campo utiles, sin exponer SQL/secretos; mantener compatibilidad y revisar mapeo real del modulo.
 
+## Calendario comercial de Ventas, Compras y Dashboard
+
+`GET /api/sales` y `GET /api/purchases` conservan `startDate`/`endDate` como YYYY-MM-DD opcionales. Los extremos representan días comerciales argentinos. El inicio es inclusivo y el día final se incluye completo mediante un límite exclusivo al inicio del día siguiente. Fechas imposibles, formatos de instante y rangos invertidos devuelven 400. Omitir un extremo deja el intervalo abierto.
+
+`GET /api/dashboard/metrics` mantiene su respuesta y `year` opcional. Hoy, mes actual y año por defecto se calculan en `America/Argentina/Tucuman`. Ventas y operaciones de hoy coinciden con el Historial del mismo día con `status=COMPLETED`. Compras usa ese mismo calendario. Las fechas JSON siguen siendo ISO, obtenidas desde DATETIME argentino confirmado por el operador y mostradas en la zona comercial. [Validación](sales-dashboard-business-date-validation.md).
+
 ## Etiquetas de precios de productos
 
 `GET /api/products/price-labels` requiere sesión BUSINESS y `products.view`. El negocio proviene de la sesión. Acepta `search` opcional (hasta 150 caracteres, nombre/código/descripción), `idProductCategory` (entero positivo seguro), `isActive=true|false` y `ids` como CSV de 1 a 2.000 IDs positivos seguros, decimales sin ceros iniciales ni espacios. Los duplicados se deduplican y los filtros se intersectan con AND. Omitir `isActive` incluye activos e inactivos. Los campos desconocidos, el tenant enviado por query, IDs vacíos/malformados y paginación producen 400 con errores por campo.

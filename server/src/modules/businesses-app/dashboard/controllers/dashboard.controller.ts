@@ -19,8 +19,7 @@ export async function getDashboardDataController(
   try {
     const query = dashboardQuerySchema.parse(req.query);
     const idBusiness = req.user!.idBusiness;
-    const selectedYear = query.year ?? new Date().getFullYear();
-    const result = await getDashboardDataService(idBusiness, selectedYear);
+    const result = await getDashboardDataService(idBusiness, query.year);
 
     return res.status(200).json({
       status: true,

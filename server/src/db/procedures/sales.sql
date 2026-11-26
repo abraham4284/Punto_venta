@@ -683,7 +683,7 @@ BEGIN
       OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
-    AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
+    AND (p_endDate IS NULL OR s.sale_date < p_endDate)
   GROUP BY
     s.idSale,
     s.sale_number,
@@ -815,7 +815,7 @@ BEGIN
         OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
       )
       AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
-      AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
+      AND (p_endDate IS NULL OR s.sale_date < p_endDate)
     GROUP BY
       s.idSale,
       s.status,

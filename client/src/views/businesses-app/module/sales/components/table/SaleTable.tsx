@@ -1,3 +1,4 @@
+import { formatBusinessDate as formatDate } from "@/helpers/businessDate";
 import { saleCancellationReason } from "../../helpers/sale-cancellation.helpers";
 import { useState } from "react";
 import { Ban, Eye, Printer } from "lucide-react";
@@ -45,15 +46,6 @@ const formatMoney = (value: number): string => {
   }).format(value);
 };
 
-const formatDate = (value: string): string => {
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-};
 
 const deliveryStatusLabels: Record<NonNullable<SaleResponse["deliveryStatus"]>, string> = {
   PENDING: "Pendiente",

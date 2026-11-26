@@ -89,21 +89,3 @@ export function parseSaleSettlementStatus(
 
   throw new Error("El estado de rendicion seleccionado no es valido");
 }
-
-export function parseNullableDate(value: unknown, endOfDay: boolean): Date | null {
-  if (typeof value !== "string" || value.trim() === "") {
-    return null;
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  if (endOfDay) {
-    date.setHours(23, 59, 59, 999);
-  }
-
-  return date;
-}

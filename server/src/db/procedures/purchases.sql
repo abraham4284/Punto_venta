@@ -494,7 +494,7 @@ BEGIN
       OR p.purchase_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_purchaseNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR p.purchase_date >= p_startDate)
-    AND (p_endDate IS NULL OR p.purchase_date <= p_endDate)
+    AND (p_endDate IS NULL OR p.purchase_date < p_endDate)
   GROUP BY
     p.idPurchase,
     p.purchase_number,
@@ -537,7 +537,7 @@ BEGIN
       OR p.purchase_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_purchaseNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR p.purchase_date >= p_startDate)
-    AND (p_endDate IS NULL OR p.purchase_date <= p_endDate);
+    AND (p_endDate IS NULL OR p.purchase_date < p_endDate);
 END$$
 
 DELIMITER ;

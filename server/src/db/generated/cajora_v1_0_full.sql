@@ -12443,7 +12443,7 @@ BEGIN
       OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
-    AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
+    AND (p_endDate IS NULL OR s.sale_date < p_endDate)
   GROUP BY
     s.idSale,
     s.sale_number,
@@ -12575,7 +12575,7 @@ BEGIN
         OR s.sale_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_saleNumberSearch COLLATE utf8mb4_unicode_ci, '%')
       )
       AND (p_startDate IS NULL OR s.sale_date >= p_startDate)
-      AND (p_endDate IS NULL OR s.sale_date <= p_endDate)
+      AND (p_endDate IS NULL OR s.sale_date < p_endDate)
     GROUP BY
       s.idSale,
       s.status,
@@ -13357,7 +13357,7 @@ BEGIN
       OR p.purchase_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_purchaseNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR p.purchase_date >= p_startDate)
-    AND (p_endDate IS NULL OR p.purchase_date <= p_endDate)
+    AND (p_endDate IS NULL OR p.purchase_date < p_endDate)
   GROUP BY
     p.idPurchase,
     p.purchase_number,
@@ -13400,7 +13400,7 @@ BEGIN
       OR p.purchase_number COLLATE utf8mb4_unicode_ci LIKE CONCAT('%', p_purchaseNumberSearch COLLATE utf8mb4_unicode_ci, '%')
     )
     AND (p_startDate IS NULL OR p.purchase_date >= p_startDate)
-    AND (p_endDate IS NULL OR p.purchase_date <= p_endDate);
+    AND (p_endDate IS NULL OR p.purchase_date < p_endDate);
 END$$
 
 DELIMITER ;
@@ -13526,7 +13526,11 @@ DROP PROCEDURE IF EXISTS sp_get_dashboard_metrics;
 DELIMITER $$
 
 CREATE PROCEDURE sp_get_dashboard_metrics(
-  IN p_idBusiness INT
+  IN p_idBusiness INT,
+  IN p_todayStart DATETIME,
+  IN p_tomorrowStart DATETIME,
+  IN p_monthStart DATETIME,
+  IN p_nextMonthStart DATETIME
 )
 BEGIN
   SELECT
@@ -13535,7 +13539,8 @@ BEGIN
       FROM sales s
       WHERE s.idBusiness = p_idBusiness
         AND s.status = 'COMPLETED'
-        AND DATE(s.sale_date) = CURDATE()
+        AND s.sale_date >= p_todayStart
+        AND s.sale_date < p_tomorrowStart
     ), 0) AS todaySalesTotal,
 
     COALESCE((
@@ -13543,8 +13548,8 @@ BEGIN
       FROM sales s
       WHERE s.idBusiness = p_idBusiness
         AND s.status = 'COMPLETED'
-        AND YEAR(s.sale_date) = YEAR(CURDATE())
-        AND MONTH(s.sale_date) = MONTH(CURDATE())
+        AND s.sale_date >= p_monthStart
+        AND s.sale_date < p_nextMonthStart
     ), 0) AS monthSalesTotal,
 
     COALESCE((
@@ -13552,7 +13557,8 @@ BEGIN
       FROM sales s
       WHERE s.idBusiness = p_idBusiness
         AND s.status = 'COMPLETED'
-        AND DATE(s.sale_date) = CURDATE()
+        AND s.sale_date >= p_todayStart
+        AND s.sale_date < p_tomorrowStart
     ), 0) AS todaySalesCount,
 
     COALESCE((
@@ -13560,8 +13566,8 @@ BEGIN
       FROM sales s
       WHERE s.idBusiness = p_idBusiness
         AND s.status = 'COMPLETED'
-        AND YEAR(s.sale_date) = YEAR(CURDATE())
-        AND MONTH(s.sale_date) = MONTH(CURDATE())
+        AND s.sale_date >= p_monthStart
+        AND s.sale_date < p_nextMonthStart
     ), 0) AS monthAverageTicket,
 
     COALESCE((
@@ -13569,7 +13575,8 @@ BEGIN
       FROM purchases p
       WHERE p.idBusiness = p_idBusiness
         AND p.status = 'COMPLETED'
-        AND DATE(p.purchase_date) = UTC_DATE()
+        AND p.purchase_date >= p_todayStart
+        AND p.purchase_date < p_tomorrowStart
     ), 0) AS todayPurchasesTotal,
 
     COALESCE((
@@ -13577,8 +13584,8 @@ BEGIN
       FROM purchases p
       WHERE p.idBusiness = p_idBusiness
         AND p.status = 'COMPLETED'
-        AND YEAR(p.purchase_date) = YEAR(UTC_DATE())
-        AND MONTH(p.purchase_date) = MONTH(UTC_DATE())
+        AND p.purchase_date >= p_monthStart
+        AND p.purchase_date < p_nextMonthStart
     ), 0) AS monthPurchasesTotal,
 
     COALESCE((
@@ -13586,7 +13593,8 @@ BEGIN
       FROM purchases p
       WHERE p.idBusiness = p_idBusiness
         AND p.status = 'COMPLETED'
-        AND DATE(p.purchase_date) = UTC_DATE()
+        AND p.purchase_date >= p_todayStart
+        AND p.purchase_date < p_tomorrowStart
     ), 0) AS todayPurchasesCount,
 
     COALESCE((
@@ -13594,8 +13602,8 @@ BEGIN
       FROM purchases p
       WHERE p.idBusiness = p_idBusiness
         AND p.status = 'COMPLETED'
-        AND YEAR(p.purchase_date) = YEAR(UTC_DATE())
-        AND MONTH(p.purchase_date) = MONTH(UTC_DATE())
+        AND p.purchase_date >= p_monthStart
+        AND p.purchase_date < p_nextMonthStart
     ), 0) AS monthAveragePurchase,
 
     COALESCE((
@@ -13641,7 +13649,10 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_get_dashboard_charts_and_lists(
   IN p_idBusiness INT,
-  IN p_year INT
+  IN p_year INT,
+  IN p_monthStart DATETIME,
+  IN p_nextMonthStart DATETIME,
+  IN p_currentYear INT
 )
 BEGIN
   SELECT
@@ -13691,8 +13702,8 @@ BEGIN
   WHERE sp.idBusiness = p_idBusiness
     AND sp.status = 'CONFIRMED'
     AND s.status = 'COMPLETED'
-    AND YEAR(s.sale_date) = YEAR(CURDATE())
-    AND MONTH(s.sale_date) = MONTH(CURDATE())
+    AND s.sale_date >= p_monthStart
+    AND s.sale_date < p_nextMonthStart
   GROUP BY COALESCE(pm.name, 'Sin metodo de pago')
   ORDER BY totalAmount DESC;
 
@@ -13737,14 +13748,14 @@ BEGIN
   LEFT JOIN sales s
     ON s.idBusiness = p_idBusiness
     AND s.status = 'COMPLETED'
-    AND YEAR(s.sale_date) = p_year
-    AND MONTH(s.sale_date) = months.monthNumber
+    AND s.sale_date >= TIMESTAMPADD(MONTH, months.monthNumber - 1, STR_TO_DATE(CONCAT(p_year, '-01-01'), '%Y-%m-%d'))
+    AND s.sale_date < TIMESTAMPADD(MONTH, months.monthNumber, STR_TO_DATE(CONCAT(p_year, '-01-01'), '%Y-%m-%d'))
   GROUP BY months.monthNumber, months.monthName
   ORDER BY months.monthNumber ASC;
 
   SELECT availableYears.year
   FROM (
-    SELECT YEAR(CURDATE()) AS year
+    SELECT p_currentYear AS year
     UNION
     SELECT DISTINCT YEAR(s.sale_date) AS year
     FROM sales s

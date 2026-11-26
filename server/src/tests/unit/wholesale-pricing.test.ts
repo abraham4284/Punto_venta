@@ -62,7 +62,8 @@ beforeEach(function setup() {
     if (sql.includes("FROM products")) return [product ? [product] : []];
     return [[]];
   });
-  mocks.poolQuery.mockImplementation(async function query(sql: string) {
+  mocks.poolQuery.mockImplementation(async function query(input: string | { sql: string }) {
+    const sql = typeof input === "string" ? input : input.sql;
     if (sql.includes("sp_get_sale_by_id")) return [[[{ idSale: 20, pricing_type: "WHOLESALE" }], [], [], []]];
     if (sql.includes("business") || sql.includes("sp_storefront_get_catalog")) return [[[{ ...policy, name: "Tenant", slug: "selected-tenant" }]]];
     if (sql.includes("sp_storefront_get_products")) return [[[publicRow()], [{ totalRecords: 1 }]]];

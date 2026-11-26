@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { currentBusinessDate } from "@/helpers/business-time.helper.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import { getDashboardDataService } from "@/modules/businesses-app/dashboard/services/dashboard.service.js";
 import { createOperationalBusinessFixture } from "@/tests/fixtures/business.fixture.js";
@@ -23,7 +24,7 @@ async function createDashboardPurchase(input: {
       input.idUser,
       `PUR-DASH-${randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase()}`,
       `dash-purchase-${randomUUID()}`,
-      input.purchaseDate ?? new Date().toISOString().slice(0, 19).replace("T", " "),
+      input.purchaseDate ?? currentBusinessDate(new Date()) + " 12:00:00",
       input.total,
       input.total,
       input.status ?? "COMPLETED",
